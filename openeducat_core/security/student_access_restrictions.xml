@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- ==================== ОГРАНИЧЕНИЯ ДОСТУПА ДЛЯ УЧЕНИКОВ ==================== -->
+    
+    <!-- Ограничение доступа к контактам для учеников -->
+    <record model="ir.rule" id="student_partner_access_restriction">
+        <field name="name">Students: Limited Partner Access</field>
+        <field name="model_id" ref="base.model_res_partner"/>
+        <field name="groups" eval="[(4, ref('__custom__.group_op_students'))]"/>
+        <field name="domain_force">[('id', '=', user.partner_id.id)]</field>
+        <field name="perm_read" eval="True"/>
+        <field name="perm_write" eval="False"/>
+        <field name="perm_create" eval="False"/>
+        <field name="perm_unlink" eval="False"/>
+    </record>
+
+    <!-- Полный запрет доступа к сотрудникам для учеников -->
+    <record model="ir.rule" id="student_employee_access_restriction">
+        <field name="name">Students: No Employee Access</field>
+        <field name="model_id" ref="hr.model_hr_employee"/>
+        <field name="groups" eval="[(4, ref('__custom__.group_op_students'))]"/>
+        <field name="domain_force">[(0, '=', 1)]</field>
+        <field name="perm_read" eval="True"/>
+        <field name="perm_write" eval="True"/>
+        <field name="perm_create" eval="True"/>
+        <field name="perm_unlink" eval="True"/>
+    </record>
+
+    <!-- Дополнительное правило для полного скрытия сотрудников -->
+    <record model="ir.rule" id="student_employee_access_restriction_2">
+        <field name="name">Students: No Employee List Access</field>
+        <field name="model_id" ref="hr.model_hr_employee"/>
+        <field name="groups" eval="[(4, ref('__custom__.group_op_students'))]"/>
+        <field name="domain_force">['&amp;', ('id', '=', 0), ('id', '!=', 0)]</field>
+        <field name="perm_read" eval="True"/>
+        <field name="perm_write" eval="True"/>
+        <field name="perm_create" eval="True"/>
+        <field name="perm_unlink" eval="True"/>
+    </record>
+    
+    <!-- Создание специального меню для учеников без доступа к сотрудникам -->
+    <record id="menu_student_main" model="ir.ui.menu">
+        <field name="name">Образование</field>
+        <field name="groups_id" eval="[(4, ref('__custom__.group_op_students'))]"/>
+        <field name="sequence" eval="10"/>
+    </record>
+    
+    <record id="menu_student_attendance" model="ir.ui.menu">
+        <field name="name">Посещаемость</field>
+        <field name="parent_id" ref="menu_student_main"/>
+        <field name="groups_id" eval="[(4, ref('__custom__.group_op_students'))]"/>
+        <field name="sequence" eval="20"/>
+    </record>
+    
+    <record id="menu_student_grades" model="ir.ui.menu">
+        <field name="name">Оценки</field>
+        <field name="parent_id" ref="menu_student_main"/>
+        <field name="groups_id" eval="[(4, ref('__custom__.group_op_students'))]"/>
+        <field name="sequence" eval="30"/>
+    </record>
+
+    <!-- Ограничение доступа к другим пользователям для учеников -->
+    <record model="ir.rule" id="student_users_access_restriction">
+        <field name="name">Students: Own User Record Only</field>
+        <field name="model_id" ref="base.model_res_users"/>
+        <field name="groups" eval="[(4, ref('__custom__.group_op_students'))]"/>
+        <field name="domain_force">[('id', '=', user.id)]</field>
+    </record>
+
+    <!-- Ограничение доступа к компаниям для учеников -->
+    <record model="ir.rule" id="student_company_access_restriction">
+        <field name="name">Students: Limited Company Access</field>
+        <field name="model_id" ref="base.model_res_company"/>
+        <field name="groups" eval="[(4, ref('__custom__.group_op_students'))]"/>
+        <field name="domain_force">[('id', 'in', company_ids)]</field>
+    </record>
+    
+    <!-- Создание специального меню для учеников без доступа к сотрудникам -->
+    <record id="menu_student_main" model="ir.ui.menu">
+        <field name="name">Образование</field>
+        <field name="groups_id" eval="[(4, ref('__custom__.group_op_students'))]"/>
+        <field name="sequence" eval="10"/>
+    </record>
+    
+    <record id="menu_student_attendance" model="ir.ui.menu">
+        <field name="name">Посещаемость</field>
+        <field name="parent_id" ref="menu_student_main"/>
+        <field name="groups_id" eval="[(4, ref('__custom__.group_op_students'))]"/>
+        <field name="sequence" eval="20"/>
+    </record>
+    
+    <record id="menu_student_grades" model="ir.ui.menu">
+        <field name="name">Оценки</field>
+        <field name="parent_id" ref="menu_student_main"/>
+        <field name="groups_id" eval="[(4, ref('__custom__.group_op_students'))]"/>
+        <field name="sequence" eval="30"/>
+    </record>
+</odoo>

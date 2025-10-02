@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <record model="ir.ui.view" id="student_grades_by_date_form_view">
+        <field name="name">student.grades.by.date.form</field>
+        <field name="model">student.grades.by.date</field>
+        <field name="arch" type="xml">
+            <form string="Student Grades by Date">
+                <group col="4">
+                    <field name="from_date"/>
+                    <field name="to_date"/>
+                    <field name="subject_id"/>
+                    <field name="faculty_id"/>
+                    <field name="batch_id"/>
+                </group>
+                <footer>
+                    <button name="print_report" string="Print" type="object" default_focus="1" class="oe_highlight"/>
+                    <button string="Cancel" class="btn btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_student_grades_by_date_wizard" model="ir.actions.act_window">
+        <field name="name">Student Grades by Date</field>
+        <field name="res_model">student.grades.by.date</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+
+</odoo>

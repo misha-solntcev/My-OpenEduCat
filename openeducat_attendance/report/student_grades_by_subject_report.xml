@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+        <template id="student_grades_by_subject_report">
+            <t t-call="web.html_container">
+                <t t-call="web.external_layout">
+                    <div class="page">
+                        <br></br>
+                        <br></br>
+                        <br></br>
+                        <div class="text-center">
+                            <h3>
+                                <strong>Отчет по оценкам студента по предметам</strong>
+                            </h3>
+                        </div>
+                        <br></br>
+                        <div class="row mt24">
+                            <div style="width:50%; margin-left:15px;">
+                                <b>Имя студента:</b>
+                                <span t-esc="get_student_name"/>
+                            </div>
+                            <div style="width:50%; margin-left:15px;">
+                                <b>С даты:</b>
+                                <span t-esc="from_date" t-options="{'widget':'date'}"/>
+                                <b>По дату:</b>
+                                <span t-esc="to_date" t-options="{'widget':'date'}"/>
+                            </div>
+                        </div>
+                        <br/>
+                        <table class="table table-bordered">
+                            <thead class="text-center"
+                                   style="background-color:#eeeeee; font-size:14px; font-weight:600;">
+                                <th class="text-center">Предмет</th>
+                                <th class="text-center">Оценки</th>
+                                <th class="text-center">Средняя оценка</th>
+                            </thead>
+                            <tbody class="text-center" style="font-size:12px;">
+                                <t t-foreach="get_grades_by_subject" t-as="subject_data">
+                                    <tr>
+                                        <td class="text-center">
+                                            <span t-esc="subject_data['subject_name']"/>
+                                        </td>
+                                        <td class="text-center">
+                                            <t t-foreach="subject_data['grades']" t-as="grade">
+                                                <span t-esc="grade"/>
+                                                <t t-if="not grade_last"> </t>
+                                            </t>
+                                        </td>
+                                        <td class="text-center">
+                                            <span t-esc="subject_data['average']"/>
+                                        </td>
+                                    </tr>
+                                </t>
+                                <tr>
+                                    <td class="text-center">
+                                        <b>Общая средняя оценка</b>
+                                    </td>
+                                    <td class="text-center">
+                                        <!-- Empty cell for grades column -->
+                                    </td>
+                                    <td class="text-center">
+                                        <b>
+                                            <span t-esc="get_overall_average"/>
+                                        </b>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </t>
+            </t>
+        </template>
+</odoo>

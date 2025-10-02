@@ -1,0 +1,243 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <!-- Определение дерева и формы для модели op.subject.grades -->
+    <record id="view_op_subject_grades_tree" model="ir.ui.view">
+        <field name="name">op.subject.grades.tree</field>
+        <field name="model">op.subject.grades</field>
+        <field name="priority" eval="8"/>
+        <field name="arch" type="xml">
+            <list string="Subject Grades">
+                <header>
+                    <button name="%(openeducat_attendance.action_op_update_subject_grades)d" type="action" string="Обновить оценки по предметам" class="btn btn-primary" groups="openeducat_attendance.group_op_attendance_manager"/>
+                </header>
+                <field name="student_id"/>
+                <field name="subject_id"/>
+                <field name="batch_id"/>
+                <field name="average_mark"/>
+                <field name="total_classes"/>
+                <field name="present_classes"/>
+                <field name="last_attendance_date"/>
+                <field name="behaviors"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_op_subject_grades_form" model="ir.ui.view">
+        <field name="name">op.subject.grades.form</field>
+        <field name="model">op.subject.grades</field>
+        <field name="priority" eval="8"/>
+        <field name="arch" type="xml">
+            <form string="Subject Grades">
+                <header>
+                    <button name="%(openeducat_attendance.action_op_update_subject_grades)d" type="action" string="Обновить оценки по предметам" class="btn btn-primary" groups="openeducat_attendance.group_op_attendance_manager"/>
+                </header>
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="student_id"/>
+                            <field name="subject_id"/>
+                            <field name="batch_id"/>
+                        </group>
+                        <group>
+                            <field name="average_mark"/>
+                            <field name="total_classes"/>
+                            <field name="present_classes"/>
+                            <field name="last_attendance_date"/>
+                        </group>
+                    </group>
+                    <group string="All Marks">
+                        <field name="marks" nolabel="1"/>
+                    </group>
+                    <group string="All Behaviors">
+                        <field name="behaviors" nolabel="1"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- Определение поиска для модели op.subject.grades -->
+    <record id="view_op_subject_grades_search" model="ir.ui.view">
+        <field name="name">op.subject.grades.search</field>
+        <field name="model">op.subject.grades</field>
+        <field name="priority" eval="8"/>
+        <field name="arch" type="xml">
+            <search string="Subject Grades">
+                <field name="student_id"/>
+                <field name="subject_id"/>
+                <field name="batch_id"/>
+                <field name="average_mark"/>
+                <newline/>
+                <group expand="0" string="Group By...">
+                    <filter string="Student" name="group_by_student"
+                            domain="[]" context="{'group_by':'student_id'}"/>
+                    <filter string="Subject" name="group_by_subject"
+                            domain="[]" context="{'group_by':'subject_id'}"/>
+                    <filter string="Batch" name="group_by_batch"
+                            domain="[]" context="{'group_by':'batch_id'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- Определение Kanban-представления для модели op.subject.grades -->
+    <record id="view_op_subject_grades_kanban" model="ir.ui.view">
+        <field name="name">op.subject.grades.kanban</field>
+        <field name="model">op.subject.grades</field>
+        <field name="arch" type="xml">
+            <kanban create="false" group_by="batch_id" sample="1" default_order="student_id, subject_id">
+                <field name="student_id"/>
+                <field name="subject_id"/>
+                <field name="batch_id"/>
+                <field name="average_mark"/>
+                <field name="total_classes"/>
+                <field name="present_classes"/>
+                <field name="last_attendance_date"/>
+                <field name="marks"/>
+                <field name="behaviors"/>
+                <field name="textbook_image"/>
+                <templates>
+                    <t t-name="card" class="flex-row">
+                        <aside class="o_kanban_aside_full">
+                            <field name="textbook_image" widget="image" class="w-100" options="{'img_class': 'object-fit-contain w-100 h-100'}"/>
+                        </aside>
+                        <main class="ps-2 ps-md-0">
+                            <h5 class="mb-1 fw-bold text">
+                                <field name="subject_id"/>
+                            </h5>
+                            <p class="mb-1 text-body-secondary small">
+                                <strong>Ученик:</strong> <field name="student_id"/>
+                            </p>
+                            <p class="mb-1 text-body-secondary small">
+                                <strong>Класс:</strong> <field name="batch_id"/>
+                            </p>
+                            <p class="mb-1 text-body-secondary small">
+                                <strong>Средняя оценка:</strong> <span t-esc="record.average_mark.value"/>
+                            </p>
+                            <!-- Отображение оценок в виде бейджей в футере карточки -->
+                            <div class="marks-badges">
+                                <t t-if="record.marks.value">
+                                    <t t-foreach="record.marks.value.split(',')" t-as="mark">
+                                        <!-- Используем правильный подход для удаления пробелов -->
+                                        <t t-set="final_mark" t-value="('' + mark).trim()"/>
+                                        <t t-if="final_mark">
+                                            <t t-if="final_mark == '2'">
+                                                <span class="badge fw-bold" style="background-color: #fff0f6; color: #d6336c; font-size: 12px; margin-right: 2px;">
+                                                    <t t-esc="final_mark"/>
+                                                </span>
+                                            </t>
+                                            <t t-elif="final_mark == '3'">
+                                                <span class="badge fw-bold" style="background-color: #fff3bf; color: #997404; font-size: 12px; margin-right: 2px;">
+                                                    <t t-esc="final_mark"/>
+                                                </span>
+                                            </t>
+                                            <t t-elif="final_mark == '4'">
+                                                <span class="badge fw-bold" style="background-color: #ebfbee; color: #37b24d; font-size: 12px; margin-right: 2px;">
+                                                    <t t-esc="final_mark"/>
+                                                </span>
+                                            </t>
+                                            <t t-elif="final_mark == '5'">
+                                                <span class="badge fw-bold" style="background-color: #e7f5ff; color: #1c7ed6; font-size: 12px; margin-right: 2px;">
+                                                    <t t-esc="final_mark"/>
+                                                </span>
+                                            </t>
+                                            <t t-else="">
+                                                <span class="badge fw-bold" style="background-color: #f8f9fa; color: #495057; font-size: 12px; margin-right: 2px;">
+                                                    <t t-esc="final_mark"/>
+                                                </span>
+                                            </t>
+                                        </t>
+                                    </t>
+                                </t>
+                            </div>
+                            
+                            <!-- Разделитель между оценками и поведением -->
+                            <div class="divider" style="height: 1px; background-color: #dee2e6; margin: 5px 0;"></div>
+                            
+                            <!-- Отображение поведения в виде бейджей в футере карточки -->
+                            <div class="behaviors-badges">
+                                <t t-if="record.behaviors.value">
+                                    <t t-foreach="record.behaviors.value.split(',')" t-as="behavior">
+                                        <!-- Используем правильный подход для удаления пробелов -->
+                                        <t t-set="final_behavior" t-value="('' + behavior).trim()"/>
+                                        <t t-if="final_behavior">
+                                            <t t-if="final_behavior == '2'">
+                                                <span class="badge fw-bold" style="background-color: #f8f9fa; color: #495057; font-size: 12px; margin-right: 2px; border: 1px solid #dee2e6;">
+                                                    <t t-esc="final_behavior"/>
+                                                </span>
+                                            </t>
+                                            <t t-elif="final_behavior == '3'">
+                                                <span class="badge fw-bold" style="background-color: #fff3bf; color: #997404; font-size: 12px; margin-right: 2px; border: 1px solid #dee2e6;">
+                                                    <t t-esc="final_behavior"/>
+                                                </span>
+                                            </t>
+                                            <t t-elif="final_behavior == '4'">
+                                                <span class="badge fw-bold" style="background-color: #ebfbee; color: #37b24d; font-size: 12px; margin-right: 2px; border: 1px solid #dee2e6;">
+                                                    <t t-esc="final_behavior"/>
+                                                </span>
+                                            </t>
+                                            <t t-elif="final_behavior == '5'">
+                                                <span class="badge fw-bold" style="background-color: #e7f5ff; color: #1c7ed6; font-size: 12px; margin-right: 2px; border: 1px solid #dee2e6;">
+                                                    <t t-esc="final_behavior"/>
+                                                </span>
+                                            </t>
+                                            <t t-else="">
+                                                <span class="badge fw-bold" style="background-color: #f8f9fa; color: #495057; font-size: 12px; margin-right: 2px; border: 1px solid #dee2e6;">
+                                                    <t t-esc="final_behavior"/>
+                                                </span>
+                                            </t>
+                                        </t>
+                                    </t>
+                                </t>
+                            </div>
+                        </main>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
+
+    <!-- Добавляем действие для новой модели -->
+    <record model="ir.actions.act_window" id="act_open_op_subject_grades_view">
+        <field name="name">Оценки по предметам</field>
+        <field name="path">subject-grades</field>
+        <field name="type">ir.actions.act_window</field>
+        <field name="res_model">op.subject.grades</field>
+        <field name="view_mode">kanban,list,form</field>
+        <field name="search_view_id" ref="view_op_subject_grades_search"/>
+        <field name="domain">[]</field>
+        <field name="context">{}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Нет данных об оценках
+            </p>
+            <p>
+                Здесь будут отображаться оценки по предметам.
+            </p>
+        </field>
+    </record>
+
+    <!-- Явно определяем связи между действием и представлениями -->
+    <record model="ir.actions.act_window.view" id="act_open_op_subject_grades_view_kanban">
+        <field name="sequence" eval="1"/>
+        <field name="view_mode">kanban</field>
+        <field name="view_id" ref="view_op_subject_grades_kanban"/>
+        <field name="act_window_id" ref="act_open_op_subject_grades_view"/>
+    </record>
+
+    <record model="ir.actions.act_window.view" id="act_open_op_subject_grades_view_list">
+        <field name="sequence" eval="2"/>
+        <field name="view_mode">list</field>
+        <field name="view_id" ref="view_op_subject_grades_tree"/>
+        <field name="act_window_id" ref="act_open_op_subject_grades_view"/>
+    </record>
+
+    <record model="ir.actions.act_window.view" id="act_open_op_subject_grades_view_form">
+        <field name="sequence" eval="3"/>
+        <field name="view_mode">form</field>
+        <field name="view_id" ref="view_op_subject_grades_form"/>
+        <field name="act_window_id" ref="act_open_op_subject_grades_view"/>
+    </record>
+
+    
+</odoo>

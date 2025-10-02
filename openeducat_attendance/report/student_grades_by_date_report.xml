@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+        <template id="student_grades_by_date_report">
+            <t t-set="data_report_landscape" t-value="True"/>
+            <t t-call="web.html_container">
+                <t t-call="web.external_layout">
+                    <div class="page" style="font-size: 14px;">
+                        <br></br>
+                        <br></br>
+                        <br></br>
+                        <div class="text-center">
+                            <h3>
+                                <strong>Отчет по оценкам студентов по датам</strong>
+                            </h3>
+                        </div>
+                        <br></br>
+                        <div class="row mt24">
+                            <div style="width:50%; margin-left:15px;">
+                                <b>Предмет:</b>
+                                <span t-esc="get_subject_name"/>
+                            </div>
+                            <div style="width:50%; margin-left:15px;">
+                                <b>Учитель:</b>
+                                <span t-esc="get_faculty_name"/>
+                            </div>
+                        </div>
+                        <div class="row mt12">
+                            <div style="width:50%; margin-left:15px;">
+                                <b>С даты:</b>
+                                <span t-esc="from_date" t-options="{'widget':'date'}"/>
+                            </div>
+                            <div style="width:50%; margin-left:15px;">
+                                <b>По дату:</b>
+                                <span t-esc="to_date" t-options="{'widget':'date'}"/>
+                            </div>
+                        </div>
+                        <div class="row mt12" t-if="get_batch_name">
+                            <div style="width:50%; margin-left:15px;">
+                                <b>Класс:</b>
+                                <span t-esc="get_batch_name"/>
+                            </div>
+                        </div>
+                        <br/>
+                        <table class="table table-bordered">
+                            <thead class="text-center"
+                                   style="background-color:#eeeeee; font-size:16px; font-weight:600;">
+                                <th class="text-center">Ученик</th>
+                                <th class="text-center" t-foreach="get_grades_by_date['lesson_identifiers']" t-as="lesson">
+                                    <span t-esc="lesson[1]" t-options="{'widget':'date'}"/>
+                                </th>
+                                <th class="text-center">Средняя оценка</th>
+                            </thead>
+                            <tbody class="text-center" style="font-size:14px;">
+                                <t t-foreach="get_grades_by_date['students_data']" t-as="student_data">
+                                    <tr>
+                                        <td class="text-center">
+                                            <span t-esc="student_data['student_name']"/>
+                                        </td>
+                                        <td class="text-center" t-foreach="get_grades_by_date['lesson_identifiers']" t-as="lesson">
+                                            <span t-esc="' '.join([str(grade) for grade in student_data['grades'][lesson]])"/>
+                                        </td>
+                                        <td class="text-center">
+                                            <span t-esc="student_data['average_grade']"/>
+                                        </td>
+                                    </tr>
+                                </t>
+                                <tr style="font-weight:bold;">
+                                    <td class="text-center">Средний балл класса</td>
+                                    <td class="text-center" t-foreach="get_grades_by_date['lesson_identifiers']" t-as="lesson">
+                                        <!-- Empty cells for lesson columns -->
+                                    </td>
+                                    <td class="text-center">
+                                        <span t-esc="get_grades_by_date['class_average']"/>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </t>
+            </t>
+        </template>
+</odoo>

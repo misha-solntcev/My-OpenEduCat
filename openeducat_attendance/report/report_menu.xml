@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+        <record id="action_report_student_attendance" model="ir.actions.report">
+            <field name="name">Generate Attendance</field>
+            <field name="model">op.student</field>
+            <field name="report_type">qweb-pdf</field>
+            <field name="report_name">openeducat_attendance.student_attendance_report</field>
+            <field name="report_file">openeducat_attendance.student_attendance_report</field>
+        </record>
+        
+        <record id="action_report_student_attendance_detailed" model="ir.actions.report">
+            <field name="name">Detailed Attendance Report</field>
+            <field name="model">op.student</field>
+            <field name="report_type">qweb-pdf</field>
+            <field name="report_name">openeducat_attendance.student_attendance_detailed_report</field>
+            <field name="report_file">openeducat_attendance.student_attendance_detailed_report</field>
+        </record>
+        
+        <record id="action_report_student_grades_by_subject" model="ir.actions.report">
+            <field name="name">Student Grades by Subject Report</field>
+            <field name="model">op.student</field>
+            <field name="report_type">qweb-pdf</field>
+            <field name="report_name">openeducat_attendance.student_grades_by_subject_report</field>
+            <field name="report_file">openeducat_attendance.student_grades_by_subject_report</field>
+        </record>
+        
+        <record id="action_report_class_grades_summary" model="ir.actions.report">
+            <field name="name">Class Grades Summary Report</field>
+            <field name="model">op.batch</field>
+            <field name="report_type">qweb-pdf</field>
+            <field name="report_name">openeducat_attendance.class_grades_summary_report</field>
+            <field name="report_file">openeducat_attendance.class_grades_summary_report</field>
+        </record>
+        
+        <record id="action_report_student_grades_by_date" model="ir.actions.report">
+            <field name="name">Student Grades by Date Report</field>
+            <field name="model">op.student</field>
+            <field name="report_type">qweb-pdf</field>
+            <field name="report_name">openeducat_attendance.student_grades_by_date_report</field>
+            <field name="report_file">openeducat_attendance.student_grades_by_date_report</field>
+        </record>
+</odoo>

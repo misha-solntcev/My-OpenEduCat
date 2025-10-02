@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+        <template id="class_grades_summary_report">
+            <t t-set="data_report_landscape" t-value="True"/>
+            <t t-call="web.html_container">
+                <t t-call="web.external_layout">
+                    <div class="page">
+                        <br></br>
+                        <br></br>
+                        <br></br>
+                        <div class="text-center">
+                            <h3>
+                                <strong>Сводный отчет по оценкам класса</strong>
+                            </h3>
+                        </div>
+                        <br></br>
+                        <div class="row mt24">
+                            <div style="width:50%; margin-left:15px;">
+                                <b>Класс:</b>
+                                <span t-esc="get_batch_name"/>
+                            </div>
+                            <div style="width:50%; margin-left:15px;">
+                                <b>С даты:</b>
+                                <span t-esc="from_date" t-options="{'widget':'date'}"/>
+                                <b>По дату:</b>
+                                <span t-esc="to_date" t-options="{'widget':'date'}"/>
+                            </div>
+                        </div>
+                        <br/>
+                        <table class="table table-bordered">
+                            <thead class="text-center"
+                                   style="background-color:#eeeeee; font-size:14px; font-weight:600;">
+                                <th class="text-center">Ученик</th>
+                                <th class="text-center" t-foreach="get_subjects_list" t-as="subject">
+                                    <span t-esc="subject"/>
+                                </th>
+                                <th class="text-center">Средняя оценка</th>
+                            </thead>
+                            <tbody class="text-center" style="font-size:12px;">
+                                <t t-foreach="get_class_grades_summary" t-as="student_data">
+                                    <tr>
+                                        <td class="text-center">
+                                            <span t-esc="student_data['student_name']"/>
+                                        </td>
+                                        <td class="text-center" t-foreach="get_subjects_list" t-as="subject">
+                                            <span t-esc="' '.join([str(int(grade)) if grade.is_integer() else str(grade) for grade in student_data['subjects'][subject]])"/>
+                                        </td>
+                                        <td class="text-center">
+                                            <span t-esc="student_data['average_grade']"/>
+                                        </td>
+                                    </tr>
+                                </t>
+                                <tr>
+                                    <td class="text-center">
+                                        <b>Средний балл класса</b>
+                                    </td>
+                                    <td class="text-center" t-foreach="get_subjects_list" t-as="subject">
+                                        <!-- Empty cells for subject columns -->
+                                    </td>
+                                    <td class="text-center">
+                                        <b>
+                                            <span t-esc="get_class_overall_average"/>
+                                        </b>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </t>
+            </t>
+        </template>
+</odoo>

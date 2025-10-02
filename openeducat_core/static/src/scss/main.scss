@@ -1,0 +1,346 @@
+.highlight {
+	background-color: #AEAEAE;
+}
+
+.offwhite {
+	background-color: #c8c8c8;
+}
+
+/* Grid CSS  Media Tag */
+@media ( max-width : 410px) {
+	.nav-logo {
+		width: 70%;
+	}
+	.navbar-toggle {
+		position: relative;
+		float: right;
+		padding: 9px 10px;
+		margin: 24px 20px 24px 0;
+		background-color: transparent;
+		background-image: none;
+		border: 1px solid transparent;
+		border-radius: 4px;
+	}
+}
+
+@media ( max-width : 320px) {
+	.nav-logo {
+		width: 78%;
+	}
+	.navbar-toggle {
+		position: relative;
+		float: right;
+		padding: 9px 10px;
+		margin: 17px 20px 17px 0;
+		background-color: transparent;
+		background-image: none;
+		border: 1px solid transparent;
+		border-radius: 4px;
+	}
+}
+
+@media ( max-width : 1199px) {
+	.nav-logo {
+		width: 78%;
+	}
+	.navbar-toggle {
+		position: relative;
+		float: right;
+		padding: 9px 10px;
+		margin: 17px 20px 17px 0;
+		background-color: transparent;
+		background-image: none;
+		border: 1px solid transparent;
+		border-radius: 4px;
+	}
+}
+
+.mb50 {
+	margin-bottom: 50px;
+}
+
+.mrgtop64 {
+	margin-top: 64px;
+}
+
+.font-white {
+	color: #333;
+	padding-top: 100px;
+}
+
+.font-invert {
+	color: #969494;
+	padding-top: 100px;
+}
+
+.inver-box {
+	background-color: white;
+	height: 300px;
+}
+
+.x-inver-box {
+	background-color: #c8c8c8;
+	height: 300px;
+}
+
+@media ( max-width : 768px) {
+	.x-inver-box {
+		top: 0px;
+	}
+	.font-white {
+		padding-top: 95px;
+	}
+	.font-invert {
+		padding-top: 95px;
+	}
+	.inver-box {
+		top: 0px;
+	}
+	.mrgtop64 {
+		marigin-top: 16px
+	}
+}
+
+@media ( max-width :992px) {
+	.x-inver-box {
+		top: 0px;
+	}
+	.font-white {
+		padding-top: 95px;
+	}
+	.font-invert {
+		padding-top: 95px;
+	}
+	.inver-box {
+		top: 0px;
+	}
+	.mrgtop64 {
+		margin-top: 16px;
+	}
+}
+
+/* ---------------------------------------Default CSS----------------------------------- */
+@media ( max-width : 768px) {
+	h1 {
+		font-size: 1.8em;
+	}
+	h2 {
+		font-size: 1.8em;
+	}
+}
+
+a:focus, a:hover {
+	text-decoration: none;
+}
+/* hover-grow */
+.hvr-grow {
+  display: inline-block;
+  vertical-align: middle;
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
+  box-shadow: 0 0 1px rgba(0, 0, 0, 0);
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+  -moz-osx-font-smoothing: grayscale;
+  -webkit-transition-duration: 0.3s;
+  transition-duration: 0.3s;
+  -webkit-transition-property: transform;
+  transition-property: transform;
+}
+.hvr-grow:hover, .hvr-grow:focus, .hvr-grow:active {
+  -webkit-transform: scale(1.3);
+  transform: scale(1.3);
+}
+a {
+  color: #333;
+  text-decoration: none;
+}
+.d-link:hover{color:#2a6496 !important;}
+
+/* Pulse Grow */
+@-webkit-keyframes hvr-pulse-grow {
+  to {
+    -webkit-transform: scale(1.1);
+    transform: scale(1.1);
+  }
+}
+
+@keyframes hvr-pulse-grow {
+  to {
+    -webkit-transform: scale(1.1);
+    transform: scale(1.1);
+  }
+}
+
+.hvr-pulse-grow {
+  display: inline-block;
+  vertical-align: middle;
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
+  box-shadow: 0 0 1px rgba(0, 0, 0, 0);
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+  -moz-osx-font-smoothing: grayscale;
+}
+.hvr-pulse-grow:hover, .hvr-pulse-grow:focus, .hvr-pulse-grow:active {
+  -webkit-animation-name: hvr-pulse-grow;
+  animation-name: hvr-pulse-grow;
+  -webkit-animation-duration: 0.3s;
+  animation-duration: 0.3s;
+  -webkit-animation-timing-function: linear;
+  animation-timing-function: linear;
+  -webkit-animation-iteration-count: infinite;
+  animation-iteration-count: infinite;
+  -webkit-animation-direction: alternate;
+  animation-direction: alternate;
+}
+
+
+/* ------------------------------ Kanban Styles ------------------------------ */
+
+/* 1. o_kanban_small_column: Узкие колонки */
+.o_kanban_small_column .o_kanban_group {
+    flex: 0 0 auto; /* Не растягивать, не сжимать, автоматическая базовая ширина */
+    width: 350px; /* Задайте желаемую ширину узкой колонки */
+    max-width: 350px; /* Ограничивает максимальную ширину */
+    min-width: 250px; /* Минимальная ширина для очень маленьких экранов */
+}
+
+/* Опционально: ограничить ширину карточек внутри */
+.o_kanban_small_column .o_kanban_record {
+    max-width: calc(350px - 20px); /* Slightly меньше ширины колонки с учетом padding */
+    margin-left: auto;
+    margin-right: auto;
+    box-sizing: border-box; /* Учитывать padding и border в ширине */
+}
+
+
+/* 2. oe_kanban_colorpicker: Стили для пикера цветов */
+.oe_kanban_colorpicker {
+    list-style-type: none;
+    padding: 5px;
+    margin: 5px 0 0 0;
+    text-align: center; /* Центрируем квадратики */
+}
+.oe_kanban_colorpicker li {
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+    cursor: pointer;
+    margin: 2px;
+}
+/* Цвета для пикера (соответствуют классам ниже) */
+.oe_kanban_colorpicker li[data-color="0"] { background-color: #FFFFFF; } /* Белый */
+.oe_kanban_colorpicker li[data-color="1"] { background-color: #CCCCCC; } /* Серый */
+.oe_kanban_colorpicker li[data-color="2"] { background-color: #FFC7C7; } /* Светло-красный */
+.oe_kanban_colorpicker li[data-color="3"] { background-color: #FFF1C7; } /* Светло-желтый */
+.oe_kanban_colorpicker li[data-color="4"] { background-color: #E3FFC7; } /* Светло-зеленый */
+.oe_kanban_colorpicker li[data-color="5"] { background-color: #C7FFFB; } /* Светло-бирюзовый */
+.oe_kanban_colorpicker li[data-color="6"] { background-color: #C7D5FF; } /* Светло-синий */
+.oe_kanban_colorpicker li[data-color="7"] { background-color: #EFC7FF; } /* Светло-фиолетовый */
+.oe_kanban_colorpicker li[data-color="8"] { background-color: #FFC7F1; } /* Светло-розовый */
+.oe_kanban_colorpicker li[data-color="9"] { background-color: #F1F1F1; } /* Очень светло-серый */
+.oe_kanban_colorpicker li[data-color="10"] { background-color: #FF7F7F; } /* Красный */
+.oe_kanban_colorpicker li[data-color="11"] { background-color: #FFA500; } /* Оранжевый */
+
+
+/* 3. o_kanban_color_*: Стили для цветов карточек */
+/* Эти классы обычно генерируются функцией kanban_color() */
+.o_kanban_color_0 { background-color: #FFFFFF !important; border-color: #CCCCCC !important; } /* Белый */
+.o_kanban_color_1 { background-color: #CCCCCC !important; border-color: #AAAAAA !important; } /* Серый */
+.o_kanban_color_2 { background-color: #FFC7C7 !important; border-color: #DFAAAA !important; } /* Светло-красный */
+.o_kanban_color_3 { background-color: #FFF1C7 !important; border-color: #DFD4A9 !important; } /* Светло-желтый */
+.o_kanban_color_4 { background-color: #E3FFC7 !important; border-color: #C5DFAA !important; } /* Светло-зеленый */
+.o_kanban_color_5 { background-color: #C7FFFB !important; border-color: #A9DFD9 !important; } /* Светло-бирюзовый */
+.o_kanban_color_6 { background-color: #C7D5FF !important; border-color: #A9BADA !important; } /* Светло-синий */
+.o_kanban_color_7 { background-color: #EFC7FF !important; border-color: #D4A9DF !important; } /* Светло-фиолетовый */
+.o_kanban_color_8 { background-color: #FFC7F1 !important; border-color: #DFAAC9 !important; } /* Светло-розовый */
+.o_kanban_color_9 { background-color: #F1F1F1 !important; border-color: #D4D4D4 !important; } /* Очень светло-серый */
+.o_kanban_color_10 { background-color: #FF7F7F !important; border-color: #D46A6A !important; } /* Красный */
+.o_kanban_color_11 { background-color: #FFA500 !important; border-color: #D48A00 !important; } /* Оранжевый */
+
+/* Убедимся, что текст внутри цветных карточек читаем */
+.o_kanban_record.oe_kanban_color_0,
+.o_kanban_record.oe_kanban_color_1,
+.o_kanban_record.oe_kanban_color_9 {
+    color: #333333; /* Темный текст для светлых фонов */
+}
+.o_kanban_record.oe_kanban_color_0 .oe_kanban_content *,
+.o_kanban_record.oe_kanban_color_1 .oe_kanban_content *,
+.o_kanban_record.oe_kanban_color_9 .oe_kanban_content * {
+    color: inherit; /* Наследовать цвет от родителя */
+}
+
+/* Для остальных цветов предположим темный фон, светлый текст (может потребоваться корректировка) */
+/* .o_kanban_color_2 до .o_kanban_color_8, .o_kanban_color_10, .o_kanban_color_11 */
+/* Если текст внутри этих карточек будет плохо читаться, добавьте похожие правила,
+   но с color: #FFFFFF; для .oe_kanban_content * */
+
+
+/* 4. oe_kanban_content и связанные стили (для структуры карточки) */
+.oe_kanban_content {
+    padding: 8px;
+    overflow: hidden; /* Скрывает переполняющий контент */
+    word-wrap: break-word; /* Перенос длинных слов */
+}
+
+.oe_kanban_left {
+    float: left;
+    width: 100%; /* Занимает всю доступную ширину */
+    box-sizing: border-box;
+}
+
+.oe_clear {
+    clear: both;
+}
+
+.text-truncate {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* 5. oe_kanban_global_click: Обычно просто делает курсор pointer */
+.oe_kanban_global_click {
+    cursor: pointer;
+}
+
+/* Добавим немного базового стиля для карточки, если он отсутствует глобально */
+.o_kanban_record {
+    border: 1px solid #ddd; /* Тонкая рамка по умолчанию */
+    border-radius: 4px; /* Скругленные углы */
+    background-color: #fff; /* Белый фон по умолчанию */
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1); /* Легкая тень */
+    margin-bottom: 10px; /* Отступ снизу между карточками */
+    transition: box-shadow 0.2s ease; /* Плавный переход для тени */
+}
+
+.o_kanban_record:hover {
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2); /* Более выраженная тень при наведении */
+}
+
+/* Стили для списков внутри карточки */
+.oe_kanban_content ul,
+.oe_kanban_content ol {
+    padding-left: 15px; /* Отступ для маркеров */
+    margin-top: 5px;
+    margin-bottom: 5px;
+}
+
+.oe_kanban_content li {
+    margin-bottom: 3px; /* Отступ между элементами списка */
+    line-height: 1.4; /* Высота строки */
+}
+
+/* Стили для полей внутри списка */
+.oe_kanban_content li b {
+    /* Можно добавить стили для заголовков полей, если нужно */
+}
+
+/* Стили для полей времени */
+.oe_kanban_content li b:contains('Start:'),
+.oe_kanban_content li b:contains('End:') {
+    /* Можно добавить специфичные стили для времени, если нужно */
+}
