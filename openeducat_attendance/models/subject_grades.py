@@ -39,6 +39,10 @@ class OpSubjectGrades(models.Model):
     total_classes = fields.Integer('Total Classes')
     present_classes = fields.Integer('Present Classes')
     textbook_image = fields.Binary('Textbook Image', compute='_compute_textbook_image')
+    # Новое поле для хранения всех дат посещений
+    attendance_dates = fields.Text('Attendance Dates')
+    # Новое поле для отображения дат и оценок в виде таблицы
+    date_mark_table = fields.Html('Date-Mark Table', compute='_compute_date_mark_table')
 
     @api.model
     def _search(self, args, offset=0, limit=None, order=None, count=False, access_rights_uid=None):
@@ -146,6 +150,45 @@ class OpSubjectGrades(models.Model):
             name = "%s - %s" % (record.student_id.name, record.subject_id.name)
             res.append((record.id, name))
         return res
+
+    @api.depends('attendance_dates', 'marks', 'behaviors')
+    def _compute_date_mark_table(self):
+        for record in self:
+            if record.attendance_dates and record.marks:
+                # Разбираем даты и оценки
+                dates = [d.strip() for d in record.attendance_dates.split(',') if d.strip()]
+                marks = [m.strip() for m in record.marks.split(',') if m.strip()]
+                behaviors = [b.strip() for b in record.behaviors.split(',') if b.strip()] if record.behaviors else []
+                
+                # Создаем HTML таблицу
+                table_html = '<table class="table table-sm table-bordered">'
+                table_html += '<thead><tr><th>Дата</th><th>Оценка</th><th>Поведение</th><th>Комментарий</th></tr></thead><tbody>'
+                
+                # Заполняем таблицу данными
+                max_len = max(len(dates), len(marks))
+                for i in range(max_len):
+                    date = dates[i] if i < len(dates) else ''
+                    mark = marks[i] if i < len(marks) else ''
+                    behavior = behaviors[i] if i < len(behaviors) else ''
+                    
+                    # Получаем комментарий из записи посещаемости
+                    comment = ''
+                    if date and record.student_id and record.subject_id:
+                        # Поиск записи посещаемости по дате, студенту и предмету
+                        attendance_line = self.env['op.attendance.line'].search([
+                            ('student_id', '=', record.student_id.id),
+                            ('x_subject', '=', str(record.subject_id.id)),
+                            ('attendance_id.attendance_date', '=', date)
+                        ], limit=1)
+                        if attendance_line:
+                            comment = attendance_line.remark or ''
+                    
+                    table_html += f'<tr><td>{date}</td><td>{mark}</td><td>{behavior}</td><td>{comment}</td></tr>'
+                
+                table_html += '</tbody></table>'
+                record.date_mark_table = table_html
+            else:
+                record.date_mark_table = '<p>Нет данных для отображения</p>'
 
     @api.depends('subject_id', 'batch_id')
     def _compute_textbook_image(self):

@@ -17,6 +17,7 @@
                 <field name="total_classes"/>
                 <field name="present_classes"/>
                 <field name="last_attendance_date"/>
+                <field name="attendance_dates"/>
                 <field name="behaviors"/>
             </list>
         </field>
@@ -45,10 +46,10 @@
                             <field name="last_attendance_date"/>
                         </group>
                     </group>
-                    <group string="All Marks">
-                        <field name="marks" nolabel="1"/>
+                    <group string="Оценки и поведение">
+                        <field name="date_mark_table" nolabel="1" widget="html"/>
                     </group>
-                    <group string="All Behaviors">
+                    <group string="Все поведения">
                         <field name="behaviors" nolabel="1"/>
                     </group>
                 </sheet>
@@ -67,6 +68,7 @@
                 <field name="subject_id"/>
                 <field name="batch_id"/>
                 <field name="average_mark"/>
+                <field name="attendance_dates"/>
                 <newline/>
                 <group expand="0" string="Group By...">
                     <filter string="Student" name="group_by_student"
@@ -93,6 +95,7 @@
                 <field name="total_classes"/>
                 <field name="present_classes"/>
                 <field name="last_attendance_date"/>
+                <field name="attendance_dates"/>
                 <field name="marks"/>
                 <field name="behaviors"/>
                 <field name="textbook_image"/>
