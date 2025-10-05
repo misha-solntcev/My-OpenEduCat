@@ -49,9 +49,6 @@
                     <group string="Оценки и поведение">
                         <field name="date_mark_table" nolabel="1" widget="html"/>
                     </group>
-                    <group string="Все поведения">
-                        <field name="behaviors" nolabel="1"/>
-                    </group>
                 </sheet>
             </form>
         </field>
