@@ -57,6 +57,8 @@ class StudentGradesBySubjectReport(models.AbstractModel):
                 if subject:
                     subject_name = subject.name
                     mark = line.x_mark
+                    behavior = line.x_behavior if hasattr(line, 'x_behavior') else ''
+                    date = line.attendance_id.attendance_date
                     
                     # Initialize subject data if not exists
                     if subject_name not in subjects_data:
@@ -66,17 +68,23 @@ class StudentGradesBySubjectReport(models.AbstractModel):
                             'average': 0.0
                         }
                     
-                    # Add grade to subject
+                    # Add grade details to subject
                     try:
                         grade_value = float(mark)
-                        subjects_data[subject_name]['grades'].append(grade_value)
+                        grade_details = {
+                            'date': date,
+                            'mark': grade_value,
+                            'behavior': behavior,
+                            'remark': line.remark or ''
+                        }
+                        subjects_data[subject_name]['grades'].append(grade_details)
                     except (ValueError, TypeError):
                         # Skip non-numeric grades
                         continue
         
         # Calculate average for each subject
         for subject_name, subject_data in subjects_data.items():
-            grades = subject_data['grades']
+            grades = [g['mark'] for g in subject_data['grades']]
             if grades:
                 subject_data['average'] = round(sum(grades) / len(grades), 2)
             else:
@@ -95,7 +103,7 @@ class StudentGradesBySubjectReport(models.AbstractModel):
         # Collect all grades from all subjects
         all_grades = []
         for subject_data in grades_by_subject:
-            all_grades.extend(subject_data['grades'])
+            all_grades.extend([g['mark'] for g in subject_data['grades']])
         
         # Calculate overall average
         if all_grades:

@@ -26,45 +26,74 @@
                             </div>
                         </div>
                         <br/>
-                        <table class="table table-bordered">
-                            <thead class="text-center"
-                                   style="background-color:#eeeeee; font-size:14px; font-weight:600;">
-                                <th class="text-center">Предмет</th>
-                                <th class="text-center">Оценки</th>
-                                <th class="text-center">Средняя оценка</th>
-                            </thead>
-                            <tbody class="text-center" style="font-size:12px;">
-                                <t t-foreach="get_grades_by_subject" t-as="subject_data">
+                        <t t-foreach="get_grades_by_subject" t-as="subject_data">
+                            <h4 class="mt32">
+                                <strong>
+                                    <span t-esc="subject_data['subject_name']"/>
+                                </strong>
+                            </h4>
+                            <table class="table table-bordered">
+                                <thead class="text-center"
+                                       style="background-color:#eeeeee; font-size:14px; font-weight:600;">
+                                    <th class="text-center">Дата</th>
+                                    <th class="text-center">Оценка</th>
+                                    <th class="text-center">Поведение</th>
+                                    <th class="text-center">Комментарий</th>
+                                </thead>
+                                <tbody class="text-center" style="font-size:12px;">
+                                    <t t-foreach="subject_data['grades']" t-as="grade_details">
+                                        <tr>
+                                            <td class="text-center">
+                                                <span t-esc="grade_details['date']" t-options="{'widget': 'date'}"/>
+                                            </td>
+                                            <td class="text-center">
+                                                <span t-esc="grade_details['mark']"/>
+                                            </td>
+                                            <td class="text-center">
+                                                <span t-esc="grade_details['behavior']"/>
+                                            </td>
+                                            <td class="text-center">
+                                                <span t-esc="grade_details['remark']"/>
+                                            </td>
+                                        </tr>
+                                    </t>
                                     <tr>
                                         <td class="text-center">
-                                            <span t-esc="subject_data['subject_name']"/>
+                                            <b>Средняя оценка</b>
                                         </td>
                                         <td class="text-center">
-                                            <t t-foreach="subject_data['grades']" t-as="grade">
-                                                <span t-esc="grade"/>
-                                                <t t-if="not grade_last"> </t>
-                                            </t>
+                                            <b>
+                                                <span t-esc="subject_data['average']"/>
+                                            </b>
                                         </td>
                                         <td class="text-center">
-                                            <span t-esc="subject_data['average']"/>
+                                            <!-- Empty cell for behavior column -->
+                                        </td>
+                                        <td class="text-center">
+                                            <!-- Empty cell for remark column -->
                                         </td>
                                     </tr>
-                                </t>
-                                <tr>
-                                    <td class="text-center">
-                                        <b>Общая средняя оценка</b>
-                                    </td>
-                                    <td class="text-center">
-                                        <!-- Empty cell for grades column -->
-                                    </td>
-                                    <td class="text-center">
-                                        <b>
-                                            <span t-esc="get_overall_average"/>
-                                        </b>
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
+                                </tbody>
+                            </table>
+                        </t>
+                        <div class="row mt32">
+                            <div class="col-6">
+                            </div>
+                            <div class="col-6">
+                                <table class="table table-bordered">
+                                    <tr>
+                                        <td class="text-center">
+                                            <b>Общая средняя оценка</b>
+                                        </td>
+                                        <td class="text-center">
+                                            <b>
+                                                <span t-esc="get_overall_average"/>
+                                            </b>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </div>
+                        </div>
                     </div>
                 </t>
             </t>
