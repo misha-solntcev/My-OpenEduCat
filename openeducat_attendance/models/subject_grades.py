@@ -19,8 +19,7 @@
 ###############################################################################
 
 import logging
-
-from odoo import models, fields, api
+from odoo import models, fields, api, _
 
 _logger = logging.getLogger(__name__)
 
@@ -32,17 +31,19 @@ class OpSubjectGrades(models.Model):
     student_id = fields.Many2one('op.student', 'Student', required=True)
     subject_id = fields.Many2one('op.subject', 'Subject', required=True)
     batch_id = fields.Many2one('op.batch', 'Batch', required=True)
-    marks = fields.Text('All Marks (x_mark)')
-    behaviors = fields.Text('All Behaviors (x_behavior)')
-    average_mark = fields.Float('Average Mark', digits=(3, 2))
-    last_attendance_date = fields.Date('Last Attendance Date')
+    attendance_dates = fields.Text('Attendance Dates')
+    marks = fields.Text('Marks')
+    behaviors = fields.Text('Behaviors')
+    table_entries = fields.Text('Table Entries')  # Новое поле для хранения структурированных данных
+    average_mark = fields.Float('Average Mark', compute='_compute_average_mark', store=True)
     total_classes = fields.Integer('Total Classes')
     present_classes = fields.Integer('Present Classes')
+    last_attendance_date = fields.Date('Last Attendance Date')
     textbook_image = fields.Binary('Textbook Image', compute='_compute_textbook_image')
-    # Новое поле для хранения всех дат посещений
-    attendance_dates = fields.Text('Attendance Dates')
     # Новое поле для отображения дат и оценок в виде таблицы
     date_mark_table = fields.Html('Date-Mark Table', compute='_compute_date_mark_table')
+    # Новое поле для отображения информации о посещаемости
+    attendance_info = fields.Html('Attendance Information', compute='_compute_attendance_info')
 
     @api.model
     def _search(self, args, offset=0, limit=None, order=None, count=False, access_rights_uid=None):
@@ -151,39 +152,123 @@ class OpSubjectGrades(models.Model):
             res.append((record.id, name))
         return res
 
-    @api.depends('attendance_dates', 'marks', 'behaviors')
+    @api.depends('table_entries', 'marks', 'behaviors')
+    def _compute_average_mark(self):
+        for record in self:
+            if record.table_entries:
+                # Разбираем записи из нового поля table_entries
+                entries = [e.strip() for e in record.table_entries.split(',') if e.strip()]
+                total_marks = 0
+                count = 0
+                for entry in entries:
+                    parts = entry.split('|')
+                    # Оценка 1 находится во втором элементе (индекс 1)
+                    if len(parts) >= 2 and parts[1]:
+                        try:
+                            mark = float(parts[1].strip())
+                            total_marks += mark
+                            count += 1
+                        except ValueError:
+                            pass
+                    # Оценка 2 (поведение) находится в третьем элементе (индекс 2)
+                    if len(parts) >= 3 and parts[2]:
+                        try:
+                            behavior = float(parts[2].strip())
+                            total_marks += behavior
+                            count += 1
+                        except ValueError:
+                            pass
+                
+                if count > 0:
+                    record.average_mark = total_marks / count
+                else:
+                    record.average_mark = 0.0
+            else:
+                # Используем старую логику, если table_entries пусто
+                all_marks = []
+                if record.marks:
+                    marks = [m.strip() for m in record.marks.split(',') if m.strip()]
+                    for mark in marks:
+                        try:
+                            all_marks.append(float(mark))
+                        except ValueError:
+                            pass
+                
+                if record.behaviors:
+                    behaviors = [b.strip() for b in record.behaviors.split(',') if b.strip()]
+                    for behavior in behaviors:
+                        try:
+                            all_marks.append(float(behavior))
+                        except ValueError:
+                            pass
+                
+                if all_marks:
+                    record.average_mark = sum(all_marks) / len(all_marks)
+                else:
+                    record.average_mark = 0.0
+
+    @api.depends('table_entries')
     def _compute_date_mark_table(self):
         for record in self:
-            if record.attendance_dates and record.marks:
-                # Разбираем даты и оценки
-                dates = [d.strip() for d in record.attendance_dates.split(',') if d.strip()]
-                marks = [m.strip() for m in record.marks.split(',') if m.strip()]
-                behaviors = [b.strip() for b in record.behaviors.split(',') if b.strip()] if record.behaviors else []
-                
+            if record.table_entries:
                 # Создаем HTML таблицу
                 table_html = '<table class="table table-sm table-bordered">'
-                table_html += '<thead><tr><th>Дата</th><th>Оценка</th><th>Поведение</th><th>Комментарий</th></tr></thead><tbody>'
+                table_html += '<thead><tr><th>Дата</th><th>Присутствует</th><th>Опоздал</th><th>Отсутствует по уважительной причине</th><th>Прогул</th><th>Оценка 1</th><th>Оценка 2</th><th>Комментарий</th></tr></thead><tbody>'
+                
+                # Разбираем записи таблицы
+                entries = [e.strip() for e in record.table_entries.split(',') if e.strip()]
                 
                 # Заполняем таблицу данными
-                max_len = max(len(dates), len(marks))
-                for i in range(max_len):
-                    date = dates[i] if i < len(dates) else ''
-                    mark = marks[i] if i < len(marks) else ''
-                    behavior = behaviors[i] if i < len(behaviors) else ''
+                for entry in entries:
+                    parts = entry.split('|')
+                    date = parts[0] if len(parts) > 0 and parts[0] else ''
+                    mark = parts[1] if len(parts) > 1 and parts[1] else ''
+                    behavior = parts[2] if len(parts) > 2 and parts[2] else ''
                     
-                    # Получаем комментарий из записи посещаемости
+                    # Получаем информацию о посещаемости из записи посещаемости
+                    present = ''
+                    absent = ''
+                    late = ''
+                    unexcused_absent = ''
                     comment = ''
-                    if date and record.student_id and record.subject_id:
-                        # Поиск записи посещаемости по дате, студенту и предмету
-                        attendance_line = self.env['op.attendance.line'].search([
-                            ('student_id', '=', record.student_id.id),
-                            ('x_subject', '=', str(record.subject_id.id)),
-                            ('attendance_id.attendance_date', '=', date)
-                        ], limit=1)
-                        if attendance_line:
-                            comment = attendance_line.remark or ''
                     
-                    table_html += f'<tr><td>{date}</td><td>{mark}</td><td>{behavior}</td><td>{comment}</td></tr>'
+                    if date and record.student_id and record.subject_id:
+                        # Поиск записей посещаемости по дате и студенту
+                        domain = [
+                            ('student_id', '=', record.student_id.id),
+                            ('attendance_id.attendance_date', '=', date)
+                        ]
+                        
+                        attendance_lines = self.env['op.attendance.line'].search(domain)
+                        
+                        # Проверяем каждую запись на соответствие предмету
+                        for line in attendance_lines:
+                            subject_match = False
+                            
+                            # Проверяем, есть ли у записи посещаемости связь с предметом
+                            if (line.attendance_id and 
+                                line.attendance_id.register_id and 
+                                line.attendance_id.register_id.subject_id and 
+                                line.attendance_id.register_id.subject_id.id == record.subject_id.id):
+                                subject_match = True
+                            # Если прямая связь не найдена, проверяем другие возможные связи
+                            elif (line.attendance_id and 
+                                  line.attendance_id.session_id and 
+                                  line.attendance_id.session_id.subject_id and 
+                                  line.attendance_id.session_id.subject_id.id == record.subject_id.id):
+                                subject_match = True
+                            
+                            if subject_match:
+                                present = '✓' if line.present else ''
+                                # Отсутствует по уважительной причине (объединяем отсутствие по уважительной причине и обычное отсутствие)
+                                absent = '✓' if (line.absent or line.excused) else ''
+                                # Прогул (отсутствие без уважительной причины)
+                                unexcused_absent = '✓' if line.absent and not line.excused else ''
+                                late = '✓' if line.late else ''
+                                comment = line.remark or ''
+                                break
+                    
+                    table_html += f'<tr><td>{date}</td><td>{present}</td><td>{late}</td><td>{absent}</td><td>{unexcused_absent}</td><td>{mark}</td><td>{behavior}</td><td>{comment}</td></tr>'
                 
                 table_html += '</tbody></table>'
                 record.date_mark_table = table_html
@@ -250,3 +335,47 @@ class OpSubjectGrades(models.Model):
             else:
                 # Если учебник не найден, используем стандартное изображение
                 record.textbook_image = False
+
+    @api.depends('student_id', 'subject_id', 'batch_id')
+    def _compute_attendance_info(self):
+        for record in self:
+            if record.student_id and record.subject_id:
+                # Получаем все записи посещаемости для студента по данному предмету
+                attendance_lines = self.env['op.attendance.line'].search([
+                    ('student_id', '=', record.student_id.id),
+                    ('x_subject', '=', str(record.subject_id.id))
+                ])
+                
+                # Считаем общее количество занятий и количество посещений
+                total_classes = len(attendance_lines)
+                present_classes = len(attendance_lines.filtered(lambda r: r.present))
+                
+                # Создаем HTML таблицу с информацией о посещаемости
+                table_html = '<table class="table table-sm table-bordered">'
+                table_html += '<thead><tr><th>Дата</th><th>Статус</th><th>Комментарий</th></tr></thead><tbody>'
+                
+                # Добавляем строки для каждого занятия
+                for line in attendance_lines:
+                    status = 'Неизвестно'
+                    if line.present:
+                        status = 'Присутствовал'
+                    elif line.absent:
+                        status = 'Отсутствовал'
+                    elif line.late:
+                        status = 'Опоздал'
+                    elif line.excused:
+                        status = 'Отсутствовал (уважительная причина)'
+                    
+                    table_html += f'<tr><td>{line.attendance_date or ""}</td><td>{status}</td><td>{line.remark or ""}</td></tr>'
+                
+                table_html += '</tbody></table>'
+                
+                # Добавляем сводную информацию
+                summary_html = f'<div class="row">'
+                summary_html += f'<div class="col-md-6"><strong>Всего занятий:</strong> {total_classes}</div>'
+                summary_html += f'<div class="col-md-6"><strong>Посетил занятий:</strong> {present_classes}</div>'
+                summary_html += f'</div><br/>'
+                
+                record.attendance_info = summary_html + table_html
+            else:
+                record.attendance_info = '<p>Нет данных о посещаемости</p>'

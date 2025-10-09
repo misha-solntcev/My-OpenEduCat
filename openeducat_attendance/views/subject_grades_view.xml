@@ -49,6 +49,10 @@
                     <group string="Оценки и поведение">
                         <field name="date_mark_table" nolabel="1" widget="html"/>
                     </group>
+                    <!-- Добавляем раздел посещаемости -->
+                    <group string="Посещаемость">
+                        <field name="attendance_info" nolabel="1" widget="html"/>
+                    </group>
                 </sheet>
             </form>
         </field>
@@ -93,8 +97,7 @@
                 <field name="present_classes"/>
                 <field name="last_attendance_date"/>
                 <field name="attendance_dates"/>
-                <field name="marks"/>
-                <field name="behaviors"/>
+                <field name="table_entries"/>
                 <field name="textbook_image"/>
                 <templates>
                     <t t-name="card" class="flex-row">
@@ -116,11 +119,12 @@
                             </p>
                             <!-- Отображение оценок в виде бейджей в футере карточки -->
                             <div class="marks-badges">
-                                <t t-if="record.marks.value">
-                                    <t t-foreach="record.marks.value.split(',')" t-as="mark">
-                                        <!-- Используем правильный подход для удаления пробелов -->
-                                        <t t-set="final_mark" t-value="('' + mark).trim()"/>
-                                        <t t-if="final_mark">
+                                <t t-if="record.table_entries.raw_value and record.table_entries.raw_value.trim()">
+                                    <t t-foreach="record.table_entries.raw_value.split(',')" t-as="entry">
+                                        <t t-set="parts" t-value="entry.split('|')"/>
+                                        <!-- Оценка 1 находится во втором элементе (индекс 1) -->
+                                        <t t-if="parts.length &gt;= 2 and parts[1].trim()">
+                                            <t t-set="final_mark" t-value="parts[1].trim()"/>
                                             <t t-if="final_mark == '2'">
                                                 <span class="badge fw-bold" style="background-color: #fff0f6; color: #d6336c; font-size: 12px; margin-right: 2px;">
                                                     <t t-esc="final_mark"/>
@@ -156,11 +160,12 @@
                             
                             <!-- Отображение поведения в виде бейджей в футере карточки -->
                             <div class="behaviors-badges">
-                                <t t-if="record.behaviors.value">
-                                    <t t-foreach="record.behaviors.value.split(',')" t-as="behavior">
-                                        <!-- Используем правильный подход для удаления пробелов -->
-                                        <t t-set="final_behavior" t-value="('' + behavior).trim()"/>
-                                        <t t-if="final_behavior">
+                                <t t-if="record.table_entries.raw_value and record.table_entries.raw_value.trim()">
+                                    <t t-foreach="record.table_entries.raw_value.split(',')" t-as="entry">
+                                        <t t-set="parts" t-value="entry.split('|')"/>
+                                        <!-- Поведение находится в третьем элементе (индекс 2) -->
+                                        <t t-if="parts.length &gt;= 3 and parts[2].trim()">
+                                            <t t-set="final_behavior" t-value="parts[2].trim()"/>
                                             <t t-if="final_behavior == '2'">
                                                 <span class="badge fw-bold" style="background-color: #f8f9fa; color: #495057; font-size: 12px; margin-right: 2px; border: 1px solid #dee2e6;">
                                                     <t t-esc="final_behavior"/>
