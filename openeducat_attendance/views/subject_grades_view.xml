@@ -40,7 +40,10 @@
                             <field name="batch_id" string="Класс"/>
                         </group>
                         <group>
-                            <field name="average_mark" string="Средняя оценка"/>
+                            <div>
+                                <strong>Средняя оценка:</strong>
+                                <field name="average_mark" class="oe_inline"/>
+                            </div>
                             <field name="total_classes" string="Всего занятий"/>
                             <field name="present_classes" string="Посещено занятий"/>
                             <field name="last_attendance_date" string="Дата последнего посещения"/>
@@ -117,6 +120,13 @@
                             <p class="mb-1 text-body-secondary small">
                                 <strong>Средняя оценка:</strong> <span t-esc="record.average_mark.value"/>
                             </p>
+                            <!-- Отображение средней оценки -->
+                            <div class="average-mark">
+                                <t t-if="record.average_mark.raw_value">
+                                    <span style="font-weight: bold;">Средняя оценка:</span> 
+                                    <span t-esc="Math.round(record.average_mark.raw_value * 100) / 100"/>
+                                </t>
+                            </div>
                             <!-- Отображение оценок в виде бейджей в футере карточки -->
                             <div class="marks-badges">
                                 <t t-if="record.table_entries.raw_value and record.table_entries.raw_value.trim()">
