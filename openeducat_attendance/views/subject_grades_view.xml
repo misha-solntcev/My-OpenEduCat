@@ -6,17 +6,17 @@
         <field name="model">op.subject.grades</field>
         <field name="priority" eval="8"/>
         <field name="arch" type="xml">
-            <list string="Subject Grades">
+            <list string="Оценки по предметам">
                 <header>
                     <button name="%(openeducat_attendance.action_op_update_subject_grades)d" type="action" string="Обновить оценки по предметам" class="btn btn-primary" groups="openeducat_attendance.group_op_attendance_manager"/>
                 </header>
-                <field name="student_id"/>
-                <field name="subject_id"/>
-                <field name="batch_id"/>
-                <field name="average_mark"/>
-                <field name="total_classes"/>
-                <field name="present_classes"/>
-                <field name="last_attendance_date"/>
+                <field name="student_id" string="Ученик"/>
+                <field name="subject_id" string="Предмет"/>
+                <field name="batch_id" string="Класс"/>
+                <field name="average_mark" string="Средняя оценка"/>
+                <field name="total_classes" string="Всего занятий"/>
+                <field name="present_classes" string="Посещено занятий"/>
+                <field name="last_attendance_date" string="Дата последнего посещения"/>
                 <field name="attendance_dates"/>
                 <field name="behaviors"/>
             </list>
@@ -28,22 +28,22 @@
         <field name="model">op.subject.grades</field>
         <field name="priority" eval="8"/>
         <field name="arch" type="xml">
-            <form string="Subject Grades">
+            <form string="Оценки по предметам">
                 <header>
                     <button name="%(openeducat_attendance.action_op_update_subject_grades)d" type="action" string="Обновить оценки по предметам" class="btn btn-primary" groups="openeducat_attendance.group_op_attendance_manager"/>
                 </header>
                 <sheet>
                     <group>
                         <group>
-                            <field name="student_id"/>
-                            <field name="subject_id"/>
-                            <field name="batch_id"/>
+                            <field name="student_id" string="Ученик"/>
+                            <field name="subject_id" string="Предмет"/>
+                            <field name="batch_id" string="Класс"/>
                         </group>
                         <group>
-                            <field name="average_mark"/>
-                            <field name="total_classes"/>
-                            <field name="present_classes"/>
-                            <field name="last_attendance_date"/>
+                            <field name="average_mark" string="Средняя оценка"/>
+                            <field name="total_classes" string="Всего занятий"/>
+                            <field name="present_classes" string="Посещено занятий"/>
+                            <field name="last_attendance_date" string="Дата последнего посещения"/>
                         </group>
                     </group>
                     <group string="Оценки и поведение">
@@ -64,19 +64,19 @@
         <field name="model">op.subject.grades</field>
         <field name="priority" eval="8"/>
         <field name="arch" type="xml">
-            <search string="Subject Grades">
-                <field name="student_id"/>
-                <field name="subject_id"/>
-                <field name="batch_id"/>
-                <field name="average_mark"/>
+            <search string="Оценки по предметам">
+                <field name="student_id" string="Ученик"/>
+                <field name="subject_id" string="Предмет"/>
+                <field name="batch_id" string="Класс"/>
+                <field name="average_mark" string="Средняя оценка"/>
                 <field name="attendance_dates"/>
                 <newline/>
-                <group expand="0" string="Group By...">
-                    <filter string="Student" name="group_by_student"
+                <group expand="0" string="Группировать по...">
+                    <filter string="Ученик" name="group_by_student"
                             domain="[]" context="{'group_by':'student_id'}"/>
-                    <filter string="Subject" name="group_by_subject"
+                    <filter string="Предмет" name="group_by_subject"
                             domain="[]" context="{'group_by':'subject_id'}"/>
-                    <filter string="Batch" name="group_by_batch"
+                    <filter string="Класс" name="group_by_batch"
                             domain="[]" context="{'group_by':'batch_id'}"/>
                 </group>
             </search>
@@ -89,13 +89,13 @@
         <field name="model">op.subject.grades</field>
         <field name="arch" type="xml">
             <kanban create="false" group_by="batch_id" sample="1" default_order="student_id, subject_id">
-                <field name="student_id"/>
-                <field name="subject_id"/>
-                <field name="batch_id"/>
-                <field name="average_mark"/>
-                <field name="total_classes"/>
-                <field name="present_classes"/>
-                <field name="last_attendance_date"/>
+                <field name="student_id" string="Ученик"/>
+                <field name="subject_id" string="Предмет"/>
+                <field name="batch_id" string="Класс"/>
+                <field name="average_mark" string="Средняя оценка"/>
+                <field name="total_classes" string="Всего занятий"/>
+                <field name="present_classes" string="Посещено занятий"/>
+                <field name="last_attendance_date" string="Дата последнего посещения"/>
                 <field name="attendance_dates"/>
                 <field name="table_entries"/>
                 <field name="textbook_image"/>
