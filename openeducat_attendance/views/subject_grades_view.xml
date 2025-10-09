@@ -115,7 +115,7 @@
                                 <strong>Класс:</strong> <field name="batch_id"/>
                             </p>
                             <!-- Отображение средней оценки -->
-                            <div class="average-mark">
+                            <div class="average-mark" style="margin-bottom: 10px;">
                                 <t t-if="record.average_mark.raw_value">
                                     <strong>Средняя оценка:</strong> 
                                     <span t-esc="Math.round(record.average_mark.raw_value * 100) / 100"/>
