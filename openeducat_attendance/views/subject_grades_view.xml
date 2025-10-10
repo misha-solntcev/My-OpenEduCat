@@ -49,10 +49,6 @@
                     <group string="Оценки и поведение">
                         <field name="date_mark_table" nolabel="1" widget="html"/>
                     </group>
-                    <!-- Добавляем раздел посещаемости -->
-                    <group string="Посещаемость">
-                        <field name="attendance_info" nolabel="1" widget="html"/>
-                    </group>
                 </sheet>
             </form>
         </field>
@@ -162,7 +158,7 @@
                             <!-- Разделитель между оценками и поведением -->
                             <div class="divider" style="height: 1px; background-color: #dee2e6; margin: 5px 0;"></div>
                             
-                            <!-- Отображение поведения в виде бейджей в футере карточки -->
+                            <!-- Отображение Оценки 2 в виде бейджей в футере карточки -->
                             <div class="behaviors-badges">
                                 <t t-if="record.table_entries.raw_value and record.table_entries.raw_value.trim()">
                                     <t t-foreach="record.table_entries.raw_value.split(',')" t-as="entry">
