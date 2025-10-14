@@ -65,6 +65,6 @@
             <field name="name">Faculty Subject Grades Rule</field>
             <field name="model_id" ref="model_op_subject_grades"/>
             <field name="groups" eval="[(4, ref('__custom__.group_op_faculty'))]"/>
-            <field name="domain_force">[('subject_id','in',user.partner_id.op_faculty_ids.faculty_subject_ids.ids)]</field>
+            <field name="domain_force">[('subject_id','in',[subject.id for subject in user.partner_id.op_faculty_ids.faculty_subject_ids])]</field>
         </record>
 </odoo>
