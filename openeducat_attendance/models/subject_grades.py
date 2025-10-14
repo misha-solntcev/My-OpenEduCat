@@ -210,6 +210,11 @@ class OpSubjectGrades(models.Model):
     @api.depends('table_entries')
     def _compute_date_mark_table(self):
         for record in self:
+            _logger.info("Computing date_mark_table for record id=%s, student=%s, subject=%s", 
+                        record.id, record.student_id.name if record.student_id else 'None', 
+                        record.subject_id.name if record.subject_id else 'None')
+            _logger.info("table_entries content: %s", record.table_entries)
+            
             if record.table_entries:
                 # Создаем HTML таблицу
                 table_html = '<table class="table table-sm table-bordered">'
@@ -217,10 +222,12 @@ class OpSubjectGrades(models.Model):
                 
                 # Разбираем записи таблицы
                 entries = [e.strip() for e in record.table_entries.split(',') if e.strip()]
+                _logger.info("Parsed entries: %s", entries)
                 
                 # Заполняем таблицу данными
                 for entry in entries:
                     parts = entry.split('|')
+                    _logger.info("Entry parts: %s", parts)
                     date = parts[0] if len(parts) > 0 and parts[0] else ''
                     mark = parts[1] if len(parts) > 1 and parts[1] else ''
                     behavior = parts[2] if len(parts) > 2 and parts[2] else ''
@@ -250,6 +257,7 @@ class OpSubjectGrades(models.Model):
                             ]
                             
                             attendance_lines = self.env['op.attendance.line'].search(domain)
+                            _logger.info("Found %d attendance lines for domain: %s", len(attendance_lines), domain)
                             
                             # Добавляем отладочную информацию
                             if not attendance_lines:
@@ -265,6 +273,8 @@ class OpSubjectGrades(models.Model):
                                 unexcused_absent = '✓' if line.absent and not line.excused else ''
                                 late = '✓' if line.late else ''
                                 comment = line.remark or ''
+                                _logger.info("Attendance line data: present=%s, absent=%s, late=%s, excused=%s, remark=%s", 
+                                            line.present, line.absent, line.late, line.excused, line.remark)
                                 break  # Берем первую найденную запись
                         except ValueError:
                             # Если не удалось преобразовать дату, оставляем пустые значения
