@@ -51,4 +51,20 @@
             <field name="global" eval="True"/>
             <field name="domain_force">['|', '|', ('company_id','=',False), ('company_id','child_of',[user.company_id.id]), ('company_id','in',user.company_ids.ids)]</field>
         </record>
+        
+        <!-- Добавляем правило доступа для студентов к модели op.subject.grades -->
+        <record model="ir.rule" id="student_subject_grades_rule">
+            <field name="name">Student Subject Grades Rule</field>
+            <field name="model_id" ref="model_op_subject_grades"/>
+            <field name="groups" eval="[(4, ref('__custom__.group_op_students'))]"/>
+            <field name="domain_force">[('student_id.user_id','=',user.id)]</field>
+        </record>
+        
+        <!-- Добавляем правило доступа для преподавателей к модели op.subject.grades -->
+        <record model="ir.rule" id="faculty_subject_grades_rule">
+            <field name="name">Faculty Subject Grades Rule</field>
+            <field name="model_id" ref="model_op_subject_grades"/>
+            <field name="groups" eval="[(4, ref('__custom__.group_op_faculty'))]"/>
+            <field name="domain_force">[(1,'=',1)]</field>
+        </record>
 </odoo>
