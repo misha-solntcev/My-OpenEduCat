@@ -232,54 +232,12 @@ class OpSubjectGrades(models.Model):
                     mark = parts[1] if len(parts) > 1 and parts[1] else ''
                     behavior = parts[2] if len(parts) > 2 and parts[2] else ''
                     
-                    # Получаем информацию о посещаемости из записи посещаемости
-                    present = ''
-                    absent = ''
-                    late = ''
-                    unexcused_absent = ''
-                    comment = ''
-                    
-                    if date and record.student_id and record.subject_id:
-                        # Поиск записей посещаемости по дате, студенту и предмету
-                        try:
-                            # Пытаемся преобразовать дату в правильный формат
-                            from datetime import datetime
-                            date_obj = datetime.strptime(date, '%Y-%m-%d').date()
-                            
-                            domain = [
-                                ('student_id', '=', record.student_id.id),
-                                ('attendance_id.attendance_date', '=', date_obj),
-                                '|',
-                                ('x_subject', '=', str(record.subject_id.id)),
-                                '&',
-                                ('attendance_id.register_id', '!=', False),
-                                ('attendance_id.register_id.subject_id', '=', record.subject_id.id)
-                            ]
-                            
-                            attendance_lines = self.env['op.attendance.line'].search(domain)
-                            _logger.info("Found %d attendance lines for domain: %s", len(attendance_lines), domain)
-                            
-                            # Добавляем отладочную информацию
-                            if not attendance_lines:
-                                _logger.info("No attendance lines found for student_id=%s, date=%s, subject_id=%s", 
-                                            record.student_id.id, date, record.subject_id.id)
-                            
-                            # Проверяем каждую запись
-                            for line in attendance_lines:
-                                present = '✓' if line.present else ''
-                                # Отсутствует по уважительной причине (объединяем отсутствие по уважительной причине и обычное отсутствие)
-                                absent = '✓' if (line.absent or line.excused) else ''
-                                # Прогул (отсутствие без уважительной причины)
-                                unexcused_absent = '✓' if line.absent and not line.excused else ''
-                                late = '✓' if line.late else ''
-                                comment = line.remark or ''
-                                _logger.info("Attendance line data: present=%s, absent=%s, late=%s, excused=%s, remark=%s", 
-                                            line.present, line.absent, line.late, line.excused, line.remark)
-                                break  # Берем первую найденную запись
-                        except ValueError:
-                            # Если не удалось преобразовать дату, оставляем пустые значения
-                            _logger.info("Could not parse date: %s", date)
-                            pass
+                    # Получаем информацию о посещаемости из записи
+                    present = parts[3] if len(parts) > 3 and parts[3] else ''
+                    late = parts[4] if len(parts) > 4 and parts[4] else ''
+                    absent = parts[5] if len(parts) > 5 and parts[5] else ''
+                    unexcused_absent = parts[6] if len(parts) > 6 and parts[6] else ''
+                    comment = parts[7] if len(parts) > 7 and parts[7] else ''
                     
                     table_html += f'<tr><td>{date}</td><td>{present}</td><td>{late}</td><td>{absent}</td><td>{unexcused_absent}</td><td>{mark}</td><td>{behavior}</td><td>{comment}</td></tr>'
                 
