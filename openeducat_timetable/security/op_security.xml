@@ -66,7 +66,7 @@
             <field name="name">Custom Faculty Session Rule</field>
             <field name="model_id" ref="model_op_session"/>
             <field name="groups" eval="[(4, ref('__custom__.group_op_faculty'))]"/>
-            <field name="domain_force">[(1,'=',1)]</field>
+            <field name="domain_force">[('faculty_id.user_id','=',user.id)]</field>
         </record>
 
         <record model="ir.rule" id="manager_session_rule">

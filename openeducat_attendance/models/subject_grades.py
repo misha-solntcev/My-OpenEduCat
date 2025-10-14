@@ -251,12 +251,6 @@ class OpSubjectGrades(models.Model):
                                 line.attendance_id.register_id.subject_id and 
                                 line.attendance_id.register_id.subject_id.id == record.subject_id.id):
                                 subject_match = True
-                            # Если прямая связь не найдена, проверяем другие возможные связи
-                            elif (line.attendance_id and 
-                                  line.attendance_id.session_id and 
-                                  line.attendance_id.session_id.subject_id and 
-                                  line.attendance_id.session_id.subject_id.id == record.subject_id.id):
-                                subject_match = True
                             
                             if subject_match:
                                 present = '✓' if line.present else ''
