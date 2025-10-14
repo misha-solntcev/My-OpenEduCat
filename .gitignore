@@ -21,7 +21,8 @@ Thumbs.db
 *.save
 tmp/
 temp/
-*.csv
+!**/demo/op.*.csv # Track important demo data files
+!**/security/ir.model.access.csv # Track security access files
 *.xls
 *.xlsx
 openeducat_attendance/backup_subject_grades/
