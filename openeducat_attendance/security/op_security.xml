@@ -39,7 +39,7 @@
             <field name="name">Faculty Attendance Line Rule</field>
             <field name="model_id" ref="model_op_attendance_line"/>
             <field name="groups" eval="[(4, ref('__custom__.group_op_faculty'))]"/>
-            <field name="domain_force">[('x_subject','in',user.partner_id.op_faculty_ids.faculty_subject_ids.ids)]</field>
+            <field name="domain_force">[(1, '=', 1)]</field>
         </record>
 
         <record model="ir.rule" id="manager_attendance_line_rule">
@@ -77,6 +77,6 @@
             <field name="name">Faculty Subject Grades Rule</field>
             <field name="model_id" ref="model_op_subject_grades"/>
             <field name="groups" eval="[(4, ref('__custom__.group_op_faculty'))]"/>
-            <field name="domain_force">[('subject_id','in',[subject.id for subject in user.partner_id.op_faculty_ids.faculty_subject_ids])]</field>
+            <field name="domain_force">[(1, '=', 1)]</field>
         </record>
 </odoo>

@@ -26,8 +26,8 @@ class OpUpdateSubjectGrades(models.TransientModel):
     _description = "Update Subject Grades"
 
     def update_subject_grades(self):
-        # Получаем все записи посещаемости с оценками или поведением
-        attendance_lines = self.env['op.attendance.line'].search(['|', ('x_mark', '!=', False), ('x_behavior', '!=', False)])
+        # Получаем все записи посещаемости по данному предмету
+        attendance_lines = self.env['op.attendance.line'].search([('x_subject', '!=', False)])
         
         # Группируем данные по студенту и предмету
         grades_data = {}
@@ -92,6 +92,10 @@ class OpUpdateSubjectGrades(models.TransientModel):
                 # Вычисляем среднюю оценку из всех числовых значений (x_mark и x_behavior)
                 all_numeric_marks = []
                 
+                # Собираем все оценки и поведения из записей
+                all_marks = []
+                all_behaviors = []
+                
                 # Для отображения в таблице будем использовать формат: дата|оценка|поведение|присутствует|опоздал|отсутствует|прогул|комментарий
                 table_entries = []
 
@@ -99,6 +103,22 @@ class OpUpdateSubjectGrades(models.TransientModel):
                 all_dates = []
                 
                 for entry in data['entries']:
+                    # Собираем оценки для вычисления среднего
+                    if entry['mark']:
+                        try:
+                            mark_val = float(entry['mark'])
+                            all_numeric_marks.append(mark_val)
+                            all_marks.append(entry['mark'])
+                        except ValueError:
+                            pass
+                    if entry['behavior']:
+                        try:
+                            behavior_val = float(entry['behavior'])
+                            all_numeric_marks.append(behavior_val)
+                            all_behaviors.append(entry['behavior'])
+                        except ValueError:
+                            pass
+                    
                     # Добавляем запись для таблицы
                     table_entry = "{}|{}|{}|{}|{}|{}|{}|{}".format(
                         entry['date'] or '',
@@ -115,7 +135,15 @@ class OpUpdateSubjectGrades(models.TransientModel):
                     if entry['date']:
                         all_dates.append(entry['date'])
                 
+                # Вычисляем среднюю оценку
+                if all_numeric_marks:
+                    average_mark = sum(all_numeric_marks) / len(all_numeric_marks)
+                else:
+                    average_mark = 0.0
+                
                 # Преобразуем списки в строки
+                marks_str = ', '.join(str(mark).strip() for mark in all_marks) if all_marks else ''
+                behaviors_str = ', '.join(str(behavior).strip() for behavior in all_behaviors) if all_behaviors else ''
                 attendance_dates_str = ', '.join(str(date).strip() for date in all_dates) if all_dates else ''
                 table_entries_str = ', '.join(table_entries) if table_entries else ''
                 
@@ -146,6 +174,22 @@ class OpUpdateSubjectGrades(models.TransientModel):
                 table_entries = []
                 
                 for entry in data['entries']:
+                    # Собираем оценки для вычисления среднего
+                    if entry['mark']:
+                        try:
+                            mark_val = float(entry['mark'])
+                            all_numeric_marks.append(mark_val)
+                            all_marks.append(entry['mark'])
+                        except ValueError:
+                            pass
+                    if entry['behavior']:
+                        try:
+                            behavior_val = float(entry['behavior'])
+                            all_numeric_marks.append(behavior_val)
+                            all_behaviors.append(entry['behavior'])
+                        except ValueError:
+                            pass
+                    
                     # Добавляем запись для таблицы
                     table_entry = "{}|{}|{}|{}|{}|{}|{}|{}".format(
                         entry['date'] or '',
@@ -172,6 +216,7 @@ class OpUpdateSubjectGrades(models.TransientModel):
                 marks_str = ', '.join(str(mark).strip() for mark in all_marks) if all_marks else ''
                 behaviors_str = ', '.join(str(behavior).strip() for behavior in all_behaviors) if all_behaviors else ''
                 attendance_dates_str = ', '.join(str(date).strip() for date in all_dates) if all_dates else ''
+                table_entries_str = ', '.join(table_entries) if table_entries else ''
                 
                 # Создаем запись
                 self.env['op.subject.grades'].create({

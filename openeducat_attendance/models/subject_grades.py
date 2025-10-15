@@ -233,13 +233,19 @@ class OpSubjectGrades(models.Model):
                     behavior = parts[2] if len(parts) > 2 and parts[2] else ''
                     
                     # Получаем информацию о посещаемости из записи
-                    present = parts[3] if len(parts) > 3 and parts[3] else ''
-                    late = parts[4] if len(parts) > 4 and parts[4] else ''
-                    absent = parts[5] if len(parts) > 5 and parts[5] else ''
-                    unexcused_absent = parts[6] if len(parts) > 6 and parts[6] else ''
+                    present_raw = parts[3] if len(parts) > 3 and parts[3] else ''
+                    late_raw = parts[4] if len(parts) > 4 and parts[4] else ''
+                    absent_raw = parts[5] if len(parts) > 5 and parts[5] else ''
+                    unexcused_absent_raw = parts[6] if len(parts) > 6 and parts[6] else ''
                     comment = parts[7] if len(parts) > 7 and parts[7] else ''
                     
-                    table_html += f'<tr><td>{date}</td><td>{present}</td><td>{late}</td><td>{absent}</td><td>{unexcused_absent}</td><td>{mark}</td><td>{behavior}</td><td>{comment}</td></tr>'
+                    # Формируем визуальные галочки с использованием HTML-элементов
+                    present_display = '<span style="color: green; font-weight: bold; font-size: 18px;">✓</span>' if present_raw and present_raw.strip() == '✓' else '<span style="color: lightgray; font-size: 18px;">○</span>'
+                    late_display = '<span style="color: orange; font-weight: bold; font-size: 18px;">✓</span>' if late_raw and late_raw.strip() == '✓' else '<span style="color: lightgray; font-size: 18px;">○</span>'
+                    absent_display = '<span style="color: blue; font-weight: bold; font-size: 18px;">✓</span>' if absent_raw and absent_raw.strip() == '✓' else '<span style="color: lightgray; font-size: 18px;">○</span>'
+                    unexcused_absent_display = '<span style="color: red; font-weight: bold; font-size: 18px;">✓</span>' if unexcused_absent_raw and unexcused_absent_raw.strip() == '✓' else '<span style="color: lightgray; font-size: 18px;">○</span>'
+                    
+                    table_html += f'<tr><td>{date}</td><td>{present_display}</td><td>{late_display}</td><td>{absent_display}</td><td>{unexcused_absent_display}</td><td>{mark}</td><td>{behavior}</td><td>{comment}</td></tr>'
                 
                 table_html += '</tbody></table>'
                 record.date_mark_table = table_html
