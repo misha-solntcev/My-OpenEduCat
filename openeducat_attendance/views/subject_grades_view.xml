@@ -48,10 +48,7 @@
                     </group>
                     <group string="Оценки и поведение">
                         <field name="date_mark_table" nolabel="1" widget="html"/>
-                    </group>
-                    <group string="Посещаемость">
-                        <field name="attendance_info" nolabel="1" widget="html"/>
-                    </group>
+                    </group>                    
                 </sheet>
             </form>
         </field>

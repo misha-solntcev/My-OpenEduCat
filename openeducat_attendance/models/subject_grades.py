@@ -41,9 +41,7 @@ class OpSubjectGrades(models.Model):
     last_attendance_date = fields.Date('Last Attendance Date')
     textbook_image = fields.Binary('Textbook Image', compute='_compute_textbook_image')
     # Новое поле для отображения дат и оценок в виде таблицы
-    date_mark_table = fields.Html('Date-Mark Table', compute='_compute_date_mark_table')
-    # Новое поле для отображения информации о посещаемости
-    attendance_info = fields.Html('Attendance Information', compute='_compute_attendance_info')
+    date_mark_table = fields.Html('Date-Mark Table', compute='_compute_date_mark_table')    
 
     @api.model
     def _search(self, args, offset=0, limit=None, order=None, count=False, access_rights_uid=None):
@@ -312,47 +310,3 @@ class OpSubjectGrades(models.Model):
             else:
                 # Если учебник не найден, используем стандартное изображение
                 record.textbook_image = False
-
-    @api.depends('student_id', 'subject_id', 'batch_id')
-    def _compute_attendance_info(self):
-        for record in self:
-            if record.student_id and record.subject_id:
-                # Получаем все записи посещаемости для студента по данному предмету
-                attendance_lines = self.env['op.attendance.line'].search([
-                    ('student_id', '=', record.student_id.id),
-                    ('x_subject', '=', str(record.subject_id.id))
-                ])
-                
-                # Считаем общее количество занятий и количество посещений
-                total_classes = len(attendance_lines)
-                present_classes = len(attendance_lines.filtered(lambda r: r.present))
-                
-                # Создаем HTML таблицу с информацией о посещаемости
-                table_html = '<table class="table table-sm table-bordered">'
-                table_html += '<thead><tr><th>Дата</th><th>Статус</th><th>Комментарий</th></tr></thead><tbody>'
-                
-                # Добавляем строки для каждого занятия
-                for line in attendance_lines:
-                    status = 'Неизвестно'
-                    if line.present:
-                        status = 'Присутствовал'
-                    elif line.absent:
-                        status = 'Отсутствовал'
-                    elif line.late:
-                        status = 'Опоздал'
-                    elif line.excused:
-                        status = 'Отсутствовал (уважительная причина)'
-                    
-                    table_html += f'<tr><td>{line.attendance_date or ""}</td><td>{status}</td><td>{line.remark or ""}</td></tr>'
-                
-                table_html += '</tbody></table>'
-                
-                # Добавляем сводную информацию
-                summary_html = f'<div class="row">'
-                summary_html += f'<div class="col-md-6"><strong>Всего занятий:</strong> {total_classes}</div>'
-                summary_html += f'<div class="col-md-6"><strong>Посетил занятий:</strong> {present_classes}</div>'
-                summary_html += f'</div><br/>'
-                
-                record.attendance_info = summary_html + table_html
-            else:
-                record.attendance_info = '<p>Нет данных о посещаемости</p>'
