@@ -41,7 +41,9 @@ class OpSubjectGrades(models.Model):
     last_attendance_date = fields.Date('Last Attendance Date')
     textbook_image = fields.Binary('Textbook Image', compute='_compute_textbook_image')
     # Новое поле для отображения дат и оценок в виде таблицы
-    date_mark_table = fields.Html('Date-Mark Table', compute='_compute_date_mark_table')    
+    date_mark_table = fields.Html('Date-Mark Table', compute='_compute_date_mark_table')
+    # Поле для ручного ввода итоговой оценки за четверть
+    final_quarter_grade = fields.Char('Итоговая оценка за четверть')
 
     @api.model
     def _search(self, args, offset=0, limit=None, order=None, count=False, access_rights_uid=None):

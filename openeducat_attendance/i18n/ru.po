@@ -52,6 +52,13 @@ msgid "Present Classes"
 msgstr "Посещено занятий"
 
 #. module: openeducat_attendance
+#: model:ir.model.fields,field_description:openeducat_attendance.field_op_subject_grades__final_quarter_grade
+#: model_terms:ir.ui.view,arch_db:openeducat_attendance.view_op_subject_grades_form
+#: model_terms:ir.ui.view,arch_db:openeducat_attendance.view_op_subject_grades_kanban
+msgid "Final Quarter Grade"
+msgstr "Итоговая оценка за четверть"
+
+#. module: openeducat_attendance
 #: model:ir.model.fields,field_description:openeducat_attendance.field_op_subject_grades__last_attendance_date
 #: model_terms:ir.ui.view,arch_db:openeducat_attendance.view_op_subject_grades_form
 msgid "Last Attendance Date"

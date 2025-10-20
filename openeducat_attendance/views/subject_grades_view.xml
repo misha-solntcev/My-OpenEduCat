@@ -44,6 +44,7 @@
                             <field name="present_classes" string="Посещено занятий"/>
                             <field name="last_attendance_date" string="Дата последнего посещения"/>
                             <field name="average_mark" string="Средняя оценка"/>
+                            <field name="final_quarter_grade" string="Итоговая оценка за четверть"/>
                         </group>
                     </group>
                     <group string="Оценки и поведение">
@@ -66,6 +67,7 @@
                 <field name="batch_id" string="Класс"/>
                 <field name="average_mark" string="Средняя оценка"/>
                 <field name="attendance_dates"/>
+                <field name="final_quarter_grade" string="Итоговая оценка за четверть"/>
                 <newline/>
                 <group expand="0" string="Группировать по...">
                     <filter string="Ученик" name="group_by_student"
@@ -95,6 +97,7 @@
                 <field name="attendance_dates"/>
                 <field name="table_entries"/>
                 <field name="textbook_image"/>
+                <field name="final_quarter_grade"/>
                 <templates>
                     <t t-name="card" class="flex-row">
                         <aside class="o_kanban_aside_full">
@@ -117,6 +120,15 @@
                                     <span t-esc="Math.round(record.average_mark.raw_value * 100) / 100"/>
                                 </t>
                             </div>
+                            
+                            <!-- Отображение итоговой оценки за четверть -->
+                            <div class="final-quarter-grade" style="margin-bottom: 10px;">
+                                <t t-if="record.final_quarter_grade.raw_value">
+                                    <strong>Итоговая оценка за четверть:</strong> 
+                                    <span t-esc="record.final_quarter_grade.raw_value"/>
+                                </t>
+                            </div>
+                            
                             <!-- Отображение оценок в виде бейджей в футере карточки -->
                             <div class="marks-badges">
                                 <t t-if="record.table_entries.raw_value and record.table_entries.raw_value.trim()">
