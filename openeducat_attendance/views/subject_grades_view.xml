@@ -116,19 +116,46 @@
                             <!-- Отображение средней оценки -->
                             <div class="average-mark" style="margin-bottom: 10px;">
                                 <t t-if="record.average_mark.raw_value">
-                                    <strong>Средняя оценка:</strong> 
-                                    <span t-esc="Math.round(record.average_mark.raw_value * 100) / 100"/>
+                                    <strong>Средняя оценка:</strong> <span t-esc="Math.round(record.average_mark.raw_value * 100) / 100"/>
                                 </t>
                             </div>
                             
                             <!-- Отображение итоговой оценки за четверть -->
                             <div class="final-quarter-grade" style="margin-bottom: 10px;">
                                 <t t-if="record.final_quarter_grade.raw_value">
-                                    <strong>Итоговая оценка за четверть:</strong> 
-                                    <span t-esc="record.final_quarter_grade.raw_value"/>
+                                    <strong>Итоговая оценка:</strong>
+                                    <t t-set="quarter_grade" t-value="record.final_quarter_grade.raw_value"/>
+                                    <t t-if="quarter_grade == '2'">
+                                        <span class="badge fw-bold" style="background-color: #fff0f6; color: #d6336c; font-size: 20px; margin-left: 5px;">
+                                            <t t-esc="quarter_grade"/>
+                                        </span>
+                                    </t>
+                                    <t t-elif="quarter_grade == '3'">
+                                        <span class="badge fw-bold" style="background-color: #fff3bf; color: #997404; font-size: 20px; margin-left: 5px;">
+                                            <t t-esc="quarter_grade"/>
+                                        </span>
+                                    </t>
+                                    <t t-elif="quarter_grade == '4'">
+                                        <span class="badge fw-bold" style="background-color: #ebfbee; color: #37b24d; font-size: 20px; margin-left: 5px;">
+                                            <t t-esc="quarter_grade"/>
+                                        </span>
+                                    </t>
+                                    <t t-elif="quarter_grade == '5'">
+                                        <span class="badge fw-bold" style="background-color: #e7f5ff; color: #1c7ed6; font-size: 20px; margin-left: 5px;">
+                                            <t t-esc="quarter_grade"/>
+                                        </span>
+                                    </t>
+                                    <t t-else="">
+                                        <span class="badge fw-bold" style="background-color: #f8f9fa; color: #495057; font-size: 20px; margin-left: 5px;">
+                                            <t t-esc="quarter_grade"/>
+                                        </span>
+                                    </t>
                                 </t>
                             </div>
-                            
+
+                            <!-- Разделитель между Итоговой оценкой и оценками -->
+                            <div class="divider" style="height: 1px; background-color: #dee2e6; margin: 5px 0;"></div>                            
+
                             <!-- Отображение оценок в виде бейджей в футере карточки -->
                             <div class="marks-badges">
                                 <t t-if="record.table_entries.raw_value and record.table_entries.raw_value.trim()">
