@@ -33,6 +33,7 @@
                     <button name="%(openeducat_attendance.action_op_update_subject_grades)d" type="action" string="Обновить оценки по предметам" class="btn btn-primary" groups="openeducat_attendance.group_op_attendance_manager"/>
                 </header>
                 <sheet>
+                    <field name="textbook_image" widget="image" style="float: right; width: 150px; height: 150px; object-fit: contain;"/>
                     <group>
                         <group>
                             <field name="student_id" string="Ученик"/>
