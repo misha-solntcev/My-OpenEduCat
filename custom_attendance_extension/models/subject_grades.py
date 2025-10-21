@@ -11,9 +11,9 @@ class OpSubjectGrades(models.Model):
     def _compute_date_mark_table(self):
         for record in self:
             if record.table_entries:
-                # Создаем HTML таблицу
+                # Создаем HTML таблицу с центрированными заголовками
                 table_html = '<table class="table table-sm table-bordered">'
-                table_html += '<thead><tr><th>Дата</th><th>Тема урока</th><th>Посещение</th><th>Оценка 1</th><th>Оценка 2</th><th>Комментарий</th></tr></thead><tbody>'
+                table_html += '<thead><tr><th>Дата</th><th>Тема урока</th><th>Посещение</th><th style="text-align: center;">Оценка 1</th><th style="text-align: center;">Оценка 2</th><th>Комментарий</th></tr></thead><tbody>'
                 
                 # Разбираем записи таблицы
                 entries = [e.strip() for e in record.table_entries.split(',') if e.strip()]
@@ -61,32 +61,32 @@ class OpSubjectGrades(models.Model):
                         # Не определено - серая иконка вопроса
                         attendance_symbol = '<i class="fa fa-question" style="color: lightgray; font-size: 18px;"></i>'
                     
-                    # Форматируем оценки с использованием цветных бейджей, как в Kanban-представлении
+                    # Форматируем оценки с использованием цветных бейджей, как в Kanban-представлении, с увеличенным размером
                     if mark:
                         if mark == '2':
-                            mark_badge = f'<span class="badge fw-bold" style="background-color: #fff0f6; color: #d6336c; font-size: 12px; padding: 4px 8px;">{mark}</span>'
+                            mark_badge = f'<span class="badge fw-bold" style="background-color: #fff0f6; color: #d6336c; font-size: 18px; padding: 4px 8px;">{mark}</span>'
                         elif mark == '3':
-                            mark_badge = f'<span class="badge fw-bold" style="background-color: #fff3bf; color: #997404; font-size: 12px; padding: 4px 8px;">{mark}</span>'
+                            mark_badge = f'<span class="badge fw-bold" style="background-color: #fff3bf; color: #997404; font-size: 18px; padding: 4px 8px;">{mark}</span>'
                         elif mark == '4':
-                            mark_badge = f'<span class="badge fw-bold" style="background-color: #ebfbee; color: #37b24d; font-size: 12px; padding: 4px 8px;">{mark}</span>'
+                            mark_badge = f'<span class="badge fw-bold" style="background-color: #ebfbee; color: #37b24d; font-size: 18px; padding: 4px 8px;">{mark}</span>'
                         elif mark == '5':
-                            mark_badge = f'<span class="badge fw-bold" style="background-color: #e7f5ff; color: #1c7ed6; font-size: 12px; padding: 4px 8px;">{mark}</span>'
+                            mark_badge = f'<span class="badge fw-bold" style="background-color: #e7f5ff; color: #1c7ed6; font-size: 18px; padding: 4px 8px;">{mark}</span>'
                         else:
-                            mark_badge = f'<span class="badge fw-bold" style="background-color: #f8f9fa; color: #495057; font-size: 12px; padding: 4px 8px;">{mark}</span>'
+                            mark_badge = f'<span class="badge fw-bold" style="background-color: #f8f9fa; color: #495057; font-size: 18px; padding: 4px 8px;">{mark}</span>'
                     else:
                         mark_badge = ''
                     
                     if behavior:
                         if behavior == '2':
-                            behavior_badge = f'<span class="badge fw-bold" style="background-color: #f8f9fa; color: #495057; font-size: 12px; padding: 4px 8px; border: 1px solid #dee2e6;">{behavior}</span>'
+                            behavior_badge = f'<span class="badge fw-bold" style="background-color: #f8f9fa; color: #495057; font-size: 18px; padding: 4px 8px; border: 1px solid #dee2e6;">{behavior}</span>'
                         elif behavior == '3':
-                            behavior_badge = f'<span class="badge fw-bold" style="background-color: #fff3bf; color: #997404; font-size: 12px; padding: 4px 8px; border: 1px solid #dee2e6;">{behavior}</span>'
+                            behavior_badge = f'<span class="badge fw-bold" style="background-color: #fff3bf; color: #997404; font-size: 18px; padding: 4px 8px; border: 1px solid #dee2e6;">{behavior}</span>'
                         elif behavior == '4':
-                            behavior_badge = f'<span class="badge fw-bold" style="background-color: #ebfbee; color: #37b24d; font-size: 12px; padding: 4px 8px; border: 1px solid #dee2e6;">{behavior}</span>'
+                            behavior_badge = f'<span class="badge fw-bold" style="background-color: #ebfbee; color: #37b24d; font-size: 18px; padding: 4px 8px; border: 1px solid #dee2e6;">{behavior}</span>'
                         elif behavior == '5':
-                            behavior_badge = f'<span class="badge fw-bold" style="background-color: #e7f5ff; color: #1c7ed6; font-size: 12px; padding: 4px 8px; border: 1px solid #dee2e6;">{behavior}</span>'
+                            behavior_badge = f'<span class="badge fw-bold" style="background-color: #e7f5ff; color: #1c7ed6; font-size: 18px; padding: 4px 8px; border: 1px solid #dee2e6;">{behavior}</span>'
                         else:
-                            behavior_badge = f'<span class="badge fw-bold" style="background-color: #f8f9fa; color: #495057; font-size: 12px; padding: 4px 8px; border: 1px solid #dee2e6;">{behavior}</span>'
+                            behavior_badge = f'<span class="badge fw-bold" style="background-color: #f8f9fa; color: #495057; font-size: 18px; padding: 4px 8px; border: 1px solid #dee2e6;">{behavior}</span>'
                     else:
                         behavior_badge = ''
                     
