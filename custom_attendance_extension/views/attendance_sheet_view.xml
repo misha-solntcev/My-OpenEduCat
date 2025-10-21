@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <record id="view_op_attendance_sheet_form_custom" model="ir.ui.view">
+        <field name="name">op.attendance.sheet.form.custom</field>
+        <field name="model">op.attendance.sheet</field>
+        <field name="inherit_id" ref="openeducat_attendance.view_op_attendance_sheet_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//group[@name='main_group']//group[2]" position="inside">
+                <field name="lesson_topic"/>
+            </xpath>
+        </field>
+    </record>
+</odoo>
