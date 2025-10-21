@@ -61,9 +61,34 @@ class OpSubjectGrades(models.Model):
                         # Не определено - серая иконка вопроса
                         attendance_symbol = '<i class="fa fa-question" style="color: lightgray; font-size: 18px;"></i>'
                     
-                    # Форматируем оценки с использованием бейджей
-                    mark_badge = f'<span class="badge" style="background-color: #007bff; font-size: 12px; padding: 4px 8px;">{mark}</span>' if mark else ''
-                    behavior_badge = f'<span class="badge" style="background-color: #28a745; font-size: 12px; padding: 4px 8px;">{behavior}</span>' if behavior else ''
+                    # Форматируем оценки с использованием цветных бейджей, как в Kanban-представлении
+                    if mark:
+                        if mark == '2':
+                            mark_badge = f'<span class="badge fw-bold" style="background-color: #fff0f6; color: #d6336c; font-size: 12px; padding: 4px 8px;">{mark}</span>'
+                        elif mark == '3':
+                            mark_badge = f'<span class="badge fw-bold" style="background-color: #fff3bf; color: #997404; font-size: 12px; padding: 4px 8px;">{mark}</span>'
+                        elif mark == '4':
+                            mark_badge = f'<span class="badge fw-bold" style="background-color: #ebfbee; color: #37b24d; font-size: 12px; padding: 4px 8px;">{mark}</span>'
+                        elif mark == '5':
+                            mark_badge = f'<span class="badge fw-bold" style="background-color: #e7f5ff; color: #1c7ed6; font-size: 12px; padding: 4px 8px;">{mark}</span>'
+                        else:
+                            mark_badge = f'<span class="badge fw-bold" style="background-color: #f8f9fa; color: #495057; font-size: 12px; padding: 4px 8px;">{mark}</span>'
+                    else:
+                        mark_badge = ''
+                    
+                    if behavior:
+                        if behavior == '2':
+                            behavior_badge = f'<span class="badge fw-bold" style="background-color: #f8f9fa; color: #495057; font-size: 12px; padding: 4px 8px; border: 1px solid #dee2e6;">{behavior}</span>'
+                        elif behavior == '3':
+                            behavior_badge = f'<span class="badge fw-bold" style="background-color: #fff3bf; color: #997404; font-size: 12px; padding: 4px 8px; border: 1px solid #dee2e6;">{behavior}</span>'
+                        elif behavior == '4':
+                            behavior_badge = f'<span class="badge fw-bold" style="background-color: #ebfbee; color: #37b24d; font-size: 12px; padding: 4px 8px; border: 1px solid #dee2e6;">{behavior}</span>'
+                        elif behavior == '5':
+                            behavior_badge = f'<span class="badge fw-bold" style="background-color: #e7f5ff; color: #1c7ed6; font-size: 12px; padding: 4px 8px; border: 1px solid #dee2e6;">{behavior}</span>'
+                        else:
+                            behavior_badge = f'<span class="badge fw-bold" style="background-color: #f8f9fa; color: #495057; font-size: 12px; padding: 4px 8px; border: 1px solid #dee2e6;">{behavior}</span>'
+                    else:
+                        behavior_badge = ''
                     
                     table_html += f'<tr><td>{date}</td><td>{lesson_topic}</td><td style="text-align: center;">{attendance_symbol}</td><td style="text-align: center;">{mark_badge}</td><td style="text-align: center;">{behavior_badge}</td><td>{comment}</td></tr>'
                 
