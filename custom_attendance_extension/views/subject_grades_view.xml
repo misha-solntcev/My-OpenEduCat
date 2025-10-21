@@ -19,6 +19,9 @@
         <field name="inherit_id" ref="openeducat_attendance.view_op_subject_grades_form"/>
         <field name="arch" type="xml">
             <xpath expr="//sheet" position="inside">
+                <group>
+                    <field name="lesson_topics" placeholder="Введите темы уроков"/>
+                </group>
                 <div style="margin-top: 20px; width: 100%;">
                     <h3 style="text-align: center; margin-bottom: 15px;">Расшифровка символов посещаемости</h3>
                     <div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 20px;">

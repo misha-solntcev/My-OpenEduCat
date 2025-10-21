@@ -61,7 +61,11 @@ class OpSubjectGrades(models.Model):
                         # Не определено - серая иконка вопроса
                         attendance_symbol = '<i class="fa fa-question" style="color: lightgray; font-size: 18px;"></i>'
                     
-                    table_html += f'<tr><td>{date}</td><td>{lesson_topic}</td><td style="text-align: center;">{attendance_symbol}</td><td>{mark}</td><td>{behavior}</td><td>{comment}</td></tr>'
+                    # Форматируем оценки с использованием бейджей
+                    mark_badge = f'<span class="badge" style="background-color: #007bff; font-size: 12px; padding: 4px 8px;">{mark}</span>' if mark else ''
+                    behavior_badge = f'<span class="badge" style="background-color: #28a745; font-size: 12px; padding: 4px 8px;">{behavior}</span>' if behavior else ''
+                    
+                    table_html += f'<tr><td>{date}</td><td>{lesson_topic}</td><td style="text-align: center;">{attendance_symbol}</td><td style="text-align: center;">{mark_badge}</td><td style="text-align: center;">{behavior_badge}</td><td>{comment}</td></tr>'
                 
                 table_html += '</tbody></table>'
                 record.date_mark_table = table_html
