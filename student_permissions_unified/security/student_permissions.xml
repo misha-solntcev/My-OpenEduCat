@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo noupdate="1">
+    <!-- 
+    Единый файл прав доступа для группы студентов (__custom__.group_op_students)
+    Этот файл объединяет все права в единый, непротиворечивый набор прав доступа
+    -->
+
+    <!-- Правило для доступа к контактам (только собственный контакт) -->
+    <record id="student_partner_access_rule" model="ir.rule">
+        <field name="name">Students: Own Partner Contact Only</field>
+        <field name="model_id" ref="base.model_res_partner"/>
+        <field name="groups" eval="[(4, ref(&apos;__custom__.group_op_students&apos;))]"/>
+        <field name="domain_force">[(&apos;id&apos;, &apos;=&apos;, user.partner_id.id)]</field>
+        <field name="perm_read" eval="1"/>
+        <field name="perm_write" eval="0"/>
+        <field name="perm_create" eval="0"/>
+        <field name="perm_unlink" eval="0"/>
+    </record>
+
+    <!-- Правило для доступа к собственной учетной записи пользователя -->
+    <record id="student_users_access_rule" model="ir.rule">
+        <field name="name">Students: Own User Record Only</field>
+        <field name="model_id" ref="base.model_res_users"/>
+        <field name="groups" eval="[(4, ref(&apos;__custom__.group_op_students&apos;))]"/>
+        <field name="domain_force">[(&apos;id&apos;, &apos;=&apos;, user.id)]</field>
+        <field name="perm_read" eval="1"/>
+        <field name="perm_write" eval="0"/>
+        <field name="perm_create" eval="0"/>
+        <field name="perm_unlink" eval="0"/>
+    </record>
+
+    <!-- Правило для доступа к компаниям (только к компаниям, к которым принадлежит пользователь) -->
+    <record id="student_company_access_rule" model="ir.rule">
+        <field name="name">Students: Limited Company Access</field>
+        <field name="model_id" ref="base.model_res_company"/>
+        <field name="groups" eval="[(4, ref(&apos;__custom__.group_op_students&apos;))]"/>
+        <field name="domain_force">[(&apos;id&apos;, &apos;in&apos;, user.company_ids.ids)]</field>
+        <field name="perm_read" eval="1"/>
+        <field name="perm_write" eval="0"/>
+        <field name="perm_create" eval="0"/>
+        <field name="perm_unlink" eval="0"/>
+    </record>
+
+    <!-- Правило для доступа к своим записям студентов в OpenEduCat -->
+    <record id="student_op_student_access_rule" model="ir.rule">
+        <field name="name">Students: Own Student Record</field>
+        <field name="model_id" ref="openeducat_core.model_op_student"/>
+        <field name="groups" eval="[(4, ref(&apos;__custom__.group_op_students&apos;))]"/>
+        <field name="domain_force">[(&apos;user_id&apos;, &apos;=&apos;, user.id)]</field>
+        <field name="perm_read" eval="1"/>
+        <field name="perm_write" eval="0"/>
+        <field name="perm_create" eval="0"/>
+        <field name="perm_unlink" eval="0"/>
+    </record>
+
+    <!-- Правило для доступа к расписанию, связанному со студентом -->
+    <record id="student_session_access_rule" model="ir.rule">
+        <field name="name">Students: Session Access</field>
+        <field name="model_id" ref="openeducat_timetable.model_op_session"/>
+        <field name="groups" eval="[(4, ref(&apos;__custom__.group_op_students&apos;))]"/>
+        <field name="domain_force">[&apos;|&apos;, (&apos;user_ids&apos;,&apos;in&apos;,user.id), (&apos;user_ids&apos;,&apos;in&apos;,user.child_ids.ids)]</field>
+        <field name="perm_read" eval="1"/>
+        <field name="perm_write" eval="0"/>
+        <field name="perm_create" eval="0"/>
+        <field name="perm_unlink" eval="0"/>
+    </record>
+
+    <!-- Правило для доступа к учебным курсам -->
+    <record id="student_course_access_rule" model="ir.rule">
+        <field name="name">Students: Course Access</field>
+        <field name="model_id" ref="openeducat_core.model_op_course"/>
+        <field name="groups" eval="[(4, ref(&apos;__custom__.group_op_students&apos;))]"/>
+        <field name="domain_force">[(1, &apos;=&apos;, 1)]</field>
+        <field name="perm_read" eval="1"/>
+        <field name="perm_write" eval="0"/>
+        <field name="perm_create" eval="0"/>
+        <field name="perm_unlink" eval="0"/>
+    </record>
+
+    <!-- Правило для доступа к учебным группам -->
+    <record id="student_batch_access_rule" model="ir.rule">
+        <field name="name">Students: Batch Access</field>
+        <field name="model_id" ref="openeducat_core.model_op_batch"/>
+        <field name="groups" eval="[(4, ref(&apos;__custom__.group_op_students&apos;))]"/>
+        <field name="domain_force">[(1, &apos;=&apos;, 1)]</field>
+        <field name="perm_read" eval="1"/>
+        <field name="perm_write" eval="0"/>
+        <field name="perm_create" eval="0"/>
+        <field name="perm_unlink" eval="0"/>
+    </record>
+
+    <!-- Правило для доступа к учебным дисциплинам -->
+    <record id="student_subject_access_rule" model="ir.rule">
+        <field name="name">Students: Subject Access</field>
+        <field name="model_id" ref="openeducat_core.model_op_subject"/>
+        <field name="groups" eval="[(4, ref(&apos;__custom__.group_op_students&apos;))]"/>
+        <field name="domain_force">[(1, &apos;=&apos;, 1)]</field>
+        <field name="perm_read" eval="1"/>
+        <field name="perm_write" eval="0"/>
+        <field name="perm_create" eval="0"/>
+        <field name="perm_unlink" eval="0"/>
+    </record>
+
+    <!-- Меню для студентов -->
+    <record id="menu_student_main" model="ir.ui.menu">
+        <field name="name">Education</field>
+        <field name="groups_id" eval="[(4, ref(&apos;__custom__.group_op_students&apos;))]"/>
+        <field name="sequence" eval="10"/>
+    </record>
+
+    <record id="menu_student_attendance" model="ir.ui.menu">
+        <field name="name">Attendance</field>
+        <field name="parent_id" ref="menu_student_main"/>
+        <field name="groups_id" eval="[(4, ref(&apos;__custom__.group_op_students&apos;))]"/>
+        <field name="sequence" eval="20"/>
+    </record>
+
+    <record id="menu_student_grades" model="ir.ui.menu">
+        <field name="name">Grades</field>
+        <field name="parent_id" ref="menu_student_main"/>
+        <field name="groups_id" eval="[(4, ref(&apos;__custom__.group_op_students&apos;))]"/>
+        <field name="sequence" eval="30"/>
+    </record>
+</odoo>

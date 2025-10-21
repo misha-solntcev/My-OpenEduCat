@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+
+    <record id="view_op_student_form_library_inherit_extended" model="ir.ui.view">
+        <field name="name">op.student.form.library.inherit.extended</field>
+        <field name="model">op.student</field>
+        <field name="inherit_id" ref="openeducat_library.view_op_student_form_library_inherit"/>
+        <field name="priority" eval="11"/>
+        <field name="arch" type="xml">
+            <xpath expr="//button[@name='count_media_movement_lines']" position="attributes">
+                <attribute name="groups">openeducat_library.group_op_library_user,openeducat_library.group_op_library,__custom__.group_op_faculty,__custom__.group_op_students</attribute>
+            </xpath>
+        </field>
+    </record>
+
+</odoo>
