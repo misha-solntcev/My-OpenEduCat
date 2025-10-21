@@ -13,8 +13,6 @@
     'data': [
         'views/attendance_sheet_view.xml',
         'views/subject_grades_view.xml',
-        'views/session_planning_view.xml',
-        'views/lesson_themes_view.xml',
     ],
     'demo': [],
     'installable': True,

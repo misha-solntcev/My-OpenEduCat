@@ -1,15 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <odoo>
-    <record id="view_op_subject_grades_form_custom" model="ir.ui.view">
-        <field name="name">op.subject.grades.form.custom</field>
-        <field name="model">op.subject.grades</field>
-        <field name="inherit_id" ref="openeducat_attendance.view_op_subject_grades_form"/>
-        <field name="arch" type="xml">
-            <xpath expr="//field[@name='marks']" position="after">
-                <field name="lesson_topics"/>
-            </xpath>
-        </field>
-    </record>
+    <!-- Удаляем изменение формы, так как теперь темы уроков отображаются в таблице -->
     
     <record id="view_op_subject_grades_search_custom" model="ir.ui.view">
         <field name="name">op.subject.grades.search.custom</field>
@@ -18,6 +9,41 @@
         <field name="arch" type="xml">
             <xpath expr="//search" position="inside">
                 <field name="lesson_topics"/>
+            </xpath>
+        </field>
+    </record>
+    
+    <record id="view_op_subject_grades_form_custom" model="ir.ui.view">
+        <field name="name">op.subject.grades.form.custom</field>
+        <field name="model">op.subject.grades</field>
+        <field name="inherit_id" ref="openeducat_attendance.view_op_subject_grades_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//sheet" position="inside">
+                <div style="margin-top: 20px; width: 100%;">
+                    <h3 style="text-align: center; margin-bottom: 15px;">Расшифровка символов посещаемости</h3>
+                    <div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 20px;">
+                        <div style="display: flex; align-items: center; min-width: 200px;">
+                            <i class="fa fa-check" style="color: green; font-size: 18px; width: 20px; margin-right: 10px;"></i>
+                            <span>Присутствует</span>
+                        </div>
+                        <div style="display: flex; align-items: center; min-width: 200px;">
+                            <i class="fa fa-clock-o" style="color: orange; font-size: 18px; width: 20px; margin-right: 10px;"></i>
+                            <span>Опоздал</span>
+                        </div>
+                        <div style="display: flex; align-items: center; min-width: 200px;">
+                            <i class="fa fa-file-text" style="color: blue; font-size: 18px; width: 20px; margin-right: 10px;"></i>
+                            <span>Отсутствует по уважительной причине</span>
+                        </div>
+                        <div style="display: flex; align-items: center; min-width: 200px;">
+                            <i class="fa fa-times" style="color: red; font-size: 18px; width: 20px; margin-right: 10px;"></i>
+                            <span>Прогул</span>
+                        </div>
+                        <div style="display: flex; align-items: center; min-width: 200px;">
+                            <i class="fa fa-question" style="color: lightgray; font-size: 18px; width: 20px; margin-right: 10px;"></i>
+                            <span>Не определено</span>
+                        </div>
+                    </div>
+                </div>
             </xpath>
         </field>
     </record>
