@@ -46,6 +46,9 @@ class OpUpdateSubjectGrades(models.TransientModel):
                         'last_attendance_date': line.attendance_date,
                     }
                 
+                # Получаем тему урока из ведомости посещаемости
+                lesson_topic = line.attendance_id.lesson_topic if hasattr(line.attendance_id, 'lesson_topic') else ''
+                
                 # Создаем запись с датой, оценкой, поведением и информацией о посещаемости
                 entry = {
                     'date': line.attendance_date.strftime('%Y-%m-%d') if line.attendance_date else '',
@@ -55,7 +58,8 @@ class OpUpdateSubjectGrades(models.TransientModel):
                     'late': '✓' if line.late else '',
                     'absent': '✓' if (line.absent or line.excused) else '',
                     'unexcused_absent': '✓' if line.absent and not line.excused else '',
-                    'remark': line.remark or ''
+                    'remark': line.remark or '',
+                    'lesson_topic': lesson_topic or ''  # Добавляем тему урока
                 }
                 grades_data[key]['entries'].append(entry)
                 
@@ -96,7 +100,7 @@ class OpUpdateSubjectGrades(models.TransientModel):
                 all_marks = []
                 all_behaviors = []
                 
-                # Для отображения в таблице будем использовать формат: дата|оценка|поведение|присутствует|опоздал|отсутствует|прогул|комментарий
+                # Для отображения в таблице будем использовать формат: дата|оценка|поведение|присутствует|опоздал|отсутствует|прогул|комментарий|тема урока
                 table_entries = []
 
                 # Собираем даты и формируем таблицу
@@ -120,7 +124,7 @@ class OpUpdateSubjectGrades(models.TransientModel):
                             pass
                     
                     # Добавляем запись для таблицы
-                    table_entry = "{}|{}|{}|{}|{}|{}|{}|{}".format(
+                    table_entry = "{}|{}|{}|{}|{}|{}|{}|{}|{}".format(
                         entry['date'] or '',
                         entry['mark'] or '',
                         entry['behavior'] or '',
@@ -128,7 +132,8 @@ class OpUpdateSubjectGrades(models.TransientModel):
                         entry.get('late', '') or '',
                         entry.get('absent', '') or '',
                         entry.get('unexcused_absent', '') or '',
-                        entry.get('remark', '') or ''
+                        entry.get('remark', '') or '',
+                        entry.get('lesson_topic', '') or ''  # Добавляем тему урока
                     )
                     table_entries.append(table_entry)
                     
@@ -170,7 +175,7 @@ class OpUpdateSubjectGrades(models.TransientModel):
                 all_behaviors = []
                 all_dates = []
                 
-                # Для отображения в таблице будем использовать формат: дата|оценка|поведение|присутствует|опоздал|отсутствует|прогул|комментарий
+                # Для отображения в таблице будем использовать формат: дата|оценка|поведение|присутствует|опоздал|отсутствует|прогул|комментарий|тема урока
                 table_entries = []
                 
                 for entry in data['entries']:
@@ -191,7 +196,7 @@ class OpUpdateSubjectGrades(models.TransientModel):
                             pass
                     
                     # Добавляем запись для таблицы
-                    table_entry = "{}|{}|{}|{}|{}|{}|{}|{}".format(
+                    table_entry = "{}|{}|{}|{}|{}|{}|{}|{}|{}".format(
                         entry['date'] or '',
                         entry['mark'] or '',
                         entry['behavior'] or '',
@@ -199,7 +204,8 @@ class OpUpdateSubjectGrades(models.TransientModel):
                         entry.get('late', '') or '',
                         entry.get('absent', '') or '',
                         entry.get('unexcused_absent', '') or '',
-                        entry.get('remark', '') or ''
+                        entry.get('remark', '') or '',
+                        entry.get('lesson_topic', '') or ''  # Добавляем тему урока
                     )
                     table_entries.append(table_entry)
                     

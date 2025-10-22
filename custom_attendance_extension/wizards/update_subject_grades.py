@@ -5,50 +5,53 @@ class UpdateSubjectGrades(models.TransientModel):
     _inherit = 'update.subject.grades'
 
     def update_grades(self):
-        # Сначала вызываем оригинальный метод
-        result = super(UpdateSubjectGrades, self).update_grades()
+        # Вызываем оригинальный метод
+        result = super().update_grades()
         
-        # Затем добавляем обработку тем уроков
+        # Обрабатываем темы уроков
         subject_grade_obj = self.env['op.subject.grades']
         
-        # Получаем все записи посещаемости для обработки тем уроков
+        # Получаем записи посещаемости
         attendance_sheets = self.env['op.attendance.sheet'].search([
             ('attendance_date', '>=', self.start_date),
             ('attendance_date', '<=', self.end_date),
+            ('lesson_topic', '!=', False)  # Только записи с указанной темой урока
         ])
         
         # Группируем темы уроков по студентам и предметам
         lesson_topics_data = {}
         for sheet in attendance_sheets:
-            if sheet.lesson_topic:  # Если указана тема урока
-                # Получаем регистр посещаемости для получения информации о предмете
-                register = sheet.register_id
-                subject_id = register.subject_id.id if register.subject_id else None
+            register = sheet.register_id
+            if not register.subject_id:
+                continue
                 
-                if subject_id:
-                    # Для каждой строки посещаемости (по студентам)
-                    for line in sheet.attendance_line:
-                        student_id = line.student_id.id
-                        key = (student_id, subject_id)
-                        
-                        if key not in lesson_topics_data:
-                            lesson_topics_data[key] = []
-                            
-                        # Добавляем тему урока с датой
-                        lesson_topics_data[key].append("%s (%s)" % (sheet.lesson_topic, sheet.attendance_date))
+            subject_id = register.subject_id.id
+            date_str = sheet.attendance_date.strftime('%Y-%m-%d') if sheet.attendance_date else ''
+            
+            # Для каждой строки посещаемости
+            for line in sheet.attendance_line:
+                student_id = line.student_id.id
+                batch_id = line.batch_id.id if line.batch_id else False
+                key = (student_id, subject_id)
+                
+                if key not in lesson_topics_data:
+                    lesson_topics_data[key] = {
+                        'topics': [],
+                        'batch_id': batch_id
+                    }
+                    
+                # Добавляем тему урока с датой
+                lesson_topics_data[key]['topics'].append(f"{date_str}: {sheet.lesson_topic}")
         
-        # Обновляем записи предметных оценок с темами уроков
-        for (student_id, subject_id), topics in lesson_topics_data.items():
-            # Ищем существующую запись
+        # Обновляем записи предметных оценок
+        for (student_id, subject_id), data in lesson_topics_data.items():
             record = subject_grade_obj.search([
                 ('student_id', '=', student_id),
                 ('subject_id', '=', subject_id),
-                ('batch_id', '=', self.batch_id.id)
+                ('batch_id', '=', data['batch_id'])
             ], limit=1)
             
             if record:
-                # Обновляем существующую запись
-                topics_str = ', '.join(topics)
-                record.write({'lesson_topics': topics_str})
+                record.lesson_topics = '\n'.join(data['topics'])
         
         return result
