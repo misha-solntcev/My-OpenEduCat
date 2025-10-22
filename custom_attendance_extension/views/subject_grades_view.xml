@@ -1,55 +1,28 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <odoo>
-    <!-- Удаляем изменение формы, так как теперь темы уроков отображаются в таблице -->
-    
-    <record id="view_op_subject_grades_search_custom" model="ir.ui.view">
-        <field name="name">op.subject.grades.search.custom</field>
+    <!-- Расширение списка оценок по предметам для отображения таблицы с темами уроков -->
+    <record id="view_op_subject_grades_tree_custom" model="ir.ui.view">
+        <field name="name">op.subject.grades.tree.custom</field>
         <field name="model">op.subject.grades</field>
-        <field name="inherit_id" ref="openeducat_attendance.view_op_subject_grades_search"/>
+        <field name="inherit_id" ref="openeducat_attendance.view_op_subject_grades_tree"/>
         <field name="arch" type="xml">
-            <xpath expr="//search" position="inside">
-                <field name="lesson_topics"/>
-            </xpath>
+            <field name="average_mark" position="after">
+                <field name="date_mark_table" widget="html" string="Таблица оценок и посещений"/>
+            </field>
         </field>
     </record>
     
+    <!-- Расширение формы оценок по предметам для отображения таблицы с темами уроков -->
     <record id="view_op_subject_grades_form_custom" model="ir.ui.view">
         <field name="name">op.subject.grades.form.custom</field>
         <field name="model">op.subject.grades</field>
         <field name="inherit_id" ref="openeducat_attendance.view_op_subject_grades_form"/>
         <field name="arch" type="xml">
-            <xpath expr="//sheet" position="inside">
-                <group>
-                    <field name="lesson_topics" placeholder="Введите темы уроков"/>
-                </group>
-                <div style="margin-top: 20px; width: 100%;">
-                    <h3 style="text-align: center; margin-bottom: 15px;">Расшифровка символов посещаемости</h3>
-                    <div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 20px;">
-                        <div style="display: flex; align-items: center; min-width: 200px;">
-                            <i class="fa fa-check" style="color: green; font-size: 18px; width: 20px; margin-right: 10px;"></i>
-                            <span>Присутствует</span>
-                        </div>
-                        <div style="display: flex; align-items: center; min-width: 200px;">
-                            <i class="fa fa-clock-o" style="color: orange; font-size: 18px; width: 20px; margin-right: 10px;"></i>
-                            <span>Опоздал</span>
-                        </div>
-                        <div style="display: flex; align-items: center; min-width: 200px;">
-                            <i class="fa fa-file-text" style="color: blue; font-size: 18px; width: 20px; margin-right: 10px;"></i>
-                            <span>Отсутствует по уважительной причине</span>
-                        </div>
-                        <div style="display: flex; align-items: center; min-width: 200px;">
-                            <i class="fa fa-times" style="color: red; font-size: 18px; width: 20px; margin-right: 10px;"></i>
-                            <span>Прогул</span>
-                        </div>
-                        <div style="display: flex; align-items: center; min-width: 200px;">
-                            <i class="fa fa-question" style="color: lightgray; font-size: 18px; width: 20px; margin-right: 10px;"></i>
-                            <span>Не определено</span>
-                        </div>
-                    </div>
-                </div>
-            </xpath>
+            <notebook position="inside">
+                <page string="Таблица оценок и посещений">
+                    <field name="date_mark_table" widget="html"/>
+                </page>
+            </notebook>
         </field>
     </record>
-    
-    <!-- Удаляем запись с канбан-представлением, чтобы не отображать темы уроков в канбане -->
 </odoo>

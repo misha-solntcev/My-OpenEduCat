@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <odoo>
+    <!-- Расширение формы ведомости посещаемости для добавления поля темы урока -->
     <record id="view_op_attendance_sheet_form_custom" model="ir.ui.view">
         <field name="name">op.attendance.sheet.form.custom</field>
         <field name="model">op.attendance.sheet</field>

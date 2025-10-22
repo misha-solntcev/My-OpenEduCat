@@ -1,17 +1,43 @@
+# -*- coding: utf-8 -*-
+###############################################################################
+#
+#    Custom Attendance Extension - OpenEduCat
+#    Copyright (C) 2025
+#
+#    This program is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU Lesser General Public License as
+#    published by the Free Software Foundation, either version 3 of the
+#    License, or (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU Lesser General Public License for more details.
+#
+#    You should have received a copy of the GNU Lesser General Public License
+#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+###############################################################################
+
 from odoo import models, fields, api
 
 
 class UpdateSubjectGrades(models.TransientModel):
+    """Расширение мастера обновления оценок по предметам"""
     _inherit = 'update.subject.grades'
 
     def update_grades(self):
-        # Вызываем оригинальный метод
-        result = super().update_grades()
+        """
+        Расширение метода обновления оценок для обработки тем уроков.
+        Вызывается после основного метода обновления.
+        """
+        # Сначала вызываем оригинальный метод
+        result = super(UpdateSubjectGrades, self).update_grades()
         
-        # Обрабатываем темы уроков
+        # Затем добавляем обработку тем уроков
         subject_grade_obj = self.env['op.subject.grades']
         
-        # Получаем записи посещаемости
+        # Получаем все записи посещаемости для обработки тем уроков
         attendance_sheets = self.env['op.attendance.sheet'].search([
             ('attendance_date', '>=', self.start_date),
             ('attendance_date', '<=', self.end_date),
