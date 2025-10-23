@@ -33,4 +33,55 @@
             </xpath>
         </field>
     </record>
+    
+    <!-- Наследуем и расширяем форму студента, добавляя права доступа к кнопке Fees -->
+    <record id="view_op_student_form_fees_inherit_extended" model="ir.ui.view">
+        <field name="name">op.student.form.fees.inherit.extended</field>
+        <field name="model">op.student</field>
+        <!-- Наследуемся от представления модуля openeducat_fees -->
+        <field name="inherit_id" ref="openeducat_fees.view_op_student_form_fees_inherit"/>
+        <!-- Устанавливаем приоритет -->
+        <field name="priority" eval="3"/>
+        <field name="arch" type="xml">
+            <!-- Находим кнопку и изменяем её групповые права -->
+            <xpath expr="//button[@name='action_view_invoice']" position="attributes">
+                <!-- Добавляем группы, которым разрешен доступ -->
+                <attribute name="groups">openeducat_fees.group_op_fees_admin,__custom__.group_op_faculty,__custom__.group_op_students</attribute>
+            </xpath>
+        </field>
+    </record>
+    
+    <!-- Наследуем и расширяем форму студента, добавляя права доступа к кнопке Assignment -->
+    <record id="view_op_student_form_assignment_inherit_extended" model="ir.ui.view">
+        <field name="name">op.student.form.assignment.inherit.extended</field>
+        <field name="model">op.student</field>
+        <!-- Наследуемся от представления модуля openeducat_assignment -->
+        <field name="inherit_id" ref="openeducat_assignment.assignment_smart_button"/>
+        <!-- Устанавливаем приоритет -->
+        <field name="priority" eval="4"/>
+        <field name="arch" type="xml">
+            <!-- Находим кнопку и изменяем её групповые права -->
+            <xpath expr="//button[@name='get_assignment']" position="attributes">
+                <!-- Добавляем группы, которым разрешен доступ -->
+                <attribute name="groups">openeducat_assignment.group_op_assignment_user,openeducat_assignment.group_op_assignment_manager,__custom__.group_op_faculty,__custom__.group_op_students</attribute>
+            </xpath>
+        </field>
+    </record>
+    
+    <!-- Наследуем и расширяем форму студента, добавляя права доступа к кнопке Activity -->
+    <record id="view_op_student_form_activity_inherit_extended" model="ir.ui.view">
+        <field name="name">op.student.form.activity.inherit.extended</field>
+        <field name="model">op.student</field>
+        <!-- Наследуемся от представления модуля openeducat_activity -->
+        <field name="inherit_id" ref="openeducat_activity.activity_smart_button"/>
+        <!-- Устанавливаем приоритет -->
+        <field name="priority" eval="6"/>
+        <field name="arch" type="xml">
+            <!-- Находим кнопку и изменяем её групповые права -->
+            <xpath expr="//button[@name='get_activity']" position="attributes">
+                <!-- Добавляем группы, которым разрешен доступ -->
+                <attribute name="groups">openeducat_activity.group_activity_user,openeducat_activity.group_activity_manager,__custom__.group_op_faculty,__custom__.group_op_students</attribute>
+            </xpath>
+        </field>
+    </record>
 </odoo>
