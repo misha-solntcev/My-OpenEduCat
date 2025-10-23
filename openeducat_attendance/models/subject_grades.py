@@ -174,25 +174,23 @@ class OpSubjectGrades(models.Model):
             textbook = None
             
             # Сначала ищем учебник, связанный с предметом и классом студента
-            if record.batch_id:
-                # Ищем учебники, которые могут быть связаны с конкретным классом
-                # Попробуем найти учебник по названию, которое может содержать информацию о классе
-                batch_name = record.batch_id.name or ''
+            if record.batch_id and record.batch_id.course_id:
+                # Получаем курс (класс) студента
+                course_id = record.batch_id.course_id.id
+                
+                # Ищем учебники, которые связаны с этим курсом и предметом
                 subject_id = record.subject_id.id
                 
                 if subject_id in all_textbooks:
                     textbooks_for_subject = all_textbooks[subject_id]
                     
-                    # Сначала пытаемся найти учебник с точным совпадением по классу в названии
+                    # Сначала пытаемся найти учебник, который связан с конкретным курсом
                     for book in textbooks_for_subject:
-                        book_name = book.name or ''
-                        # Проверяем, содержит ли название учебника информацию о классе
-                        if batch_name.lower() in book_name.lower() or \
-                           record.subject_id.name.lower() in book_name.lower():
+                        if course_id in book.course_ids.ids:
                             textbook = book
                             break
                     
-                    # Если не нашли учебник с учетом класса, ищем любой учебник по предмету
+                    # Если не нашли учебник с учетом курса, ищем любой учебник по предмету
                     if not textbook and textbooks_for_subject:
                         textbook = textbooks_for_subject[0]
             

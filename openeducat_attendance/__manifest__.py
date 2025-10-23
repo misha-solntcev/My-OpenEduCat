@@ -25,7 +25,7 @@
         'views/attendance_type_view.xml',
         'views/attendance_session_view.xml',
         'views/student_view.xml',
-        'views/custom_student_library_attendance_view.xml',
+        'views/custom_student_library_view.xml',
         'report/student_attendance_report.xml',
         'report/student_attendance_detailed_report.xml',
         'report/student_grades_by_subject_report.xml',
