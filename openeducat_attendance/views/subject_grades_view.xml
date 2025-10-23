@@ -48,9 +48,11 @@
                             <field name="final_quarter_grade" string="Итоговая оценка за четверть"/>
                         </group>
                     </group>
-                    <group string="Оценки и поведение">
-                        <field name="date_mark_table" nolabel="1" widget="html"/>
-                    </group>                    
+                    <notebook>
+                        <page string="Таблица оценок и посещений">
+                            <field name="date_mark_table" widget="html"/>
+                        </page>
+                    </notebook>
                 </sheet>
             </form>
         </field>

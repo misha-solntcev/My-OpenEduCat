@@ -47,7 +47,7 @@ class OpUpdateSubjectGrades(models.TransientModel):
                     }
                 
                 # Получаем тему урока из ведомости посещаемости
-                lesson_topic = line.attendance_id.lesson_topic if hasattr(line.attendance_id, 'lesson_topic') else ''
+                lesson_topic = line.attendance_id.lesson_topic if hasattr(line.attendance_id, 'lesson_topic') and line.attendance_id.lesson_topic else ''
                 
                 # Создаем запись с датой, оценкой, поведением и информацией о посещаемости
                 entry = {
@@ -59,7 +59,8 @@ class OpUpdateSubjectGrades(models.TransientModel):
                     'absent': '✓' if (line.absent or line.excused) else '',
                     'unexcused_absent': '✓' if line.absent and not line.excused else '',
                     'remark': line.remark or '',
-                    'lesson_topic': lesson_topic or ''  # Добавляем тему урока
+                    'lesson_topic': lesson_topic or '',  # Добавляем тему урока
+                    'attendance_type': line.attendance_type or ''  # Добавляем тип посещаемости
                 }
                 grades_data[key]['entries'].append(entry)
                 

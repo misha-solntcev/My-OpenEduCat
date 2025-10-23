@@ -20,6 +20,7 @@
 
 import logging
 from odoo import models, fields, api, _
+from datetime import datetime
 
 _logger = logging.getLogger(__name__)
 
@@ -44,6 +45,12 @@ class OpSubjectGrades(models.Model):
     date_mark_table = fields.Html('Date-Mark Table', compute='_compute_date_mark_table')
     # Поле для ручного ввода итоговой оценки за четверть
     final_quarter_grade = fields.Char('Итоговая оценка за четверть')
+    
+    # Добавляем поле для тем уроков (резервное решение)
+    lesson_topics = fields.Text(
+        'Темы уроков', 
+        help="Темы уроков по данному предмету"
+    )
 
     @api.model
     def _search(self, args, offset=0, limit=None, order=None, count=False, access_rights_uid=None):
@@ -99,151 +106,46 @@ class OpSubjectGrades(models.Model):
         # Проверим, принадлежит ли текущий пользователь группам
         is_student = student_group in self.env.user.groups_id if student_group else False
         is_faculty = faculty_group in self.env.user.groups_id if faculty_group else False
-        is_attendance_manager = attendance_manager_group in self.env.user.groups_id if attendance_manager_group else False
         
-        # Для студентов проверяем, что все записи принадлежат им
-        if is_student:
+        # Для студентов всегда применяем фильтрацию
+        if is_student and len(self) == 1:  # Проверяем, что работаем с одной записью
             # Пользователь в группе студентов, проверим, связан ли он со студентом
             student_record = self.env['op.student'].search([('user_id', '=', self.env.user.id)], limit=1)
             # Проверяем, что запись существует и не пустая
             if student_record and student_record.id:
-                # Проверяем, что все записи принадлежат текущему студенту
-                record_ids = []
-                for record in self:
-                    if record.student_id.id == student_record.id:
-                        record_ids.append(record.id)
-                
-                # Если какие-то записи не принадлежат текущему студенту, фильтруем их
-                if len(record_ids) != len(self):
-                    # Ограничиваем доступ только к тем записям, которые принадлежат студенту
-                    filtered_records = self.browse(record_ids)
-                    return super(OpSubjectGrades, filtered_records).read(fields, load)
-            else:
-                # Пользователь в группе студентов, но не связан со студентом (преподаватель)
-                # В этом случае разрешаем чтение
-                pass
-        elif is_faculty:
-            # Пользователь в группе преподавателей
-            # Разрешаем чтение
-            pass
-        else:
-            # Пользователь не в группе студентов и не в группе преподавателей (администратор, менеджер и т.д.)
-            # Разрешаем чтение
-            pass
+                try:
+                    # Проверяем, принадлежит ли запись студенту
+                    if self.student_id.id != student_record.id:
+                        # Если запись не принадлежит студенту, возвращаем пустой результат
+                        return []
+                except Exception:
+                    # В случае ошибки (например, множественная запись) пропускаем проверку
+                    pass
         
-        return super(OpSubjectGrades, self).read(fields, load)
+        return super(OpSubjectGrades, self).read(fields=fields, load=load)
 
-    @api.model
-    def search(self, args, offset=0, limit=None, order=None):
-        # Для совместимости вызываем метод _search с count=False
-        res_ids = self._search(args, offset=offset, limit=limit, order=order, count=False)
-        return self.browse(res_ids)
-
-    @api.model
-    def search_count(self, args, limit=None):
-        # Для совместимости вызываем метод _search с count=True
-        # Игнорируем параметр limit, так как он не используется в search_count
-        return self._search(args, count=True)
-
-    def name_get(self):
-        res = []
-        for record in self:
-            name = "%s - %s" % (record.student_id.name, record.subject_id.name)
-            res.append((record.id, name))
-        return res
-
-    @api.depends('table_entries', 'marks', 'behaviors')
+    @api.depends('marks', 'behaviors')
     def _compute_average_mark(self):
         for record in self:
-            if record.table_entries:
-                # Разбираем записи из нового поля table_entries
-                entries = [e.strip() for e in record.table_entries.split(',') if e.strip()]
-                total_marks = 0
-                count = 0
-                for entry in entries:
-                    parts = entry.split('|')
-                    # Оценка 1 находится во втором элементе (индекс 1)
-                    if len(parts) >= 2 and parts[1]:
-                        try:
-                            mark = float(parts[1].strip())
-                            total_marks += mark
-                            count += 1
-                        except ValueError:
-                            pass
-                    # Оценка 2 (поведение) находится в третьем элементе (индекс 2)
-                    if len(parts) >= 3 and parts[2]:
-                        try:
-                            behavior = float(parts[2].strip())
-                            total_marks += behavior
-                            count += 1
-                        except ValueError:
-                            pass
-                
-                if count > 0:
-                    record.average_mark = total_marks / count
-                else:
-                    record.average_mark = 0.0
+            all_marks = []
+            if record.marks:
+                for mark in record.marks.split(','):
+                    try:
+                        mark_val = float(mark.strip())
+                        all_marks.append(mark_val)
+                    except ValueError:
+                        pass
+            if record.behaviors:
+                for behavior in record.behaviors.split(','):
+                    try:
+                        behavior_val = float(behavior.strip())
+                        all_marks.append(behavior_val)
+                    except ValueError:
+                        pass
+            if all_marks:
+                record.average_mark = sum(all_marks) / len(all_marks)
             else:
-                # Используем старую логику, если table_entries пусто
-                all_marks = []
-                if record.marks:
-                    marks = [m.strip() for m in record.marks.split(',') if m.strip()]
-                    for mark in marks:
-                        try:
-                            all_marks.append(float(mark))
-                        except ValueError:
-                            pass
-                
-                if record.behaviors:
-                    behaviors = [b.strip() for b in record.behaviors.split(',') if b.strip()]
-                    for behavior in behaviors:
-                        try:
-                            all_marks.append(float(behavior))
-                        except ValueError:
-                            pass
-                
-                if all_marks:
-                    record.average_mark = sum(all_marks) / len(all_marks)
-                else:
-                    record.average_mark = 0.0
-
-    @api.depends('table_entries')
-    def _compute_date_mark_table(self):
-        for record in self:
-            if record.table_entries:
-                # Создаем HTML таблицу
-                table_html = '<table class="table table-sm table-bordered">'
-                table_html += '<thead><tr><th>Дата</th><th>Присутствует</th><th>Опоздал</th><th>Отсутствует по уважительной причине</th><th>Прогул</th><th>Оценка 1</th><th>Оценка 2</th><th>Комментарий</th></tr></thead><tbody>'
-                
-                # Разбираем записи таблицы
-                entries = [e.strip() for e in record.table_entries.split(',') if e.strip()]
-                
-                # Заполняем таблицу данными
-                for entry in entries:
-                    parts = entry.split('|')
-                    date = parts[0] if len(parts) > 0 and parts[0] else ''
-                    mark = parts[1] if len(parts) > 1 and parts[1] else ''
-                    behavior = parts[2] if len(parts) > 2 and parts[2] else ''
-                    
-                    # Получаем информацию о посещаемости из записи
-                    present_raw = parts[3] if len(parts) > 3 and parts[3] else ''
-                    late_raw = parts[4] if len(parts) > 4 and parts[4] else ''
-                    absent_raw = parts[5] if len(parts) > 5 and parts[5] else ''
-                    unexcused_absent_raw = parts[6] if len(parts) > 6 and parts[6] else ''
-                    comment = parts[7] if len(parts) > 7 and parts[7] else ''
-                    
-                    # Формируем визуальные галочки с использованием HTML-элементов
-                    present_display = '<span style="color: green; font-weight: bold; font-size: 18px;">✓</span>' if present_raw and present_raw.strip() == '✓' else '<span style="color: lightgray; font-size: 18px;">○</span>'
-                    late_display = '<span style="color: orange; font-weight: bold; font-size: 18px;">✓</span>' if late_raw and late_raw.strip() == '✓' else '<span style="color: lightgray; font-size: 18px;">○</span>'
-                    absent_display = '<span style="color: blue; font-weight: bold; font-size: 18px;">✓</span>' if absent_raw and absent_raw.strip() == '✓' else '<span style="color: lightgray; font-size: 18px;">○</span>'
-                    unexcused_absent_display = '<span style="color: red; font-weight: bold; font-size: 18px;">✓</span>' if unexcused_absent_raw and unexcused_absent_raw.strip() == '✓' else '<span style="color: lightgray; font-size: 18px;">○</span>'
-                    
-                    table_html += f'<tr><td>{date}</td><td>{present_display}</td><td>{late_display}</td><td>{absent_display}</td><td>{unexcused_absent_display}</td><td>{mark}</td><td>{behavior}</td><td>{comment}</td></tr>'
-                
-                table_html += '</tbody></table>'
-                record.date_mark_table = table_html
-            else:
-                record.date_mark_table = '<p>Нет данных для отображения</p>'
+                record.average_mark = 0.0
 
     @api.depends('subject_id', 'batch_id')
     def _compute_textbook_image(self):
@@ -286,11 +188,11 @@ class OpSubjectGrades(models.Model):
                         book_name = book.name or ''
                         # Проверяем, содержит ли название учебника информацию о классе
                         if batch_name.lower() in book_name.lower() or \
-                           any(str(cls) in book_name for cls in range(1, 12) if str(cls) in batch_name):
+                           record.subject_id.name.lower() in book_name.lower():
                             textbook = book
                             break
                     
-                    # Если не нашли учебник с указанием класса, берем первый попавшийся
+                    # Если не нашли учебник с учетом класса, ищем любой учебник по предмету
                     if not textbook and textbooks_for_subject:
                         textbook = textbooks_for_subject[0]
             
@@ -305,3 +207,187 @@ class OpSubjectGrades(models.Model):
             else:
                 # Если учебник не найден, используем стандартное изображение
                 record.textbook_image = False
+
+    @api.depends('table_entries', 'lesson_topics')
+    def _compute_date_mark_table(self):
+        """
+        Вычисляет HTML-таблицу с оценками и посещаемостью по датам.
+        Включает отображение тем уроков.
+        """
+        for record in self:
+            try:
+                if record.table_entries:
+                    # Создаем HTML таблицу с центрированными заголовками
+                    table_html = '''
+<table class="table table-sm table-bordered">
+    <thead>
+        <tr>
+            <th style="text-align: center;">Дата</th>
+            <th style="text-align: center;">Тема урока</th>
+            <th style="text-align: center;">Посещение</th>
+            <th style="text-align: center;">Оценка 1</th>
+            <th style="text-align: center;">Оценка 2</th>
+            <th style="text-align: center;">Комментарий</th>
+        </tr>
+    </thead>
+    <tbody>'''
+                    
+                    # Разбираем записи таблицы
+                    entries = [e.strip() for e in record.table_entries.split(',') if e.strip()]
+                    
+                    # Заполняем таблицу данными
+                    for entry in entries:
+                        parts = entry.split('|')
+                        date = parts[0] if len(parts) > 0 and parts[0] else ''
+                        mark = parts[1] if len(parts) > 1 and parts[1] else ''
+                        behavior = parts[2] if len(parts) > 2 and parts[2] else ''
+                        
+                        # Преобразуем формат даты из ГГГГ-ММ-ДД в ДД.ММ.ГГГГ
+                        formatted_date = date
+                        if date:
+                            try:
+                                date_obj = datetime.strptime(date, '%Y-%m-%d')
+                                formatted_date = date_obj.strftime('%d.%m.%Y')
+                            except ValueError:
+                                # Если не удалось преобразовать, оставляем как есть
+                                pass
+                        
+                        # Получаем информацию о посещаемости из записи
+                        present_raw = parts[3] if len(parts) > 3 and parts[3] else ''
+                        late_raw = parts[4] if len(parts) > 4 and parts[4] else ''
+                        absent_raw = parts[5] if len(parts) > 5 and parts[5] else ''
+                        unexcused_absent_raw = parts[6] if len(parts) > 6 and parts[6] else ''
+                        comment = parts[7] if len(parts) > 7 and parts[7] else ''
+                        
+                        # Получаем тему урока из записи
+                        lesson_topic = parts[8] if len(parts) > 8 and parts[8] else ''
+                        
+                        # Определяем символ посещаемости
+                        attendance_symbol = self._get_attendance_symbol(
+                            present_raw, late_raw, absent_raw, unexcused_absent_raw)
+                        
+                        # Форматируем оценки
+                        mark_badge = self._format_mark(mark)
+                        behavior_badge = self._format_behavior(behavior)
+                        
+                        table_html += f'''
+        <tr>
+            <td style="text-align: center;">{formatted_date}</td>
+            <td>{lesson_topic}</td>
+            <td style="text-align: center;">{attendance_symbol}</td>
+            <td style="text-align: center;">{mark_badge}</td>
+            <td style="text-align: center;">{behavior_badge}</td>
+            <td>{comment}</td>
+        </tr>'''
+                    
+                    table_html += '''
+    </tbody>
+</table>'''
+                    
+                    # Добавляем легенду с объяснением символов по центру
+                    table_html += '''
+<div style="margin-top: 15px; display: flex; flex-wrap: wrap; justify-content: center; gap: 15px;">
+    <div style="display: flex; align-items: center; min-width: 150px;">
+        <i class="fa fa-check" style="color: green; font-size: 18px; width: 20px; text-align: center;"></i>
+        <span style="margin-left: 5px;">Присутствует</span>
+    </div>
+    <div style="display: flex; align-items: center; min-width: 150px;">
+        <i class="fa fa-clock-o" style="color: orange; font-size: 18px; width: 20px; text-align: center;"></i>
+        <span style="margin-left: 5px;">Опоздал</span>
+    </div>
+    <div style="display: flex; align-items: center; min-width: 150px;">
+        <i class="fa fa-file-text" style="color: blue; font-size: 18px; width: 20px; text-align: center;"></i>
+        <span style="margin-left: 5px;">Отсутствует по уважительной причине</span>
+    </div>
+    <div style="display: flex; align-items: center; min-width: 150px;">
+        <i class="fa fa-times" style="color: red; font-size: 18px; width: 20px; text-align: center;"></i>
+        <span style="margin-left: 5px;">Прогул</span>
+    </div>
+</div>'''
+                    
+                    record.date_mark_table = table_html
+                else:
+                    record.date_mark_table = '<p>Нет данных для отображения</p>'
+            except Exception as e:
+                _logger.error("Ошибка при вычислении таблицы оценок: %s", str(e))
+                record.date_mark_table = f'<p>Ошибка при отображении таблицы: {str(e)}</p>'
+
+    def _get_attendance_symbol(self, present_raw, late_raw, absent_raw, unexcused_absent_raw):
+        """
+        Возвращает HTML-код символа посещаемости на основе данных
+        
+        Args:
+            present_raw (str): Признак присутствия
+            late_raw (str): Признак опоздания
+            absent_raw (str): Признак отсутствия
+            unexcused_absent_raw (str): Признак прогула
+            
+        Returns:
+            str: HTML-код символа посещаемости
+        """
+        if present_raw and present_raw.strip() == '✓':
+            # Присутствует - зеленая иконка галочки
+            return '<i class="fa fa-check" style="color: green; font-size: 18px;"></i>'
+        elif late_raw and late_raw.strip() == '✓':
+            # Опоздал - оранжевая иконка часов
+            return '<i class="fa fa-clock-o" style="color: orange; font-size: 18px;"></i>'
+        elif absent_raw and absent_raw.strip() == '✓':
+            if unexcused_absent_raw and unexcused_absent_raw.strip() == '✓':
+                # Прогул - красная иконка крестика
+                return '<i class="fa fa-times" style="color: red; font-size: 18px;"></i>'
+            else:
+                # Отсутствует по уважительной причине - синяя иконка документа
+                return '<i class="fa fa-file-text" style="color: blue; font-size: 18px;"></i>'
+        else:
+            # Не определено - серая иконка вопроса
+            return '<i class="fa fa-question" style="color: lightgray; font-size: 18px;"></i>'
+
+    def _format_mark(self, mark):
+        """
+        Форматирует оценку как цветной бейдж
+        
+        Args:
+            mark (str): Значение оценки
+            
+        Returns:
+            str: HTML-код бейджа с оценкой
+        """
+        if not mark:
+            return ''
+            
+        # Форматируем оценки с использованием цветных бейджей
+        if mark == '2':
+            return f'<span class="badge fw-bold" style="background-color: #fff0f6; color: #d6336c; font-size: 16px; padding: 4px 8px;">{mark}</span>'
+        elif mark == '3':
+            return f'<span class="badge fw-bold" style="background-color: #fff3bf; color: #997404; font-size: 16px; padding: 4px 8px;">{mark}</span>'
+        elif mark == '4':
+            return f'<span class="badge fw-bold" style="background-color: #ebfbee; color: #37b24d; font-size: 16px; padding: 4px 8px;">{mark}</span>'
+        elif mark == '5':
+            return f'<span class="badge fw-bold" style="background-color: #e7f5ff; color: #1c7ed6; font-size: 16px; padding: 4px 8px;">{mark}</span>'
+        else:
+            return f'<span class="badge fw-bold" style="background-color: #f8f9fa; color: #495057; font-size: 16px; padding: 4px 8px;">{mark}</span>'
+
+    def _format_behavior(self, behavior):
+        """
+        Форматирует поведение как цветной бейдж
+        
+        Args:
+            behavior (str): Значение поведения
+            
+        Returns:
+            str: HTML-код бейджа с поведением
+        """
+        if not behavior:
+            return ''
+            
+        # Форматируем поведение с использованием цветных бейджей
+        if behavior == '2':
+            return f'<span class="badge fw-bold" style="background-color: #f8f9fa; color: #495057; font-size: 16px; padding: 4px 8px; border: 1px solid #dee2e6;">{behavior}</span>'
+        elif behavior == '3':
+            return f'<span class="badge fw-bold" style="background-color: #fff3bf; color: #997404; font-size: 16px; padding: 4px 8px; border: 1px solid #dee2e6;">{behavior}</span>'
+        elif behavior == '4':
+            return f'<span class="badge fw-bold" style="background-color: #ebfbee; color: #37b24d; font-size: 16px; padding: 4px 8px; border: 1px solid #dee2e6;">{behavior}</span>'
+        elif behavior == '5':
+            return f'<span class="badge fw-bold" style="background-color: #e7f5ff; color: #1c7ed6; font-size: 16px; padding: 4px 8px; border: 1px solid #dee2e6;">{behavior}</span>'
+        else:
+            return f'<span class="badge fw-bold" style="background-color: #f8f9fa; color: #495057; font-size: 16px; padding: 4px 8px; border: 1px solid #dee2e6;">{behavior}</span>'

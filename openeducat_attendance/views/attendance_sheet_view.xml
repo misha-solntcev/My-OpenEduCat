@@ -69,6 +69,11 @@
                                 </list>
                             </field>
                         </group>
+                        <group>
+                            <group>
+                                <field name="lesson_topic"/>
+                            </group>
+                        </group>
                     </sheet>
                     <chatter/>
                 </form>

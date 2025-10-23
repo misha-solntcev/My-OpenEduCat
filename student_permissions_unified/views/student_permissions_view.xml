@@ -1,16 +1,36 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <odoo>
-
+    <!-- Наследуем и расширяем форму студента, добавляя права доступа к кнопке Media -->
     <record id="view_op_student_form_library_inherit_extended" model="ir.ui.view">
         <field name="name">op.student.form.library.inherit.extended</field>
         <field name="model">op.student</field>
+        <!-- Наследуемся от представления модуля openeducat_library -->
         <field name="inherit_id" ref="openeducat_library.view_op_student_form_library_inherit"/>
+        <!-- Устанавливаем приоритет, чтобы применять после базового представления -->
         <field name="priority" eval="11"/>
         <field name="arch" type="xml">
+            <!-- Находим кнопку и изменяем её групповые права -->
             <xpath expr="//button[@name='count_media_movement_lines']" position="attributes">
+                <!-- Добавляем группы, которым разрешен доступ -->
                 <attribute name="groups">openeducat_library.group_op_library_user,openeducat_library.group_op_library,__custom__.group_op_faculty,__custom__.group_op_students</attribute>
             </xpath>
         </field>
     </record>
 
+    <!-- Наследуем и расширяем форму студента, добавляя права доступа к кнопке Посещаемость -->
+    <record id="view_op_student_form_attendance_inherit_extended" model="ir.ui.view">
+        <field name="name">op.student.form.attendance.inherit.extended</field>
+        <field name="model">op.student</field>
+        <!-- Наследуемся от представления модуля openeducat_attendance -->
+        <field name="inherit_id" ref="openeducat_attendance.view_op_student_form_attendance_inherit"/>
+        <!-- Устанавливаем приоритет, чтобы применять после базового представления -->
+        <field name="priority" eval="5"/>
+        <field name="arch" type="xml">
+            <!-- Находим кнопку и изменяем её групповые права -->
+            <xpath expr="//button[@name='get_attendance']" position="attributes">
+                <!-- Добавляем группы, которым разрешен доступ -->
+                <attribute name="groups">openeducat_attendance.group_op_attendance_user,openeducat_attendance.group_op_attendance_manager,__custom__.group_op_faculty,__custom__.group_op_students</attribute>
+            </xpath>
+        </field>
+    </record>
 </odoo>

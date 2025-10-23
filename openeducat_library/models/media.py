@@ -46,6 +46,7 @@ class OpMedia(models.Model):
     unit_ids = fields.One2many('op.media.unit', 'media_id', 'Units')
     media_type_id = fields.Many2one('op.media.type', 'Media Type')
     active = fields.Boolean(default=True)
+    x_image_128 = fields.Image('Image', max_width=128, max_height=128)
     
     # Вычисляемые поля для отображения количества экземпляров
     total_units = fields.Integer('Total Units', compute='_compute_unit_counts')

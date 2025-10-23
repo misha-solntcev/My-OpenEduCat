@@ -45,6 +45,13 @@ class OpAttendanceSheet(models.Model):
         'op.attendance.line', 'attendance_id', 'Attendance Line')
     faculty_id = fields.Many2one('op.faculty', 'Faculty')
     active = fields.Boolean(default=True)
+    
+    # Добавляем поле для темы урока
+    lesson_topic = fields.Char(
+        'Тема урока', 
+        size=256,
+        help="Тема урока, которая будет отображаться в оценках по предметам"
+    )
 
     state = fields.Selection(
         [('draft', 'Draft'), ('start', 'Attendance Start'),
