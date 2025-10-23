@@ -60,7 +60,7 @@ class OpUpdateSubjectGrades(models.TransientModel):
                     'unexcused_absent': '✓' if line.absent and not line.excused else '',
                     'remark': line.remark or '',
                     'lesson_topic': lesson_topic or '',  # Добавляем тему урока
-                    'attendance_type': line.attendance_type or ''  # Добавляем тип посещаемости
+                    'attendance_type': line.attendance_type_id.name if line.attendance_type_id else ''  # Добавляем тип посещаемости
                 }
                 grades_data[key]['entries'].append(entry)
                 
