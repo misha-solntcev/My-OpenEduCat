@@ -71,6 +71,13 @@
                   action="openeducat_attendance.action_class_grades_summary"
                   groups="openeducat_attendance.group_op_attendance_user,openeducat_attendance.group_op_attendance_manager"/>
 
+        <menuitem id="menu_op_class_grades_quarterly_report"
+                  name="Class Grades Quarterly Report"
+                  parent="menu_op_attendance_reports"
+                  sequence="15"
+                  action="openeducat_attendance.action_class_grades_quarterly"
+                  groups="openeducat_attendance.group_op_attendance_user,openeducat_attendance.group_op_attendance_manager"/>
+
         <menuitem id="menu_op_student_grades_by_date_report"
                   name="Student Grades by Date Report"
                   parent="menu_op_attendance_reports"

@@ -18,9 +18,17 @@
 #
 ###############################################################################
 
-from . import student_attendance_wizard
-from . import student_grades_by_subject_wizard
-from . import class_grades_summary_wizard
-from . import class_grades_quarterly_wizard
-from . import student_grades_by_date_wizard
-from . import update_subject_grades
+from odoo import models, fields, api
+
+
+class ClassGradesQuarterly(models.TransientModel):
+    _name = "class.grades.quarterly"
+    _description = "Class Grades Quarterly"
+
+    batch_id = fields.Many2one('op.batch', 'Batch', required=True)
+
+    def print_report(self):
+        data = {
+            'batch_id': self.batch_id.id,
+        }
+        return self.env.ref('openeducat_attendance.action_report_class_grades_quarterly').report_action(self, data=data)

@@ -22,4 +22,5 @@ from . import student_attendance_report
 from . import student_attendance_detailed_report
 from . import student_grades_by_subject_report
 from . import class_grades_summary_report
+from . import class_grades_quarterly_report
 from . import student_grades_by_date_report

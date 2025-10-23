@@ -16,6 +16,7 @@
         'wizards/student_attendance_wizard_view.xml',
         'wizards/student_grades_by_subject_wizard_view.xml',
         'wizards/class_grades_summary_wizard_view.xml',
+        'wizards/class_grades_quarterly_wizard_view.xml',
         'wizards/student_grades_by_date_wizard_view.xml',
         'wizards/update_subject_grades_view.xml',
         'views/attendance_register_view.xml',
@@ -30,6 +31,7 @@
         'report/student_attendance_detailed_report.xml',
         'report/student_grades_by_subject_report.xml',
         'report/class_grades_summary_report.xml',
+        'report/class_grades_quarterly_report.xml',
         'report/student_grades_by_date_report.xml',
         'report/report_menu.xml',
         'menus/op_menu.xml'

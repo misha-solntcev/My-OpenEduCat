@@ -32,6 +32,14 @@
             <field name="report_file">openeducat_attendance.class_grades_summary_report</field>
         </record>
         
+        <record id="action_report_class_grades_quarterly" model="ir.actions.report">
+            <field name="name">Class Grades Quarterly Report</field>
+            <field name="model">op.batch</field>
+            <field name="report_type">qweb-pdf</field>
+            <field name="report_name">openeducat_attendance.class_grades_quarterly_report</field>
+            <field name="report_file">openeducat_attendance.class_grades_quarterly_report</field>
+        </record>
+        
         <record id="action_report_student_grades_by_date" model="ir.actions.report">
             <field name="name">Student Grades by Date Report</field>
             <field name="model">op.student</field>
