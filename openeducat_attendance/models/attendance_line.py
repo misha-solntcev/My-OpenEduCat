@@ -57,6 +57,12 @@ class OpAttendanceLine(models.Model):
     attendance_type_id = fields.Many2one(
         'op.attendance.type', 'Attendance Type',
         required=False, tracking=True)
+    # Добавляем поле темы урока, связанное с ведомостью посещаемости
+    lesson_topic = fields.Char(
+        'Lesson Topic', 
+        related='attendance_id.lesson_topic', 
+        store=True,
+        readonly=True)
 
     _sql_constraints = [
         ('unique_student',

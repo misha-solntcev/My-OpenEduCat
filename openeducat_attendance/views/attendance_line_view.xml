@@ -14,6 +14,7 @@
                     <field name="excused"/>
                     <field name="late"/>
                     <field name="remark" optional="show"/>
+                    <field name="lesson_topic" optional="show"/>
                     <field name="attendance_date"/>
                     <field name="course_id" optional="show"/>
                     <field name="batch_id" optional="show"/>
@@ -48,6 +49,7 @@
                                 <field name="absent"/>
                                 <field name="late"/>
                                 <field name="course_id" widget="selection"/>
+                                <field name="lesson_topic"/>
                             </group>
                         </group>
                     </sheet>

@@ -46,8 +46,8 @@ class OpUpdateSubjectGrades(models.TransientModel):
                         'last_attendance_date': line.attendance_date,
                     }
                 
-                # Получаем тему урока из ведомости посещаемости
-                lesson_topic = line.attendance_id.lesson_topic if hasattr(line.attendance_id, 'lesson_topic') and line.attendance_id.lesson_topic else ''
+                # Получаем тему урока из строки посещаемости (теперь она берется через related поле)
+                lesson_topic = line.lesson_topic if line.lesson_topic else ''
                 
                 # Создаем запись с датой, оценкой, поведением и информацией о посещаемости
                 entry = {
@@ -249,26 +249,25 @@ class OpUpdateSubjectGrades(models.TransientModel):
         all_existing_records = self.env['op.subject.grades'].search([])
         existing_pairs = set()
         for record in all_existing_records:
-            key = (record.student_id.id, record.subject_id.id)
-            existing_pairs.add(key)
+            existing_pairs.add((record.student_id.id, record.subject_id.id))
         
-        # Удаляем те, которых нет в новых данных
+        # Находим пары, которые нужно удалить
         pairs_to_delete = existing_pairs - current_pairs
-        for key in pairs_to_delete:
-            if key in existing_map:
-                existing_map[key].unlink()
-
-        # Display notification that auto-dismisses after a few seconds and then closes the wizard
+        records_to_delete = self.env['op.subject.grades'].search([
+            ('student_id', 'in', [pair[0] for pair in pairs_to_delete]),
+            ('subject_id', 'in', [pair[1] for pair in pairs_to_delete])
+        ])
+        deleted_count = len(records_to_delete)
+        records_to_delete.unlink()
+        
+        # Возвращаем сообщение о результате
         return {
             'type': 'ir.actions.client',
             'tag': 'display_notification',
             'params': {
-                'title': 'Success',
-                'message': f'Subject grades have been updated successfully. {updated_count} records updated, {created_count} records created.',
-                'sticky': False,  # Non-sticky notification that auto-dismisses
+                'title': 'Обновление завершено',
+                'message': 'Обновлено: %d, Создано: %d, Удалено: %d' % (updated_count, created_count, deleted_count),
                 'type': 'success',
-                'next': {  # This will close the wizard after showing the notification
-                    'type': 'ir.actions.act_window_close'
-                }
+                'sticky': False
             }
         }
