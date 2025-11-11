@@ -52,19 +52,32 @@ class OpSubjectGrades(models.Model):
         help="Темы уроков по данному предмету"
     )
     
-    # Поле для выбора текущей четверти
-    current_quarter = fields.Selection([
-        ('1', '1 четверть'),
-        ('2', '2 четверть'),
-        ('3', '3 четверть'),
-        ('4', '4 четверть')
-    ], string='Текущая четверть', default='1')
-    
     # Вычисляемые поля для таблиц по четвертям
     date_mark_table_q1 = fields.Html('Date-Mark Table Q1', compute='_compute_date_mark_table_q1')
     date_mark_table_q2 = fields.Html('Date-Mark Table Q2', compute='_compute_date_mark_table_q2')
     date_mark_table_q3 = fields.Html('Date-Mark Table Q3', compute='_compute_date_mark_table_q3')
     date_mark_table_q4 = fields.Html('Date-Mark Table Q4', compute='_compute_date_mark_table_q4')
+    
+    # Добавляем вычисляемые поля для отображения информации по четвертям
+    q1_total_classes = fields.Integer('Q1 Total Classes', compute='_compute_q1_data')
+    q1_present_classes = fields.Integer('Q1 Present Classes', compute='_compute_q1_data')
+    q1_last_attendance_date = fields.Date('Q1 Last Attendance Date', compute='_compute_q1_data')
+    q1_average_mark = fields.Float('Q1 Average Mark', compute='_compute_q1_data')
+    
+    q2_total_classes = fields.Integer('Q2 Total Classes', compute='_compute_q2_data')
+    q2_present_classes = fields.Integer('Q2 Present Classes', compute='_compute_q2_data')
+    q2_last_attendance_date = fields.Date('Q2 Last Attendance Date', compute='_compute_q2_data')
+    q2_average_mark = fields.Float('Q2 Average Mark', compute='_compute_q2_data')
+    
+    q3_total_classes = fields.Integer('Q3 Total Classes', compute='_compute_q3_data')
+    q3_present_classes = fields.Integer('Q3 Present Classes', compute='_compute_q3_data')
+    q3_last_attendance_date = fields.Date('Q3 Last Attendance Date', compute='_compute_q3_data')
+    q3_average_mark = fields.Float('Q3 Average Mark', compute='_compute_q3_data')
+    
+    q4_total_classes = fields.Integer('Q4 Total Classes', compute='_compute_q4_data')
+    q4_present_classes = fields.Integer('Q4 Present Classes', compute='_compute_q4_data')
+    q4_last_attendance_date = fields.Date('Q4 Last Attendance Date', compute='_compute_q4_data')
+    q4_average_mark = fields.Float('Q4 Average Mark', compute='_compute_q4_data')
 
     @api.model
     def _search(self, args, offset=0, limit=None, order=None, count=False, access_rights_uid=None):
@@ -606,3 +619,134 @@ class OpSubjectGrades(models.Model):
         """Вычисляет таблицу для 4 четверти"""
         for record in self:
             record.date_mark_table_q4 = record._compute_date_mark_table_quarter(4)
+            
+    def _compute_quarter_data(self, quarter):
+        """
+        Вычисляет данные по заданной четверти
+        
+        Args:
+            quarter (int): Номер четверти (1-4)
+            
+        Returns:
+            dict: Словарь с данными по четверти
+        """
+        self.ensure_one()
+        result = {
+            'total_classes': 0,
+            'present_classes': 0,
+            'last_attendance_date': False,
+            'average_mark': 0.0
+        }
+        
+        if not self.table_entries:
+            return result
+            
+        try:
+            # Разбираем записи таблицы
+            entries = [e.strip() for e in self.table_entries.split(',') if e.strip()]
+            
+            # Фильтруем записи по четверти
+            quarter_entries = self._filter_entries_by_quarter(entries, quarter)
+            
+            if not quarter_entries:
+                return result
+                
+            # Подсчитываем общее количество занятий
+            result['total_classes'] = len(quarter_entries)
+            
+            # Подсчитываем посещенные занятия и собираем оценки
+            present_count = 0
+            marks_sum = 0
+            marks_count = 0
+            last_date = None
+            
+            for entry in quarter_entries:
+                parts = entry.split('|')
+                if len(parts) == 0:
+                    continue
+                    
+                # Обрабатываем дату
+                date_str = parts[0] if len(parts) > 0 and parts[0] else ''
+                if date_str:
+                    try:
+                        date_obj = datetime.strptime(date_str, '%Y-%m-%d')
+                        if not last_date or date_obj > last_date:
+                            last_date = date_obj
+                    except ValueError:
+                        pass
+                
+                # Проверяем посещение
+                present_raw = parts[3] if len(parts) > 3 and parts[3] else ''
+                if present_raw and present_raw.strip() == '✓':
+                    present_count += 1
+                
+                # Собираем оценки
+                # Оценка 1
+                mark1 = parts[1] if len(parts) > 1 and parts[1] else ''
+                if mark1:
+                    try:
+                        marks_sum += float(mark1.strip())
+                        marks_count += 1
+                    except ValueError:
+                        pass
+                
+                # Оценка 2 (поведение)
+                mark2 = parts[2] if len(parts) > 2 and parts[2] else ''
+                if mark2:
+                    try:
+                        marks_sum += float(mark2.strip())
+                        marks_count += 1
+                    except ValueError:
+                        pass
+            
+            result['present_classes'] = present_count
+            result['last_attendance_date'] = last_date.date() if last_date else False
+            
+            # Вычисляем среднюю оценку
+            if marks_count > 0:
+                result['average_mark'] = marks_sum / marks_count
+                
+        except Exception as e:
+            _logger.error("Ошибка при вычислении данных по четверти: %s", str(e))
+            
+        return result
+    
+    @api.depends('table_entries', 'lesson_topics')
+    def _compute_q1_data(self):
+        """Вычисляет данные для 1 четверти"""
+        for record in self:
+            data = record._compute_quarter_data(1)
+            record.q1_total_classes = data['total_classes']
+            record.q1_present_classes = data['present_classes']
+            record.q1_last_attendance_date = data['last_attendance_date']
+            record.q1_average_mark = data['average_mark']
+            
+    @api.depends('table_entries', 'lesson_topics')
+    def _compute_q2_data(self):
+        """Вычисляет данные для 2 четверти"""
+        for record in self:
+            data = record._compute_quarter_data(2)
+            record.q2_total_classes = data['total_classes']
+            record.q2_present_classes = data['present_classes']
+            record.q2_last_attendance_date = data['last_attendance_date']
+            record.q2_average_mark = data['average_mark']
+            
+    @api.depends('table_entries', 'lesson_topics')
+    def _compute_q3_data(self):
+        """Вычисляет данные для 3 четверти"""
+        for record in self:
+            data = record._compute_quarter_data(3)
+            record.q3_total_classes = data['total_classes']
+            record.q3_present_classes = data['present_classes']
+            record.q3_last_attendance_date = data['last_attendance_date']
+            record.q3_average_mark = data['average_mark']
+            
+    @api.depends('table_entries', 'lesson_topics')
+    def _compute_q4_data(self):
+        """Вычисляет данные для 4 четверти"""
+        for record in self:
+            data = record._compute_quarter_data(4)
+            record.q4_total_classes = data['total_classes']
+            record.q4_present_classes = data['present_classes']
+            record.q4_last_attendance_date = data['last_attendance_date']
+            record.q4_average_mark = data['average_mark']

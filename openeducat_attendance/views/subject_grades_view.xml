@@ -34,21 +34,57 @@
                 </header>
                 <sheet>
                     <field name="textbook_image" widget="image" style="float: right; width: 150px; height: 150px; object-fit: contain;"/>
-                    <group>
-                        <group>
-                            <field name="student_id" string="Ученик"/>
-                            <field name="subject_id" string="Предмет"/>
-                            <field name="batch_id" string="Класс"/>
-                        </group>
-                        <group>
-                            <field name="current_quarter" string="Текущая четверть" widget="selection"/>
-                            <field name="total_classes" string="Всего занятий"/>
-                            <field name="present_classes" string="Посещено занятий"/>
-                            <field name="last_attendance_date" string="Дата последнего посещения"/>
-                            <field name="average_mark" string="Средняя оценка"/>
-                            <field name="final_quarter_grade" string="Итоговая оценка за четверть"/>
-                        </group>
-                    </group>
+                    <field name="q1_total_classes" invisible="1"/>
+                    <field name="q1_present_classes" invisible="1"/>
+                    <field name="q1_last_attendance_date" invisible="1"/>
+                    <field name="q1_average_mark" invisible="1"/>
+                    <field name="q2_total_classes" invisible="1"/>
+                    <field name="q2_present_classes" invisible="1"/>
+                    <field name="q2_last_attendance_date" invisible="1"/>
+                    <field name="q2_average_mark" invisible="1"/>
+                    <field name="q3_total_classes" invisible="1"/>
+                    <field name="q3_present_classes" invisible="1"/>
+                    <field name="q3_last_attendance_date" invisible="1"/>
+                    <field name="q3_average_mark" invisible="1"/>
+                    <field name="q4_total_classes" invisible="1"/>
+                    <field name="q4_present_classes" invisible="1"/>
+                    <field name="q4_last_attendance_date" invisible="1"/>
+                    <field name="q4_average_mark" invisible="1"/>
+                    <div style="display: flex; justify-content: space-between;">
+                        <div>
+                            <h1>
+                                <field name="student_id" string="Ученик" readonly="1"/>
+                            </h1>
+                            <h2>
+                                <field name="subject_id" string="Предмет" readonly="1"/>
+                            </h2>
+                            <h3>
+                                <field name="batch_id" string="Класс" readonly="1"/>
+                            </h3>
+                        </div>
+                        <div style="text-align: right;">
+                            <div class="quarter-info-total-classes">
+                                <strong>Всего занятий:</strong>
+                                <span>0</span>
+                            </div>
+                            <div class="quarter-info-present-classes">
+                                <strong>Посещено занятий:</strong>
+                                <span>0</span>
+                            </div>
+                            <div class="quarter-info-last-attendance-date">
+                                <strong>Дата последнего посещения:</strong>
+                                <span></span>
+                            </div>
+                            <div class="quarter-info-average-mark">
+                                <strong>Средняя оценка:</strong>
+                                <span>0.00</span>
+                            </div>
+                            <div>
+                                <strong>Итоговая оценка за четверть:</strong>
+                                <field name="final_quarter_grade"/>
+                            </div>
+                        </div>
+                    </div>
                     <notebook>
                         <page string="1 четверть">
                             <field name="date_mark_table_q1" widget="html"/>

@@ -1,5 +1,4 @@
 def migrate(cr, version):
-    cr.execute("""
-        ALTER TABLE op_subject_grades 
-        ADD COLUMN IF NOT EXISTS current_quarter VARCHAR
-    """)
+    # Этот файл миграции больше не нужен, так как мы удалили поле current_quarter
+    # и добавили вычисляемые поля для отображения информации по четвертям
+    pass

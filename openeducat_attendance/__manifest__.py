@@ -45,7 +45,7 @@
     ],
     'assets': {
         'web.assets_backend': [
-            'openeducat_attendance/static/src/js/subject_grades_form.js',
+            'openeducat_attendance/static/src/js/quarter_info_handler.js',
         ],
     },
     'images': [
