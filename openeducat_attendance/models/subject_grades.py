@@ -704,7 +704,7 @@ class OpSubjectGrades(models.Model):
             
             # Вычисляем среднюю оценку
             if marks_count > 0:
-                result['average_mark'] = marks_sum / marks_count
+                result['average_mark'] = round(marks_sum / marks_count, 2)
                 
         except Exception as e:
             _logger.error("Ошибка при вычислении данных по четверти: %s", str(e))

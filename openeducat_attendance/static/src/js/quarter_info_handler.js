@@ -3,19 +3,54 @@
 import { FormController } from "@web/views/form/form_controller";
 import { formView } from "@web/views/form/form_view";
 import { registry } from "@web/core/registry";
-import { onWillRender } from "@odoo/owl";
+import { onWillRender, onMounted } from "@odoo/owl";
 
 export class QuarterInfoFormController extends FormController {
     setup() {
         super.setup();
         
+        let updateTimeout = null;
+        
         // Отслеживаем изменение активной вкладки
         onWillRender(() => {
+            // Очищаем предыдущий таймер
+            if (updateTimeout) {
+                clearTimeout(updateTimeout);
+            }
+            
             // Ждем немного, чтобы DOM обновился
+            updateTimeout = setTimeout(() => {
+                this.updateQuarterInfo();
+            }, 150);
+        });
+        
+        // Обновляем информацию при монтировании компонента
+        onMounted(() => {
+            // Добавляем обработчик событий для переключения вкладок
+            this.addTabChangeListener();
+            
             setTimeout(() => {
                 this.updateQuarterInfo();
-            }, 100);
+            }, 300);
         });
+    }
+    
+    /**
+     * Добавляет обработчик событий для переключения вкладок
+     */
+    addTabChangeListener() {
+        // Ждем, пока вкладки будут загружены
+        setTimeout(() => {
+            const tabs = document.querySelectorAll('.o_form_sheet .nav-tabs .nav-link');
+            tabs.forEach(tab => {
+                tab.addEventListener('click', () => {
+                    // Ждем, пока вкладка будет активирована
+                    setTimeout(() => {
+                        this.updateQuarterInfo();
+                    }, 100);
+                });
+            });
+        }, 500);
     }
     
     /**
@@ -65,15 +100,15 @@ export class QuarterInfoFormController extends FormController {
         
         // Обновляем отображение
         if (totalClassesField && displayTotalClasses) {
-            displayTotalClasses.textContent = totalClassesField.textContent;
+            displayTotalClasses.textContent = totalClassesField.textContent || '0';
         }
         
         if (presentClassesField && displayPresentClasses) {
-            displayPresentClasses.textContent = presentClassesField.textContent;
+            displayPresentClasses.textContent = presentClassesField.textContent || '0';
         }
         
         if (lastAttendanceDateField && displayLastAttendanceDate) {
-            displayLastAttendanceDate.textContent = lastAttendanceDateField.textContent;
+            displayLastAttendanceDate.textContent = lastAttendanceDateField.textContent || '';
         }
         
         if (averageMarkField && displayAverageMark) {

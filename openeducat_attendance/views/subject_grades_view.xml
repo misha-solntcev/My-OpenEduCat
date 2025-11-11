@@ -33,7 +33,7 @@
                     <button name="%(openeducat_attendance.action_op_update_subject_grades)d" type="action" string="Обновить оценки по предметам" class="btn btn-primary" groups="openeducat_attendance.group_op_attendance_manager"/>
                 </header>
                 <sheet>
-                    <field name="textbook_image" widget="image" style="float: right; width: 150px; height: 150px; object-fit: contain;"/>
+                    <field name="textbook_image" widget="image" style="float: right; margin-left: 20px; width: 150px; height: 150px; object-fit: contain;"/>
                     <field name="q1_total_classes" invisible="1"/>
                     <field name="q1_present_classes" invisible="1"/>
                     <field name="q1_last_attendance_date" invisible="1"/>
@@ -62,7 +62,7 @@
                                 <field name="batch_id" string="Класс" readonly="1"/>
                             </h3>
                         </div>
-                        <div style="text-align: right;">
+                        <div style="text-align: right; margin-right: 170px;">
                             <div class="quarter-info-total-classes">
                                 <strong>Всего занятий:</strong>
                                 <span>0</span>
