@@ -34,7 +34,7 @@ export class G2Review extends Component {
         const reviewShow = !!cookie.get(`g2_review_${session.db}`);
         this.dialog = useService("dialog");
 
-        if (!reviewShow) {
+        if (false) {
             setTimeout(() => {
                 this.dialog.add(G2ReviewDialog );
             }, 5000);

@@ -3,26 +3,29 @@
 import { FormController } from "@web/views/form/form_controller";
 import { formView } from "@web/views/form/form_view";
 import { registry } from "@web/core/registry";
+import { useService } from "@web/core/utils/hooks";
+import { onWillRender } from "@odoo/owl";
 
 export class SubjectGradesFormController extends FormController {
     setup() {
         super.setup();
         
-        // При изменении значения поля current_quarter переключаем вкладку
-        this.env.bus.on("FIELD_CHANGED", this, (ev) => {
-            if (ev.data.changes && ev.data.changes.hasOwnProperty('current_quarter')) {
-                const quarterValue = ev.data.changes.current_quarter;
-                this.switchToQuarterTab(quarterValue);
-            }
-        });
+        // Отслеживаем изменение значения поля current_quarter
+        let previousQuarter = null;
         
         // При загрузке формы проверяем значение current_quarter и переключаем вкладку
-        if (this.model.root && this.model.root.data && this.model.root.data.current_quarter) {
-            // Ждем, пока форма загрузится
-            setTimeout(() => {
-                this.switchToQuarterTab(this.model.root.data.current_quarter);
-            }, 100);
-        }
+        onWillRender(() => {
+            if (this.model && this.model.root && this.model.root.data && this.model.root.data.current_quarter) {
+                const currentQuarter = this.model.root.data.current_quarter;
+                if (currentQuarter !== previousQuarter) {
+                    previousQuarter = currentQuarter;
+                    // Ждем, пока форма загрузится
+                    setTimeout(() => {
+                        this.switchToQuarterTab(currentQuarter);
+                    }, 100);
+                }
+            }
+        });
     }
     
     /**

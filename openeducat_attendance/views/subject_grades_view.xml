@@ -41,7 +41,7 @@
                             <field name="batch_id" string="Класс"/>
                         </group>
                         <group>
-                            <field name="current_quarter" string="Текущая четверть"/>
+                            <field name="current_quarter" string="Текущая четверть" widget="selection"/>
                             <field name="total_classes" string="Всего занятий"/>
                             <field name="present_classes" string="Посещено занятий"/>
                             <field name="last_attendance_date" string="Дата последнего посещения"/>
