@@ -51,6 +51,20 @@ class OpSubjectGrades(models.Model):
         'Темы уроков', 
         help="Темы уроков по данному предмету"
     )
+    
+    # Поле для выбора текущей четверти
+    current_quarter = fields.Selection([
+        ('1', '1 четверть'),
+        ('2', '2 четверть'),
+        ('3', '3 четверть'),
+        ('4', '4 четверть')
+    ], string='Текущая четверть', default='1')
+    
+    # Вычисляемые поля для таблиц по четвертям
+    date_mark_table_q1 = fields.Html('Date-Mark Table Q1', compute='_compute_date_mark_table_q1')
+    date_mark_table_q2 = fields.Html('Date-Mark Table Q2', compute='_compute_date_mark_table_q2')
+    date_mark_table_q3 = fields.Html('Date-Mark Table Q3', compute='_compute_date_mark_table_q3')
+    date_mark_table_q4 = fields.Html('Date-Mark Table Q4', compute='_compute_date_mark_table_q4')
 
     @api.model
     def _search(self, args, offset=0, limit=None, order=None, count=False, access_rights_uid=None):
@@ -389,3 +403,206 @@ class OpSubjectGrades(models.Model):
             return f'<span class="badge fw-bold" style="background-color: #e7f5ff; color: #1c7ed6; font-size: 16px; padding: 4px 8px; border: 1px solid #dee2e6;">{behavior}</span>'
         else:
             return f'<span class="badge fw-bold" style="background-color: #f8f9fa; color: #495057; font-size: 16px; padding: 4px 8px; border: 1px solid #dee2e6;">{behavior}</span>'
+        
+    def _get_quarter_dates(self, quarter):
+        """
+        Возвращает начальную и конечную даты для заданной четверти.
+        В учебном году 4 четверти:
+        1 четверть: 1 сентября - 31 октября
+        2 четверть: 1 ноября - 25 декабря
+        3 четверть: 11 января - 28 марта
+        4 четверть: 1 апреля - 31 мая
+        
+        Args:
+            quarter (int): Номер четверти (1-4)
+            
+        Returns:
+            tuple: (start_date, end_date) в формате datetime
+        """
+        year = datetime.now().year
+        
+        if quarter == 1:
+            start_date = datetime(year, 9, 1)
+            end_date = datetime(year, 10, 31)
+        elif quarter == 2:
+            start_date = datetime(year, 11, 1)
+            end_date = datetime(year, 12, 25)
+        elif quarter == 3:
+            start_date = datetime(year, 1, 11)
+            end_date = datetime(year, 3, 28)
+        elif quarter == 4:
+            start_date = datetime(year, 4, 1)
+            end_date = datetime(year, 5, 31)
+        else:
+            # По умолчанию возвращаем весь год
+            start_date = datetime(year, 1, 1)
+            end_date = datetime(year, 12, 31)
+            
+        return start_date, end_date
+    
+    def _filter_entries_by_quarter(self, entries, quarter):
+        """
+        Фильтрует записи по заданной четверти.
+        
+        Args:
+            entries (list): Список записей в формате строк
+            quarter (int): Номер четверти (1-4)
+            
+        Returns:
+            list: Отфильтрованный список записей
+        """
+        if not entries:
+            return []
+            
+        start_date, end_date = self._get_quarter_dates(quarter)
+        
+        filtered_entries = []
+        for entry in entries:
+            parts = entry.split('|')
+            if len(parts) > 0 and parts[0]:
+                try:
+                    # Преобразуем дату из строки
+                    date_obj = datetime.strptime(parts[0], '%Y-%m-%d')
+                    # Проверяем, попадает ли дата в диапазон четверти
+                    if start_date <= date_obj <= end_date:
+                        filtered_entries.append(entry)
+                except ValueError:
+                    # Если не удалось преобразовать дату, пропускаем запись
+                    pass
+                    
+        return filtered_entries
+    
+    def _compute_date_mark_table_quarter(self, quarter):
+        """
+        Вычисляет HTML-таблицу с оценками и посещаемостью по датам для заданной четверти.
+        
+        Args:
+            quarter (int): Номер четверти (1-4)
+            
+        Returns:
+            str: HTML-код таблицы
+        """
+        self.ensure_one()
+        try:
+            if self.table_entries:
+                # Создаем HTML таблицу с центрированными заголовками
+                table_html = '''
+<table class="table table-sm table-bordered">
+    <thead>
+        <tr>
+            <th style="text-align: center;">Дата</th>
+            <th style="text-align: center;">Тема урока</th>
+            <th style="text-align: center;">Посещение</th>
+            <th style="text-align: center;">Оценка 1</th>
+            <th style="text-align: center;">Оценка 2</th>
+            <th style="text-align: center;">Комментарий</th>
+        </tr>
+    </thead>
+    <tbody>'''
+                
+                # Разбираем записи таблицы
+                entries = [e.strip() for e in self.table_entries.split(',') if e.strip()]
+                
+                # Фильтруем записи по четверти
+                quarter_entries = self._filter_entries_by_quarter(entries, quarter)
+                
+                # Заполняем таблицу данными
+                for entry in quarter_entries:
+                    parts = entry.split('|')
+                    date = parts[0] if len(parts) > 0 and parts[0] else ''
+                    mark = parts[1] if len(parts) > 1 and parts[1] else ''
+                    behavior = parts[2] if len(parts) > 2 and parts[2] else ''
+                    
+                    # Преобразуем формат даты из ГГГГ-ММ-ДД в ДД.ММ.ГГГГ
+                    formatted_date = date
+                    if date:
+                        try:
+                            date_obj = datetime.strptime(date, '%Y-%m-%d')
+                            formatted_date = date_obj.strftime('%d.%m.%Y')
+                        except ValueError:
+                            # Если не удалось преобразовать, оставляем как есть
+                            pass
+                    
+                    # Получаем информацию о посещаемости из записи
+                    present_raw = parts[3] if len(parts) > 3 and parts[3] else ''
+                    late_raw = parts[4] if len(parts) > 4 and parts[4] else ''
+                    absent_raw = parts[5] if len(parts) > 5 and parts[5] else ''
+                    unexcused_absent_raw = parts[6] if len(parts) > 6 and parts[6] else ''
+                    comment = parts[7] if len(parts) > 7 and parts[7] else ''
+                    
+                    # Получаем тему урока из записи
+                    lesson_topic = parts[8] if len(parts) > 8 and parts[8] else ''
+                    
+                    # Определяем символ посещаемости
+                    attendance_symbol = self._get_attendance_symbol(
+                        present_raw, late_raw, absent_raw, unexcused_absent_raw)
+                    
+                    # Форматируем оценки
+                    mark_badge = self._format_mark(mark)
+                    behavior_badge = self._format_behavior(behavior)
+                    
+                    table_html += f'''
+        <tr>
+            <td style="text-align: center;">{formatted_date}</td>
+            <td>{lesson_topic}</td>
+            <td style="text-align: center;">{attendance_symbol}</td>
+            <td style="text-align: center;">{mark_badge}</td>
+            <td style="text-align: center;">{behavior_badge}</td>
+            <td>{comment}</td>
+        </tr>'''
+                
+                table_html += '''
+    </tbody>
+</table>'''
+                
+                # Добавляем легенду с объяснением символов по центру
+                table_html += '''
+<div style="margin-top: 15px; display: flex; flex-wrap: wrap; justify-content: center; gap: 15px;">
+    <div style="display: flex; align-items: center; min-width: 150px;">
+        <i class="fa fa-check" style="color: green; font-size: 18px; width: 20px; text-align: center;"></i>
+        <span style="margin-left: 5px;">Присутствует</span>
+    </div>
+    <div style="display: flex; align-items: center; min-width: 150px;">
+        <i class="fa fa-clock-o" style="color: orange; font-size: 18px; width: 20px; text-align: center;"></i>
+        <span style="margin-left: 5px;">Опоздал</span>
+    </div>
+    <div style="display: flex; align-items: center; min-width: 150px;">
+        <i class="fa fa-file-text" style="color: blue; font-size: 18px; width: 20px; text-align: center;"></i>
+        <span style="margin-left: 5px;">Отсутствует по уважительной причине</span>
+    </div>
+    <div style="display: flex; align-items: center; min-width: 150px;">
+        <i class="fa fa-times" style="color: red; font-size: 18px; width: 20px; text-align: center;"></i>
+        <span style="margin-left: 5px;">Прогул</span>
+    </div>
+</div>'''
+                
+                return table_html
+            else:
+                return '<p>Нет данных для отображения</p>'
+        except Exception as e:
+            _logger.error("Ошибка при вычислении таблицы оценок: %s", str(e))
+            return f'<p>Ошибка при отображении таблицы: {str(e)}</p>'
+    
+    @api.depends('table_entries', 'lesson_topics')
+    def _compute_date_mark_table_q1(self):
+        """Вычисляет таблицу для 1 четверти"""
+        for record in self:
+            record.date_mark_table_q1 = record._compute_date_mark_table_quarter(1)
+            
+    @api.depends('table_entries', 'lesson_topics')
+    def _compute_date_mark_table_q2(self):
+        """Вычисляет таблицу для 2 четверти"""
+        for record in self:
+            record.date_mark_table_q2 = record._compute_date_mark_table_quarter(2)
+            
+    @api.depends('table_entries', 'lesson_topics')
+    def _compute_date_mark_table_q3(self):
+        """Вычисляет таблицу для 3 четверти"""
+        for record in self:
+            record.date_mark_table_q3 = record._compute_date_mark_table_quarter(3)
+            
+    @api.depends('table_entries', 'lesson_topics')
+    def _compute_date_mark_table_q4(self):
+        """Вычисляет таблицу для 4 четверти"""
+        for record in self:
+            record.date_mark_table_q4 = record._compute_date_mark_table_quarter(4)

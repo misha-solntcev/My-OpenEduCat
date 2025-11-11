@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <record id="subject_grades_form_view_js" model="ir.ui.view">
+        <field name="name">subject.grades.form.js</field>
+        <field name="model">op.subject.grades</field>
+        <field name="inherit_id" ref="openeducat_attendance.view_op_subject_grades_form"/>
+        <field name="arch" type="xml">
+            <form position="attributes">
+                <attribute name="js_class">subject_grades_form</attribute>
+            </form>
+        </field>
+    </record>
+</odoo>

@@ -41,6 +41,7 @@
                             <field name="batch_id" string="Класс"/>
                         </group>
                         <group>
+                            <field name="current_quarter" string="Текущая четверть"/>
                             <field name="total_classes" string="Всего занятий"/>
                             <field name="present_classes" string="Посещено занятий"/>
                             <field name="last_attendance_date" string="Дата последнего посещения"/>
@@ -49,8 +50,17 @@
                         </group>
                     </group>
                     <notebook>
-                        <page string="Таблица оценок и посещений">
-                            <field name="date_mark_table" widget="html"/>
+                        <page string="1 четверть">
+                            <field name="date_mark_table_q1" widget="html"/>
+                        </page>
+                        <page string="2 четверть">
+                            <field name="date_mark_table_q2" widget="html"/>
+                        </page>
+                        <page string="3 четверть">
+                            <field name="date_mark_table_q3" widget="html"/>
+                        </page>
+                        <page string="4 четверть">
+                            <field name="date_mark_table_q4" widget="html"/>
                         </page>
                     </notebook>
                 </sheet>

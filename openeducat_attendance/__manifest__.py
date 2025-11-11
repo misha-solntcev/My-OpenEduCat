@@ -23,6 +23,7 @@
         'views/attendance_sheet_view.xml',
         'views/attendance_line_view.xml',
         'views/subject_grades_view.xml',
+        'views/subject_grades_form_view.xml',
         'views/attendance_type_view.xml',
         'views/attendance_session_view.xml',
         'views/student_view.xml',
@@ -42,6 +43,11 @@
         'demo/attendance_line_demo.xml',
         'demo/attendance_type_demo.xml',
     ],
+    'assets': {
+        'web.assets_backend': [
+            'openeducat_attendance/static/src/js/subject_grades_form.js',
+        ],
+    },
     'images': [
         'static/description/openeducat-attendance_banner.jpg',
     ],
