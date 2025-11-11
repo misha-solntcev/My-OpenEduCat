@@ -13,6 +13,7 @@
         'security/op_security.xml',
         'security/ir.model.access.csv',
         'data/attendance_sheet_sequence.xml',
+        'data/subject_grades_cron.xml',
         'wizards/student_attendance_wizard_view.xml',
         'wizards/student_grades_by_subject_wizard_view.xml',
         'wizards/class_grades_summary_wizard_view.xml',

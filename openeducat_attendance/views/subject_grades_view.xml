@@ -103,9 +103,9 @@
                         <page string="1 четверть">
                             <group>
                                 <group>
-                                    <div>
+                                    <!-- <div>
                                         <strong>Статистика:</strong>
-                                    </div>
+                                    </div> -->
                                     <div>
                                         <strong>Всего занятий:</strong>
                                         <span style="margin-left: 8px;">
@@ -143,9 +143,9 @@
                         <page string="2 четверть">
                             <group>
                                 <group>
-                                    <div>
+                                    <!-- <div>
                                         <strong>Статистика:</strong>
-                                    </div>
+                                    </div> -->
                                     <div>
                                         <strong>Всего занятий:</strong>
                                         <span style="margin-left: 8px;">
@@ -183,9 +183,9 @@
                         <page string="3 четверть">
                             <group>
                                 <group>
-                                    <div>
+                                    <!-- <div>
                                         <strong>Статистика:</strong>
-                                    </div>
+                                    </div> -->
                                     <div>
                                         <strong>Всего занятий:</strong>
                                         <span style="margin-left: 8px;">
@@ -223,9 +223,9 @@
                         <page string="4 четверть">
                             <group>
                                 <group>
-                                    <div>
+                                    <!-- <div>
                                         <strong>Статистика:</strong>
-                                    </div>
+                                    </div> -->
                                     <div>
                                         <strong>Всего занятий:</strong>
                                         <span style="margin-left: 8px;">

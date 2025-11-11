@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <data>
+        <!-- Запланированное действие для автоматического обновления оценок по предметам -->
+        <record id="ir_cron_update_subject_grades" model="ir.cron">
+            <field name="name">Автоматическое обновление оценок по предметам</field>
+            <field name="model_id" ref="model_op_update_subject_grades"/>
+            <field name="state">code</field>
+            <field name="code">model.update_subject_grades()</field>
+            <field name="user_id" ref="base.user_root"/>
+            <field name="interval_number">1</field>
+            <field name="interval_type">days</field>
+            <field name="numbercall">-1</field>
+            <field name="doall" eval="False"/>
+            <field name="active" eval="True"/>
+            <!-- Запуск каждый день в 01:00 -->
+            <field name="nextcall" eval="(DateTime.now().replace(hour=1, minute=0, second=0, microsecond=0) + timedelta(days=1)).strftime('%Y-%m-%d %H:%M:%S')"/>
+        </record>
+    </data>
+</odoo>
