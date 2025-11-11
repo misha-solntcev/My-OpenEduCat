@@ -44,7 +44,13 @@ class OpSubjectGrades(models.Model):
     # Новое поле для отображения дат и оценок в виде таблицы
     date_mark_table = fields.Html('Date-Mark Table', compute='_compute_date_mark_table')
     # Поле для ручного ввода итоговой оценки за четверть
-    final_quarter_grade = fields.Char('Итоговая оценка за четверть')
+    final_quarter_grade = fields.Char('Итоговая оценка')
+    
+    # Поля для ввода итоговых оценок по каждой четверти
+    q1_final_grade = fields.Char('Итоговая оценка за 1 четверть')
+    q2_final_grade = fields.Char('Итоговая оценка за 2 четверть')
+    q3_final_grade = fields.Char('Итоговая оценка за 3 четверть')
+    q4_final_grade = fields.Char('Итоговая оценка за 4 четверть')
     
     # Добавляем поле для тем уроков (резервное решение)
     lesson_topics = fields.Text(
