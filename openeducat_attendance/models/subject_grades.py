@@ -32,6 +32,7 @@ class OpSubjectGrades(models.Model):
     student_id = fields.Many2one('op.student', 'Student', required=True)
     subject_id = fields.Many2one('op.subject', 'Subject', required=True)
     batch_id = fields.Many2one('op.batch', 'Batch', required=True)
+    faculty_id = fields.Many2one('op.faculty', 'Faculty', compute='_compute_faculty_id', store=True)
     attendance_dates = fields.Text('Attendance Dates')
     marks = fields.Text('Marks')
     behaviors = fields.Text('Behaviors')
@@ -756,3 +757,17 @@ class OpSubjectGrades(models.Model):
             record.q4_present_classes = data['present_classes']
             record.q4_last_attendance_date = data['last_attendance_date']
             record.q4_average_mark = data['average_mark']
+            
+    @api.depends('subject_id', 'batch_id')
+    def _compute_faculty_id(self):
+        """Вычисляет преподавателя на основе предмета и класса"""
+        for record in self:
+            record.faculty_id = False
+            if record.subject_id and record.batch_id:
+                # Ищем преподавателя в расписании занятий
+                session = self.env['op.session'].search([
+                    ('subject_id', '=', record.subject_id.id),
+                    ('batch_id', '=', record.batch_id.id)
+                ], limit=1)
+                if session:
+                    record.faculty_id = session.faculty_id.id

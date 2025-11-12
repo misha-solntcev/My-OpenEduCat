@@ -63,6 +63,9 @@
                                 <field name="subject_id" string="Предмет" readonly="1"/>
                             </h2>
                             <h3>
+                                <field name="faculty_id" string="Преподаватель" readonly="1"/>
+                            </h3>
+                            <h3>
                                 <field name="batch_id" string="Класс" readonly="1"/>
                             </h3>
                         </div>
