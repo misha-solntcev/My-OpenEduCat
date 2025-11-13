@@ -308,7 +308,7 @@
                     <t t-name="card" class="flex-row">
                         <div class="row g-0">
                             <div class="col-4 d-flex align-items-center justify-content-center">
-                                <div style="width: 100px; height: 100px; display: flex; align-items: center; justify-content: center;">
+                                <div style="width: 150px; height: 150px; display: flex; align-items: center; justify-content: center;" class="me-2">
                                     <field name="textbook_image" widget="image" class="w-100 h-100" options="{'img_class': 'object-fit-contain'}"/>
                                 </div>
                             </div>
@@ -322,87 +322,8 @@
                                     </p>
                                     <p class="mb-1 text-body-secondary small">
                                         <strong>Класс:</strong> <field name="batch_id"/>
-                                    </p>
+                                    </p>                                    
                                     
-                                    <!-- Прогресс бар посещаемости -->
-                                    <div class="attendance-progress mb-2">
-                                        <t t-if="record.total_classes.raw_value &gt; 0">
-                                            <div class="d-flex justify-content-between small">
-                                                <span>Посещение:</span>
-                                                <span>
-                                                    <t t-esc="record.present_classes.raw_value"/>/<t t-esc="record.total_classes.raw_value"/>
-                                                </span>
-                                            </div>
-                                            <div class="progress" style="height: 10px;">
-                                                <div class="progress-bar" 
-                                                     role="progressbar" 
-                                                     t-attf-style="width: #{Math.round((record.present_classes.raw_value / record.total_classes.raw_value) * 100)}%"
-                                                     t-attf-aria-valuenow="#{Math.round((record.present_classes.raw_value / record.total_classes.raw_value) * 100)}"
-                                                     aria-valuemin="0" 
-                                                     aria-valuemax="100"
-                                                     t-att-class="{
-                                                         'bg-success': (record.present_classes.raw_value / record.total_classes.raw_value) &gt;= 0.8,
-                                                         'bg-warning': (record.present_classes.raw_value / record.total_classes.raw_value) &lt; 0.8 &amp;&amp; (record.present_classes.raw_value / record.total_classes.raw_value) &gt;= 0.6,
-                                                         'bg-danger': (record.present_classes.raw_value / record.total_classes.raw_value) &lt; 0.6
-                                                     }">
-                                                </div>
-                                            </div>
-                                        </t>
-                                    </div>
-                                    
-                                    <!-- Отображение средней оценки -->
-                                    <div class="average-mark mb-2">
-                                        <t t-if="record.average_mark.raw_value">
-                                            <div class="d-flex justify-content-between align-items-center">
-                                                <strong>Средняя оценка:</strong>
-                                                <span t-esc="Math.round(record.average_mark.raw_value * 100) / 100" 
-                                                      t-att-class="{
-                                                          'badge': true,
-                                                          'fw-bold': true,
-                                                          'bg-success': record.average_mark.raw_value &gt;= 4.5,
-                                                          'bg-warning': record.average_mark.raw_value &lt; 4.5 &amp;&amp; record.average_mark.raw_value &gt;= 3.5,
-                                                          'bg-danger': record.average_mark.raw_value &lt; 3.5
-                                                      }"
-                                                      style="font-size: 16px; padding: 5px 10px;">
-                                                </span>
-                                            </div>
-                                        </t>
-                                    </div>
-                                    
-                                    <!-- Отображение итоговой оценки за четверть -->
-                                    <div class="final-quarter-grade mb-2">
-                                        <t t-if="record.final_quarter_grade.raw_value">
-                                            <div class="d-flex justify-content-between align-items-center">
-                                                <strong>Итоговая оценка:</strong>
-                                                <t t-set="quarter_grade" t-value="record.final_quarter_grade.raw_value"/>
-                                                <t t-if="quarter_grade == '2'">
-                                                    <span class="badge fw-bold" style="background-color: #fff0f6; color: #d6336c; font-size: 20px;">
-                                                        <t t-esc="quarter_grade"/>
-                                                    </span>
-                                                </t>
-                                                <t t-elif="quarter_grade == '3'">
-                                                    <span class="badge fw-bold" style="background-color: #fff3bf; color: #997404; font-size: 20px;">
-                                                        <t t-esc="quarter_grade"/>
-                                                    </span>
-                                                </t>
-                                                <t t-elif="quarter_grade == '4'">
-                                                    <span class="badge fw-bold" style="background-color: #ebfbee; color: #37b24d; font-size: 20px;">
-                                                        <t t-esc="quarter_grade"/>
-                                                    </span>
-                                                </t>
-                                                <t t-elif="quarter_grade == '5'">
-                                                    <span class="badge fw-bold" style="background-color: #e7f5ff; color: #1c7ed6; font-size: 20px;">
-                                                        <t t-esc="quarter_grade"/>
-                                                    </span>
-                                                </t>
-                                                <t t-else="">
-                                                    <span class="badge fw-bold" style="background-color: #f8f9fa; color: #495057; font-size: 20px;">
-                                                        <t t-esc="quarter_grade"/>
-                                                    </span>
-                                                </t>
-                                            </div>
-                                        </t>
-                                    </div>
                                     
                                     <!-- Отображение оценок по четвертям -->
                                     <div class="quarter-grades mb-2">
@@ -553,94 +474,91 @@
                                                 </t>
                                             </div>
                                         </div>
-                                    </div>
-                                    
-                                    <!-- Разделитель между Итоговой оценкой и оценками -->
-                                    <div class="divider" style="height: 1px; background-color: #dee2e6; margin: 8px 0;"></div>                            
-        
-                                    <!-- Отображение оценок в виде бейджей в футере карточки -->
-                                    <div class="marks-badges mb-1">
-                                        <div class="d-flex flex-wrap">
-                                            <t t-if="record.table_entries.raw_value and record.table_entries.raw_value.trim()">
-                                                <t t-foreach="record.table_entries.raw_value.split(',')" t-as="entry">
-                                                    <t t-set="parts" t-value="entry.split('|')"/>
-                                                    <!-- Оценка 1 находится во втором элементе (индекс 1) -->
-                                                    <t t-if="parts.length &gt;= 2 and parts[1].trim()">
-                                                        <t t-set="final_mark" t-value="parts[1].trim()"/>
-                                                        <t t-if="final_mark == '2'">
-                                                            <span class="badge fw-bold me-1 mb-1" style="background-color: #fff0f6; color: #d6336c; font-size: 12px;">
-                                                                <t t-esc="final_mark"/>
-                                                            </span>
-                                                        </t>
-                                                        <t t-elif="final_mark == '3'">
-                                                            <span class="badge fw-bold me-1 mb-1" style="background-color: #fff3bf; color: #997404; font-size: 12px;">
-                                                                <t t-esc="final_mark"/>
-                                                            </span>
-                                                        </t>
-                                                        <t t-elif="final_mark == '4'">
-                                                            <span class="badge fw-bold me-1 mb-1" style="background-color: #ebfbee; color: #37b24d; font-size: 12px;">
-                                                                <t t-esc="final_mark"/>
-                                                            </span>
-                                                        </t>
-                                                        <t t-elif="final_mark == '5'">
-                                                            <span class="badge fw-bold me-1 mb-1" style="background-color: #e7f5ff; color: #1c7ed6; font-size: 12px;">
-                                                                <t t-esc="final_mark"/>
-                                                            </span>
-                                                        </t>
-                                                        <t t-else="">
-                                                            <span class="badge fw-bold me-1 mb-1" style="background-color: #f8f9fa; color: #495057; font-size: 12px;">
-                                                                <t t-esc="final_mark"/>
-                                                            </span>
-                                                        </t>
-                                                    </t>
-                                                </t>
-                                            </t>
-                                        </div>
-                                    </div>
-                                    
-                                    <!-- Разделитель между оценками и поведением -->
-                                    <div class="divider" style="height: 1px; background-color: #dee2e6; margin: 8px 0;"></div>
-                                    
-                                    <!-- Отображение Оценки 2 в виде бейджей в футере карточки -->
-                                    <div class="behaviors-badges">
-                                        <div class="d-flex flex-wrap">
-                                            <t t-if="record.table_entries.raw_value and record.table_entries.raw_value.trim()">
-                                                <t t-foreach="record.table_entries.raw_value.split(',')" t-as="entry">
-                                                    <t t-set="parts" t-value="entry.split('|')"/>
-                                                    <!-- Поведение находится в третьем элементе (индекс 2) -->
-                                                    <t t-if="parts.length &gt;= 3 and parts[2].trim()">
-                                                        <t t-set="final_behavior" t-value="parts[2].trim()"/>
-                                                        <t t-if="final_behavior == '2'">
-                                                            <span class="badge fw-bold me-1 mb-1" style="background-color: #f8f9fa; color: #495057; font-size: 12px; border: 1px solid #dee2e6;">
-                                                                <t t-esc="final_behavior"/>
-                                                            </span>
-                                                        </t>
-                                                        <t t-elif="final_behavior == '3'">
-                                                            <span class="badge fw-bold me-1 mb-1" style="background-color: #fff3bf; color: #997404; font-size: 12px; border: 1px solid #dee2e6;">
-                                                                <t t-esc="final_behavior"/>
-                                                            </span>
-                                                        </t>
-                                                        <t t-elif="final_behavior == '4'">
-                                                            <span class="badge fw-bold me-1 mb-1" style="background-color: #ebfbee; color: #37b24d; font-size: 12px; border: 1px solid #dee2e6;">
-                                                                <t t-esc="final_behavior"/>
-                                                            </span>
-                                                        </t>
-                                                        <t t-elif="final_behavior == '5'">
-                                                            <span class="badge fw-bold me-1 mb-1" style="background-color: #e7f5ff; color: #1c7ed6; font-size: 12px; border: 1px solid #dee2e6;">
-                                                                <t t-esc="final_behavior"/>
-                                                            </span>
-                                                        </t>
-                                                        <t t-else="">
-                                                            <span class="badge fw-bold me-1 mb-1" style="background-color: #f8f9fa; color: #495057; font-size: 12px; border: 1px solid #dee2e6;">
-                                                                <t t-esc="final_behavior"/>
-                                                            </span>
-                                                        </t>
-                                                    </t>
-                                                </t>
-                                            </t>
-                                        </div>
-                                    </div>
+                                    </div>                                    
                                 </div>
+
+
+                                <!-- Прогресс бар посещаемости -->
+                                <div class="attendance-progress mb-2">
+                                    <t t-if="record.total_classes.raw_value &gt; 0">
+                                        <div class="d-flex justify-content-between small">
+                                            <span>Посещаемость:</span>
+                                            <span>
+                                                <t t-esc="record.present_classes.raw_value"/>/<t t-esc="record.total_classes.raw_value"/>
+                                            </span>
+                                        </div>
+                                        <div class="progress" style="height: 10px;">
+                                            <div class="progress-bar" 
+                                                    role="progressbar" 
+                                                    t-attf-style="width: #{Math.round((record.present_classes.raw_value / record.total_classes.raw_value) * 100)}%"
+                                                    t-attf-aria-valuenow="#{Math.round((record.present_classes.raw_value / record.total_classes.raw_value) * 100)}"
+                                                    aria-valuemin="0" 
+                                                    aria-valuemax="100"
+                                                    t-att-class="{
+                                                        'bg-success': (record.present_classes.raw_value / record.total_classes.raw_value) &gt;= 0.8,
+                                                        'bg-warning': (record.present_classes.raw_value / record.total_classes.raw_value) &lt; 0.8 &amp;&amp; (record.present_classes.raw_value / record.total_classes.raw_value) &gt;= 0.6,
+                                                        'bg-danger': (record.present_classes.raw_value / record.total_classes.raw_value) &lt; 0.6
+                                                    }">
+                                            </div>
+                                        </div>
+                                    </t>
+                                </div>
+
+                                <!-- Отображение средней оценки -->
+                                <div class="average-mark mb-2">
+                                    <t t-if="record.average_mark.raw_value">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <strong>Средняя оценка:</strong>
+                                            <span t-esc="Math.round(record.average_mark.raw_value * 100) / 100" 
+                                                    t-att-class="{
+                                                        'badge': true,
+                                                        'fw-bold': true,
+                                                        'bg-success': record.average_mark.raw_value &gt;= 4.5,
+                                                        'bg-warning': record.average_mark.raw_value &lt; 4.5 &amp;&amp; record.average_mark.raw_value &gt;= 3.5,
+                                                        'bg-danger': record.average_mark.raw_value &lt; 3.5
+                                                    }"
+                                                    style="font-size: 16px; padding: 5px 10px;">
+                                            </span>
+                                        </div>
+                                    </t>
+                                </div>
+                                
+                                <!-- Отображение итоговой оценки за четверть -->
+                                <div class="final-quarter-grade mb-2">
+                                    <t t-if="record.final_quarter_grade.raw_value">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <strong>Оценка за год:</strong>
+                                            <t t-set="quarter_grade" t-value="record.final_quarter_grade.raw_value"/>
+                                            <t t-if="quarter_grade == '2'">
+                                                <span class="badge fw-bold" style="background-color: #fff0f6; color: #d6336c; font-size: 20px;">
+                                                    <t t-esc="quarter_grade"/>
+                                                </span>
+                                            </t>
+                                            <t t-elif="quarter_grade == '3'">
+                                                <span class="badge fw-bold" style="background-color: #fff3bf; color: #997404; font-size: 20px;">
+                                                    <t t-esc="quarter_grade"/>
+                                                </span>
+                                            </t>
+                                            <t t-elif="quarter_grade == '4'">
+                                                <span class="badge fw-bold" style="background-color: #ebfbee; color: #37b24d; font-size: 20px;">
+                                                    <t t-esc="quarter_grade"/>
+                                                </span>
+                                            </t>
+                                            <t t-elif="quarter_grade == '5'">
+                                                <span class="badge fw-bold" style="background-color: #e7f5ff; color: #1c7ed6; font-size: 20px;">
+                                                    <t t-esc="quarter_grade"/>
+                                                </span>
+                                            </t>
+                                            <t t-else="">
+                                                <span class="badge fw-bold" style="background-color: #f8f9fa; color: #495057; font-size: 20px;">
+                                                    <t t-esc="quarter_grade"/>
+                                                </span>
+                                            </t>
+                                        </div>
+                                    </t>
+                                </div>
+                               
+
                             </div>
                         </div>
                     </t>
