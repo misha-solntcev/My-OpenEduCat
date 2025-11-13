@@ -39,7 +39,7 @@
 
         <!-- Menu item for the new improved Kanban view -->
         <menuitem id="menu_op_subject_grades_kanban"
-                  name="Оценки по предметам (Kanban)"
+                  name="Текущая успеваемость"
                   parent="menu_op_attendance_reports"
                   sequence="35"
                   action="act_open_op_subject_grades_view"
@@ -72,7 +72,7 @@
                   groups="openeducat_attendance.group_op_attendance_user,openeducat_attendance.group_op_attendance_manager"/>
 
         <menuitem id="menu_op_class_grades_quarterly_report"
-                  name="Class Grades Quarterly Report"
+                  name="Отчет по классу за четверть"
                   parent="menu_op_attendance_reports"
                   sequence="15"
                   action="openeducat_attendance.action_class_grades_quarterly"
