@@ -291,6 +291,7 @@
                 <field name="student_id" string="Ученик"/>
                 <field name="subject_id" string="Предмет"/>
                 <field name="batch_id" string="Класс"/>
+                <field name="faculty_id" string="Преподаватель"/>
                 <field name="average_mark" string="Средняя оценка"/>
                 <field name="total_classes" string="Всего занятий"/>
                 <field name="present_classes" string="Посещено занятий"/>
@@ -316,7 +317,18 @@
                                         <field name="subject_id"/>
                                     </h5>
                                     <div class="d-flex align-items-center mb-1">
-                                        <div style="width: 30px; height: 30px; overflow: hidden; border-radius: 10%; margin-right: 10px;">
+                                        <div style="width: 30px; height: 30px; overflow: hidden; border-radius: 20%; margin-right: 10px;">
+                                            <img t-if="record.faculty_id.raw_value" 
+                                                 t-att-src="'/web/image/op.faculty/' + record.faculty_id.raw_value + '/image_1920'" 
+                                                 style="width: 100%; height: 100%; object-fit: cover;" 
+                                                 alt="Аватар преподавателя"/>
+                                        </div>
+                                        <p class="text-body-secondary small mb-0">
+                                            <field name="faculty_id"/>
+                                        </p>
+                                    </div>
+                                    <div class="d-flex align-items-center mb-1">
+                                        <div style="width: 30px; height: 30px; overflow: hidden; border-radius: 20%; margin-right: 10px;">
                                             <img t-if="record.student_id.raw_value" 
                                                  t-att-src="'/web/image/op.student/' + record.student_id.raw_value + '/image_1920'" 
                                                  style="width: 100%; height: 100%; object-fit: cover;" 
