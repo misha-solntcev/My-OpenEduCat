@@ -282,7 +282,7 @@
         </field>
     </record>
 
-    <!-- Обновленное Kanban-представление для модели op.subject.grades с изменениями из feature-ветки (оценки по четвертям и улучшенная визуализация) -->
+    <!-- Обновленное Kanban-представление для модели op.subject.grades с изменениями из feature-ветки (оценки по четвертям, улучшенная визуализация и обновленные комментарии) -->
     <record id="view_op_subject_grades_kanban" model="ir.ui.view">
         <field name="name">op.subject.grades.kanban</field>
         <field name="model">op.subject.grades</field>
