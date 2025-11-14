@@ -292,6 +292,7 @@
                 <field name="subject_id" string="Предмет"/>
                 <field name="batch_id" string="Класс"/>
                 <field name="faculty_id" string="Преподаватель"/>
+                <field name="student_name_short" string="Ученик (Имя Фамилия)"/>
                 <field name="average_mark" string="Средняя оценка"/>
                 <field name="total_classes" string="Всего занятий"/>
                 <field name="present_classes" string="Посещено занятий"/>
@@ -324,7 +325,7 @@
                                                  alt="Аватар преподавателя"/>
                                         </div>
                                         <p class="text-body-secondary small mb-0">
-                                            <field name="faculty_id"/>
+                                        <field name="faculty_id"/>
                                         </p>
                                     </div>
                                     <div class="d-flex align-items-center mb-1">
@@ -335,7 +336,7 @@
                                                  alt="Аватар студента"/>
                                         </div>
                                         <p class="text-body-secondary small mb-0">
-                                            <field name="student_id"/>
+                                            <field name="student_name_short"/>
                                         </p>
                                     </div>
                                     <p class="mb-1 text-body-secondary small">

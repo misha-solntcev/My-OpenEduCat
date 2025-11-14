@@ -43,7 +43,9 @@ class OpSubjectGrades(models.Model):
     last_attendance_date = fields.Date('Last Attendance Date')
     textbook_image = fields.Binary('Textbook Image', compute='_compute_textbook_image')
     # Добавляем поле для аватара студента
-    student_image = fields.Binary('Student Image', compute='_compute_student_image')
+    student_image = fields.Binary('Student Image', compute='_compute_student_image', attachment=False)
+    # Добавляем вычисляемое поле для отображения имени и фамилии студента
+    student_name_short = fields.Char('Student Name Short', compute='_compute_student_name_short')
     # Новое поле для отображения дат и оценок в виде таблицы
     date_mark_table = fields.Html('Date-Mark Table', compute='_compute_date_mark_table')
     # Поле для ручного ввода итоговой оценки за четверть
@@ -250,6 +252,17 @@ class OpSubjectGrades(models.Model):
                 record.student_image = record.student_id.partner_id.image_1920
             else:
                 record.student_image = False
+
+    @api.depends('student_id')
+    def _compute_student_name_short(self):
+        """Вычисляем имя и фамилию студента без отчества"""
+        for record in self:
+            if record.student_id:
+                first_name = record.student_id.first_name or ""
+                last_name = record.student_id.last_name or ""
+                record.student_name_short = f"{first_name} {last_name}".strip()
+            else:
+                record.student_name_short = ""
 
     @api.depends('table_entries', 'lesson_topics')
     def _compute_date_mark_table(self):
