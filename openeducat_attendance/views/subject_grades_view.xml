@@ -333,34 +333,19 @@
                                                 <div class="small text-muted">1 четв.</div>
                                                 <t t-set="q1_grade" t-value="record.q1_final_grade.raw_value"/>
                                                 <t t-if="q1_grade">
-                                                    <t t-if="q1_grade == '2'">
-                                                        <span class="badge fw-bold" style="background-color: #fff0f6; color: #d6336c; font-size: 14px;">
-                                                            <t t-esc="q1_grade"/>
-                                                        </span>
-                                                    </t>
-                                                    <t t-elif="q1_grade == '3'">
-                                                        <span class="badge fw-bold" style="background-color: #fff3bf; color: #997404; font-size: 14px;">
-                                                            <t t-esc="q1_grade"/>
-                                                        </span>
-                                                    </t>
-                                                    <t t-elif="q1_grade == '4'">
-                                                        <span class="badge fw-bold" style="background-color: #ebfbee; color: #37b24d; font-size: 14px;">
-                                                            <t t-esc="q1_grade"/>
-                                                        </span>
-                                                    </t>
-                                                    <t t-elif="q1_grade == '5'">
-                                                        <span class="badge fw-bold" style="background-color: #e7f5ff; color: #1c7ed6; font-size: 14px;">
-                                                            <t t-esc="q1_grade"/>
-                                                        </span>
-                                                    </t>
-                                                    <t t-else="">
-                                                        <span class="badge fw-bold" style="background-color: #f8f9fa; color: #495057; font-size: 14px;">
-                                                            <t t-esc="q1_grade"/>
-                                                        </span>
-                                                    </t>
+                                                    <span t-esc="q1_grade" 
+                                                          t-att-class="{
+                                                              'badge': true,
+                                                              'fw-bold': true,
+                                                              'bg-success': q1_grade &gt;= 4.5,
+                                                              'bg-warning': q1_grade &lt; 4.5 &amp;&amp; q1_grade &gt;= 3.5,
+                                                              'bg-danger': q1_grade &lt; 3.5
+                                                          }"
+                                                          style="font-size: 14px; padding: 5px 10px;">
+                                                    </span>
                                                 </t>
                                                 <t t-else="">
-                                                    <span class="badge fw-bold" style="background-color: #f8f9fa; color: #adb5bd; font-size: 14px;">
+                                                    <span class="badge fw-bold" style="background-color: #f8f9fa; color: #adb5bd; font-size: 14px; padding: 5px 10px;">
                                                         -
                                                     </span>
                                                 </t>
@@ -369,34 +354,19 @@
                                                 <div class="small text-muted">2 четв.</div>
                                                 <t t-set="q2_grade" t-value="record.q2_final_grade.raw_value"/>
                                                 <t t-if="q2_grade">
-                                                    <t t-if="q2_grade == '2'">
-                                                        <span class="badge fw-bold" style="background-color: #fff0f6; color: #d6336c; font-size: 14px;">
-                                                            <t t-esc="q2_grade"/>
-                                                        </span>
-                                                    </t>
-                                                    <t t-elif="q2_grade == '3'">
-                                                        <span class="badge fw-bold" style="background-color: #fff3bf; color: #997404; font-size: 14px;">
-                                                            <t t-esc="q2_grade"/>
-                                                        </span>
-                                                    </t>
-                                                    <t t-elif="q2_grade == '4'">
-                                                        <span class="badge fw-bold" style="background-color: #ebfbee; color: #37b24d; font-size: 14px;">
-                                                            <t t-esc="q2_grade"/>
-                                                        </span>
-                                                    </t>
-                                                    <t t-elif="q2_grade == '5'">
-                                                        <span class="badge fw-bold" style="background-color: #e7f5ff; color: #1c7ed6; font-size: 14px;">
-                                                            <t t-esc="q2_grade"/>
-                                                        </span>
-                                                    </t>
-                                                    <t t-else="">
-                                                        <span class="badge fw-bold" style="background-color: #f8f9fa; color: #495057; font-size: 14px;">
-                                                            <t t-esc="q2_grade"/>
-                                                        </span>
-                                                    </t>
+                                                    <span t-esc="q2_grade" 
+                                                          t-att-class="{
+                                                              'badge': true,
+                                                              'fw-bold': true,
+                                                              'bg-success': q2_grade &gt;= 4.5,
+                                                              'bg-warning': q2_grade &lt; 4.5 &amp;&amp; q2_grade &gt;= 3.5,
+                                                              'bg-danger': q2_grade &lt; 3.5
+                                                          }"
+                                                          style="font-size: 14px; padding: 5px 10px;">
+                                                    </span>
                                                 </t>
                                                 <t t-else="">
-                                                    <span class="badge fw-bold" style="background-color: #f8f9fa; color: #adb5bd; font-size: 14px;">
+                                                    <span class="badge fw-bold" style="background-color: #f8f9fa; color: #adb5bd; font-size: 14px; padding: 5px 10px;">
                                                         -
                                                     </span>
                                                 </t>
@@ -405,34 +375,19 @@
                                                 <div class="small text-muted">3 четв.</div>
                                                 <t t-set="q3_grade" t-value="record.q3_final_grade.raw_value"/>
                                                 <t t-if="q3_grade">
-                                                    <t t-if="q3_grade == '2'">
-                                                        <span class="badge fw-bold" style="background-color: #fff0f6; color: #d6336c; font-size: 14px;">
-                                                            <t t-esc="q3_grade"/>
-                                                        </span>
-                                                    </t>
-                                                    <t t-elif="q3_grade == '3'">
-                                                        <span class="badge fw-bold" style="background-color: #fff3bf; color: #997404; font-size: 14px;">
-                                                            <t t-esc="q3_grade"/>
-                                                        </span>
-                                                    </t>
-                                                    <t t-elif="q3_grade == '4'">
-                                                        <span class="badge fw-bold" style="background-color: #ebfbee; color: #37b24d; font-size: 14px;">
-                                                            <t t-esc="q3_grade"/>
-                                                        </span>
-                                                    </t>
-                                                    <t t-elif="q3_grade == '5'">
-                                                        <span class="badge fw-bold" style="background-color: #e7f5ff; color: #1c7ed6; font-size: 14px;">
-                                                            <t t-esc="q3_grade"/>
-                                                        </span>
-                                                    </t>
-                                                    <t t-else="">
-                                                        <span class="badge fw-bold" style="background-color: #f8f9fa; color: #495057; font-size: 14px;">
-                                                            <t t-esc="q3_grade"/>
-                                                        </span>
-                                                    </t>
+                                                    <span t-esc="q3_grade" 
+                                                          t-att-class="{
+                                                              'badge': true,
+                                                              'fw-bold': true,
+                                                              'bg-success': q3_grade &gt;= 4.5,
+                                                              'bg-warning': q3_grade &lt; 4.5 &amp;&amp; q3_grade &gt;= 3.5,
+                                                              'bg-danger': q3_grade &lt; 3.5
+                                                          }"
+                                                          style="font-size: 14px; padding: 5px 10px;">
+                                                    </span>
                                                 </t>
                                                 <t t-else="">
-                                                    <span class="badge fw-bold" style="background-color: #f8f9fa; color: #adb5bd; font-size: 14px;">
+                                                    <span class="badge fw-bold" style="background-color: #f8f9fa; color: #adb5bd; font-size: 14px; padding: 5px 10px;">
                                                         -
                                                     </span>
                                                 </t>
@@ -441,34 +396,19 @@
                                                 <div class="small text-muted">4 четв.</div>
                                                 <t t-set="q4_grade" t-value="record.q4_final_grade.raw_value"/>
                                                 <t t-if="q4_grade">
-                                                    <t t-if="q4_grade == '2'">
-                                                        <span class="badge fw-bold" style="background-color: #fff0f6; color: #d6336c; font-size: 14px;">
-                                                            <t t-esc="q4_grade"/>
-                                                        </span>
-                                                    </t>
-                                                    <t t-elif="q4_grade == '3'">
-                                                        <span class="badge fw-bold" style="background-color: #fff3bf; color: #997404; font-size: 14px;">
-                                                            <t t-esc="q4_grade"/>
-                                                        </span>
-                                                    </t>
-                                                    <t t-elif="q4_grade == '4'">
-                                                        <span class="badge fw-bold" style="background-color: #ebfbee; color: #37b24d; font-size: 14px;">
-                                                            <t t-esc="q4_grade"/>
-                                                        </span>
-                                                    </t>
-                                                    <t t-elif="q4_grade == '5'">
-                                                        <span class="badge fw-bold" style="background-color: #e7f5ff; color: #1c7ed6; font-size: 14px;">
-                                                            <t t-esc="q4_grade"/>
-                                                        </span>
-                                                    </t>
-                                                    <t t-else="">
-                                                        <span class="badge fw-bold" style="background-color: #f8f9fa; color: #495057; font-size: 14px;">
-                                                            <t t-esc="q4_grade"/>
-                                                        </span>
-                                                    </t>
+                                                    <span t-esc="q4_grade" 
+                                                          t-att-class="{
+                                                              'badge': true,
+                                                              'fw-bold': true,
+                                                              'bg-success': q4_grade &gt;= 4.5,
+                                                              'bg-warning': q4_grade &lt; 4.5 &amp;&amp; q4_grade &gt;= 3.5,
+                                                              'bg-danger': q4_grade &lt; 3.5
+                                                          }"
+                                                          style="font-size: 14px; padding: 5px 10px;">
+                                                    </span>
                                                 </t>
                                                 <t t-else="">
-                                                    <span class="badge fw-bold" style="background-color: #f8f9fa; color: #adb5bd; font-size: 14px;">
+                                                    <span class="badge fw-bold" style="background-color: #f8f9fa; color: #adb5bd; font-size: 14px; padding: 5px 10px;">
                                                         -
                                                     </span>
                                                 </t>
@@ -528,37 +468,21 @@
                                     <t t-if="record.final_quarter_grade.raw_value">
                                         <div class="d-flex justify-content-between align-items-center">
                                             <strong>Оценка за год:</strong>
-                                            <t t-set="quarter_grade" t-value="record.final_quarter_grade.raw_value"/>
-                                            <t t-if="quarter_grade == '2'">
-                                                <span class="badge fw-bold" style="background-color: #fff0f6; color: #d6336c; font-size: 20px;">
-                                                    <t t-esc="quarter_grade"/>
-                                                </span>
-                                            </t>
-                                            <t t-elif="quarter_grade == '3'">
-                                                <span class="badge fw-bold" style="background-color: #fff3bf; color: #997404; font-size: 20px;">
-                                                    <t t-esc="quarter_grade"/>
-                                                </span>
-                                            </t>
-                                            <t t-elif="quarter_grade == '4'">
-                                                <span class="badge fw-bold" style="background-color: #ebfbee; color: #37b24d; font-size: 20px;">
-                                                    <t t-esc="quarter_grade"/>
-                                                </span>
-                                            </t>
-                                            <t t-elif="quarter_grade == '5'">
-                                                <span class="badge fw-bold" style="background-color: #e7f5ff; color: #1c7ed6; font-size: 20px;">
-                                                    <t t-esc="quarter_grade"/>
-                                                </span>
-                                            </t>
-                                            <t t-else="">
-                                                <span class="badge fw-bold" style="background-color: #f8f9fa; color: #495057; font-size: 20px;">
-                                                    <t t-esc="quarter_grade"/>
-                                                </span>
-                                            </t>
+                                            <span t-esc="record.final_quarter_grade.raw_value" 
+                                                    t-att-class="{
+                                                        'badge': true,
+                                                        'fw-bold': true,
+                                                        'bg-success': record.final_quarter_grade.raw_value &gt;= 4.5,
+                                                        'bg-warning': record.final_quarter_grade.raw_value &lt; 4.5 &amp;&amp; record.final_quarter_grade.raw_value &gt;= 3.5,
+                                                        'bg-danger': record.final_quarter_grade.raw_value &lt; 3.5
+                                                    }"
+                                                    style="font-size: 16px; padding: 5px 10px;">
+                                            </span>
                                         </div>
                                     </t>
                                 </div>
+                                
                                
-
                             </div>
                         </div>
                     </t>
