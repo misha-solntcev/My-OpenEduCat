@@ -9,9 +9,8 @@
         <menuitem id="menu_op_attendance"
                   name="Attendance"
                   parent="menu_op_attendance_root"
-                  sequence="10">
-                  <action id="act_open_op_subject_grades_view" name="Текущая успеваемость" type="ir.actions.act_window"/>
-</menuitem>
+                  sequence="10"
+                  action="act_open_op_subject_grades_view"/>
 
         <menuitem id="menu_op_attendance_register_sub"
                   name="Registers"
