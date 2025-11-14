@@ -315,9 +315,17 @@
                                     <h5 class="mb-1 fw-bold text">
                                         <field name="subject_id"/>
                                     </h5>
-                                    <p class="mb-1 text-body-secondary small">
-                                        <strong>Ученик:</strong> <field name="student_id"/>
-                                    </p>
+                                    <div class="d-flex align-items-center mb-1">
+                                        <div style="width: 30px; height: 30px; overflow: hidden; border-radius: 10%; margin-right: 10px;">
+                                            <img t-if="record.student_id.raw_value" 
+                                                 t-att-src="'/web/image/op.student/' + record.student_id.raw_value + '/image_1920'" 
+                                                 style="width: 100%; height: 100%; object-fit: cover;" 
+                                                 alt="Аватар студента"/>
+                                        </div>
+                                        <p class="text-body-secondary small mb-0">
+                                            <field name="student_id"/>
+                                        </p>
+                                    </div>
                                     <p class="mb-1 text-body-secondary small">
                                         <strong>Класс:</strong> <field name="batch_id"/>
                                     </p>                                    
