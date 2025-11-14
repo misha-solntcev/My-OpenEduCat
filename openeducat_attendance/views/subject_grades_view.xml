@@ -283,7 +283,7 @@
         </field>
     </record>
 
-    <!-- Определение Kanban-представления для модели op.subject.grades -->
+    <!-- Обновленное Kanban-представление для модели op.subject.grades с изменениями из feature-ветки -->
     <record id="view_op_subject_grades_kanban" model="ir.ui.view">
         <field name="name">op.subject.grades.kanban</field>
         <field name="model">op.subject.grades</field>
@@ -296,7 +296,6 @@
                 <field name="total_classes" string="Всего занятий"/>
                 <field name="present_classes" string="Посещено занятий"/>
                 <field name="last_attendance_date" string="Дата последнего посещения"/>
-                <field name="attendance_dates"/>
                 <field name="table_entries"/>
                 <field name="textbook_image"/>
                 <field name="final_quarter_grade"/>
