@@ -42,8 +42,6 @@ class OpSubjectGrades(models.Model):
     present_classes = fields.Integer('Present Classes')
     last_attendance_date = fields.Date('Last Attendance Date')
     textbook_image = fields.Binary('Textbook Image', compute='_compute_textbook_image')
-    # Добавляем поле для аватара студента
-    student_image = fields.Binary('Student Image', compute='_compute_student_image', attachment=False)
     # Добавляем вычисляемое поле для отображения имени и фамилии студента
     student_name_short = fields.Char('Student Name Short', compute='_compute_student_name_short')
     # Новое поле для отображения дат и оценок в виде таблицы
@@ -243,15 +241,6 @@ class OpSubjectGrades(models.Model):
             else:
                 # Если учебник не найден, используем стандартное изображение
                 record.textbook_image = False
-
-    @api.depends('student_id')
-    def _compute_student_image(self):
-        """Вычисляем аватар студента"""
-        for record in self:
-            if record.student_id and record.student_id.partner_id:
-                record.student_image = record.student_id.partner_id.image_1920
-            else:
-                record.student_image = False
 
     @api.depends('student_id')
     def _compute_student_name_short(self):
