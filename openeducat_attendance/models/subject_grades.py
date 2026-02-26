@@ -21,6 +21,7 @@
 import logging
 from odoo import models, fields, api, _
 from datetime import datetime
+from datetime import date
 
 _logger = logging.getLogger(__name__)
 
@@ -452,26 +453,68 @@ class OpSubjectGrades(models.Model):
         Returns:
             tuple: (start_date, end_date) в формате datetime
         """
-        year = datetime.now().year
+        # year = datetime.now().year
+
+        today = date.today()
+
+        academic_year = self.env['op.academic.year'].search([
+        ('start_date', '<=', today),
+        ('end_date', '>=', today)
+        ], limit=1)
+
+        
+        start_academic_year = academic_year.start_date.year
+        end_academic_year = academic_year.end_date.year
         
         if quarter == 1:
-            start_date = datetime(year, 9, 1)
-            end_date = datetime(year, 10, 31)
+            # 1 сентября текущего академического года - 31 октября текущего академического года
+            start_date = datetime(start_academic_year, 9, 1)
+            end_date = datetime(start_academic_year, 10, 31)
         elif quarter == 2:
-            start_date = datetime(year, 11, 1)
-            end_date = datetime(year, 12, 25)
+            # 1 ноября текущего академического года - 25 декабря текущего академического года
+            start_date = datetime(start_academic_year, 11, 1)
+            end_date = datetime(start_academic_year, 12, 25)
         elif quarter == 3:
-            start_date = datetime(year, 1, 11)
-            end_date = datetime(year, 3, 28)
+            # 11 января следующего календарного года - 28 марта следующего календарного года
+            start_date = datetime(end_academic_year, 1, 11)
+            end_date = datetime(end_academic_year, 3, 28)
         elif quarter == 4:
-            start_date = datetime(year, 4, 1)
-            end_date = datetime(year, 5, 31)
+            # 1 апреля следующего календарного года - 31 мая следующего календарного года
+            start_date = datetime(end_academic_year, 4, 1)
+            end_date = datetime(end_academic_year, 5, 31)
         else:
-            # По умолчанию возвращаем весь год
-            start_date = datetime(year, 1, 1)
-            end_date = datetime(year, 12, 31)
+            # По умолчанию возвращаем весь академический год
+            start_date = datetime(start_academic_year, 9, 1)
+            end_date = datetime(end_academic_year, 5, 31)
             
         return start_date, end_date
+
+
+
+        # year = self.env['op.academic.year'].search([
+        # ('start_date', '<=', today),
+        # ('end_date', '>=', today)
+        # ], limit=1)
+
+        
+        # if quarter == 1:
+        #     start_date = datetime(year, 9, 1)
+        #     end_date = datetime(year, 10, 31)
+        # elif quarter == 2:
+        #     start_date = datetime(year, 11, 1)
+        #     end_date = datetime(year, 12, 25)
+        # elif quarter == 3:
+        #     start_date = datetime(year, 1, 11)
+        #     end_date = datetime(year, 3, 28)
+        # elif quarter == 4:
+        #     start_date = datetime(year, 4, 1)
+        #     end_date = datetime(year, 5, 31)
+        # else:
+        #     # По умолчанию возвращаем весь год
+        #     start_date = datetime(year, 1, 1)
+        #     end_date = datetime(year, 12, 31)
+            
+        # return start_date, end_date
     
     def _filter_entries_by_quarter(self, entries, quarter):
         """
