@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <templates xml:space="preserve">
-    <t t-inherit="html_editor.VideoSelector" t-inherit-mode="extension">
-        <!-- Находим контейнер с подсказкой внутри формы -->
+    <t t-inherit="html_editor.VideoSelector" t-inherit-mode="extension">        
         <xpath expr="//div[contains(@class, 'o_video_dialog_form')]//div[contains(@class, 'text-start')]" position="replace">
             <div class="text-start">
                 <small class="text-muted">
