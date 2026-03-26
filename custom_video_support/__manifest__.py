@@ -2,7 +2,7 @@
     'name': 'Custom Video Support (VK, Rutube)',
     'version': '18.0.1.0',
     'license': 'LGPL-3',
-    'author': 'Michail Solntcev',
+    'author': 'Demyanenko Matvey, Michail Solntcev',
     'depends': ['html_editor', 'web_editor'],
     'data': [],
     'assets': {
