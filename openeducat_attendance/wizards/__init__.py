@@ -23,4 +23,3 @@ from . import student_grades_by_subject_wizard
 from . import class_grades_summary_wizard
 from . import class_grades_quarterly_wizard
 from . import student_grades_by_date_wizard
-from . import update_subject_grades

@@ -16,6 +16,8 @@ class OpAcademicTerm(models.Model):
     _description = "Academic Term"
 
     name = fields.Char('Name', required=True)
+    _order = "sequence, id"
+    sequence = fields.Integer('Последовательность', default=10)
     term_start_date = fields.Date('Start Date', required=True)
     term_end_date = fields.Date('End Date', required=True)
     academic_year_id = fields.Many2one(

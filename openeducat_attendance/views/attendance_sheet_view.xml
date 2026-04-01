@@ -62,6 +62,9 @@
                                 <list string="Attendance Line" editable="top">
                                     <field name="student_id"
                                            domain="[('course_detail_ids.course_id','=',parent.course_id),('course_detail_ids.batch_id','=',parent.batch_id)]"/>
+                                    <field name="grade_1" sum="Avg Grade 1"/>
+                                    <field name="grade_2" sum="Avg Grade 2"/>
+                                    <field name="grade_3" sum="Avg Grade 3"/>
                                     <field name="present"/>
                                     <field name="late"/>
                                     <field name="excused"/>
@@ -76,7 +79,34 @@
             </field>
         </record>
 
-        <record id="view_op_attendance_sheet_search" model="ir.ui.view">
+        <record id="view_op_attendance_sheet_search_inherit" model="ir.ui.view">
+            <field name="name">op.attendance.sheet.search</field>
+            <field name="model">op.attendance.sheet</field>
+            <field name="arch" type="xml">
+                <search>
+                    <field name="batch_id"/>
+                    <field name="subject_id"/>
+                    <field name="faculty_id"/>
+                    <field name="attendance_date"/>
+                    
+                    <filter string="Мои уроки" name="my_lessons" domain="[('faculty_id.user_id', '=', uid)]"/>
+                    <separator/>
+                    <filter string="Сегодня" name="today" domain="[('attendance_date', '=', context_today().strftime('%Y-%m-%d'))]"/>
+                    <filter string="Текущая неделя" name="this_week" 
+                            domain="[('attendance_date', '&gt;=', (context_today() - datetime.timedelta(days=context_today().weekday())).strftime('%Y-%m-%d'))]"/>
+
+                    <group expand="0" string="Группировать по...">
+                        <filter string="Класс" name="group_batch" context="{'group_by': 'batch_id'}"/>
+                        <filter string="Предмет" name="group_subject" context="{'group_by': 'subject_id'}"/>
+                        <filter string="Преподаватель" name="group_faculty" context="{'group_by': 'faculty_id'}"/>
+                        <filter string="Дата" name="group_date" context="{'group_by': 'attendance_date:day'}"/>
+                    </group>
+                </search>
+            </field>
+</record>
+
+
+        <!-- <record id="view_op_attendance_sheet_search" model="ir.ui.view">
             <field name="name">op.attendance.sheet.search</field>
             <field name="model">op.attendance.sheet</field>
             <field name="priority" eval="8"/>
@@ -103,9 +133,9 @@
                     </group>
                 </search>
             </field>
-        </record>
+        </record> -->
 
-        <record id="view_op_attendance_sheet_pivot" model="ir.ui.view">
+        <!-- <record id="view_op_attendance_sheet_pivot" model="ir.ui.view">
             <field name="name">op.attendance.sheet.pivot</field>
             <field name="model">op.attendance.sheet</field>
             <field name="priority" eval="8"/>
@@ -113,6 +143,26 @@
                 <pivot string="Attendance Sheet">
                     <field name="name" type="row"/>
                     <field name="register_id" type="col"/>
+                </pivot>
+            </field>
+        </record> -->
+
+        <record id="view_op_attendance_sheet_pivot" model="ir.ui.view">
+            <field name="name">op.attendance.sheet.pivot</field>
+            <field name="model">op.attendance.sheet</field>
+            <field name="arch" type="xml">
+                <pivot string="Аналитика ведомостей" display_quantity="1">
+                    <!-- Строки: Класс -> Предмет -> Преподаватель -->
+                    <field name="batch_id" type="row"/>
+                    <field name="subject_id" type="row"/>
+                    <field name="faculty_id" type="row"/>
+
+                    <!-- Колонки: Дата (по месяцам или неделям) -->
+                    <field name="attendance_date" interval="month" type="col"/>
+
+                    <!-- Меры: Количество ведомостей и статистика посещений -->
+                    <!-- Примечание: названия полей total_present/total_absent могут отличаться в вашей версии, 
+                        проверьте их в модели op.attendance.sheet -->
                 </pivot>
             </field>
         </record>

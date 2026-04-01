@@ -53,6 +53,27 @@ class OpAttendanceSheet(models.Model):
         help="Тема урока, которая будет отображаться в оценках по предметам"
     )
 
+    # models/attendance_sheet.py
+    subject_id = fields.Many2one('op.subject', string='Предмет', compute='_compute_subject_id', store=True)
+    term_id = fields.Many2one('op.academic.term', string='Четверть', compute='_compute_term', store=True)
+
+    @api.depends('session_id.subject_id', 'register_id.subject_id')
+    def _compute_subject_id(self):
+        for rec in self:
+            # Строгая логика: приоритет уроку, если нет - регистру
+            rec.subject_id = rec.session_id.subject_id or rec.register_id.subject_id
+
+    @api.depends('attendance_date')
+    def _compute_term(self):
+        for record in self:
+            if record.attendance_date:
+                term = self.env['op.academic.term'].search([
+                    ('term_start_date', '<=', record.attendance_date),
+                    ('term_end_date', '>=', record.attendance_date),
+                    ('parent_term', '!=', False)
+                ], limit=1)
+                record.term_id = term
+
     state = fields.Selection(
         [('draft', 'Draft'), ('start', 'Attendance Start'),
          ('done', 'Attendance Taken'), ('cancel', 'Cancelled')],

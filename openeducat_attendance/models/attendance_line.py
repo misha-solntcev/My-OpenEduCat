@@ -28,41 +28,62 @@ class OpAttendanceLine(models.Model):
     _description = "Attendance Lines"
     _order = "attendance_date desc"
 
+    # --- СВЯЗИ ---
     attendance_id = fields.Many2one(
         'op.attendance.sheet', 'Attendance Sheet', required=True,
         tracking=True, ondelete="cascade")
     student_id = fields.Many2one(
         'op.student', 'Student', required=True, tracking=True)
-    present = fields.Boolean(
-        'Present', tracking=True, default=True)
-    excused = fields.Boolean(
-        'Absent Excused', tracking=True)
-    absent = fields.Boolean('Absent Unexcused', tracking=True)
-    late = fields.Boolean('Late', tracking=True)
-    course_id = fields.Many2one(
-        'op.course', 'Course',
-        related='attendance_id.register_id.course_id', store=True,
-        readonly=True)
-    batch_id = fields.Many2one(
-        'op.batch', 'Batch',
-        related='attendance_id.register_id.batch_id', store=True,
-        readonly=True)
-    remark = fields.Char('Remark', size=256, tracking=True)
+    register_id = fields.Many2one(
+        related='attendance_id.register_id', store=True, readonly=True)
+    
+    # --- ДАННЫЕ ВЕДОМОСТИ (Берем из родительской записи op.attendance.sheet) ---
     attendance_date = fields.Date(
         'Date', related='attendance_id.attendance_date', store=True,
         readonly=True, tracking=True)
-    register_id = fields.Many2one(
-        related='attendance_id.register_id', store=True)
-    active = fields.Boolean(default=True)
-    attendance_type_id = fields.Many2one(
-        'op.attendance.type', 'Attendance Type',
-        required=False, tracking=True)
-    # Добавляем поле темы урока, связанное с ведомостью посещаемости
+    
+    # ПРЕДМЕТ: Теперь берется строго из ведомости (которая берет его из урока или регистра)
+    subject_id = fields.Many2one(
+        'op.subject', string='Предмет', 
+        related='attendance_id.subject_id', store=True, readonly=True)
+
+    # ПЕРИОДЫ: Теперь берутся строго из ведомости
+    term_id = fields.Many2one(
+        'op.academic.term', string='Четверть', 
+        related='attendance_id.term_id', store=True, readonly=True)
+    
+    academic_year_id = fields.Many2one(
+        'op.academic.year', string='Учебный год', 
+        related='term_id.academic_year_id', store=True, readonly=True)
+
+    parent_term_id = fields.Many2one(
+        'op.academic.term', string='Полугодие', 
+        related='term_id.parent_term', store=True, readonly=True)
+
+    course_id = fields.Many2one(
+        'op.course', 'Course',
+        related='attendance_id.register_id.course_id', store=True, readonly=True)
+    
+    batch_id = fields.Many2one(
+        'op.batch', 'Batch',
+        related='attendance_id.register_id.batch_id', store=True, readonly=True)
+
     lesson_topic = fields.Char(
-        'Lesson Topic', 
-        related='attendance_id.lesson_topic', 
-        store=True,
-        readonly=True)
+        'Lesson Topic', related='attendance_id.lesson_topic', store=True, readonly=False)
+
+    # --- ОЦЕНКИ ---
+    grade_1 = fields.Float('Оценка 1', aggregator="avg")
+    grade_2 = fields.Float('Оценка 2', aggregator="avg")
+    grade_3 = fields.Float('Оценка 3', aggregator="avg")
+
+    # --- СТАТУС ПРИСУТСТВИЯ ---
+    present = fields.Boolean('Present', tracking=True, default=True)
+    excused = fields.Boolean('Absent Excused', tracking=True)
+    absent = fields.Boolean('Absent Unexcused', tracking=True)
+    late = fields.Boolean('Late', tracking=True)
+    remark = fields.Char('Remark', size=256, tracking=True)
+    active = fields.Boolean(default=True)
+    attendance_type_id = fields.Many2one('op.attendance.type', 'Attendance Type')
 
     _sql_constraints = [
         ('unique_student',
@@ -70,6 +91,7 @@ class OpAttendanceLine(models.Model):
          'Student must be unique per Attendance.'),
     ]
 
+    # --- ЛОГИКА ИНТЕРФЕЙСА ---
     @api.onchange('attendance_type_id')
     def onchange_attendance_type(self):
         if self.attendance_type_id:
@@ -81,27 +103,19 @@ class OpAttendanceLine(models.Model):
     @api.onchange('present')
     def onchange_present(self):
         if self.present:
-            self.late = False
-            self.excused = False
-            self.absent = False
+            self.late = self.excused = self.absent = False
 
     @api.onchange('absent')
     def onchange_absent(self):
         if self.absent:
-            self.present = False
-            self.late = False
-            self.excused = False
+            self.present = self.late = self.excused = False
 
     @api.onchange('excused')
     def onchange_excused(self):
         if self.excused:
-            self.present = False
-            self.late = False
-            self.absent = False
+            self.present = self.late = self.absent = False
 
     @api.onchange('late')
     def onchange_late(self):
         if self.late:
-            self.present = False
-            self.excused = False
-            self.absent = False
+            self.present = self.excused = self.absent = False

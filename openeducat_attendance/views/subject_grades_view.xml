@@ -1,507 +1,100 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <odoo>
-    <!-- Определение дерева и формы для модели op.subject.grades -->
+    <!-- СПИСОК -->
     <record id="view_op_subject_grades_tree" model="ir.ui.view">
         <field name="name">op.subject.grades.tree</field>
         <field name="model">op.subject.grades</field>
-        <field name="priority" eval="8"/>
         <field name="arch" type="xml">
-            <list string="Оценки по предметам">
+            <list string="Оценки">
                 <header>
-                    <button name="%(openeducat_attendance.action_op_update_subject_grades)d" type="action" string="Обновить оценки по предметам" class="btn btn-primary" groups="openeducat_attendance.group_op_attendance_manager"/>
+                    <button name="action_migrate_old_data" type="object" string="Мигрировать данные" class="btn-primary"/>
                 </header>
-                <field name="student_id" string="Ученик"/>
-                <field name="subject_id" string="Предмет"/>
-                <field name="batch_id" string="Класс"/>
-                <field name="average_mark" string="Средняя оценка"/>
-                <field name="total_classes" string="Всего занятий"/>
-                <field name="present_classes" string="Посещено занятий"/>
-                <field name="last_attendance_date" string="Дата последнего посещения"/>
-                <field name="behaviors"/>
+                <field name="student_id"/>
+                <field name="subject_id"/>
+                <field name="batch_id"/>
+                <field name="average_mark" string="Средний балл" avg="1"/>
             </list>
         </field>
     </record>
 
-    <record id="view_op_subject_grades_form" model="ir.ui.view">
-        <field name="name">op.subject.grades.form</field>
-        <field name="model">op.subject.grades</field>
-        <field name="priority" eval="8"/>
-        <field name="arch" type="xml">
-            <form string="Оценки по предметам">
-                <header>
-                    <button name="%(openeducat_attendance.action_op_update_subject_grades)d" type="action" string="Обновить оценки по предметам" class="btn btn-primary" groups="openeducat_attendance.group_op_attendance_manager"/>
-                </header>
-                <sheet>
-                    <field name="textbook_image" widget="image" style="float: right; margin-left: 20px; width: 150px; height: 150px; object-fit: contain;"/>
-                    <field name="q1_total_classes" invisible="1"/>
-                    <field name="q1_present_classes" invisible="1"/>
-                    <field name="q1_last_attendance_date" invisible="1"/>
-                    <field name="q1_average_mark" invisible="1"/>
-                    <field name="q1_final_grade" invisible="1"/>
-                    <field name="q2_total_classes" invisible="1"/>
-                    <field name="q2_present_classes" invisible="1"/>
-                    <field name="q2_last_attendance_date" invisible="1"/>
-                    <field name="q2_average_mark" invisible="1"/>
-                    <field name="q2_final_grade" invisible="1"/>
-                    <field name="q3_total_classes" invisible="1"/>
-                    <field name="q3_present_classes" invisible="1"/>
-                    <field name="q3_last_attendance_date" invisible="1"/>
-                    <field name="q3_average_mark" invisible="1"/>
-                    <field name="q3_final_grade" invisible="1"/>
-                    <field name="q4_total_classes" invisible="1"/>
-                    <field name="q4_present_classes" invisible="1"/>
-                    <field name="q4_last_attendance_date" invisible="1"/>
-                    <field name="q4_average_mark" invisible="1"/>
-                    <field name="q4_final_grade" invisible="1"/>
-                    <div style="display: flex; justify-content: space-between;">
-                        <div>
-                            <h2>
-                                <field name="student_id" string="Ученик" readonly="1"/>
-                            </h2>
-                            <h2>
-                                <field name="subject_id" string="Предмет" readonly="1"/>
-                            </h2>
-                            <h3>
-                                <field name="faculty_id" string="Преподаватель" readonly="1"/>
-                            </h3>
-                            <h3>
-                                <field name="batch_id" string="Класс" readonly="1"/>
-                            </h3>
-                        </div>
-                        <div style="text-align: right; margin-right: 170px;">
-                            <div class="quarter-info-total-classes">
-                                <strong>Всего занятий:</strong>
-                                <span style="margin-left: 8px;">
-                                    <field name="total_classes" readonly="1"/>
-                                </span>
-                            </div>
-                            <div class="quarter-info-present-classes">
-                                <strong>Посещено занятий:</strong>
-                                <span style="margin-left: 8px;">
-                                    <field name="present_classes" readonly="1"/>
-                                </span>
-                            </div>
-                            <div class="quarter-info-last-attendance-date">
-                                <strong>Дата последнего посещения:</strong>
-                                <span style="margin-left: 8px;">
-                                    <field name="last_attendance_date" readonly="1"/>
-                                </span>
-                            </div>
-                            <div class="quarter-info-average-mark">
-                                <strong>Средняя оценка:</strong>
-                                <span style="margin-left: 8px;">
-                                    <field name="average_mark" readonly="1"/>
-                                </span>
-                            </div>
-                            <div>
-                                <strong>Итоговая оценка:</strong>
-                                <span style="margin-left: 8px;">
-                                    <field name="final_quarter_grade" style="width: 50px;"/>
-                                </span>
-                            </div>
-                        </div>
-                    </div>
-                    <notebook>
-                        <page string="1 четверть">
-                            <group>
-                                <group>
-                                    <div>
-                                        <strong>Всего занятий:</strong>
-                                        <span style="margin-left: 8px;">
-                                            <field name="q1_total_classes" readonly="1" class="oe_inline"/>
-                                        </span>
-                                    </div>
-                                    <div>
-                                        <strong>Посещено занятий:</strong>
-                                        <span style="margin-left: 8px;">
-                                            <field name="q1_present_classes" readonly="1" class="oe_inline"/>
-                                        </span>
-                                    </div>
-                                    <div>
-                                        <strong>Дата последнего посещения:</strong>
-                                        <span style="margin-left: 8px;">
-                                            <field name="q1_last_attendance_date" readonly="1" class="oe_inline"/>
-                                        </span>
-                                    </div>
-                                    <div>
-                                        <strong>Средняя оценка:</strong>
-                                        <span style="margin-left: 8px;">
-                                            <field name="q1_average_mark" readonly="1" class="oe_inline"/>
-                                        </span>
-                                    </div>
-                                    <div>
-                                        <strong>Итоговая оценка за 1 четверть:</strong>
-                                        <span style="margin-left: 8px;">
-                                            <field name="q1_final_grade" style="width: 50px;" class="oe_inline"/>
-                                        </span>
-                                    </div>
-                                </group>
-                            </group>
-                            <field name="date_mark_table_q1" widget="html"/>
-                        </page>
-                        <page string="2 четверть">
-                            <group>
-                                <group>
-                                    <div>
-                                        <strong>Всего занятий:</strong>
-                                        <span style="margin-left: 8px;">
-                                            <field name="q2_total_classes" readonly="1" class="oe_inline"/>
-                                        </span>
-                                    </div>
-                                    <div>
-                                        <strong>Посещено занятий:</strong>
-                                        <span style="margin-left: 8px;">
-                                            <field name="q2_present_classes" readonly="1" class="oe_inline"/>
-                                        </span>
-                                    </div>
-                                    <div>
-                                        <strong>Дата последнего посещения:</strong>
-                                        <span style="margin-left: 8px;">
-                                            <field name="q2_last_attendance_date" readonly="1" class="oe_inline"/>
-                                        </span>
-                                    </div>
-                                    <div>
-                                        <strong>Средняя оценка:</strong>
-                                        <span style="margin-left: 8px;">
-                                            <field name="q2_average_mark" readonly="1" class="oe_inline"/>
-                                        </span>
-                                    </div>
-                                    <div>
-                                        <strong>Итоговая оценка за 2 четверть:</strong>
-                                        <span style="margin-left: 8px;">
-                                            <field name="q2_final_grade" style="width: 50px;" class="oe_inline"/>
-                                        </span>
-                                    </div>
-                                </group>
-                            </group>
-                            <field name="date_mark_table_q2" widget="html"/>
-                        </page>
-                        <page string="3 четверть">
-                            <group>
-                                <group>
-                                    <div>
-                                        <strong>Всего занятий:</strong>
-                                        <span style="margin-left: 8px;">
-                                            <field name="q3_total_classes" readonly="1" class="oe_inline"/>
-                                        </span>
-                                    </div>
-                                    <div>
-                                        <strong>Посещено занятий:</strong>
-                                        <span style="margin-left: 8px;">
-                                            <field name="q3_present_classes" readonly="1" class="oe_inline"/>
-                                        </span>
-                                    </div>
-                                    <div>
-                                        <strong>Дата последнего посещения:</strong>
-                                        <span style="margin-left: 8px;">
-                                            <field name="q3_last_attendance_date" readonly="1" class="oe_inline"/>
-                                        </span>
-                                    </div>
-                                    <div>
-                                        <strong>Средняя оценка:</strong>
-                                        <span style="margin-left: 8px;">
-                                            <field name="q3_average_mark" readonly="1" class="oe_inline"/>
-                                        </span>
-                                    </div>
-                                    <div>
-                                        <strong>Итоговая оценка за 3 четверть:</strong>
-                                        <span style="margin-left: 8px;">
-                                            <field name="q3_final_grade" style="width: 50px;" class="oe_inline"/>
-                                        </span>
-                                    </div>
-                                </group>
-                            </group>
-                            <field name="date_mark_table_q3" widget="html"/>
-                        </page>
-                        <page string="4 четверть">
-                            <group>
-                                <group>
-                                    <div>
-                                        <strong>Всего занятий:</strong>
-                                        <span style="margin-left: 8px;">
-                                            <field name="q4_total_classes" readonly="1" class="oe_inline"/>
-                                        </span>
-                                    </div>
-                                    <div>
-                                        <strong>Посещено занятий:</strong>
-                                        <span style="margin-left: 8px;">
-                                            <field name="q4_present_classes" readonly="1" class="oe_inline"/>
-                                        </span>
-                                    </div>
-                                    <div>
-                                        <strong>Дата последнего посещения:</strong>
-                                        <span style="margin-left: 8px;">
-                                            <field name="q4_last_attendance_date" readonly="1" class="oe_inline"/>
-                                        </span>
-                                    </div>
-                                    <div>
-                                        <strong>Средняя оценка:</strong>
-                                        <span style="margin-left: 8px;">
-                                            <field name="q4_average_mark" readonly="1" class="oe_inline"/>
-                                        </span>
-                                    </div>
-                                    <div>
-                                        <strong>Итоговая оценка за 4 четверть:</strong>
-                                        <span style="margin-left: 8px;">
-                                            <field name="q4_final_grade" style="width: 50px;" class="oe_inline"/>
-                                        </span>
-                                    </div>
-                                </group>
-                            </group>
-                            <field name="date_mark_table_q4" widget="html"/>
-                        </page>
-                    </notebook>
-                </sheet>
-            </form>
-        </field>
-    </record>
-
-    <!-- Определение поиска для модели op.subject.grades -->
-    <record id="view_op_subject_grades_search" model="ir.ui.view">
-        <field name="name">op.subject.grades.search</field>
-        <field name="model">op.subject.grades</field>
-        <field name="priority" eval="8"/>
-        <field name="arch" type="xml">
-            <search string="Оценки по предметам">
-                <field name="student_id" string="Ученик"/>
-                <field name="subject_id" string="Предмет"/>
-                <field name="batch_id" string="Класс"/>
-                <field name="average_mark" string="Средняя оценка"/>
-                <field name="attendance_dates"/>
-                <field name="final_quarter_grade" string="Итоговая оценка"/>
-                <newline/>
-                <group expand="0" string="Группировать по...">
-                    <filter string="Ученик" name="group_by_student"
-                            domain="[]" context="{'group_by':'student_id'}"/>
-                    <filter string="Предмет" name="group_by_subject"
-                            domain="[]" context="{'group_by':'subject_id'}"/>
-                    <filter string="Класс" name="group_by_batch"
-                            domain="[]" context="{'group_by':'batch_id'}"/>
-                </group>
-            </search>
-        </field>
-    </record>
-
-    <!-- Обновленное Kanban-представление для модели op.subject.grades с изменениями из feature-ветки (оценки по четвертям, улучшенная визуализация и обновленные комментарии) -->
+    <!-- КАНБАН (БЕЗ ЦИКЛОВ И ФУНКЦИЙ PYTHON) -->
     <record id="view_op_subject_grades_kanban" model="ir.ui.view">
         <field name="name">op.subject.grades.kanban</field>
         <field name="model">op.subject.grades</field>
         <field name="arch" type="xml">
-            <kanban create="false" group_by="batch_id" sample="1" default_order="student_id, subject_id" class="o_kanban_mobile">
-                <field name="student_id" string="Ученик"/>
-                <field name="subject_id" string="Предмет"/>
-                <field name="batch_id" string="Класс"/>
-                <field name="faculty_id" string="Преподаватель"/>
-                <field name="student_name_short" string="Ученик (Имя Фамилия)"/>
-                <field name="average_mark" string="Средняя оценка"/>
-                <field name="total_classes" string="Всего занятий"/>
-                <field name="present_classes" string="Посещено занятий"/>
-                <field name="last_attendance_date" string="Дата последнего посещения"/>
-                <field name="table_entries"/>
+            <kanban create="false" group_by="batch_id" class="o_kanban_mobile" default_order="student_id, subject_id">
+                <field name="student_id"/>
+                <field name="subject_id"/>
+                <field name="faculty_id"/>
+                <field name="average_mark"/>
+                <field name="total_classes"/>
+                <field name="present_classes"/>
                 <field name="textbook_image"/>
-                <field name="final_quarter_grade"/>
-                <field name="q1_final_grade"/>
-                <field name="q2_final_grade"/>
-                <field name="q3_final_grade"/>
-                <field name="q4_final_grade"/>
+                <field name="q1_average_mark"/>
+                <field name="q2_average_mark"/>
+                <field name="q3_average_mark"/>
+                <field name="q4_average_mark"/>
                 <templates>
-                    <t t-name="card" class="flex-row">
+                    <t t-name="card">
                         <div class="row g-0">
-                            <div class="col-4 d-flex align-items-start justify-content-center">
-                                <div style="width: 150px; height: 150px; display: flex; align-items: flex-start; justify-content: center;" class="me-2">
-                                    <field name="textbook_image" widget="image" class="w-100 h-100" options="{'img_class': 'object-fit-contain'}"/>
+                            <div class="col-4 d-flex align-items-start justify-content-center p-2">
+                                <div style="width: 100px; height: 120px;">
+                                    <field name="textbook_image" widget="image" class="w-100 h-100 object-fit-contain" alt="Книга"/>
                                 </div>
                             </div>
-                            <div class="col-8">
-                                <div class="ps-2 ps-md-0">
-                                    <h5 class="mb-1 fw-bold text">
-                                        <field name="subject_id"/>
-                                    </h5>
-                                    <div class="d-flex align-items-center mb-1">
-                                        <div style="width: 30px; height: 30px; overflow: hidden; border-radius: 20%; margin-right: 10px;">
-                                            <img t-if="record.faculty_id.raw_value" 
-                                                 t-att-src="'/web/image/op.faculty/' + record.faculty_id.raw_value + '/image_1920'" 
-                                                 style="width: 100%; height: 100%; object-fit: cover;" 
-                                                 alt="Аватар преподавателя"/>
-                                        </div>
-                                        <p class="text-body-secondary small mb-0">
-                                        <field name="faculty_id"/>
-                                        </p>
-                                    </div>
-                                    <div class="d-flex align-items-center mb-1">
-                                        <div style="width: 30px; height: 30px; overflow: hidden; border-radius: 20%; margin-right: 10px;">
-                                            <img t-if="record.student_id.raw_value" 
-                                                 t-att-src="'/web/image/op.student/' + record.student_id.raw_value + '/image_1920'" 
-                                                 style="width: 100%; height: 100%; object-fit: cover;" 
-                                                 alt="Аватар студента"/>
-                                        </div>
-                                        <p class="text-body-secondary small mb-0">
-                                            <field name="student_name_short"/>
-                                        </p>
-                                    </div>
-                                    <p class="mb-1 text-body-secondary small">
-                                        <strong>Класс:</strong> <field name="batch_id"/>
-                                    </p>                                    
-                                    
-                                    
-                                    <!-- Отображение оценок по четвертям -->
-                                    <div class="quarter-grades mb-2">
-                                        <strong>Оценки по четвертям:</strong>
-                                        <div class="d-flex justify-content-between mt-1">
-                                            <div class="text-center">
-                                                <div class="small text-muted">1 четв.</div>
-                                                <t t-set="q1_grade" t-value="record.q1_final_grade.raw_value"/>
-                                                <t t-if="q1_grade">
-                                                    <span t-esc="q1_grade" 
-                                                          t-att-class="{
-                                                              'badge': true,
-                                                              'fw-bold': true,
-                                                              'bg-success': q1_grade &gt;= 4.5,
-                                                              'bg-warning': q1_grade &lt; 4.5 &amp;&amp; q1_grade &gt;= 3.5,
-                                                              'bg-danger': q1_grade &lt; 3.5
-                                                          }"
-                                                          style="font-size: 14px; padding: 5px 10px;">
-                                                    </span>
-                                                </t>
-                                                <t t-else="">
-                                                    <span class="badge fw-bold" style="background-color: #f8f9fa; color: #adb5bd; font-size: 14px; padding: 5px 10px;">
-                                                        -
-                                                    </span>
-                                                </t>
-                                            </div>
-                                            <div class="text-center">
-                                                <div class="small text-muted">2 четв.</div>
-                                                <t t-set="q2_grade" t-value="record.q2_final_grade.raw_value"/>
-                                                <t t-if="q2_grade">
-                                                    <span t-esc="q2_grade" 
-                                                          t-att-class="{
-                                                              'badge': true,
-                                                              'fw-bold': true,
-                                                              'bg-success': q2_grade &gt;= 4.5,
-                                                              'bg-warning': q2_grade &lt; 4.5 &amp;&amp; q2_grade &gt;= 3.5,
-                                                              'bg-danger': q2_grade &lt; 3.5
-                                                          }"
-                                                          style="font-size: 14px; padding: 5px 10px;">
-                                                    </span>
-                                                </t>
-                                                <t t-else="">
-                                                    <span class="badge fw-bold" style="background-color: #f8f9fa; color: #adb5bd; font-size: 14px; padding: 5px 10px;">
-                                                        -
-                                                    </span>
-                                                </t>
-                                            </div>
-                                            <div class="text-center">
-                                                <div class="small text-muted">3 четв.</div>
-                                                <t t-set="q3_grade" t-value="record.q3_final_grade.raw_value"/>
-                                                <t t-if="q3_grade">
-                                                    <span t-esc="q3_grade" 
-                                                          t-att-class="{
-                                                              'badge': true,
-                                                              'fw-bold': true,
-                                                              'bg-success': q3_grade &gt;= 4.5,
-                                                              'bg-warning': q3_grade &lt; 4.5 &amp;&amp; q3_grade &gt;= 3.5,
-                                                              'bg-danger': q3_grade &lt; 3.5
-                                                          }"
-                                                          style="font-size: 14px; padding: 5px 10px;">
-                                                    </span>
-                                                </t>
-                                                <t t-else="">
-                                                    <span class="badge fw-bold" style="background-color: #f8f9fa; color: #adb5bd; font-size: 14px; padding: 5px 10px;">
-                                                        -
-                                                    </span>
-                                                </t>
-                                            </div>
-                                            <div class="text-center">
-                                                <div class="small text-muted">4 четв.</div>
-                                                <t t-set="q4_grade" t-value="record.q4_final_grade.raw_value"/>
-                                                <t t-if="q4_grade">
-                                                    <span t-esc="q4_grade" 
-                                                          t-att-class="{
-                                                              'badge': true,
-                                                              'fw-bold': true,
-                                                              'bg-success': q4_grade &gt;= 4.5,
-                                                              'bg-warning': q4_grade &lt; 4.5 &amp;&amp; q4_grade &gt;= 3.5,
-                                                              'bg-danger': q4_grade &lt; 3.5
-                                                          }"
-                                                          style="font-size: 14px; padding: 5px 10px;">
-                                                    </span>
-                                                </t>
-                                                <t t-else="">
-                                                    <span class="badge fw-bold" style="background-color: #f8f9fa; color: #adb5bd; font-size: 14px; padding: 5px 10px;">
-                                                        -
-                                                    </span>
-                                                </t>
-                                            </div>
-                                        </div>
-                                    </div>                                    
-                                </div>
-
-
-                                <!-- Прогресс бар посещаемости -->
-                                <div class="attendance-progress mb-2">
-                                    <t t-if="record.total_classes.raw_value &gt; 0">
-                                        <div class="d-flex justify-content-between small">
-                                            <span>Посещаемость:</span>
-                                            <span>
-                                                <t t-esc="record.present_classes.raw_value"/>/<t t-esc="record.total_classes.raw_value"/>
-                                            </span>
-                                        </div>
-                                        <div class="progress" style="height: 10px;">
-                                            <div class="progress-bar" 
-                                                    role="progressbar" 
-                                                    t-attf-style="width: #{Math.round((record.present_classes.raw_value / record.total_classes.raw_value) * 100)}%"
-                                                    t-attf-aria-valuenow="#{Math.round((record.present_classes.raw_value / record.total_classes.raw_value) * 100)}"
-                                                    aria-valuemin="0" 
-                                                    aria-valuemax="100"
-                                                    t-att-class="{
-                                                        'bg-success': (record.present_classes.raw_value / record.total_classes.raw_value) &gt;= 0.8,
-                                                        'bg-warning': (record.present_classes.raw_value / record.total_classes.raw_value) &lt; 0.8 &amp;&amp; (record.present_classes.raw_value / record.total_classes.raw_value) &gt;= 0.6,
-                                                        'bg-danger': (record.present_classes.raw_value / record.total_classes.raw_value) &lt; 0.6
-                                                    }">
-                                            </div>
-                                        </div>
-                                    </t>
-                                </div>
-
-                                <!-- Отображение средней оценки -->
-                                <div class="average-mark mb-2">
-                                    <t t-if="record.average_mark.raw_value">
-                                        <div class="d-flex justify-content-between align-items-center">
-                                            <strong>Средняя оценка:</strong>
-                                            <span t-esc="Math.round(record.average_mark.raw_value * 100) / 100" 
-                                                    t-att-class="{
-                                                        'badge': true,
-                                                        'fw-bold': true,
-                                                        'bg-success': record.average_mark.raw_value &gt;= 4.5,
-                                                        'bg-warning': record.average_mark.raw_value &lt; 4.5 &amp;&amp; record.average_mark.raw_value &gt;= 3.5,
-                                                        'bg-danger': record.average_mark.raw_value &lt; 3.5
-                                                    }"
-                                                    style="font-size: 16px; padding: 5px 10px;">
-                                            </span>
-                                        </div>
-                                    </t>
-                                </div>
+                            <div class="col-8 p-2">
+                                <h5 class="fw-bold mb-1"><field name="subject_id"/></h5>
                                 
-                                <!-- Отображение итоговой оценки за четверть -->
-                                <div class="final-quarter-grade mb-2">
-                                    <t t-if="record.final_quarter_grade.raw_value">
-                                        <div class="d-flex justify-content-between align-items-center">
-                                            <strong>Оценка за год:</strong>
-                                            <span t-esc="record.final_quarter_grade.raw_value" 
-                                                    t-att-class="{
-                                                        'badge': true,
-                                                        'fw-bold': true,
-                                                        'bg-success': record.final_quarter_grade.raw_value &gt;= 4.5,
-                                                        'bg-warning': record.final_quarter_grade.raw_value &lt; 4.5 &amp;&amp; record.final_quarter_grade.raw_value &gt;= 3.5,
-                                                        'bg-danger': record.final_quarter_grade.raw_value &lt; 3.5
-                                                    }"
-                                                    style="font-size: 18px; padding: 5px 10px;">
-                                            </span>
-                                        </div>
-                                    </t>
+                                <div class="d-flex align-items-center mb-1 small text-muted">
+                                    <img t-if="record.faculty_id.raw_value" t-att-src="'/web/image/op.faculty/' + record.faculty_id.raw_value + '/image_128'" style="width: 20px; height: 20px; border-radius: 50%;" class="me-1" alt="Учитель"/>
+                                    <field name="faculty_id"/>
                                 </div>
-                                
-                               
+                                <div class="d-flex align-items-center mb-2 small fw-bold">
+                                    <img t-if="record.student_id.raw_value" t-att-src="'/web/image/op.student/' + record.student_id.raw_value + '/image_128'" style="width: 20px; height: 20px; border-radius: 50%;" class="me-1" alt="Ученик"/>
+                                    <field name="student_name_short"/>
+                                </div>
+
+                                <div class="small text-muted mb-1">Средний балл по четвертям:</div>
+                                <div class="d-flex justify-content-between mb-2 text-center">
+                                    <!-- Четверть 1 -->
+                                    <div><div class="small">1ч</div>
+                                        <span t-attf-class="badge #{record.q1_average_mark.raw_value >= 4.5 ? 'bg-success' : (record.q1_average_mark.raw_value >= 3.5 ? 'bg-warning' : (record.q1_average_mark.raw_value > 0 ? 'bg-danger' : 'bg-light text-muted'))}">
+                                            <field name="q1_average_mark"/>
+                                        </span>
+                                    </div>
+                                    <!-- Четверть 2 -->
+                                    <div><div class="small">2ч</div>
+                                        <span t-attf-class="badge #{record.q2_average_mark.raw_value >= 4.5 ? 'bg-success' : (record.q2_average_mark.raw_value >= 3.5 ? 'bg-warning' : (record.q2_average_mark.raw_value > 0 ? 'bg-danger' : 'bg-light text-muted'))}">
+                                            <field name="q2_average_mark"/>
+                                        </span>
+                                    </div>
+                                    <!-- Четверть 3 -->
+                                    <div><div class="small">3ч</div>
+                                        <span t-attf-class="badge #{record.q3_average_mark.raw_value >= 4.5 ? 'bg-success' : (record.q3_average_mark.raw_value >= 3.5 ? 'bg-warning' : (record.q3_average_mark.raw_value > 0 ? 'bg-danger' : 'bg-light text-muted'))}">
+                                            <field name="q3_average_mark"/>
+                                        </span>
+                                    </div>
+                                    <!-- Четверть 4 -->
+                                    <div><div class="small">4ч</div>
+                                        <span t-attf-class="badge #{record.q4_average_mark.raw_value >= 4.5 ? 'bg-success' : (record.q4_average_mark.raw_value >= 3.5 ? 'bg-warning' : (record.q4_average_mark.raw_value > 0 ? 'bg-danger' : 'bg-light text-muted'))}">
+                                            <field name="q4_average_mark"/>
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <div class="attendance-info mb-2">
+                                    <div class="progress" style="height: 8px; background-color: #eee;">
+                                        <t t-set="r" t-value="record.total_classes.raw_value > 0 ? (record.present_classes.raw_value / record.total_classes.raw_value) : 0"/>
+                                        <div t-attf-class="progress-bar #{r >= 0.8 ? 'bg-success' : (r >= 0.6 ? 'bg-warning' : 'bg-danger')}" t-attf-style="width: #{r * 100}%" role="progressbar"></div>
+                                    </div>
+                                </div>
+
+                                <div class="d-flex justify-content-between align-items-center mt-2 border-top pt-2">
+                                    <span class="fw-bold">Общая:</span>
+                                    <span t-attf-class="badge p-2 #{record.average_mark.raw_value >= 4.5 ? 'bg-success' : (record.average_mark.raw_value >= 3.5 ? 'bg-warning' : 'bg-danger')}">
+                                        <field name="average_mark"/>
+                                    </span>
+                                </div>
                             </div>
                         </div>
                     </t>
@@ -510,47 +103,139 @@
         </field>
     </record>
 
-    <!-- Добавляем действие для новой модели -->
-    <record model="ir.actions.act_window" id="act_open_op_subject_grades_view">
-        <field name="name">Оценки по предметам</field>
-        <field name="path">subject-grades</field>
-        <field name="type">ir.actions.act_window</field>
-        <field name="res_model">op.subject.grades</field>
-        <field name="view_mode">kanban,list,form</field>
-        <field name="search_view_id" ref="view_op_subject_grades_search"/>
-        <field name="domain">[]</field>
-        <field name="context">{}</field>
-        <field name="help" type="html">
-            <p class="o_view_nocontent_smiling_face">
-                Нет данных об оценках
-            </p>
-            <p>
-                Здесь будут отображаться оценки по предметам.
-            </p>
+    <!-- ФОРМА (РЕДАКТИРУЕМАЯ) -->
+    <record id="view_op_subject_grades_form" model="ir.ui.view">
+        <field name="name">op.subject.grades.form</field>
+        <field name="model">op.subject.grades</field>
+        <field name="arch" type="xml">
+            <form>
+                <header>
+                    <button name="action_migrate_old_data" type="object" string="ПЕРЕНЕСТИ ОЦЕНКИ" class="btn-danger"/>
+                </header>
+                <sheet>
+                    <field name="textbook_image" widget="image" class="oe_avatar" alt="Учебник"/>
+                    <div class="oe_title">
+                        <h1><field name="student_id" readonly="1"/></h1>
+                        <h2><field name="subject_id" readonly="1"/></h2>
+                    </div>
+                    <group>
+                        <group string="Итоги">
+                            <field name="average_mark" readonly="1"/>
+                            <field name="total_classes" readonly="1"/><field name="present_classes" readonly="1"/>
+                        </group>
+                        <group string="Детали">
+                            <field name="batch_id" readonly="1"/><field name="faculty_id" readonly="1"/><field name="last_attendance_date" readonly="1"/>
+                            <field name="final_quarter_grade" string="Годовая (итог)"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="1 четверть">
+                            <div style="display: flex; gap: 20px; background: #f8f9fa; padding: 15px; border-radius: 10px; border: 1px solid #dee2e6; margin-bottom: 15px;">
+                                <div style="width: 260px;">
+                                    <span class="badge bg-primary">5: <field name="q1_count_5"/></span>
+                                    <span class="badge bg-success ms-1">4: <field name="q1_count_4"/></span>
+                                    <span class="badge bg-warning text-dark ms-1">3: <field name="q1_count_3"/></span>
+                                    <span class="badge bg-danger ms-1">2: <field name="q1_count_2"/></span>
+                                </div>
+                                <div style="flex-grow: 1; border-left: 1px solid #ccc; padding-left: 20px;">
+                                    <div class="small text-muted italic"><field name="q1_last_remark"/></div>
+                                </div>
+                                <div class="text-end" style="width: 220px;">
+                                    <div class="h3 fw-bold mb-0 text-primary"><field name="q1_average_mark"/> / <field name="q1_final_grade"/></div>
+                                </div>
+                            </div>
+                            <field name="q1_line_ids" readonly="0">
+                                <list editable="bottom" create="false" delete="false">
+                                    <field name="attendance_date" readonly="1"/>
+                                    <field name="lesson_topic" readonly="0"/>
+                                    <field name="present" widget="boolean"/>
+                                    <field name="grade_1" /><field name="grade_2" /><field name="remark"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="2 четверть">
+                            <div style="display: flex; gap: 20px; background: #f8f9fa; padding: 15px; border-radius: 10px; border: 1px solid #dee2e6; margin-bottom: 15px;">
+                                <div style="width: 260px;">
+                                    <span class="badge bg-primary">5: <field name="q2_count_5"/></span>
+                                    <span class="badge bg-success ms-1">4: <field name="q2_count_4"/></span>
+                                    <span class="badge bg-warning text-dark ms-1">3: <field name="q2_count_3"/></span>
+                                    <span class="badge bg-danger ms-1">2: <field name="q2_count_2"/></span>
+                                </div>
+                                <div style="flex-grow: 1; border-left: 1px solid #ccc; padding-left: 20px;"><div class="fw-bold mt-1"><field name="q2_last_remark"/></div></div>
+                                <div class="text-end" style="width: 220px;"><div class="h3 fw-bold text-primary"><field name="q2_average_mark"/> / <field name="q2_final_grade"/></div></div>
+                            </div>
+                            <field name="q2_line_ids" readonly="0">
+                                <list editable="bottom" create="false" delete="false">
+                                    <field name="attendance_date" readonly="1"/>
+                                    <field name="lesson_topic" readonly="0"/>
+                                    <field name="present" widget="boolean"/>
+                                    <field name="grade_1" /><field name="grade_2" /><field name="remark"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="3 четверть">
+                            <div style="display: flex; gap: 20px; background: #f8f9fa; padding: 15px; border-radius: 10px; border: 1px solid #dee2e6; margin-bottom: 15px;">
+                                <div style="width: 260px;">
+                                    <span class="badge bg-primary">5: <field name="q3_count_5"/></span>
+                                    <span class="badge bg-success ms-1">4: <field name="q3_count_4"/></span>
+                                    <span class="badge bg-warning text-dark ms-1">3: <field name="q3_count_3"/></span>
+                                    <span class="badge bg-danger ms-1">2: <field name="q3_count_2"/></span>
+                                </div>
+                                <div style="flex-grow: 1; border-left: 1px solid #ccc; padding-left: 20px;"><div class="fw-bold"><field name="q3_last_remark"/></div></div>
+                                <div class="text-end" style="width: 220px;"><div class="h3 fw-bold text-primary"><field name="q3_average_mark"/> / <field name="q3_final_grade"/></div></div>
+                            </div>
+                            <field name="q3_line_ids" readonly="0">
+                                <list editable="bottom" create="false" delete="false">
+                                    <field name="attendance_date" readonly="1"/>
+                                    <field name="lesson_topic" readonly="0"/>
+                                    <field name="present" widget="boolean"/>
+                                    <field name="grade_1" /><field name="grade_2" /><field name="remark"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="4 четверть">
+                            <div style="display: flex; gap: 20px; background: #f8f9fa; padding: 15px; border-radius: 10px; border: 1px solid #dee2e6; margin-bottom: 15px;">
+                                <div style="width: 260px;">
+                                    <span class="badge bg-primary">5: <field name="q4_count_5"/></span>
+                                    <span class="badge bg-success ms-1">4: <field name="q4_count_4"/></span>
+                                    <span class="badge bg-warning text-dark ms-1">3: <field name="q4_count_3"/></span>
+                                    <span class="badge bg-danger ms-1">2: <field name="q4_count_2"/></span>
+                                </div>
+                                <div style="flex-grow: 1; border-left: 1px solid #ccc; padding-left: 20px;"><div class="fw-bold"><field name="q4_last_remark"/></div></div>
+                                <div class="text-end" style="width: 220px;"><div class="h3 fw-bold text-primary"><field name="q4_average_mark"/> / <field name="q4_final_grade"/></div></div>
+                            </div>
+                            <field name="q4_line_ids" readonly="0">
+                                <list editable="bottom" create="false" delete="false">
+                                    <field name="attendance_date" readonly="1"/>
+                                    <field name="lesson_topic" readonly="0"/>
+                                    <field name="present" widget="boolean"/>
+                                    <field name="grade_1" /><field name="grade_2" /><field name="remark"/>
+                                </list>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
         </field>
     </record>
 
-    <!-- Явно определяем связи между действием и представлениями -->
-    <record model="ir.actions.act_window.view" id="act_open_op_subject_grades_view_kanban">
-        <field name="sequence" eval="1"/>
-        <field name="view_mode">kanban</field>
-        <field name="view_id" ref="view_op_subject_grades_kanban"/>
-        <field name="act_window_id" ref="act_open_op_subject_grades_view"/>
+    <record id="view_op_subject_grades_search" model="ir.ui.view">
+        <field name="name">op.subject.grades.search</field>
+        <field name="model">op.subject.grades</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="student_id"/><field name="subject_id"/><field name="batch_id"/>
+                <group expand="0" string="Группировать по...">
+                    <filter string="Ученик" name="group_student" context="{'group_by':'student_id'}"/>
+                    <filter string="Класс" name="group_batch" context="{'group_by':'batch_id'}"/>
+                </group>
+            </search>
+        </field>
     </record>
 
-    <record model="ir.actions.act_window.view" id="act_open_op_subject_grades_view_list">
-        <field name="sequence" eval="2"/>
-        <field name="view_mode">list</field>
-        <field name="view_id" ref="view_op_subject_grades_tree"/>
-        <field name="act_window_id" ref="act_open_op_subject_grades_view"/>
+    <record id="act_open_op_subject_grades_view" model="ir.actions.act_window">
+        <field name="name">Успеваемость</field>
+        <field name="res_model">op.subject.grades</field>
+        <field name="view_mode">kanban,list,form</field>
     </record>
-
-    <record model="ir.actions.act_window.view" id="act_open_op_subject_grades_view_form">
-        <field name="sequence" eval="3"/>
-        <field name="view_mode">form</field>
-        <field name="view_id" ref="view_op_subject_grades_form"/>
-        <field name="act_window_id" ref="act_open_op_subject_grades_view"/>
-    </record>
-
-    
 </odoo>
