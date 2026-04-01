@@ -1,20 +1,16 @@
 {
-    'name': 'Unified Student Permissions',
+    'name': 'Unified Student and Faculty Permissions',
     'version': '1.0',
     'category': 'Education',
-    'summary': 'Consolidated and consistent permissions for student group',
-    'description': '''
-        This module provides a unified and consistent set of permissions for the student group,
-        resolving contradictions and redundancies from multiple previous implementations.
-        It provides appropriate access levels to contacts, employees, and other resources
-        while maintaining security boundaries.
-    ''',
-    'author': 'Custom',
-    'depends': ['base', 'hr', 'openeducat_core', 'openeducat_timetable', 'openeducat_library'],
+    'depends': [
+        'base', 'openeducat_core', 'openeducat_attendance', 
+        'openeducat_assignment', 'openeducat_exam', 'openeducat_library',
+        'openeducat_timetable', 'openeducat_fees', 'openeducat_admission'
+    ],
     'data': [
+        'security/ir.model.access.csv',
         'security/student_permissions.xml',
-        'views/student_permissions_view.xml',
     ],
     'installable': True,
-    'auto_install': False,
+    'application': False,
 }
