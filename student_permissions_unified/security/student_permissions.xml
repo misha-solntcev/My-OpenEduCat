@@ -69,4 +69,17 @@
         <field name="domain_force">[('id', '=', user.partner_id.id)]</field>
     </record>
 
+    <!-- Правило для Менеджеров Расписания: Разрешить ВСЁ -->
+    <record id="rule_timetable_manager_all_sessions" model="ir.rule">
+        <field name="name">Timetable Manager: Full Access</field>
+        <field name="model_id" ref="openeducat_timetable.model_op_session"/>
+        <!-- Привязываем к стандартной группе менеджеров OpenEduCat -->
+        <field name="groups" eval="[(4, ref('openeducat_timetable.group_op_timetable_manager'))]"/>
+        <field name="domain_force">[(1, '=', 1)]</field>
+        <field name="perm_read" eval="1"/>
+        <field name="perm_write" eval="1"/>
+        <field name="perm_create" eval="1"/>
+        <field name="perm_unlink" eval="1"/>
+    </record>
+
 </odoo>
