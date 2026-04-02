@@ -68,6 +68,10 @@ class OpAttendanceLine(models.Model):
         'op.batch', 'Batch',
         related='attendance_id.register_id.batch_id', store=True, readonly=True)
 
+    faculty_id = fields.Many2one(
+        'op.faculty', 'Faculty', 
+        related='attendance_id.faculty_id', store=True, readonly=True)
+
     lesson_topic = fields.Char(
         'Lesson Topic', related='attendance_id.lesson_topic', store=True, readonly=False)
 

@@ -28,53 +28,50 @@ class OpSession(models.Model):
                                        'session_id', string='Session')
 
     def get_attendance(self, context=None):
-
+        self.ensure_one() # Убеждаемся, что работаем с одним уроком
+        
         sheet = self.env['op.attendance.sheet'].search(
             [('session_id', '=', self.id)])
         register = self.env['op.attendance.register'].search(
             [('course_id', '=', self.course_id.id),
-             ('batch_id', '=', self.batch_id.id)])
+             ('batch_id', '=', self.batch_id.id)], limit=1)
 
-        if self.id == sheet.session_id.id:
-            if len(sheet) <= 1:
-                view_id = self.env.ref('openeducat_attendance.'
-                                       'view_op_attendance_sheet_form').id,
+        # Формируем общий контекст, чтобы не дублировать код
+        common_context = {
+            'default_session_id': self.id,
+            'default_register_id': register.id if register else False,
+            'default_subject_id': self.subject_id.id,
+            'default_faculty_id': self.faculty_id.id,
+            'default_attendance_date': self.start_datetime.date(),
+        }
+
+        if sheet:
+            if len(sheet) == 1:
+                view_id = self.env.ref('openeducat_attendance.view_op_attendance_sheet_form').id
                 return {
                     'name': 'Attendance Sheet',
-                    'view_type': 'form',
+                    'type': 'ir.actions.act_window',
                     'view_mode': 'form',
-                    'views': [(view_id, 'form')],
                     'res_model': 'op.attendance.sheet',
                     'view_id': view_id,
-                    'type': 'ir.actions.act_window',
-                    'target': 'current',
                     'res_id': sheet.id,
-                    'context': {'default_session_id': self.id,
-                                'default_register_id': [rec.id for rec in register]},
-                    'domain': [('session_id', "=", sheet.session_id.id)]
+                    'target': 'current',
+                    'context': common_context,
                 }
-
-            action = self.env.ref('openeducat_attendance.'
-                                  'act_open_op_attendance_sheet_view').read()[0]
-            action['domain'] = [('session_id', '=', self.id)]
-            action['context'] = {
-                'default_session_id': self.id,
-                'default_register_id': [rec.id for rec in register]}
-            return action
-
+            else:
+                action = self.env.ref('openeducat_attendance.act_open_op_attendance_sheet_view').read()[0]
+                action['domain'] = [('session_id', '=', self.id)]
+                action['context'] = common_context
+                return action
         else:
-            view_id = self.env.ref('openeducat_attendance.'
-                                   'view_op_attendance_sheet_form').id,
+            # Если ведомости еще нет - открываем пустую форму с предустановленными данными
+            view_id = self.env.ref('openeducat_attendance.view_op_attendance_sheet_form').id
             return {
                 'name': 'Attendance Sheet',
-                'view_type': 'form',
-                'view_mode': 'list',
-                'views': [(view_id, 'form')],
-                'res_model': 'op.attendance.sheet',
-                'view_id': False,
                 'type': 'ir.actions.act_window',
+                'view_mode': 'form',
+                'res_model': 'op.attendance.sheet',
+                'view_id': view_id,
                 'target': 'current',
-                'context': {'default_session_id': self.id,
-                            'default_register_id': [rec.id for rec in register]},
-                'domain': [('session_id', "=", self.id)]
+                'context': common_context,
             }

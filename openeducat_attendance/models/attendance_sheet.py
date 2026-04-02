@@ -1,4 +1,4 @@
-###############################################################################
+##############################################################################
 #
 #    OpenEduCat Inc
 #    Copyright (C) 2009-TODAY OpenEduCat Inc(<https://www.openeducat.org>).
@@ -43,9 +43,29 @@ class OpAttendanceSheet(models.Model):
         tracking=True)
     attendance_line = fields.One2many(
         'op.attendance.line', 'attendance_id', 'Attendance Line')
-    faculty_id = fields.Many2one('op.faculty', 'Faculty')
     active = fields.Boolean(default=True)
     
+    # Делаем преподавателя вычисляемым, но сохраняемым и редактируемым
+    faculty_id = fields.Many2one(
+        'op.faculty', 'Faculty', 
+        compute='_compute_faculty_id', store=True, readonly=False)
+
+    @api.depends('session_id.faculty_id', 'register_id')
+    def _compute_faculty_id(self):
+        for rec in self:
+            # Приоритет: Преподаватель из урока -> иначе не меняем
+            if rec.session_id.faculty_id:
+                rec.faculty_id = rec.session_id.faculty_id
+            elif not rec.faculty_id:
+                rec.faculty_id = False
+
+    # Улучшаем расчет предмета (добавляем триггер на изменение сессии)
+    @api.depends('session_id.subject_id', 'register_id.subject_id')
+    def _compute_subject_id(self):
+        for rec in self:
+            rec.subject_id = rec.session_id.subject_id or rec.register_id.subject_id
+
+       
     # Добавляем поле для темы урока
     lesson_topic = fields.Char(
         'Тема урока', 
