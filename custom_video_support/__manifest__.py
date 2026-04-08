@@ -13,10 +13,12 @@
         ],
         'web.assets_backend': [
             'custom_video_support/static/src/utils/url_patch.js',
+            'custom_video_support/static/src/main/media/media_dialog/video_selector_patch.js',
             'custom_video_support/static/src/main/media/media_dialog/video_selector.xml',
         ],
         'web.assets_frontend': [
             'custom_video_support/static/src/utils/url_patch.js',
+            'custom_video_support/static/src/main/media/media_dialog/video_selector_patch.js',
             'custom_video_support/static/src/main/media/media_dialog/video_selector.xml',
         ],
     },
