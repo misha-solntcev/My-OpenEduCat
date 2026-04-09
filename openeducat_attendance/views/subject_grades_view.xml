@@ -146,10 +146,13 @@
                             </div>
                             <field name="q1_line_ids" readonly="0">
                                 <list editable="bottom" create="false" delete="false">
-                                    <field name="attendance_date" readonly="1"/>
-                                    <field name="lesson_topic" readonly="0"/>
-                                    <field name="present" widget="boolean"/>
-                                    <field name="grade_1" /><field name="grade_2" /><field name="remark"/>
+                                    <field name="attendance_date" readonly="1" optional="show"/>
+                                    <field name="lesson_topic" string="Тема урока" readonly="0" optional="show"/>
+                                    <field name="present" widget="boolean" optional="show"/>
+                                    <field name="grade_1" optional="show"/>
+                                    <field name="grade_2" optional="show"/>
+                                    <field name="grade_3" optional="hide" />
+                                    <field name="remark" optional="show"/>
                                 </list>
                             </field>
                         </page>

@@ -5,11 +5,13 @@
         <field name="name">op.attendance.line.list</field>
         <field name="model">op.attendance.line</field>
         <field name="arch" type="xml">
-            <list string="Журнал оценок">
-                <field name="attendance_date"/>
-                <field name="student_id"/>
-                <field name="subject_id"/>
-                <field name="grade_1" string="Оценка"/>
+            <list string="Журнал оценок" editable="bottom">
+                <field name="attendance_date" optional="show" readonly="1"/>
+                <field name="student_id" optional="show" readonly="1"/>
+                <field name="subject_id" optional="show" readonly="1"/>
+                <field name="grade_1" string="Оценка 1" optional="show"/>
+                <field name="grade_2" string="Оценка 2" optional="show"/>
+                <field name="grade_3" string="Оценка 3" optional="hide"/>
                 <field name="batch_id" optional="show"/>
                 <field name="term_id" optional="hide"/>
             </list>

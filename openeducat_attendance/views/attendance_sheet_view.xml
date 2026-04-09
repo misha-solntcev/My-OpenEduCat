@@ -51,8 +51,9 @@
                         <field name="attendance_line" colspan="4" nolabel="1" readonly="state in ('done','cancel')">
                             <list string="Attendance Line" editable="top">
                                 <field name="student_id" domain="[('course_detail_ids.course_id','=',parent.course_id),('course_detail_ids.batch_id','=',parent.batch_id)]"/>
-                                <field name="grade_1" sum="Avg Grade 1"/>
-                                <field name="grade_2" sum="Avg Grade 2"/>
+                                <field name="grade_1" sum="Avg Grade 1" optional="hide"/>
+                                <field name="grade_2" sum="Avg Grade 2" optional="show"/>
+                                <field name="grade_3" sum="Avg Grade 3" optional="show"/>
                                 <field name="present"/>
                                 <field name="late"/>
                                 <field name="excused"/>
