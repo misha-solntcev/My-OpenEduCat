@@ -20,10 +20,9 @@
 
 from odoo import api, fields, models
 
-
 class OpAttendanceSheet(models.Model):
     _name = "op.attendance.sheet"
-    _inherit = ["mail.thread"]
+    _inherit = ["mail.thread", "mail.activity.mixin"]
     _description = "Attendance Sheet"
     _order = "attendance_date desc"
 
@@ -45,42 +44,36 @@ class OpAttendanceSheet(models.Model):
         'op.attendance.line', 'attendance_id', 'Attendance Line')
     active = fields.Boolean(default=True)
     
-    # Делаем преподавателя вычисляемым, но сохраняемым и редактируемым
     faculty_id = fields.Many2one(
         'op.faculty', 'Faculty', 
         compute='_compute_faculty_id', store=True, readonly=False)
 
+    subject_id = fields.Many2one(
+        'op.subject', string='Предмет', compute='_compute_subject_id', store=True)
+    
+    term_id = fields.Many2one(
+        'op.academic.term', string='Четверть', compute='_compute_term', store=True)
+
+    lesson_topic = fields.Char('Тема урока', size=256)
+
+    state = fields.Selection([
+        ('draft', 'Draft'),
+        ('start', 'Attendance Start'),
+        ('done', 'Attendance Taken'),
+        ('cancel', 'Cancelled'),
+    ], string='Status', default='draft', tracking=True)
+
     @api.depends('session_id.faculty_id', 'register_id')
     def _compute_faculty_id(self):
         for rec in self:
-            # Приоритет: Преподаватель из урока -> иначе не меняем
             if rec.session_id.faculty_id:
                 rec.faculty_id = rec.session_id.faculty_id
             elif not rec.faculty_id:
                 rec.faculty_id = False
 
-    # Улучшаем расчет предмета (добавляем триггер на изменение сессии)
     @api.depends('session_id.subject_id', 'register_id.subject_id')
     def _compute_subject_id(self):
         for rec in self:
-            rec.subject_id = rec.session_id.subject_id or rec.register_id.subject_id
-
-       
-    # Добавляем поле для темы урока
-    lesson_topic = fields.Char(
-        'Тема урока', 
-        size=256,
-        help="Тема урока, которая будет отображаться в оценках по предметам"
-    )
-
-    # models/attendance_sheet.py
-    subject_id = fields.Many2one('op.subject', string='Предмет', compute='_compute_subject_id', store=True)
-    term_id = fields.Many2one('op.academic.term', string='Четверть', compute='_compute_term', store=True)
-
-    @api.depends('session_id.subject_id', 'register_id.subject_id')
-    def _compute_subject_id(self):
-        for rec in self:
-            # Строгая логика: приоритет уроку, если нет - регистру
             rec.subject_id = rec.session_id.subject_id or rec.register_id.subject_id
 
     @api.depends('attendance_date')
@@ -94,34 +87,40 @@ class OpAttendanceSheet(models.Model):
                 ], limit=1)
                 record.term_id = term
 
-    state = fields.Selection(
-        [('draft', 'Draft'), ('start', 'Attendance Start'),
-         ('done', 'Attendance Taken'), ('cancel', 'Cancelled')],
-        'Status', default='draft', tracking=True)
+    def action_attendance_start(self):
+        for rec in self:
+            if not rec.attendance_line:
+                rec._fill_student_lines()
+            rec.state = 'start'
 
-    def attendance_draft(self):
-        self.state = 'draft'
+    def action_attendance_done(self):
+        self.write({'state': 'done'})
 
-    def attendance_start(self):
-        self.state = 'start'
+    def action_attendance_draft(self):
+        self.write({'state': 'draft'})
 
-    def attendance_done(self):
-        self.state = 'done'
+    def action_attendance_cancel(self):
+        self.write({'state': 'cancel'})
 
-    def attendance_cancel(self):
-        self.state = 'cancel'
-
-    _sql_constraints = [
-        ('unique_register_sheet',
-         'unique(register_id,session_id,attendance_date)',
-         'Sheet must be unique per Register/Session.'),
-    ]
+    def _fill_student_lines(self):
+        self.ensure_one()
+        students = self.env['op.student'].search([
+            ('course_detail_ids.course_id', '=', self.course_id.id),
+            ('course_detail_ids.batch_id', '=', self.batch_id.id)
+        ])
+        present_type = self.env['op.attendance.type'].search([('present', '=', True)], limit=1)
+        lines = []
+        for student in students:
+            lines.append((0, 0, {
+                'student_id': student.id,
+                'attendance_type_id': present_type.id if present_type else False,
+            }))
+        self.attendance_line = lines
 
     @api.model_create_multi
     def create(self, vals_list):
         for vals in vals_list:
-            sheet = self.env['ir.sequence'].next_by_code('op.attendance.sheet')
-            register = self.env['op.attendance.register']. \
-                browse(vals['register_id']).code
-            vals['name'] = register + sheet
+            sheet_seq = self.env['ir.sequence'].next_by_code('op.attendance.sheet')
+            register = self.env['op.attendance.register'].browse(vals['register_id']).code
+            vals['name'] = (register or '') + (sheet_seq or '')
         return super(OpAttendanceSheet, self).create(vals_list)

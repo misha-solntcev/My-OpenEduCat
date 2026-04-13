@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <odoo>
-    <!-- 1. СПИСОК (TREE/LIST) -->
+    <!-- 1. СПИСОК -->
     <record id="view_op_attendance_sheet_tree" model="ir.ui.view">
         <field name="name">op.attendance.sheet.list</field>
         <field name="model">op.attendance.sheet</field>
@@ -24,11 +24,11 @@
         <field name="arch" type="xml">
             <form string="Attendance Sheet">
                 <header>
-                    <button type="object" name="attendance_start" invisible="state != 'draft'" string="Attendance Start" class="oe_highlight"/>
-                    <button type="object" name="attendance_done" invisible="state != 'start'" string="Attendance Taken" class="oe_highlight"/>
-                    <button type="object" name="attendance_draft" invisible="state != 'cancel'" string="Draft" class="oe_highlight"/>
-                    <button type="object" name="attendance_cancel" invisible="state not in ('draft','start')" string="Cancel"/>
-                    <button type="object" name="attendance_draft" string="Draft" invisible="state not in 'done'" class="oe_highlight"/>
+                    <button type="object" name="action_attendance_start" invisible="state != 'draft'" string="Attendance Start" class="oe_highlight"/>
+                    <button type="object" name="action_attendance_done" invisible="state != 'start'" string="Attendance Taken" class="oe_highlight"/>
+                    <button type="object" name="action_attendance_draft" invisible="state != 'cancel'" string="Draft" class="oe_highlight"/>
+                    <button type="object" name="action_attendance_cancel" invisible="state not in ('draft','start')" string="Cancel"/>
+                    <button type="object" name="action_attendance_draft" string="Draft" invisible="state != 'done'" class="oe_highlight"/>
                     <field name="state" widget="statusbar" statusbar_visible="draft,start,done"/>
                 </header>
                 <sheet>
@@ -40,25 +40,26 @@
                             <field name="session_id" domain="[('course_id','=',course_id),('batch_id','=',batch_id)]" />
                             <field name="course_id" invisible="1"/>
                             <field name="batch_id" invisible="1"/>
-                            <field name="lesson_topic"/>
+                            <field name="lesson_topic" readonly="state in ('done','cancel')"/>
                         </group>
                         <group>
                             <field name="name" readonly="state in ('done','cancel')"/>
                             <field name="attendance_date" readonly="state in ('done','cancel')"/>
+                            <field name="subject_id" readonly="1"/>
                         </group>
                     </group>
                     <group col="4" string="Students">
                         <field name="attendance_line" colspan="4" nolabel="1" readonly="state in ('done','cancel')">
-                            <list string="Attendance Line" editable="top">
-                                <field name="student_id" domain="[('course_detail_ids.course_id','=',parent.course_id),('course_detail_ids.batch_id','=',parent.batch_id)]"/>
-                                <field name="grade_1" sum="Avg Grade 1" optional="hide"/>
-                                <field name="grade_2" sum="Avg Grade 2" optional="show"/>
-                                <field name="grade_3" sum="Avg Grade 3" optional="show"/>
-                                <field name="present"/>
-                                <field name="late"/>
-                                <field name="excused"/>
-                                <field name="absent"/>
+                            <list string="Attendance Line" editable="top" create="false">
+                                <field name="student_id" readonly="1"/>
+                                <field name="attendance_type_id" string="Status" options="{'no_open': True, 'no_create': True}"/>
+                                <field name="grade_1" />
+                                <field name="grade_2" />
                                 <field name="remark"/>
+                                <field name="present" column_invisible="True"/>
+                                <field name="late" column_invisible="True"/>
+                                <field name="excused" column_invisible="True"/>
+                                <field name="absent" column_invisible="True"/>
                             </list>
                         </field>
                     </group>
@@ -68,7 +69,7 @@
         </field>
     </record>
 
-    <!-- 3. ПОИСК (Исправлен ID) -->
+    <!-- 3. ПОИСК -->
     <record id="view_op_attendance_sheet_search" model="ir.ui.view">
         <field name="name">op.attendance.sheet.search</field>
         <field name="model">op.attendance.sheet</field>
@@ -78,11 +79,9 @@
                 <field name="subject_id"/>
                 <field name="faculty_id"/>
                 <field name="attendance_date"/>
-                
                 <filter string="Мои уроки" name="my_lessons" domain="[('faculty_id.user_id', '=', uid)]"/>
                 <separator/>
                 <filter string="Сегодня" name="today" domain="[('attendance_date', '=', context_today().strftime('%Y-%m-%d'))]"/>
-                
                 <group expand="0" string="Группировать по...">
                     <filter string="Класс" name="group_batch" context="{'group_by': 'batch_id'}"/>
                     <filter string="Предмет" name="group_subject" context="{'group_by': 'subject_id'}"/>
@@ -92,7 +91,7 @@
         </field>
     </record>
 
-    <!-- 4. СВОДНАЯ ТАБЛИЦА (PIVOT) -->
+    <!-- 4. PIVOT (СВОДНАЯ ТАБЛИЦА) -->
     <record id="view_op_attendance_sheet_pivot" model="ir.ui.view">
         <field name="name">op.attendance.sheet.pivot</field>
         <field name="model">op.attendance.sheet</field>
@@ -117,7 +116,7 @@
         </field>
     </record>
 
-    <!-- 6. ДЕЙСТВИЕ (ACTION) -->
+    <!-- 6. ДЕЙСТВИЕ -->
     <record model="ir.actions.act_window" id="act_open_op_attendance_sheet_view">
         <field name="name">Attendance Sheets</field>
         <field name="res_model">op.attendance.sheet</field>

@@ -20,7 +20,6 @@
 
 from odoo import api, fields, models
 
-
 class OpAttendanceLine(models.Model):
     _name = "op.attendance.line"
     _inherit = ["mail.thread"]
@@ -28,7 +27,6 @@ class OpAttendanceLine(models.Model):
     _description = "Attendance Lines"
     _order = "attendance_date desc"
 
-    # --- СВЯЗИ ---
     attendance_id = fields.Many2one(
         'op.attendance.sheet', 'Attendance Sheet', required=True,
         tracking=True, ondelete="cascade")
@@ -37,17 +35,14 @@ class OpAttendanceLine(models.Model):
     register_id = fields.Many2one(
         related='attendance_id.register_id', store=True, readonly=True)
     
-    # --- ДАННЫЕ ВЕДОМОСТИ (Берем из родительской записи op.attendance.sheet) ---
     attendance_date = fields.Date(
         'Date', related='attendance_id.attendance_date', store=True,
         readonly=True, tracking=True)
     
-    # ПРЕДМЕТ: Теперь берется строго из ведомости (которая берет его из урока или регистра)
     subject_id = fields.Many2one(
         'op.subject', string='Предмет', 
         related='attendance_id.subject_id', store=True, readonly=True)
 
-    # ПЕРИОДЫ: Теперь берутся строго из ведомости
     term_id = fields.Many2one(
         'op.academic.term', string='Четверть', 
         related='attendance_id.term_id', store=True, readonly=True)
@@ -75,19 +70,22 @@ class OpAttendanceLine(models.Model):
     lesson_topic = fields.Char(
         'Lesson Topic', related='attendance_id.lesson_topic', store=True, readonly=False)
 
-    # --- ОЦЕНКИ ---
+    # --- ОСНОВНОЕ ПОЛЕ СТАТУСА ---
+    attendance_type_id = fields.Many2one(
+        'op.attendance.type', string='Status', required=True, tracking=True)
+
+    # --- СВЯЗАННЫЕ ПОЛЯ (readonly, управляются через тип) ---
+    present = fields.Boolean('Present', related='attendance_type_id.present', store=True, readonly=True)
+    excused = fields.Boolean('Absent Excused', related='attendance_type_id.excused', store=True, readonly=True)
+    absent = fields.Boolean('Absent Unexcused', related='attendance_type_id.absent', store=True, readonly=True)
+    late = fields.Boolean('Late', related='attendance_type_id.late', store=True, readonly=True)
+
     grade_1 = fields.Float('Оценка 1', aggregator="avg")
     grade_2 = fields.Float('Оценка 2', aggregator="avg")
     grade_3 = fields.Float('Оценка 3', aggregator="avg")
 
-    # --- СТАТУС ПРИСУТСТВИЯ ---
-    present = fields.Boolean('Present', tracking=True, default=True)
-    excused = fields.Boolean('Absent Excused', tracking=True)
-    absent = fields.Boolean('Absent Unexcused', tracking=True)
-    late = fields.Boolean('Late', tracking=True)
     remark = fields.Char('Remark', size=256, tracking=True)
     active = fields.Boolean(default=True)
-    attendance_type_id = fields.Many2one('op.attendance.type', 'Attendance Type')
 
     _sql_constraints = [
         ('unique_student',
@@ -98,28 +96,9 @@ class OpAttendanceLine(models.Model):
     # --- ЛОГИКА ИНТЕРФЕЙСА ---
     @api.onchange('attendance_type_id')
     def onchange_attendance_type(self):
+        """Мгновенно обновляет скрытые boolean поля при выборе типа в UI"""
         if self.attendance_type_id:
             self.present = self.attendance_type_id.present
             self.excused = self.attendance_type_id.excused
             self.absent = self.attendance_type_id.absent
             self.late = self.attendance_type_id.late
-
-    @api.onchange('present')
-    def onchange_present(self):
-        if self.present:
-            self.late = self.excused = self.absent = False
-
-    @api.onchange('absent')
-    def onchange_absent(self):
-        if self.absent:
-            self.present = self.late = self.excused = False
-
-    @api.onchange('excused')
-    def onchange_excused(self):
-        if self.excused:
-            self.present = self.late = self.absent = False
-
-    @api.onchange('late')
-    def onchange_late(self):
-        if self.late:
-            self.present = self.excused = self.absent = False
