@@ -4,10 +4,10 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: Odoo Server 18.0\n"
+"Project-Id-Version: Odoo Server 18.0-20260226\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-04-29 09:07+0000\n"
-"PO-Revision-Date: 2025-04-29 09:07+0000\n"
+"POT-Creation-Date: 2026-04-13 15:11+0000\n"
+"PO-Revision-Date: 2026-04-13 15:11+0000\n"
 "Last-Translator: \n"
 "Language-Team: \n"
 "MIME-Version: 1.0\n"
@@ -29,7 +29,7 @@ msgid ""
 "                                                    </span>"
 msgstr ""
 "<br/>\n"
-"                                                    <span style = \"font-weight: 600\">\n"
+"                                                    <span style=\"font-weight: 600\">\n"
 "                                                        Карта №:\n"
 "                                                    </span>"
 
@@ -42,7 +42,7 @@ msgid ""
 "                                                    </span>"
 msgstr ""
 "<br/>\n"
-"                                                    <span style = \"font-weight: 600\">\n"
+"                                                    <span style=\"font-weight: 600\">\n"
 "                                                        Выпущенная дата:\n"
 "                                                    </span>"
 
@@ -55,9 +55,14 @@ msgid ""
 "                                                    </span>"
 msgstr ""
 "<br/>\n"
-"                                                    <span style = \"font-weight: 600\">\n"
+"                                                    <span style=\"font-weight: 600\">\n"
 "                                                        Тип :\n"
 "                                                    </span>"
+
+#. module: openeducat_library
+#: model_terms:ir.ui.view,arch_db:openeducat_library.view_op_media_kanban
+msgid "<span class=\"fw-bold\">ISBN:</span>"
+msgstr ""
 
 #. module: openeducat_library
 #: model_terms:ir.ui.view,arch_db:openeducat_library.report_student_library_card
@@ -66,14 +71,14 @@ msgid ""
 "                                                        Name :\n"
 "                                                    </span>"
 msgstr ""
-"<span style = \"font-weight: 600\">\n"
+"<span style=\"font-weight: 600\">\n"
 "                                                        Имя :\n"
 "                                                    </span>"
 
 #. module: openeducat_library
 #: model_terms:ir.ui.view,arch_db:openeducat_library.report_library_card_barcode
 msgid "<strong>Library Card(s) Barcode</strong>"
-msgstr "<strong> Библиотечный карта (ы) штрих -код </strong>"
+msgstr "<strong> Штрих-код библиотечной карточки </strong>"
 
 #. module: openeducat_library
 #: model:mail.template,body_html:openeducat_library.email_template_media_movement_after
@@ -161,6 +166,91 @@ msgid ""
 "            </table>\n"
 "        "
 msgstr ""
+"<table border=\"0\" cellpadding=\"0\" cellspacing=\"0\" style=\"padding-top: 16px; background-color: #F1F1F1; font-family:Verdana, Arial,sans-serif; color: #454748; width: 100%; border-collapse:separate;\">\n"
+"    <tr>\n"
+"        <td align=\"center\">\n"
+"            <table border=\"0\" cellpadding=\"0\" cellspacing=\"0\" width=\"590\" style=\"padding: 16px; background-color: white; color: #454748; border-collapse:separate;\">\n"
+"                <tbody>\n"
+"                    <tr>\n"
+"                        <td align=\"center\" style=\"min-width: 590px;\">\n"
+"                            <table border=\"0\" cellpadding=\"0\" cellspacing=\"0\" width=\"590\" style=\"min-width: 590px; background-color: white; padding: 0px 8px 0px 8px; border-collapse:separate;\">\n"
+"                                <tr>\n"
+"                                    <td valign=\"middle\">\n"
+"                                        <span style=\"font-size: 12px; font-weight: bold; color: #333;\">Книга просрочена</span>\n"
+"                                        <br/>\n"
+"                                    </td>\n"
+"                                    <td valign=\"middle\" align=\"right\">\n"
+"                                        <img t-att-src=\"'/logo.png?company=%s' % object.company_id.id\" style=\"padding: 0px; margin: 0px; height: auto; width: 80px;\" t-att-alt=\"'%s' % object.company_id.name\"/>\n"
+"                                    </td>\n"
+"                                </tr>\n"
+"                                <tr>\n"
+"                                    <td colspan=\"2\" style=\"text-align:center;\">\n"
+"                                        <hr width=\"100%\" style=\"background-color:rgb(204,204,204);border:medium none;clear:both;display:block;font-size:0px;min-height:1px;line-height:0; margin:16px 0px 16px 0px;\"/>\n"
+"                                    </td>\n"
+"                                </tr>\n"
+"                            </table>\n"
+"                        </td>\n"
+"                    </tr>\n"
+"                    <tr>\n"
+"                        <td align=\"center\" style=\"min-width: 590px;\">\n"
+"                            <table border=\"0\" cellpadding=\"0\" cellspacing=\"0\" width=\"590\" style=\"min-width: 590px; background-color: white; padding: 0px 8px 0px 8px; border-collapse:separate;\">\n"
+"                                <tr>\n"
+"                                    <td valign=\"top\" style=\"font-size: 13px;\">\n"
+"                                        <p>Уважаемый(ая)</p>\n"
+"                                        <strong>\n"
+"                                            <t t-out=\"object.student_id.name or ''\"/>\n"
+"                                        </strong>\n"
+"                                        <p>Книга — <t t-out=\"object.media_type_id.name or ''\"/> \n"
+"                                            <strong>\n"
+"                                                «<t t-out=\"object.media_id.name or ''\"/>»\n"
+"                                            </strong>\n"
+"                                            — просрочена. \n"
+"                                            Пожалуйста, верните её в библиотеку как можно скорее, чтобы избежать штрафов или ограничений.\n"
+"                                        </p>\n"
+"                                        <p>Спасибо за понимание.</p>\n"
+"                                    </td>\n"
+"                                </tr>\n"
+"                                <tr>\n"
+"                                    <td style=\"text-align:center;\">\n"
+"                                        <hr width=\"100%\" style=\"background-color:rgb(204,204,204);border:medium none;clear:both;display:block;font-size:0px;min-height:1px;line-height:0; margin: 16px 0px 16px 0px;\"/>\n"
+"                                    </td>\n"
+"                                </tr>\n"
+"                            </table>\n"
+"                        </td>\n"
+"                    </tr>\n"
+"                    <tr>\n"
+"                        <td align=\"center\" style=\"min-width: 590px;\">\n"
+"                            <table border=\"0\" cellpadding=\"0\" cellspacing=\"0\" width=\"590\" style=\"min-width: 590px; background-color: white; font-size: 11px; padding: 0px 8px 0px 8px; border-collapse:separate;\">\n"
+"                                <tr>\n"
+"                                    <td valign=\"middle\" align=\"left\">\n"
+"                                        <t t-out=\"object.company_id.name or ''\"/>\n"
+"                                    </td>\n"
+"                                </tr>\n"
+"                                <tr>\n"
+"                                    <td valign=\"middle\" align=\"left\" style=\"opacity: 0.7;\">\n"
+"                                        <t t-out=\"object.company_id.phone or ''\"/>\n"
+"                                        <t t-if=\"object.company_id.email\">\n"
+"                                            | \n"
+"                                            <a href=\"mailto:{{ object.company_id.email }}\" style=\"text-decoration:none; color: #454748;\">\n"
+"                                                <t t-out=\"object.company_id.email or ''\"/>\n"
+"                                            </a>\n"
+"                                        </t>\n"
+"                                        <t t-if=\"object.company_id.website\">\n"
+"                                            | \n"
+"                                            <a href=\"{{ object.company_id.website }}\" style=\"text-decoration:none; color: #454748;\">\n"
+"                                                <t t-out=\"object.company_id.website or ''\"/>\n"
+"                                            </a>\n"
+"                                        </t>\n"
+"                                    </td>\n"
+"                                </tr>\n"
+"                            </table>\n"
+"                        </td>\n"
+"                    </tr>\n"
+"                </tbody>\n"
+"            </table>\n"
+"        </td>\n"
+"    </tr>\n"
+"</table>"
 
 #. module: openeducat_library
 #: model:mail.template,body_html:openeducat_library.email_template_media_movement
@@ -263,19 +353,109 @@ msgid ""
 "            </table>\n"
 "        "
 msgstr ""
+"<table border=\"0\" cellpadding=\"0\" cellspacing=\"0\" style=\"padding-top: 16px; background-color: #F1F1F1; font-family:Verdana, Arial,sans-serif; color: #454748; width: 100%; border-collapse:separate;\">\n"
+"    <tr>\n"
+"        <td align=\"center\">\n"
+"            <table border=\"0\" cellpadding=\"0\" cellspacing=\"0\" width=\"590\" style=\"padding: 16px; background-color: white; color: #454748; border-collapse:separate;\">\n"
+"                <tbody>\n"
+"                    <tr>\n"
+"                        <td align=\"center\" style=\"min-width: 590px;\">\n"
+"                            <table border=\"0\" cellpadding=\"0\" cellspacing=\"0\" width=\"590\" style=\"min-width: 590px; background-color: white; padding: 0px 8px 0px 8px; border-collapse:separate;\">\n"
+"                                <tr>\n"
+"                                    <td valign=\"middle\">\n"
+"                                        <span style=\"font-size: 12px; font-weight: bold; color: #333;\">Напоминание о возврате книги</span>\n"
+"                                        <br/>\n"
+"                                    </td>\n"
+"                                    <td valign=\"middle\" align=\"right\">\n"
+"                                        <img t-att-src=\"'/logo.png?company=%s' % object.company_id.id\" style=\"padding: 0px; margin: 0px; height: auto; width: 80px;\" t-att-alt=\"'%s' % object.company_id.name\"/>\n"
+"                                    </td>\n"
+"                                </tr>\n"
+"                                <tr>\n"
+"                                    <td colspan=\"2\" style=\"text-align:center;\">\n"
+"                                        <hr width=\"100%\" style=\"background-color:rgb(204,204,204);border:medium none;clear:both;display:block;font-size:0px;min-height:1px;line-height:0; margin:16px 0px 16px 0px;\"/>\n"
+"                                    </td>\n"
+"                                </tr>\n"
+"                            </table>\n"
+"                        </td>\n"
+"                    </tr>\n"
+"                    <tr>\n"
+"                        <td align=\"center\" style=\"min-width: 590px;\">\n"
+"                            <table border=\"0\" cellpadding=\"0\" cellspacing=\"0\" width=\"590\" style=\"min-width: 590px; background-color: white; padding: 0px 8px 0px 8px; border-collapse:separate;\">\n"
+"                                <tr>\n"
+"                                    <td valign=\"top\" style=\"font-size: 13px;\">\n"
+"                                        <p>Уважаемый(ая)</p>\n"
+"                                        <strong>\n"
+"                                            <t t-out=\"object.student_id.name or ''\"/>\n"
+"                                        </strong>\n"
+"                                        <p>Срок возврата <t t-out=\"object.media_type_id.name or ''\"/>,\n"
+"                                            <strong>\n"
+"                                                <t t-out=\"object.media_id.name or ''\"/>\n"
+"                                            </strong>\n"
+"                                            <t t-if=\"object.get_diff_day() == 0\">\n"
+"                                                <strong>истекает сегодня.</strong>\n"
+"                                            </t>\n"
+"                                            <t t-else=\"\">\n"
+"                                                истекает через <strong><t t-out=\"object.get_diff_day() or ''\"/></strong> день(ей).\n"
+"                                            </t>\n"
+"                                            Пожалуйста, верните её в библиотеку как можно скорее или оформите продление.\n"
+"                                        </p>\n"
+"                                        <p>Спасибо.</p>\n"
+"                                    </td>\n"
+"                                </tr>\n"
+"                                <tr>\n"
+"                                    <td style=\"text-align:center;\">\n"
+"                                        <hr width=\"100%\" style=\"background-color:rgb(204,204,204);border:medium none;clear:both;display:block;font-size:0px;min-height:1px;line-height:0; margin: 16px 0px 16px 0px;\"/>\n"
+"                                    </td>\n"
+"                                </tr>\n"
+"                            </table>\n"
+"                        </td>\n"
+"                    </tr>\n"
+"                    <tr>\n"
+"                        <td align=\"center\" style=\"min-width: 590px;\">\n"
+"                            <table border=\"0\" cellpadding=\"0\" cellspacing=\"0\" width=\"590\" style=\"min-width: 590px; background-color: white; font-size: 11px; padding: 0px 8px 0px 8px; border-collapse:separate;\">\n"
+"                                <tr>\n"
+"                                    <td valign=\"middle\" align=\"left\">\n"
+"                                        <t t-out=\"object.company_id.name or ''\"/>\n"
+"                                    </td>\n"
+"                                </tr>\n"
+"                                <tr>\n"
+"                                    <td valign=\"middle\" align=\"left\" style=\"opacity: 0.7;\">\n"
+"                                        <t t-out=\"object.company_id.phone or ''\"/>\n"
+"                                        <t t-if=\"object.company_id.email\">\n"
+"                                            | \n"
+"                                            <a href=\"mailto:{{ object.company_id.email }}\" style=\"text-decoration:none; color: #454748;\">\n"
+"                                                <t t-out=\"object.company_id.email or ''\"/>\n"
+"                                            </a>\n"
+"                                        </t>\n"
+"                                        <t t-if=\"object.company_id.website\">\n"
+"                                            | \n"
+"                                            <a href=\"{{ object.company_id.website }}\" style=\"text-decoration:none; color: #454748;\">\n"
+"                                                <t t-out=\"object.company_id.website or ''\"/>\n"
+"                                            </a>\n"
+"                                        </t>\n"
+"                                    </td>\n"
+"                                </tr>\n"
+"                            </table>\n"
+"                        </td>\n"
+"                    </tr>\n"
+"                </tbody>\n"
+"            </table>\n"
+"        </td>\n"
+"    </tr>\n"
+"</table>"
 
 #. module: openeducat_library
 #: model_terms:ir.ui.view,arch_db:openeducat_library.view_op_media_form
 #: model_terms:ir.ui.view,arch_db:openeducat_library.view_op_media_queue_form
 #: model_terms:ir.ui.view,arch_db:openeducat_library.view_op_purchase_form
 msgid "Accept"
-msgstr "Принимать"
+msgstr "Принять"
 
 #. module: openeducat_library
 #: model:ir.model.fields.selection,name:openeducat_library.selection__op_media_purchase__state__accept
 #: model:ir.model.fields.selection,name:openeducat_library.selection__op_media_queue__state__accept
 msgid "Accepted"
-msgstr "Принял"
+msgstr "Принят"
 
 #. module: openeducat_library
 #: model:ir.model.fields,field_description:openeducat_library.field_issue_media__message_needaction
@@ -305,17 +485,11 @@ msgid "Actual Return Date"
 msgstr "Фактическая дата возврата"
 
 #. module: openeducat_library
-#. odoo-python
-#: code:addons/openeducat_library/models/media_movement.py:0
-msgid "Actual Return Date cannot be set before Issued Date"
-msgstr "Фактическая дата возврата не может быть установлена ​​до даты выпуска"
-
-#. module: openeducat_library
 #: model:ir.model.fields,field_description:openeducat_library.field_op_author__address
 #: model:ir.model.fields,field_description:openeducat_library.field_op_publisher__address_id
 #: model_terms:ir.ui.view,arch_db:openeducat_library.view_op_student_library_form
 msgid "Address"
-msgstr "Адрес"
+msgstr "Контакт"
 
 #. module: openeducat_library
 #: model_terms:ir.ui.view,arch_db:openeducat_library.view_op_student_library_form
@@ -331,7 +505,7 @@ msgstr "Детали входа"
 #: model:ir.actions.act_window,name:openeducat_library.act_open_op_media_view
 #: model:ir.ui.menu,name:openeducat_library.menu_library_medias
 msgid "All Media"
-msgstr "Все СМИ"
+msgstr "Все книги"
 
 #. module: openeducat_library
 #: model_terms:ir.ui.view,arch_db:openeducat_library.view_media_unit_form
@@ -382,7 +556,12 @@ msgstr "Авторы"
 #: model:ir.model.fields.selection,name:openeducat_library.selection__op_media_movement__state__available
 #: model:ir.model.fields.selection,name:openeducat_library.selection__op_media_unit__state__available
 msgid "Available"
-msgstr "Доступный"
+msgstr "Доступна"
+
+#. module: openeducat_library
+#: model:ir.model.fields,field_description:openeducat_library.field_op_media__available_units
+msgid "Available Units"
+msgstr ""
 
 #. module: openeducat_library
 #: model:ir.model.fields,field_description:openeducat_library.field_op_media_unit__barcode
@@ -393,13 +572,7 @@ msgstr "Штрих -код"
 #. module: openeducat_library
 #: model:ir.model.constraint,message:openeducat_library.constraint_op_media_unit_unique_name_barcode
 msgid "Barcode must be unique per Media unit!"
-msgstr "Штриховой код должен быть уникальным для медиа -единицы!"
-
-#. module: openeducat_library
-#. odoo-python
-#: code:addons/openeducat_library/wizards/return_media.py:0
-msgid "Can't return media."
-msgstr "Не могу вернуть СМИ."
+msgstr "Штрих-код должен быть уникальным для книги!"
 
 #. module: openeducat_library
 #: model_terms:ir.ui.view,arch_db:openeducat_library.issue_media_form
@@ -411,7 +584,7 @@ msgstr "Отмена"
 #. module: openeducat_library
 #: model_terms:ir.ui.view,arch_db:openeducat_library.report_library_card_barcode
 msgid "Card Barcode"
-msgstr "Карточный штрих -код"
+msgstr "Штрих-код"
 
 #. module: openeducat_library
 #: model_terms:ir.ui.view,arch_db:openeducat_library.report_library_card_barcode
@@ -457,7 +630,7 @@ msgstr "Страна"
 #: model:ir.model.fields,field_description:openeducat_library.field_op_media__course_ids
 #: model:ir.model.fields,field_description:openeducat_library.field_op_media_purchase__course_ids
 msgid "Course"
-msgstr "Курс"
+msgstr "Класс"
 
 #. module: openeducat_library
 #: model_terms:ir.ui.view,arch_db:openeducat_library.view_op_student_library_form
@@ -467,7 +640,7 @@ msgstr "Подробности курса"
 #. module: openeducat_library
 #: model_terms:ir.ui.view,arch_db:openeducat_library.view_op_media_form
 msgid "Courses"
-msgstr "Курсы"
+msgstr "Классы"
 
 #. module: openeducat_library
 #: model_terms:ir.ui.view,arch_db:openeducat_library.view_op_media_movement_form
@@ -542,7 +715,7 @@ msgstr "Черновик"
 #. module: openeducat_library
 #: model:ir.model.fields,field_description:openeducat_library.field_op_media_movement__return_date
 msgid "Due Date"
-msgstr "Две даты"
+msgstr "Планируемая дата возврата"
 
 #. module: openeducat_library
 #: model:ir.model.fields,field_description:openeducat_library.field_op_library_card_type__duration
@@ -559,23 +732,17 @@ msgstr "Продолжительность с точки зрения колич
 #: model:ir.model.fields,field_description:openeducat_library.field_op_media_purchase__edition
 #: model_terms:ir.ui.view,arch_db:openeducat_library.view_op_media_search
 msgid "Edition"
-msgstr "Версия"
+msgstr "Издание"
 
 #. module: openeducat_library
 #: model_terms:ir.ui.view,arch_db:openeducat_library.view_op_media_form
 msgid "Education Details"
-msgstr "Детали образования"
+msgstr "Характеристики"
 
 #. module: openeducat_library
 #: model_terms:ir.ui.view,arch_db:openeducat_library.view_op_student_library_form
 msgid "Educational"
 msgstr "Образовательный"
-
-#. module: openeducat_library
-#. odoo-python
-#: code:addons/openeducat_library/models/library.py:0
-msgid "Enter proper value"
-msgstr "Введите правильное значение"
 
 #. module: openeducat_library
 #: model:ir.model.fields,field_description:openeducat_library.field_issue_media__faculty_id
@@ -586,7 +753,7 @@ msgstr "Введите правильное значение"
 #: model:ir.model.fields.selection,name:openeducat_library.selection__op_media_movement__type__faculty
 #: model_terms:ir.ui.view,arch_db:openeducat_library.view_op_media_movement_search
 msgid "Faculty"
-msgstr "Факультет"
+msgstr "Учитель"
 
 #. module: openeducat_library
 #: model_terms:ir.ui.view,arch_db:openeducat_library.view_op_student_library_form
@@ -616,7 +783,7 @@ msgstr "Последователи (партнеры)"
 #. module: openeducat_library
 #: model:ir.model.fields,field_description:openeducat_library.field_op_media_queue__date_from
 msgid "From Date"
-msgstr "С даты"
+msgstr "Запрошено с"
 
 #. module: openeducat_library
 #: model_terms:ir.ui.view,arch_db:openeducat_library.view_media_unit_search
@@ -712,46 +879,6 @@ msgid "Internal Code must be unique per media!"
 msgstr "Внутренний код должен быть уникальным для медиа!"
 
 #. module: openeducat_library
-#. odoo-python
-#: code:addons/openeducat_library/models/media_purchase.py:0
-msgid ""
-"Invalid Action!\n"
-" Parent can not create             Media Purchase Requests!"
-msgstr ""
-"Неверное действие!\n"
-" Родитель не может создать запросы на покупку в СМИ!"
-
-#. module: openeducat_library
-#. odoo-python
-#: code:addons/openeducat_library/models/media_queue.py:0
-msgid ""
-"Invalid Action!\n"
-" Parent can not create             Media Queue Requests!"
-msgstr ""
-"Неверное действие!\n"
-" Родитель не может создавать запросы на медиа -очередь!"
-
-#. module: openeducat_library
-#. odoo-python
-#: code:addons/openeducat_library/models/media_purchase.py:0
-msgid ""
-"Invalid Action!\n"
-" Parent can not edit             Media Purchase Requests!"
-msgstr ""
-"Неверное действие!\n"
-" Родитель не может редактировать запросы на покупку в СМИ!"
-
-#. module: openeducat_library
-#. odoo-python
-#: code:addons/openeducat_library/models/media_queue.py:0
-msgid ""
-"Invalid Action!\n"
-" Parent can not edit             Media Queue Requests!"
-msgstr ""
-"Неверное действие!\n"
-" Родитель не может отредактировать запросы на очередь в СМИ!"
-
-#. module: openeducat_library
 #: model:ir.model.fields,field_description:openeducat_library.field_op_media_movement__invoice_id
 msgid "Invoice"
 msgstr "Счет"
@@ -774,7 +901,7 @@ msgstr "Дата выпуска"
 #. module: openeducat_library
 #: model_terms:ir.ui.view,arch_db:openeducat_library.view_media_unit_form
 msgid "Issue Media"
-msgstr "Выпустить СМИ"
+msgstr "Выдать книгу"
 
 #. module: openeducat_library
 #: model:ir.model,name:openeducat_library.model_issue_media
@@ -785,25 +912,30 @@ msgstr "Выпуск мастерства"
 #: model:ir.actions.act_window,name:openeducat_library.issue_media_act
 #: model_terms:ir.ui.view,arch_db:openeducat_library.view_op_media_movement_form
 msgid "Issue media"
-msgstr "Выпустить СМИ"
+msgstr "Выдать книгу"
 
 #. module: openeducat_library
 #: model:ir.model.fields.selection,name:openeducat_library.selection__op_media_movement__state__issue
 #: model:ir.model.fields.selection,name:openeducat_library.selection__op_media_unit__state__issue
 msgid "Issued"
-msgstr "Изданный"
+msgstr "Выдана"
 
 #. module: openeducat_library
 #: model:ir.model.fields,field_description:openeducat_library.field_issue_media__issued_date
 #: model:ir.model.fields,field_description:openeducat_library.field_op_media_movement__issued_date
 #: model_terms:ir.ui.view,arch_db:openeducat_library.view_op_media_movement_search
 msgid "Issued Date"
-msgstr "Выпущенная дата"
+msgstr "Дата выдачи"
 
 #. module: openeducat_library
 #: model_terms:ir.ui.view,arch_db:openeducat_library.view_op_media_movement_search
 msgid "Issued Today"
 msgstr "Выпущено сегодня"
+
+#. module: openeducat_library
+#: model:ir.model.fields,field_description:openeducat_library.field_op_media__issued_units
+msgid "Issued Units"
+msgstr ""
 
 #. module: openeducat_library
 #: model:ir.model,name:openeducat_library.model_account_move
@@ -871,12 +1003,12 @@ msgstr "Библиотека"
 #: model_terms:ir.ui.view,arch_db:openeducat_library.view_op_library_card_tree
 #: model_terms:ir.ui.view,arch_db:openeducat_library.view_op_media_movement_search
 msgid "Library Card"
-msgstr "Библиотечная карта"
+msgstr "Библиотечная карточка"
 
 #. module: openeducat_library
 #: model:ir.actions.report,name:openeducat_library.action_report_student_library_card_barcode
 msgid "Library Card Barcode"
-msgstr "Шалтер -код библиотечной карты"
+msgstr "Штрих-код"
 
 #. module: openeducat_library
 #: model:ir.model,name:openeducat_library.model_report_openeducat_library_report_library_card_barcode
@@ -899,19 +1031,19 @@ msgstr "Библиотечная карта обновление"
 #: model_terms:ir.ui.view,arch_db:openeducat_library.view_op_library_card_type_search
 #: model_terms:ir.ui.view,arch_db:openeducat_library.view_op_library_card_type_tree
 msgid "Library Card Type"
-msgstr "Тип библиотечной карты"
+msgstr "Тип библиотечной карточки"
 
 #. module: openeducat_library
 #: model:ir.actions.act_window,name:openeducat_library.act_open_op_library_card_type_view
 #: model:ir.ui.menu,name:openeducat_library.menu_op_library_card_type_sub
 msgid "Library Card Types"
-msgstr "Типы библиотечных карт"
+msgstr "Типы библиотечных карточек"
 
 #. module: openeducat_library
 #: model:ir.actions.act_window,name:openeducat_library.act_open_op_library_card_view
 #: model:ir.ui.menu,name:openeducat_library.menu_op_library_card_sub
 msgid "Library Cards"
-msgstr "Библиотечные карты"
+msgstr "Библиотечные карточки"
 
 #. module: openeducat_library
 #: model:ir.actions.report,name:openeducat_library.action_report_student_library_card
@@ -931,19 +1063,12 @@ msgstr "Библиотечный штраф"
 #. module: openeducat_library
 #: model:ir.model.fields.selection,name:openeducat_library.selection__op_media_movement__state__lost
 msgid "Lost"
-msgstr "Потерянный"
+msgstr "Потеряна"
 
 #. module: openeducat_library
 #: model:res.groups,name:openeducat_library.group_op_library
 msgid "Manager"
 msgstr "Менеджер"
-
-#. module: openeducat_library
-#. odoo-python
-#: code:addons/openeducat_library/wizards/issue_media.py:0
-msgid "Maximum Number of media allowed for %s is : %s"
-msgstr ""
-"Максимальное количество средств массовой информации, разрешенное для %s: %s"
 
 #. module: openeducat_library
 #: model:ir.model.fields,field_description:openeducat_library.field_issue_media__media_id
@@ -963,18 +1088,18 @@ msgstr ""
 #: model_terms:ir.ui.view,arch_db:openeducat_library.view_op_media_tree
 #: model_terms:ir.ui.view,arch_db:openeducat_library.view_op_student_form_library_inherit
 msgid "Media"
-msgstr "СМИ"
+msgstr "Книги"
 
 #. module: openeducat_library
 #: model_terms:ir.ui.view,arch_db:openeducat_library.report_media_barcode
 msgid "Media :"
-msgstr "СМИ:"
+msgstr "Книга:"
 
 #. module: openeducat_library
 #: model:ir.model,name:openeducat_library.model_op_author
 #: model:ir.model,name:openeducat_library.model_return_media
 msgid "Media Author"
-msgstr "Автор СМИ"
+msgstr "Автор"
 
 #. module: openeducat_library
 #: model:ir.actions.report,name:openeducat_library.action_report_media_barcode
@@ -989,13 +1114,13 @@ msgstr "Отчет о штрих -коде медиа"
 #. module: openeducat_library
 #: model:ir.model,name:openeducat_library.model_op_media
 msgid "Media Details"
-msgstr "СМИ детали"
+msgstr "Детали книги"
 
 #. module: openeducat_library
 #: model:ir.model,name:openeducat_library.model_op_media_movement
 #: model:mail.template,name:openeducat_library.email_template_media_movement
 msgid "Media Movement"
-msgstr "СМИ Движение"
+msgstr "Движение книг"
 
 #. module: openeducat_library
 #: model:mail.template,name:openeducat_library.email_template_media_movement_after
@@ -1022,23 +1147,23 @@ msgstr "Линии движения СМИ считаются"
 #: model:ir.actions.act_window,name:openeducat_library.act_open_op_media_movement_view
 #: model:ir.ui.menu,name:openeducat_library.menu_op_media_movement_library
 msgid "Media Movements"
-msgstr "Движения СМИ"
+msgstr "Движение книг"
 
 #. module: openeducat_library
 #: model_terms:ir.ui.view,arch_db:openeducat_library.view_op_media_form
 msgid "Media Name"
-msgstr "Название СМИ"
+msgstr "Название книги"
 
 #. module: openeducat_library
 #: model:ir.model,name:openeducat_library.model_op_media_purchase
 msgid "Media Purchase Request"
-msgstr "Запрос на покупку СМИ"
+msgstr "Запрос на покупку книги"
 
 #. module: openeducat_library
 #: model:ir.actions.act_window,name:openeducat_library.act_open_op_purchase_view
 #: model:ir.ui.menu,name:openeducat_library.menu_op_media_request_library_sub
 msgid "Media Purchase Requests"
-msgstr "Запросы на покупку СМИ"
+msgstr "Запросы на покупку книг"
 
 #. module: openeducat_library
 #: model:ir.model.fields,field_description:openeducat_library.field_op_media__queue_ids
@@ -1060,7 +1185,7 @@ msgstr "Запрос в очереди в СМИ"
 #: model:ir.ui.menu,name:openeducat_library.menu_op_media_queue_request_library_sub
 #: model_terms:ir.ui.view,arch_db:openeducat_library.view_op_media_form
 msgid "Media Queue Requests"
-msgstr "Запросы на очередь медиа"
+msgstr "Запросы на книги"
 
 #. module: openeducat_library
 #: model:ir.actions.act_window,name:openeducat_library.reserve_media_act
@@ -1092,7 +1217,7 @@ msgstr "Медиа -теги"
 #: model:ir.model.fields,field_description:openeducat_library.field_op_media_unit__media_type_id
 #: model:ir.ui.menu,name:openeducat_library.menu_op_tag_sub
 msgid "Media Type"
-msgstr "СМИ тип"
+msgstr "Тип книги"
 
 #. module: openeducat_library
 #: model:ir.model,name:openeducat_library.model_op_media_unit
@@ -1101,13 +1226,7 @@ msgstr "СМИ тип"
 #: model:ir.model.fields,field_description:openeducat_library.field_return_media__media_unit_id
 #: model_terms:ir.ui.view,arch_db:openeducat_library.report_media_barcode
 msgid "Media Unit"
-msgstr "Медиа -единица"
-
-#. module: openeducat_library
-#. odoo-python
-#: code:addons/openeducat_library/wizards/return_media.py:0
-msgid "Media Unit can not be returned because it's already: %s"
-msgstr "Медиа -блок не может быть возвращен, потому что это уже: %s"
+msgstr "Экземпляр книги"
 
 #. module: openeducat_library
 #: model:ir.actions.act_window,name:openeducat_library.act_open_media_unit_view
@@ -1117,13 +1236,7 @@ msgstr "Медиа -блок не может быть возвращен, пот
 #: model_terms:ir.ui.view,arch_db:openeducat_library.view_op_media_unit_graph
 #: model_terms:ir.ui.view,arch_db:openeducat_library.view_op_media_unit_pivot
 msgid "Media Units"
-msgstr "СМИ единицы"
-
-#. module: openeducat_library
-#. odoo-python
-#: code:addons/openeducat_library/wizards/issue_media.py:0
-msgid "Media unit can not be issued because it's already: %s"
-msgstr "Медиа -единица не может быть выпущена, потому что это уже: %s"
+msgstr "Экземляры"
 
 #. module: openeducat_library
 #: model:ir.model.fields,field_description:openeducat_library.field_op_author__media_ids
@@ -1131,7 +1244,7 @@ msgstr "Медиа -единица не может быть выпущена, п
 #: model_terms:ir.ui.view,arch_db:openeducat_library.view_op_author_form
 #: model_terms:ir.ui.view,arch_db:openeducat_library.view_op_publisher_form
 msgid "Media(s)"
-msgstr "СМИ (ы)"
+msgstr "Книги"
 
 #. module: openeducat_library
 #: model:ir.model.fields,field_description:openeducat_library.field_issue_media__message_has_error
@@ -1179,7 +1292,7 @@ msgstr "Движения"
 #: model_terms:ir.ui.view,arch_db:openeducat_library.view_op_media_type_search
 #: model_terms:ir.ui.view,arch_db:openeducat_library.view_op_tag_search
 msgid "Name"
-msgstr "Имя"
+msgstr "Наименование"
 
 #. module: openeducat_library
 #: model:ir.model.fields,field_description:openeducat_library.field_op_library_card_type__allow_media
@@ -1256,7 +1369,7 @@ msgstr "Сумма штрафа в день"
 #: model:ir.model.fields,field_description:openeducat_library.field_issue_media__partner_id
 #: model:ir.model.fields,field_description:openeducat_library.field_op_media_movement__partner_id
 msgid "Person"
-msgstr "Человек"
+msgstr "Абонент"
 
 #. module: openeducat_library
 #: model:ir.model.fields,field_description:openeducat_library.field_op_media_movement__reserver_name
@@ -1287,13 +1400,13 @@ msgstr "Издатель"
 #: model:ir.model.fields,field_description:openeducat_library.field_op_media__publisher_ids
 #: model:ir.model.fields,field_description:openeducat_library.field_op_media_purchase__publisher
 msgid "Publisher(s)"
-msgstr "Издатель (ы)"
+msgstr "Издательство"
 
 #. module: openeducat_library
 #: model:ir.actions.act_window,name:openeducat_library.act_open_op_publisher_view
 #: model:ir.ui.menu,name:openeducat_library.menu_op_publisher_sub
 msgid "Publishers"
-msgstr "Издатели"
+msgstr "Издательства"
 
 #. module: openeducat_library
 #: model_terms:ir.ui.view,arch_db:openeducat_library.view_op_media_purchase_pivot
@@ -1305,17 +1418,27 @@ msgid "Purchase Request"
 msgstr "Запрос на покупку"
 
 #. module: openeducat_library
+#: model:ir.model.fields,field_description:openeducat_library.field_issue_media__rating_ids
+#: model:ir.model.fields,field_description:openeducat_library.field_op_media__rating_ids
+#: model:ir.model.fields,field_description:openeducat_library.field_op_media_movement__rating_ids
+#: model:ir.model.fields,field_description:openeducat_library.field_op_media_purchase__rating_ids
+#: model:ir.model.fields,field_description:openeducat_library.field_op_media_queue__rating_ids
+#: model:ir.model.fields,field_description:openeducat_library.field_op_media_unit__rating_ids
+msgid "Ratings"
+msgstr ""
+
+#. module: openeducat_library
 #: model_terms:ir.ui.view,arch_db:openeducat_library.view_op_media_form
 #: model_terms:ir.ui.view,arch_db:openeducat_library.view_op_media_queue_form
 #: model_terms:ir.ui.view,arch_db:openeducat_library.view_op_purchase_form
 msgid "Reject"
-msgstr "Отклонять"
+msgstr "Отклонить"
 
 #. module: openeducat_library
 #: model:ir.model.fields.selection,name:openeducat_library.selection__op_media_purchase__state__reject
 #: model:ir.model.fields.selection,name:openeducat_library.selection__op_media_queue__state__reject
 msgid "Rejected"
-msgstr "Отклоненный"
+msgstr "Отклонен"
 
 #. module: openeducat_library
 #: model:ir.model.fields.selection,name:openeducat_library.selection__op_media_queue__state__request
@@ -1341,7 +1464,7 @@ msgstr "Запрос №"
 #. module: openeducat_library
 #: model_terms:ir.ui.view,arch_db:openeducat_library.view_op_purchase_form
 msgid "Request media"
-msgstr "Запросить СМИ"
+msgstr "Запросить книгу"
 
 #. module: openeducat_library
 #: model:ir.model.fields.selection,name:openeducat_library.selection__op_media_purchase__state__request
@@ -1351,7 +1474,7 @@ msgstr "Запрошен"
 #. module: openeducat_library
 #: model:ir.model.fields,field_description:openeducat_library.field_op_media_purchase__requested_id
 msgid "Requested By"
-msgstr "Запрашивается"
+msgstr "Запрашивает"
 
 #. module: openeducat_library
 #: model_terms:ir.ui.view,arch_db:openeducat_library.view_op_media_movement_form
@@ -1361,37 +1484,30 @@ msgstr "Подробная деталь"
 #. module: openeducat_library
 #: model:ir.model.fields.selection,name:openeducat_library.selection__op_media_movement__state__reserve
 msgid "Reserved"
-msgstr "Сдержанный"
+msgstr "Забронирована"
 
 #. module: openeducat_library
 #: model:ir.model.fields,field_description:openeducat_library.field_issue_media__return_date
 #: model_terms:ir.ui.view,arch_db:openeducat_library.view_op_media_movement_search
 msgid "Return Date"
-msgstr "Дата возвращения"
-
-#. module: openeducat_library
-#. odoo-python
-#: code:addons/openeducat_library/models/media_movement.py:0
-#: code:addons/openeducat_library/wizards/issue_media.py:0
-msgid "Return Date cannot be set before Issued Date."
-msgstr "Дата возврата не может быть установлена ​​до даты выпуска."
+msgstr "Дата возврата"
 
 #. module: openeducat_library
 #: model:ir.actions.act_window,name:openeducat_library.return_media_act
 #: model_terms:ir.ui.view,arch_db:openeducat_library.view_media_unit_form
 #: model_terms:ir.ui.view,arch_db:openeducat_library.view_op_media_movement_form
 msgid "Return Media"
-msgstr "Вернуть СМИ"
+msgstr "Вернуть книгу"
 
 #. module: openeducat_library
 #: model:ir.model.fields.selection,name:openeducat_library.selection__op_media_movement__state__return
 msgid "Returned"
-msgstr "Вернулся"
+msgstr "Возвращена"
 
 #. module: openeducat_library
 #: model:ir.model.fields.selection,name:openeducat_library.selection__op_media_movement__state__return_done
 msgid "Returned Done"
-msgstr "Вернулся"
+msgstr "Сдана"
 
 #. module: openeducat_library
 #: model_terms:ir.ui.view,arch_db:openeducat_library.view_op_media_movement_search
@@ -1465,19 +1581,19 @@ msgstr "Улица2"
 #: model_terms:ir.ui.view,arch_db:openeducat_library.view_op_media_movement_search
 #: model_terms:ir.ui.view,arch_db:openeducat_library.view_op_student_library_form
 msgid "Student"
-msgstr "Студент"
+msgstr "Ученик"
 
 #. module: openeducat_library
 #: model:ir.model.fields,field_description:openeducat_library.field_op_library_card__partner_id
 #: model:ir.model.fields,field_description:openeducat_library.field_op_media_movement__type
 #: model:ir.model.fields,field_description:openeducat_library.field_op_media_queue__partner_id
 msgid "Student/Faculty"
-msgstr "Студент/преподаватели"
+msgstr "Ученик/Учитель"
 
 #. module: openeducat_library
 #: model_terms:ir.ui.view,arch_db:openeducat_library.view_op_media_movement_form
 msgid "Student/Faculty Detail"
-msgstr "Деталь студента/преподавателей"
+msgstr "Деталь ученика/учителя"
 
 #. module: openeducat_library
 #: model:ir.model.fields,field_description:openeducat_library.field_op_media_purchase__subject_ids
@@ -1488,7 +1604,7 @@ msgstr "Предмет"
 #: model:ir.model.fields,field_description:openeducat_library.field_op_media__subject_ids
 #: model_terms:ir.ui.view,arch_db:openeducat_library.view_op_media_form
 msgid "Subjects"
-msgstr "Субъекты"
+msgstr "Предметы"
 
 #. module: openeducat_library
 #: model_terms:ir.ui.view,arch_db:openeducat_library.view_op_media_type_form
@@ -1511,17 +1627,6 @@ msgid "Tags"
 msgstr "Теги"
 
 #. module: openeducat_library
-#. odoo-python
-#: code:addons/openeducat_library/models/media_movement.py:0
-msgid ""
-"There is no income account defined for this                     product: "
-"\"%s\". You may have to install a chart of                     account from "
-"Accounting app, settings                     menu."
-msgstr ""
-"Для этого продукта не определено счета дохода: «%s». Возможно, вам придется "
-"установить таблицу учетной записи из приложения Accounting Menu Menu."
-
-#. module: openeducat_library
 #: model:ir.model.fields,field_description:openeducat_library.field_op_media__name
 #: model:ir.model.fields,field_description:openeducat_library.field_op_media_purchase__name
 #: model_terms:ir.ui.view,arch_db:openeducat_library.view_op_student_library_form
@@ -1531,13 +1636,12 @@ msgstr "Заголовок"
 #. module: openeducat_library
 #: model:ir.model.fields,field_description:openeducat_library.field_op_media_queue__date_to
 msgid "To Date"
-msgstr "На сегодняшний день"
+msgstr "Запрошено по"
 
 #. module: openeducat_library
-#. odoo-python
-#: code:addons/openeducat_library/models/media_queue.py:0
-msgid "To Date cannot be set before From Date."
-msgstr "На сегодняшний день не может быть установлен ранее с даты."
+#: model:ir.model.fields,field_description:openeducat_library.field_op_media__total_units
+msgid "Total Units"
+msgstr ""
 
 #. module: openeducat_library
 #: model:ir.model.fields,field_description:openeducat_library.field_issue_media__type
@@ -1551,7 +1655,7 @@ msgstr "Тип"
 #: model:ir.model.fields,field_description:openeducat_library.field_op_media__unit_ids
 #: model_terms:ir.ui.view,arch_db:openeducat_library.view_op_media_form
 msgid "Units"
-msgstr "Единицы"
+msgstr "Экземпляры"
 
 #. module: openeducat_library
 #: model:ir.model.fields,field_description:openeducat_library.field_op_media_queue__user_id
@@ -1616,4 +1720,19 @@ msgstr "Запрос в очереди в СМИ"
 #. module: openeducat_library
 #: model_terms:ir.ui.view,arch_db:openeducat_library.view_media_unit_search
 msgid "media Units"
-msgstr "СМИ единицы"
+msgstr "Экземпляры"
+
+#. module: openeducat_library
+#: model:ir.model.fields,field_description:openeducat_library.field_op_media__x_issue_year
+msgid "Год издания"
+msgstr ""
+
+#. module: openeducat_library
+#: model:ir.model.fields,help:openeducat_library.field_op_media__x_issue_year
+msgid "Год издания книги"
+msgstr ""
+
+#. module: openeducat_library
+#: model:ir.model.fields,field_description:openeducat_library.field_op_media__x_image_128
+msgid "Изображение"
+msgstr ""

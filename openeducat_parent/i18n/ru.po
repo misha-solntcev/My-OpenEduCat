@@ -4,10 +4,10 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: Odoo Server 18.0\n"
+"Project-Id-Version: Odoo Server 18.0-20260226\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-04-29 09:17+0000\n"
-"PO-Revision-Date: 2025-04-29 09:17+0000\n"
+"POT-Creation-Date: 2026-04-13 15:12+0000\n"
+"PO-Revision-Date: 2026-04-13 15:12+0000\n"
 "Last-Translator: \n"
 "Language-Team: \n"
 "MIME-Version: 1.0\n"
@@ -18,7 +18,7 @@ msgstr ""
 #. module: openeducat_parent
 #: model_terms:ir.ui.view,arch_db:openeducat_parent.parent_student_form_view
 msgid "<span class=\"o_stat_text\">Parents</span>"
-msgstr "<span class = \"o_stat_text\"> родители </span>"
+msgstr "<span class=\"o_stat_text\"> родители </span>"
 
 #. module: openeducat_parent
 #: model:ir.model.fields,field_description:openeducat_parent.field_op_parent__active
@@ -80,26 +80,6 @@ msgstr "Помогает вам управлять вашими институт
 #: model:ir.model.fields,field_description:openeducat_parent.field_op_parent_relationship__id
 msgid "ID"
 msgstr "ИДЕНТИФИКАТОР"
-
-#. module: openeducat_parent
-#. odoo-python
-#: code:addons/openeducat_parent/models/parent.py:0
-msgid ""
-"Invalid Action!\n"
-" Parent can not             create Subject Registration!"
-msgstr ""
-"Неверное действие!\n"
-" Родитель не может создать регистрацию субъекта!"
-
-#. module: openeducat_parent
-#. odoo-python
-#: code:addons/openeducat_parent/models/parent.py:0
-msgid ""
-"Invalid Action!\n"
-" Parent can not edit             Subject Registration!"
-msgstr ""
-"Неверное действие!\n"
-" Родитель не может редактировать регистрацию предмета!"
 
 #. module: openeducat_parent
 #: model:ir.model.fields,field_description:openeducat_parent.field_op_parent__write_uid
@@ -170,7 +150,7 @@ msgstr "Отношения"
 #. module: openeducat_parent
 #: model:ir.model,name:openeducat_parent.model_op_student
 msgid "Student"
-msgstr "Студент"
+msgstr "Ученик"
 
 #. module: openeducat_parent
 #: model:ir.model.fields,field_description:openeducat_parent.field_op_parent__student_ids
@@ -182,12 +162,6 @@ msgstr "Студент (ы)"
 #: model:ir.model,name:openeducat_parent.model_op_subject_registration
 msgid "Subject Registration Details"
 msgstr "Регистрационные детали субъекта"
-
-#. module: openeducat_parent
-#. odoo-python
-#: code:addons/openeducat_parent/models/parent.py:0
-msgid "Update parent email id first."
-msgstr "Сначала обновите родительский идентификатор электронной почты."
 
 #. module: openeducat_parent
 #: model:ir.model.fields,field_description:openeducat_parent.field_op_parent__user_id

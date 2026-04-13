@@ -4,10 +4,10 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: Odoo Server 18.0\n"
+"Project-Id-Version: Odoo Server 18.0-20260226\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-04-29 07:01+0000\n"
-"PO-Revision-Date: 2025-04-29 07:01+0000\n"
+"POT-Creation-Date: 2026-04-13 15:11+0000\n"
+"PO-Revision-Date: 2026-04-13 15:11+0000\n"
 "Last-Translator: \n"
 "Language-Team: \n"
 "MIME-Version: 1.0\n"
@@ -18,7 +18,7 @@ msgstr ""
 #. module: openeducat_fees
 #: model_terms:ir.ui.view,arch_db:openeducat_fees.report_fees_analysis
 msgid "<span>Fees Detail</span>"
-msgstr "<pran> Деталь сборов </span>"
+msgstr ""
 
 #. module: openeducat_fees
 #: model:ir.model.fields,field_description:openeducat_fees.field_op_fees_terms__message_needaction
@@ -29,31 +29,6 @@ msgstr "Действие необходимо"
 #: model:ir.model.fields,field_description:openeducat_fees.field_op_fees_terms__active
 msgid "Active"
 msgstr "Активный"
-
-#. module: openeducat_fees
-#: model:product.template,name:openeducat_fees.op_product_3_product_template
-msgid "Admission Fees for Course-2"
-msgstr "Плата за прием для курса-2"
-
-#. module: openeducat_fees
-#: model:product.template,name:openeducat_fees.op_product_6_product_template
-msgid "Admission Fees for Course-4"
-msgstr "Плата за прием для курса-4"
-
-#. module: openeducat_fees
-#: model:product.template,name:openeducat_fees.op_product_1_product_template
-msgid "Admission Fees for Course-Sem-1"
-msgstr "Плата за прием для курса-SEM-1"
-
-#. module: openeducat_fees
-#: model:product.template,name:openeducat_fees.op_product_2_product_template
-msgid "Admission Fees for G8-AR"
-msgstr "Плата за вход за G8-AR"
-
-#. module: openeducat_fees
-#: model:product.template,name:openeducat_fees.op_product_4_product_template
-msgid "Admission Fees for PPHD"
-msgstr "Входные сборы для PPHD"
 
 #. module: openeducat_fees
 #: model:ir.model.fields.selection,name:openeducat_fees.selection__op_fees_terms__day_type__after
@@ -170,12 +145,12 @@ msgstr "Черновик"
 #. module: openeducat_fees
 #: model:ir.model.fields,field_description:openeducat_fees.field_op_fees_terms_line__due_date
 msgid "Due Date"
-msgstr "Две даты"
+msgstr "Дата платежа"
 
 #. module: openeducat_fees
 #: model:ir.model.fields,field_description:openeducat_fees.field_op_fees_terms_line__due_days
 msgid "Due Days"
-msgstr "Должны дни"
+msgstr "Срок оплаты (в днях)"
 
 #. module: openeducat_fees
 #: model:ir.model.fields,field_description:openeducat_fees.field_op_fees_terms_line__fees_id
@@ -227,7 +202,7 @@ msgstr "Элемент сборов за курс"
 #: model_terms:ir.ui.view,arch_db:openeducat_fees.op_fees_element_tree_1
 #: model_terms:ir.ui.view,arch_db:openeducat_fees.view_fees_terms_form
 msgid "Fees Elements"
-msgstr "Элементы сборов"
+msgstr "Платежи"
 
 #. module: openeducat_fees
 #: model:ir.model.fields,field_description:openeducat_fees.field_op_student_fees_details__fees_factor
@@ -259,13 +234,13 @@ msgstr "Отчет о сборе"
 #. module: openeducat_fees
 #: model:ir.model.fields,field_description:openeducat_fees.field_op_student_course__fees_start_date
 msgid "Fees Start Date"
-msgstr "Стоимость начала даты"
+msgstr "Дата начала оплаты"
 
 #. module: openeducat_fees
 #: model:ir.model.fields,field_description:openeducat_fees.field_op_course__fees_term_id
 #: model:ir.model.fields,field_description:openeducat_fees.field_op_student_course__fees_term_id
 msgid "Fees Term"
-msgstr "Срок сборов"
+msgstr "Условия оплаты"
 
 #. module: openeducat_fees
 #: model_terms:ir.ui.view,arch_db:openeducat_fees.view_fees_terms_form
@@ -278,41 +253,24 @@ msgstr "Стоимость срочной строки"
 #: model:ir.model.fields,field_description:openeducat_fees.field_select_fees_term_type_wizard__fees_terms
 #: model:ir.ui.menu,name:openeducat_fees.menu_fees_terms
 msgid "Fees Terms"
-msgstr "Условия сборов"
+msgstr "Условия оплаты"
 
 #. module: openeducat_fees
 #: model:ir.model,name:openeducat_fees.model_op_fees_terms
 msgid "Fees Terms For Course"
-msgstr "Условия сборов за курс"
-
-#. module: openeducat_fees
-#. odoo-python
-#: code:addons/openeducat_fees/models/fees_terms.py:0
-msgid "Fees Terms must be Required!"
-msgstr "Условия сборов должны потребоваться!"
-
-#. module: openeducat_fees
-#: model:product.template,name:openeducat_fees.op_product_5_product_template
-msgid "Fees for Course-3"
-msgstr "Сборы за курс-3"
-
-#. module: openeducat_fees
-#. odoo-python
-#: code:addons/openeducat_fees/models/fees_terms.py:0
-msgid "Fees terms must be divided as such sum up in 100%"
-msgstr "Условия сборов должны быть разделены как такая сумма на 100%"
+msgstr "Условия оплаты за курс"
 
 #. module: openeducat_fees
 #: model:ir.model.fields.selection,name:openeducat_fees.selection__op_fees_terms__fees_terms__fixed_date
 #: model:ir.model.fields.selection,name:openeducat_fees.selection__select_fees_term_type_wizard__fees_terms__fixed_date
 msgid "Fixed Fees of Dates"
-msgstr "Фиксированные сборы дат"
+msgstr "Оплата по конкретным датам"
 
 #. module: openeducat_fees
 #: model:ir.model.fields.selection,name:openeducat_fees.selection__op_fees_terms__fees_terms__fixed_days
 #: model:ir.model.fields.selection,name:openeducat_fees.selection__select_fees_term_type_wizard__fees_terms__fixed_days
 msgid "Fixed Fees of Days"
-msgstr "Фиксированные сборы дней"
+msgstr "Оплата в течение N дней"
 
 #. module: openeducat_fees
 #: model:ir.model.fields,field_description:openeducat_fees.field_op_fees_terms__message_follower_ids
@@ -407,11 +365,6 @@ msgid "Last Updated on"
 msgstr "Последнее обновлено"
 
 #. module: openeducat_fees
-#: model:product.template,name:openeducat_fees.op_product_7_product_template
-msgid "Library Fees"
-msgstr "Библиотечные сборы"
-
-#. module: openeducat_fees
 #: model:res.groups,name:openeducat_fees.group_op_fees_admin
 msgid "Manager"
 msgstr "Менеджер"
@@ -429,13 +382,7 @@ msgstr "Сообщения"
 #. module: openeducat_fees
 #: model:ir.model.fields,field_description:openeducat_fees.field_op_fees_terms__name
 msgid "Name"
-msgstr "Имя"
-
-#. module: openeducat_fees
-#. odoo-javascript
-#: code:addons/openeducat_fees/static/src/xml/fees_term_widget_template.xml:0
-msgid "No Image"
-msgstr "Нет изображения"
+msgstr "Наименование"
 
 #. module: openeducat_fees
 #: model:ir.model.fields,field_description:openeducat_fees.field_op_fees_terms__no_days
@@ -483,6 +430,11 @@ msgid "Product(s)"
 msgstr "Продукт (ы)"
 
 #. module: openeducat_fees
+#: model:ir.model.fields,field_description:openeducat_fees.field_op_fees_terms__rating_ids
+msgid "Ratings"
+msgstr ""
+
+#. module: openeducat_fees
 #: model:ir.model.fields,field_description:openeducat_fees.field_op_fees_terms__message_has_sms_error
 msgid "SMS Delivery error"
 msgstr "Ошибка доставки SMS"
@@ -496,7 +448,7 @@ msgstr "Сохранять"
 #: model:ir.actions.act_window,name:openeducat_fees.action_select_fees_term_type
 #: model_terms:ir.ui.view,arch_db:openeducat_fees.select_fees_term_type_form
 msgid "Select Fees Term Type"
-msgstr "Выберите тип термина сборов"
+msgstr "Выберите тип условий оплаты"
 
 #. module: openeducat_fees
 #: model:ir.model.fields,field_description:openeducat_fees.field_op_fees_element__sequence
@@ -514,12 +466,12 @@ msgstr "Статус"
 #: model:ir.model.fields,field_description:openeducat_fees.field_op_student_fees_details__student_id
 #: model:ir.model.fields.selection,name:openeducat_fees.selection__fees_detail_report_wizard__fees_filter__student
 msgid "Student"
-msgstr "Студент"
+msgstr "Ученик"
 
 #. module: openeducat_fees
 #: model:ir.model,name:openeducat_fees.model_op_student_course
 msgid "Student Course Details"
-msgstr "Детали студенческого курса"
+msgstr "Информация об обучении"
 
 #. module: openeducat_fees
 #: model:ir.model,name:openeducat_fees.model_op_student_fees_details
@@ -539,30 +491,13 @@ msgstr "Отправить дату"
 #. module: openeducat_fees
 #: model:ir.model.fields,field_description:openeducat_fees.field_op_fees_terms__fees_terms
 msgid "Term Type"
-msgstr "Тип термина"
+msgstr "Тип условий оплаты"
 
 #. module: openeducat_fees
 #: model:ir.model.fields,field_description:openeducat_fees.field_op_fees_terms__line_ids
 #: model_terms:ir.ui.view,arch_db:openeducat_fees.view_fees_terms_form
 msgid "Terms"
-msgstr "Условия"
-
-#. module: openeducat_fees
-#. odoo-python
-#: code:addons/openeducat_fees/models/student.py:0
-msgid "The value of the deposit amount must be positive."
-msgstr "Стоимость суммы депозита должна быть положительной."
-
-#. module: openeducat_fees
-#. odoo-python
-#: code:addons/openeducat_fees/models/student.py:0
-msgid ""
-"There is no income account defined for this product: \"%s\".You may have to "
-"install a chart of account from Accounting app, settings menu."
-msgstr ""
-"Для этого продукта не определено счета дохода: «%s». Вам, возможно, придется"
-" установить диаграмму учетной записи из приложения бухгалтерского учета, "
-"меню «Настройки»."
+msgstr "Условия оплаты"
 
 #. module: openeducat_fees
 #: model_terms:ir.ui.view,arch_db:openeducat_fees.report_fees_analysis
@@ -585,16 +520,6 @@ msgid "Total Unpaid"
 msgstr "Общее невыплаченное"
 
 #. module: openeducat_fees
-#: model:product.template,name:openeducat_fees.op_product_9_product_template
-msgid "Transportation Fees"
-msgstr "Транспортные сборы"
-
-#. module: openeducat_fees
-#: model:product.template,name:openeducat_fees.op_product_8_product_template
-msgid "Tution Fees"
-msgstr "Плата"
-
-#. module: openeducat_fees
 #: model:ir.model.fields,field_description:openeducat_fees.field_op_fees_terms__day_type
 msgid "Type"
 msgstr "Тип"
@@ -608,7 +533,7 @@ msgstr "Пользователь"
 #: model:ir.model.fields,field_description:openeducat_fees.field_op_fees_element__value
 #: model:ir.model.fields,field_description:openeducat_fees.field_op_fees_terms_line__value
 msgid "Value (%)"
-msgstr "Ценить (%)"
+msgstr "Размер платежа(%)"
 
 #. module: openeducat_fees
 #: model:ir.model.fields,field_description:openeducat_fees.field_op_fees_terms__website_message_ids

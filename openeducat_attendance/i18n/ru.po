@@ -4,10 +4,10 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: Odoo Server 18.0\n"
+"Project-Id-Version: Odoo Server 18.0-20260226\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-04-29 05:50+0000\n"
-"PO-Revision-Date: 2025-04-29 05:50+0000\n"
+"POT-Creation-Date: 2026-04-13 15:08+0000\n"
+"PO-Revision-Date: 2026-04-13 15:08+0000\n"
 "Last-Translator: \n"
 "Language-Team: \n"
 "MIME-Version: 1.0\n"
@@ -16,127 +16,89 @@ msgstr ""
 "Plural-Forms: \n"
 
 #. module: openeducat_attendance
-#: model:ir.model.fields,field_description:openeducat_attendance.field_op_subject_grades__student_id
-#: model_terms:ir.ui.view,arch_db:openeducat_attendance.view_op_subject_grades_form
-msgid "Student"
-msgstr "Ученик"
-
-#. module: openeducat_attendance
-#: model:ir.model.fields,field_description:openeducat_attendance.field_op_subject_grades__subject_id
-#: model_terms:ir.ui.view,arch_db:openeducat_attendance.view_op_subject_grades_form
-msgid "Subject"
-msgstr "Предмет"
-
-#. module: openeducat_attendance
-#: model:ir.model.fields,field_description:openeducat_attendance.field_op_subject_grades__batch_id
-#: model_terms:ir.ui.view,arch_db:openeducat_attendance.view_op_subject_grades_form
-msgid "Batch"
-msgstr "Класс"
-
-#. module: openeducat_attendance
-#: model:ir.model.fields,field_description:openeducat_attendance.field_op_subject_grades__average_mark
-#: model_terms:ir.ui.view,arch_db:openeducat_attendance.view_op_subject_grades_form
-msgid "Average Mark"
-msgstr "Средняя оценка"
-
-#. module: openeducat_attendance
-#: model:ir.model.fields,field_description:openeducat_attendance.field_op_subject_grades__total_classes
-#: model_terms:ir.ui.view,arch_db:openeducat_attendance.view_op_subject_grades_form
-msgid "Total Classes"
-msgstr "Всего занятий"
-
-#. module: openeducat_attendance
-#: model:ir.model.fields,field_description:openeducat_attendance.field_op_subject_grades__present_classes
-#: model_terms:ir.ui.view,arch_db:openeducat_attendance.view_op_subject_grades_form
-msgid "Present Classes"
-msgstr "Посещено занятий"
-
-#. module: openeducat_attendance
-#: model:ir.model.fields,field_description:openeducat_attendance.field_op_subject_grades__final_quarter_grade
-#: model_terms:ir.ui.view,arch_db:openeducat_attendance.view_op_subject_grades_form
-#: model_terms:ir.ui.view,arch_db:openeducat_attendance.view_op_subject_grades_kanban
-msgid "Final Quarter Grade"
-msgstr "Итоговая оценка за четверть"
-
-#. module: openeducat_attendance
-#: model:ir.model.fields,field_description:openeducat_attendance.field_op_subject_grades__last_attendance_date
-#: model_terms:ir.ui.view,arch_db:openeducat_attendance.view_op_subject_grades_form
-msgid "Last Attendance Date"
-msgstr "Дата последнего посещения"
-
-#. module: openeducat_attendance
-#: model:ir.model.fields,field_description:openeducat_attendance.field_op_subject_grades__date_mark_table
-#: model_terms:ir.ui.view,arch_db:openeducat_attendance.view_op_subject_grades_form
-msgid "Date-Mark Table"
-msgstr "Таблица оценок по датам"
-
-#. module: openeducat_attendance
-#: model:ir.model.fields,field_description:openeducat_attendance.field_op_subject_grades__attendance_info
-#: model_terms:ir.ui.view,arch_db:openeducat_attendance.view_op_subject_grades_form
-msgid "Attendance Information"
-msgstr "Информация о посещаемости"
-
-#. module: openeducat_attendance
-#: model:ir.model.fields,field_description:openeducat_attendance.field_op_subject_grades__table_entries
-msgid "Table Entries"
-msgstr "Записи в таблице"
-
-#. module: openeducat_attendance
-#: model:ir.model.fields,field_description:openeducat_attendance.field_op_subject_grades__textbook_image
-msgid "Textbook Image"
-msgstr "Изображение"
-
-#. module: openeducat_attendance
-#: model:ir.model.fields,field_description:openeducat_attendance.field_op_subject_grades__attendance_dates
-msgid "Attendance Dates"
-msgstr "Даты посещений"
-
-#. module: openeducat_attendance
-#: model:ir.model.fields,field_description:openeducat_attendance.field_op_subject_grades__marks
-msgid "Marks"
-msgstr "Оценка 1"
-
-#. module: openeducat_attendance
-#: model:ir.model.fields,field_description:openeducat_attendance.field_op_subject_grades__behaviors
-msgid "Behaviors"
-msgstr "Оценка 2"
-
-#. module: openeducat_attendance
-#: model:ir.model.fields,field_description:openeducat_attendance.field_op_subject_grades__description
-msgid "Subject Grades"
-msgstr "Оценки по предметам"
-
-#. module: openeducat_attendance
-#: model_terms:ir.ui.view,arch_db:openeducat_attendance.view_op_subject_grades_form
-msgid "Subject Grades"
-msgstr "Оценки по предметам"
-
-#. module: openeducat_attendance
-#: model_terms:ir.ui.view,arch_db:openeducat_attendance.view_op_subject_grades_tree
-msgid "Subject Grades"
-msgstr "Оценки по предметам"
-
-#. module: openeducat_attendance
-#: model_terms:ir.ui.view,arch_db:openeducat_attendance.view_op_subject_grades_search
-msgid "Subject Grades"
-msgstr "Оценки по предметам"
-
-#. module: openeducat_attendance
 #: model:ir.ui.menu,name:openeducat_attendance.menu_op_attendance_root
 msgid " Class Attendances"
-msgstr "Посещаемость класса"
+msgstr "Успеваемость"
 
 #. module: openeducat_attendance
+#: model_terms:ir.ui.view,arch_db:openeducat_attendance.view_op_subject_grades_kanban
+msgid "1 четв."
+msgstr ""
+
+#. module: openeducat_attendance
+#: model_terms:ir.ui.view,arch_db:openeducat_attendance.view_op_subject_grades_form
+msgid "1 четверть"
+msgstr ""
+
+#. module: openeducat_attendance
+#: model_terms:ir.ui.view,arch_db:openeducat_attendance.view_op_subject_grades_kanban
+msgid "2 четв."
+msgstr ""
+
+#. module: openeducat_attendance
+#: model_terms:ir.ui.view,arch_db:openeducat_attendance.view_op_subject_grades_form
+msgid "2 четверть"
+msgstr ""
+
+#. module: openeducat_attendance
+#: model_terms:ir.ui.view,arch_db:openeducat_attendance.view_op_subject_grades_kanban
+msgid "3 четв."
+msgstr ""
+
+#. module: openeducat_attendance
+#: model_terms:ir.ui.view,arch_db:openeducat_attendance.view_op_subject_grades_form
+msgid "3 четверть"
+msgstr ""
+
+#. module: openeducat_attendance
+#: model_terms:ir.ui.view,arch_db:openeducat_attendance.view_op_subject_grades_kanban
+msgid "4 четв."
+msgstr ""
+
+#. module: openeducat_attendance
+#: model_terms:ir.ui.view,arch_db:openeducat_attendance.view_op_subject_grades_form
+msgid "4 четверть"
+msgstr ""
+
+#. module: openeducat_attendance
+#: model_terms:ir.ui.view,arch_db:openeducat_attendance.student_attendance_detailed_report
+msgid "<b>Absent</b>"
+msgstr ""
+
+#. module: openeducat_attendance
+#: model_terms:ir.ui.view,arch_db:openeducat_attendance.student_attendance_detailed_report
+msgid "<b>Attendance Rate</b>"
+msgstr ""
+
+#. module: openeducat_attendance
+#: model_terms:ir.ui.view,arch_db:openeducat_attendance.student_attendance_detailed_report
+msgid "<b>Average Grade</b>"
+msgstr ""
+
+#. module: openeducat_attendance
+#: model_terms:ir.ui.view,arch_db:openeducat_attendance.student_attendance_detailed_report
 #: model_terms:ir.ui.view,arch_db:openeducat_attendance.student_attendance_report
 msgid "<b>From Date:</b>"
 msgstr "<b> с даты: </b>"
 
 #. module: openeducat_attendance
+#: model_terms:ir.ui.view,arch_db:openeducat_attendance.student_attendance_detailed_report
+msgid "<b>Late</b>"
+msgstr ""
+
+#. module: openeducat_attendance
+#: model_terms:ir.ui.view,arch_db:openeducat_attendance.student_attendance_detailed_report
+msgid "<b>Present</b>"
+msgstr ""
+
+#. module: openeducat_attendance
+#: model_terms:ir.ui.view,arch_db:openeducat_attendance.student_attendance_detailed_report
 #: model_terms:ir.ui.view,arch_db:openeducat_attendance.student_attendance_report
 msgid "<b>Student Name:</b>"
 msgstr "<b> Имя студента: </b>"
 
 #. module: openeducat_attendance
+#: model_terms:ir.ui.view,arch_db:openeducat_attendance.student_attendance_detailed_report
 #: model_terms:ir.ui.view,arch_db:openeducat_attendance.student_attendance_report
 msgid "<b>To Date:</b>"
 msgstr "<b> На сегодняшний день: </b>"
@@ -147,9 +109,89 @@ msgid "<b>Total Absence</b>"
 msgstr "<b> Общее отсутствие </b>"
 
 #. module: openeducat_attendance
+#: model_terms:ir.ui.view,arch_db:openeducat_attendance.student_attendance_detailed_report
+msgid "<b>Total Sessions</b>"
+msgstr ""
+
+#. module: openeducat_attendance
+#: model_terms:ir.ui.view,arch_db:openeducat_attendance.student_grades_by_subject_report
+msgid "<b>Имя студента:</b>"
+msgstr ""
+
+#. module: openeducat_attendance
+#: model_terms:ir.ui.view,arch_db:openeducat_attendance.class_grades_quarterly_report
+#: model_terms:ir.ui.view,arch_db:openeducat_attendance.class_grades_summary_report
+#: model_terms:ir.ui.view,arch_db:openeducat_attendance.student_grades_by_date_report
+msgid "<b>Класс:</b>"
+msgstr ""
+
+#. module: openeducat_attendance
+#: model_terms:ir.ui.view,arch_db:openeducat_attendance.student_grades_by_subject_report
+msgid "<b>Общая средняя оценка</b>"
+msgstr ""
+
+#. module: openeducat_attendance
+#: model_terms:ir.ui.view,arch_db:openeducat_attendance.class_grades_summary_report
+#: model_terms:ir.ui.view,arch_db:openeducat_attendance.student_grades_by_date_report
+#: model_terms:ir.ui.view,arch_db:openeducat_attendance.student_grades_by_subject_report
+msgid "<b>По дату:</b>"
+msgstr ""
+
+#. module: openeducat_attendance
+#: model_terms:ir.ui.view,arch_db:openeducat_attendance.student_grades_by_date_report
+msgid "<b>Предмет:</b>"
+msgstr ""
+
+#. module: openeducat_attendance
+#: model_terms:ir.ui.view,arch_db:openeducat_attendance.class_grades_summary_report
+#: model_terms:ir.ui.view,arch_db:openeducat_attendance.student_grades_by_date_report
+#: model_terms:ir.ui.view,arch_db:openeducat_attendance.student_grades_by_subject_report
+msgid "<b>С даты:</b>"
+msgstr ""
+
+#. module: openeducat_attendance
+#: model_terms:ir.ui.view,arch_db:openeducat_attendance.class_grades_quarterly_report
+#: model_terms:ir.ui.view,arch_db:openeducat_attendance.class_grades_summary_report
+msgid "<b>Средний балл класса</b>"
+msgstr ""
+
+#. module: openeducat_attendance
+#: model_terms:ir.ui.view,arch_db:openeducat_attendance.student_grades_by_subject_report
+msgid "<b>Средняя оценка</b>"
+msgstr ""
+
+#. module: openeducat_attendance
+#: model_terms:ir.ui.view,arch_db:openeducat_attendance.student_grades_by_date_report
+msgid "<b>Учитель:</b>"
+msgstr ""
+
+#. module: openeducat_attendance
+#: model_terms:ir.ui.view,arch_db:openeducat_attendance.view_op_subject_grades_kanban
+msgid ""
+"<span class=\"badge fw-bold\" style=\"background-color: #f8f9fa; color: #adb5bd; font-size: 14px; padding: 5px 10px;\">\n"
+"                                                        -\n"
+"                                                    </span>"
+msgstr ""
+
+#. module: openeducat_attendance
 #: model_terms:ir.ui.view,arch_db:openeducat_attendance.view_op_student_form_attendance_inherit
 msgid "<span class=\"o_stat_text\">Attendance</span>"
 msgstr "<span class=\"o_stat_text\"> Посещаемость </span>"
+
+#. module: openeducat_attendance
+#: model_terms:ir.ui.view,arch_db:openeducat_attendance.class_grades_quarterly_report
+msgid "<span>0.0</span>"
+msgstr ""
+
+#. module: openeducat_attendance
+#: model_terms:ir.ui.view,arch_db:openeducat_attendance.view_op_subject_grades_kanban
+msgid "<span>Посещаемость:</span>"
+msgstr ""
+
+#. module: openeducat_attendance
+#: model_terms:ir.ui.view,arch_db:openeducat_attendance.student_attendance_detailed_report
+msgid "<strong>Detailed Student Attendance Report</strong>"
+msgstr ""
 
 #. module: openeducat_attendance
 #: model_terms:ir.ui.view,arch_db:openeducat_attendance.student_attendance_report
@@ -157,20 +199,101 @@ msgid "<strong>Student Attendance Detail</strong>"
 msgstr "<strong> Деталь посещаемости студентов </strong>"
 
 #. module: openeducat_attendance
+#: model_terms:ir.ui.view,arch_db:openeducat_attendance.view_op_subject_grades_form
+msgid "<strong>Всего занятий:</strong>"
+msgstr ""
+
+#. module: openeducat_attendance
+#: model_terms:ir.ui.view,arch_db:openeducat_attendance.view_op_subject_grades_form
+msgid "<strong>Дата последнего посещения:</strong>"
+msgstr ""
+
+#. module: openeducat_attendance
+#: model_terms:ir.ui.view,arch_db:openeducat_attendance.view_op_subject_grades_form
+msgid "<strong>Итоговая оценка за 1 четверть:</strong>"
+msgstr ""
+
+#. module: openeducat_attendance
+#: model_terms:ir.ui.view,arch_db:openeducat_attendance.view_op_subject_grades_form
+msgid "<strong>Итоговая оценка за 2 четверть:</strong>"
+msgstr ""
+
+#. module: openeducat_attendance
+#: model_terms:ir.ui.view,arch_db:openeducat_attendance.view_op_subject_grades_form
+msgid "<strong>Итоговая оценка за 3 четверть:</strong>"
+msgstr ""
+
+#. module: openeducat_attendance
+#: model_terms:ir.ui.view,arch_db:openeducat_attendance.view_op_subject_grades_form
+msgid "<strong>Итоговая оценка за 4 четверть:</strong>"
+msgstr ""
+
+#. module: openeducat_attendance
+#: model_terms:ir.ui.view,arch_db:openeducat_attendance.view_op_subject_grades_form
+msgid "<strong>Итоговая оценка:</strong>"
+msgstr ""
+
+#. module: openeducat_attendance
+#: model_terms:ir.ui.view,arch_db:openeducat_attendance.view_op_subject_grades_kanban
+msgid "<strong>Класс:</strong>"
+msgstr ""
+
+#. module: openeducat_attendance
+#: model_terms:ir.ui.view,arch_db:openeducat_attendance.student_grades_by_subject_report
+msgid "<strong>Отчет по оценкам студента по предметам</strong>"
+msgstr ""
+
+#. module: openeducat_attendance
+#: model_terms:ir.ui.view,arch_db:openeducat_attendance.student_grades_by_date_report
+msgid "<strong>Отчет по оценкам студентов по датам</strong>"
+msgstr ""
+
+#. module: openeducat_attendance
+#: model_terms:ir.ui.view,arch_db:openeducat_attendance.view_op_subject_grades_kanban
+msgid "<strong>Оценка за год:</strong>"
+msgstr ""
+
+#. module: openeducat_attendance
+#: model_terms:ir.ui.view,arch_db:openeducat_attendance.view_op_subject_grades_kanban
+msgid "<strong>Оценки по четвертям:</strong>"
+msgstr ""
+
+#. module: openeducat_attendance
+#: model_terms:ir.ui.view,arch_db:openeducat_attendance.view_op_subject_grades_form
+msgid "<strong>Посещено занятий:</strong>"
+msgstr ""
+
+#. module: openeducat_attendance
+#: model_terms:ir.ui.view,arch_db:openeducat_attendance.class_grades_quarterly_report
+msgid "<strong>Сводный отчет по итоговым оценкам класса</strong>"
+msgstr ""
+
+#. module: openeducat_attendance
+#: model_terms:ir.ui.view,arch_db:openeducat_attendance.class_grades_summary_report
+msgid "<strong>Сводный отчет по оценкам класса</strong>"
+msgstr ""
+
+#. module: openeducat_attendance
+#: model_terms:ir.ui.view,arch_db:openeducat_attendance.view_op_subject_grades_form
+#: model_terms:ir.ui.view,arch_db:openeducat_attendance.view_op_subject_grades_kanban
+msgid "<strong>Средняя оценка:</strong>"
+msgstr ""
+
+#. module: openeducat_attendance
 #: model:ir.model.fields,field_description:openeducat_attendance.field_op_attendance_type__absent
 #: model_terms:ir.ui.view,arch_db:openeducat_attendance.view_op_attendance_line_search
 msgid "Absent"
-msgstr "Отсутствующий"
+msgstr "Отсутствует(прогул)"
 
 #. module: openeducat_attendance
 #: model:ir.model.fields,field_description:openeducat_attendance.field_op_attendance_line__excused
 msgid "Absent Excused"
-msgstr "Отсутствует"
+msgstr "Отсутствует по уважительной причине"
 
 #. module: openeducat_attendance
 #: model:ir.model.fields,field_description:openeducat_attendance.field_op_attendance_line__absent
 msgid "Absent Unexcused"
-msgstr "Отсутствует непреодолимый"
+msgstr "Прогул"
 
 #. module: openeducat_attendance
 #: model:ir.model.fields,field_description:openeducat_attendance.field_op_attendance_line__message_needaction
@@ -222,6 +345,11 @@ msgid "Attendance Analysis"
 msgstr "Анализ посещаемости"
 
 #. module: openeducat_attendance
+#: model:ir.model.fields,field_description:openeducat_attendance.field_op_subject_grades__attendance_dates
+msgid "Attendance Dates"
+msgstr "Даты посещений"
+
+#. module: openeducat_attendance
 #: model:ir.actions.act_window,name:openeducat_attendance.act_open_op_attendance_line_view
 #: model:ir.model.fields,field_description:openeducat_attendance.field_op_attendance_sheet__attendance_line
 #: model_terms:ir.ui.view,arch_db:openeducat_attendance.view_op_attendance_line_form
@@ -230,13 +358,13 @@ msgstr "Анализ посещаемости"
 #: model_terms:ir.ui.view,arch_db:openeducat_attendance.view_op_attendance_line_tree
 #: model_terms:ir.ui.view,arch_db:openeducat_attendance.view_op_attendance_sheet_form
 msgid "Attendance Line"
-msgstr "Линия посещаемости"
+msgstr "Электронный дневник -1 "
 
 #. module: openeducat_attendance
 #: model:ir.model,name:openeducat_attendance.model_op_attendance_line
 #: model:ir.ui.menu,name:openeducat_attendance.menu_op_attendance_line_sub
 msgid "Attendance Lines"
-msgstr "Линии посещаемости"
+msgstr "Электронный дневник"
 
 #. module: openeducat_attendance
 #: model:ir.model,name:openeducat_attendance.model_op_attendance_register
@@ -249,12 +377,12 @@ msgstr "Регистр посещаемости"
 #. module: openeducat_attendance
 #: model:ir.actions.act_window,name:openeducat_attendance.act_open_op_attendance_register_view
 msgid "Attendance Registers"
-msgstr "Регистры посещаемости"
+msgstr "Журналы"
 
 #. module: openeducat_attendance
 #: model:ir.model,name:openeducat_attendance.model_report_openeducat_attendance_student_attendance_report
 msgid "Attendance Report"
-msgstr "Отчет посещаемости"
+msgstr "Отчет о посещаемости"
 
 #. module: openeducat_attendance
 #: model:ir.model,name:openeducat_attendance.model_op_attendance_sheet
@@ -266,24 +394,24 @@ msgstr "Отчет посещаемости"
 #: model_terms:ir.ui.view,arch_db:openeducat_attendance.view_op_attendance_sheet_search
 #: model_terms:ir.ui.view,arch_db:openeducat_attendance.view_op_attendance_sheet_tree
 msgid "Attendance Sheet"
-msgstr "Лист посещаемости"
+msgstr "Журнал урока"
 
 #. module: openeducat_attendance
 #: model:ir.actions.act_window,name:openeducat_attendance.act_open_op_attendance_sheet_view
 msgid "Attendance Sheets"
-msgstr "Листы посещаемости"
+msgstr "Журналы уроков"
 
 #. module: openeducat_attendance
 #: model:ir.model.fields.selection,name:openeducat_attendance.selection__op_attendance_sheet__state__start
 #: model_terms:ir.ui.view,arch_db:openeducat_attendance.view_op_attendance_sheet_form
 msgid "Attendance Start"
-msgstr "Посещаемость начинается"
+msgstr "Начать отмечать"
 
 #. module: openeducat_attendance
 #: model:ir.model.fields.selection,name:openeducat_attendance.selection__op_attendance_sheet__state__done
 #: model_terms:ir.ui.view,arch_db:openeducat_attendance.view_op_attendance_sheet_form
 msgid "Attendance Taken"
-msgstr "Посещаемость взята"
+msgstr "Отмечено"
 
 #. module: openeducat_attendance
 #: model:ir.model,name:openeducat_attendance.model_op_attendance_type
@@ -301,15 +429,42 @@ msgid "Attendance Types"
 msgstr "Типы посещаемости"
 
 #. module: openeducat_attendance
+#: model:ir.model.fields,field_description:openeducat_attendance.field_op_subject_grades__average_mark
+msgid "Average Mark"
+msgstr "Средняя оценка"
+
+#. module: openeducat_attendance
+#: model:ir.model.fields.selection,name:openeducat_attendance.selection__student_attendance__report_type__basic
+msgid "Basic Attendance Report"
+msgstr ""
+
+#. module: openeducat_attendance
+#: model:ir.model.fields,field_description:openeducat_attendance.field_class_grades_quarterly__batch_id
 #: model:ir.model.fields,field_description:openeducat_attendance.field_op_attendance_line__batch_id
 #: model:ir.model.fields,field_description:openeducat_attendance.field_op_attendance_register__batch_id
 #: model:ir.model.fields,field_description:openeducat_attendance.field_op_attendance_sheet__batch_id
+#: model:ir.model.fields,field_description:openeducat_attendance.field_op_subject_grades__batch_id
+#: model:ir.model.fields,field_description:openeducat_attendance.field_student_grades_by_date__batch_id
 #: model_terms:ir.ui.view,arch_db:openeducat_attendance.view_op_attendance_line_search
 #: model_terms:ir.ui.view,arch_db:openeducat_attendance.view_op_attendance_register_search
 msgid "Batch"
-msgstr "Партия"
+msgstr "Параллель"
 
 #. module: openeducat_attendance
+#: model_terms:ir.ui.view,arch_db:openeducat_attendance.student_attendance_detailed_report
+msgid "Behavior"
+msgstr ""
+
+#. module: openeducat_attendance
+#: model:ir.model.fields,field_description:openeducat_attendance.field_op_subject_grades__behaviors
+msgid "Behaviors"
+msgstr "Оценка 2"
+
+#. module: openeducat_attendance
+#: model_terms:ir.ui.view,arch_db:openeducat_attendance.class_grades_quarterly_form_view
+#: model_terms:ir.ui.view,arch_db:openeducat_attendance.class_grades_summary_form_view
+#: model_terms:ir.ui.view,arch_db:openeducat_attendance.student_grades_by_date_form_view
+#: model_terms:ir.ui.view,arch_db:openeducat_attendance.student_grades_by_subject_form_view
 #: model_terms:ir.ui.view,arch_db:openeducat_attendance.view_op_attendance_sheet_form
 msgid "Cancel"
 msgstr "Отмена"
@@ -318,6 +473,38 @@ msgstr "Отмена"
 #: model:ir.model.fields.selection,name:openeducat_attendance.selection__op_attendance_sheet__state__cancel
 msgid "Cancelled"
 msgstr "Отменен"
+
+#. module: openeducat_attendance
+#: model:ir.model.fields,field_description:openeducat_attendance.field_class_grades_summary__batch_id
+msgid "Class"
+msgstr "Параллель"
+
+#. module: openeducat_attendance
+#: model:ir.actions.act_window,name:openeducat_attendance.action_class_grades_quarterly
+#: model:ir.model,name:openeducat_attendance.model_class_grades_quarterly
+#: model_terms:ir.ui.view,arch_db:openeducat_attendance.class_grades_quarterly_form_view
+msgid "Class Grades Quarterly"
+msgstr ""
+
+#. module: openeducat_attendance
+#: model:ir.actions.report,name:openeducat_attendance.action_report_class_grades_quarterly
+#: model:ir.model,name:openeducat_attendance.model_report_openeducat_attendance_class_grades_quarterly_report
+msgid "Class Grades Quarterly Report"
+msgstr ""
+
+#. module: openeducat_attendance
+#: model:ir.actions.act_window,name:openeducat_attendance.action_class_grades_summary
+#: model:ir.model,name:openeducat_attendance.model_class_grades_summary
+#: model_terms:ir.ui.view,arch_db:openeducat_attendance.class_grades_summary_form_view
+msgid "Class Grades Summary"
+msgstr "Сводный отчет по классу"
+
+#. module: openeducat_attendance
+#: model:ir.actions.report,name:openeducat_attendance.action_report_class_grades_summary
+#: model:ir.model,name:openeducat_attendance.model_report_openeducat_attendance_class_grades_summary_report
+#: model:ir.ui.menu,name:openeducat_attendance.menu_op_class_grades_summary_report
+msgid "Class Grades Summary Report"
+msgstr "Сводный отчет по классу"
 
 #. module: openeducat_attendance
 #: model_terms:ir.ui.view,arch_db:openeducat_attendance.student_attendance_form
@@ -349,32 +536,46 @@ msgstr "Конфигурация"
 #: model:ir.model.fields,field_description:openeducat_attendance.field_op_attendance_line__course_id
 #: model:ir.model.fields,field_description:openeducat_attendance.field_op_attendance_register__course_id
 #: model:ir.model.fields,field_description:openeducat_attendance.field_op_attendance_sheet__course_id
+#: model_terms:ir.ui.view,arch_db:openeducat_attendance.student_attendance_detailed_report
 #: model_terms:ir.ui.view,arch_db:openeducat_attendance.view_op_attendance_line_search
 #: model_terms:ir.ui.view,arch_db:openeducat_attendance.view_op_attendance_register_search
 msgid "Course"
-msgstr "Курс"
+msgstr "Класс"
 
 #. module: openeducat_attendance
+#: model:ir.model.fields,field_description:openeducat_attendance.field_class_grades_quarterly__create_uid
+#: model:ir.model.fields,field_description:openeducat_attendance.field_class_grades_summary__create_uid
 #: model:ir.model.fields,field_description:openeducat_attendance.field_op_attendance_line__create_uid
 #: model:ir.model.fields,field_description:openeducat_attendance.field_op_attendance_register__create_uid
 #: model:ir.model.fields,field_description:openeducat_attendance.field_op_attendance_sheet__create_uid
 #: model:ir.model.fields,field_description:openeducat_attendance.field_op_attendance_type__create_uid
+#: model:ir.model.fields,field_description:openeducat_attendance.field_op_subject_grades__create_uid
+#: model:ir.model.fields,field_description:openeducat_attendance.field_op_update_subject_grades__create_uid
 #: model:ir.model.fields,field_description:openeducat_attendance.field_student_attendance__create_uid
+#: model:ir.model.fields,field_description:openeducat_attendance.field_student_grades_by_date__create_uid
+#: model:ir.model.fields,field_description:openeducat_attendance.field_student_grades_by_subject__create_uid
 msgid "Created by"
 msgstr "Создан"
 
 #. module: openeducat_attendance
+#: model:ir.model.fields,field_description:openeducat_attendance.field_class_grades_quarterly__create_date
+#: model:ir.model.fields,field_description:openeducat_attendance.field_class_grades_summary__create_date
 #: model:ir.model.fields,field_description:openeducat_attendance.field_op_attendance_line__create_date
 #: model:ir.model.fields,field_description:openeducat_attendance.field_op_attendance_register__create_date
 #: model:ir.model.fields,field_description:openeducat_attendance.field_op_attendance_sheet__create_date
 #: model:ir.model.fields,field_description:openeducat_attendance.field_op_attendance_type__create_date
+#: model:ir.model.fields,field_description:openeducat_attendance.field_op_subject_grades__create_date
+#: model:ir.model.fields,field_description:openeducat_attendance.field_op_update_subject_grades__create_date
 #: model:ir.model.fields,field_description:openeducat_attendance.field_student_attendance__create_date
+#: model:ir.model.fields,field_description:openeducat_attendance.field_student_grades_by_date__create_date
+#: model:ir.model.fields,field_description:openeducat_attendance.field_student_grades_by_subject__create_date
 msgid "Created on"
 msgstr "Создан на"
 
 #. module: openeducat_attendance
 #: model:ir.model.fields,field_description:openeducat_attendance.field_op_attendance_line__attendance_date
 #: model:ir.model.fields,field_description:openeducat_attendance.field_op_attendance_sheet__attendance_date
+#: model_terms:ir.ui.view,arch_db:openeducat_attendance.student_attendance_detailed_report
 #: model_terms:ir.ui.view,arch_db:openeducat_attendance.student_attendance_report
 #: model_terms:ir.ui.view,arch_db:openeducat_attendance.view_op_attendance_line_search
 #: model_terms:ir.ui.view,arch_db:openeducat_attendance.view_op_attendance_sheet_search
@@ -382,11 +583,49 @@ msgid "Date"
 msgstr "Дата"
 
 #. module: openeducat_attendance
+#: model:ir.model.fields,field_description:openeducat_attendance.field_op_subject_grades__date_mark_table
+msgid "Date-Mark Table"
+msgstr "Таблица оценок по датам"
+
+#. module: openeducat_attendance
+#: model:ir.model.fields,field_description:openeducat_attendance.field_op_subject_grades__date_mark_table_q1
+msgid "Date-Mark Table Q1"
+msgstr ""
+
+#. module: openeducat_attendance
+#: model:ir.model.fields,field_description:openeducat_attendance.field_op_subject_grades__date_mark_table_q2
+msgid "Date-Mark Table Q2"
+msgstr ""
+
+#. module: openeducat_attendance
+#: model:ir.model.fields,field_description:openeducat_attendance.field_op_subject_grades__date_mark_table_q3
+msgid "Date-Mark Table Q3"
+msgstr ""
+
+#. module: openeducat_attendance
+#: model:ir.model.fields,field_description:openeducat_attendance.field_op_subject_grades__date_mark_table_q4
+msgid "Date-Mark Table Q4"
+msgstr ""
+
+#. module: openeducat_attendance
+#: model:ir.actions.report,name:openeducat_attendance.action_report_student_attendance_detailed
+#: model:ir.model,name:openeducat_attendance.model_report_openeducat_attendance_student_attendance_detailed_report
+#: model:ir.model.fields.selection,name:openeducat_attendance.selection__student_attendance__report_type__detailed
+msgid "Detailed Attendance Report"
+msgstr ""
+
+#. module: openeducat_attendance
+#: model:ir.model.fields,field_description:openeducat_attendance.field_class_grades_quarterly__display_name
+#: model:ir.model.fields,field_description:openeducat_attendance.field_class_grades_summary__display_name
 #: model:ir.model.fields,field_description:openeducat_attendance.field_op_attendance_line__display_name
 #: model:ir.model.fields,field_description:openeducat_attendance.field_op_attendance_register__display_name
 #: model:ir.model.fields,field_description:openeducat_attendance.field_op_attendance_sheet__display_name
 #: model:ir.model.fields,field_description:openeducat_attendance.field_op_attendance_type__display_name
+#: model:ir.model.fields,field_description:openeducat_attendance.field_op_subject_grades__display_name
+#: model:ir.model.fields,field_description:openeducat_attendance.field_op_update_subject_grades__display_name
 #: model:ir.model.fields,field_description:openeducat_attendance.field_student_attendance__display_name
+#: model:ir.model.fields,field_description:openeducat_attendance.field_student_grades_by_date__display_name
+#: model:ir.model.fields,field_description:openeducat_attendance.field_student_grades_by_subject__display_name
 msgid "Display Name"
 msgstr "Отображаемое имя"
 
@@ -399,10 +638,12 @@ msgstr "Черновик"
 #. module: openeducat_attendance
 #: model:ir.model.fields,field_description:openeducat_attendance.field_op_attendance_type__excused
 msgid "Excused ?"
-msgstr "Оправдал?"
+msgstr "Отсутствует по уважительной причине"
 
 #. module: openeducat_attendance
 #: model:ir.model.fields,field_description:openeducat_attendance.field_op_attendance_sheet__faculty_id
+#: model:ir.model.fields,field_description:openeducat_attendance.field_op_subject_grades__faculty_id
+#: model:ir.model.fields,field_description:openeducat_attendance.field_student_grades_by_date__faculty_id
 msgid "Faculty"
 msgstr "Факультет"
 
@@ -423,7 +664,10 @@ msgid "Followers (Partners)"
 msgstr "Последователи (партнеры)"
 
 #. module: openeducat_attendance
+#: model:ir.model.fields,field_description:openeducat_attendance.field_class_grades_summary__from_date
 #: model:ir.model.fields,field_description:openeducat_attendance.field_student_attendance__from_date
+#: model:ir.model.fields,field_description:openeducat_attendance.field_student_grades_by_date__from_date
+#: model:ir.model.fields,field_description:openeducat_attendance.field_student_grades_by_subject__from_date
 msgid "From Date"
 msgstr "С даты"
 
@@ -454,11 +698,17 @@ msgid "Helps you manage your institutes different-different users."
 msgstr "Помогает вам управлять вашими институтами различными пользователями."
 
 #. module: openeducat_attendance
+#: model:ir.model.fields,field_description:openeducat_attendance.field_class_grades_quarterly__id
+#: model:ir.model.fields,field_description:openeducat_attendance.field_class_grades_summary__id
 #: model:ir.model.fields,field_description:openeducat_attendance.field_op_attendance_line__id
 #: model:ir.model.fields,field_description:openeducat_attendance.field_op_attendance_register__id
 #: model:ir.model.fields,field_description:openeducat_attendance.field_op_attendance_sheet__id
 #: model:ir.model.fields,field_description:openeducat_attendance.field_op_attendance_type__id
+#: model:ir.model.fields,field_description:openeducat_attendance.field_op_subject_grades__id
+#: model:ir.model.fields,field_description:openeducat_attendance.field_op_update_subject_grades__id
 #: model:ir.model.fields,field_description:openeducat_attendance.field_student_attendance__id
+#: model:ir.model.fields,field_description:openeducat_attendance.field_student_grades_by_date__id
+#: model:ir.model.fields,field_description:openeducat_attendance.field_student_grades_by_subject__id
 msgid "ID"
 msgstr "ИДЕНТИФИКАТОР"
 
@@ -491,20 +741,37 @@ msgid "Is Follower"
 msgstr "Это последователь"
 
 #. module: openeducat_attendance
+#: model:ir.model.fields,field_description:openeducat_attendance.field_op_subject_grades__last_attendance_date
+msgid "Last Attendance Date"
+msgstr "Дата последнего посещения"
+
+#. module: openeducat_attendance
+#: model:ir.model.fields,field_description:openeducat_attendance.field_class_grades_quarterly__write_uid
+#: model:ir.model.fields,field_description:openeducat_attendance.field_class_grades_summary__write_uid
 #: model:ir.model.fields,field_description:openeducat_attendance.field_op_attendance_line__write_uid
 #: model:ir.model.fields,field_description:openeducat_attendance.field_op_attendance_register__write_uid
 #: model:ir.model.fields,field_description:openeducat_attendance.field_op_attendance_sheet__write_uid
 #: model:ir.model.fields,field_description:openeducat_attendance.field_op_attendance_type__write_uid
+#: model:ir.model.fields,field_description:openeducat_attendance.field_op_subject_grades__write_uid
+#: model:ir.model.fields,field_description:openeducat_attendance.field_op_update_subject_grades__write_uid
 #: model:ir.model.fields,field_description:openeducat_attendance.field_student_attendance__write_uid
+#: model:ir.model.fields,field_description:openeducat_attendance.field_student_grades_by_date__write_uid
+#: model:ir.model.fields,field_description:openeducat_attendance.field_student_grades_by_subject__write_uid
 msgid "Last Updated by"
 msgstr "Последнее обновлено"
 
 #. module: openeducat_attendance
+#: model:ir.model.fields,field_description:openeducat_attendance.field_class_grades_quarterly__write_date
+#: model:ir.model.fields,field_description:openeducat_attendance.field_class_grades_summary__write_date
 #: model:ir.model.fields,field_description:openeducat_attendance.field_op_attendance_line__write_date
 #: model:ir.model.fields,field_description:openeducat_attendance.field_op_attendance_register__write_date
 #: model:ir.model.fields,field_description:openeducat_attendance.field_op_attendance_sheet__write_date
 #: model:ir.model.fields,field_description:openeducat_attendance.field_op_attendance_type__write_date
+#: model:ir.model.fields,field_description:openeducat_attendance.field_op_subject_grades__write_date
+#: model:ir.model.fields,field_description:openeducat_attendance.field_op_update_subject_grades__write_date
 #: model:ir.model.fields,field_description:openeducat_attendance.field_student_attendance__write_date
+#: model:ir.model.fields,field_description:openeducat_attendance.field_student_grades_by_date__write_date
+#: model:ir.model.fields,field_description:openeducat_attendance.field_student_grades_by_subject__write_date
 msgid "Last Updated on"
 msgstr "Последнее обновлено"
 
@@ -512,12 +779,27 @@ msgstr "Последнее обновлено"
 #: model:ir.model.fields,field_description:openeducat_attendance.field_op_attendance_line__late
 #: model:ir.model.fields,field_description:openeducat_attendance.field_op_attendance_type__late
 msgid "Late"
-msgstr "Поздно"
+msgstr "Опоздал"
+
+#. module: openeducat_attendance
+#: model:ir.model.fields,field_description:openeducat_attendance.field_op_attendance_line__lesson_topic
+msgid "Lesson Topic"
+msgstr ""
 
 #. module: openeducat_attendance
 #: model:res.groups,name:openeducat_attendance.group_op_attendance_manager
 msgid "Manager"
 msgstr "Менеджер"
+
+#. module: openeducat_attendance
+#: model_terms:ir.ui.view,arch_db:openeducat_attendance.student_attendance_detailed_report
+msgid "Mark"
+msgstr ""
+
+#. module: openeducat_attendance
+#: model:ir.model.fields,field_description:openeducat_attendance.field_op_subject_grades__marks
+msgid "Marks"
+msgstr "Оценка 1"
 
 #. module: openeducat_attendance
 #: model:ir.model.fields,field_description:openeducat_attendance.field_op_attendance_line__message_has_error
@@ -547,7 +829,7 @@ msgstr "Месяц"
 #: model_terms:ir.ui.view,arch_db:openeducat_attendance.view_op_attendance_register_search
 #: model_terms:ir.ui.view,arch_db:openeducat_attendance.view_op_attendance_type_search
 msgid "Name"
-msgstr "Имя"
+msgstr "Наименование"
 
 #. module: openeducat_attendance
 #: model:ir.model.fields,field_description:openeducat_attendance.field_op_attendance_line__message_needaction_counter
@@ -585,36 +867,144 @@ msgstr "Количество сообщений с ошибкой доставк
 #: model:ir.model.fields,field_description:openeducat_attendance.field_op_attendance_line__present
 #: model_terms:ir.ui.view,arch_db:openeducat_attendance.view_op_attendance_line_search
 msgid "Present"
-msgstr "Подарок"
+msgstr "Присутствует"
 
 #. module: openeducat_attendance
 #: model:ir.model.fields,field_description:openeducat_attendance.field_op_attendance_type__present
 #: model_terms:ir.ui.view,arch_db:openeducat_attendance.view_op_attendance_line_search
 msgid "Present ?"
-msgstr "Подарок ?"
+msgstr "Присутствует"
 
 #. module: openeducat_attendance
+#: model:ir.model.fields,field_description:openeducat_attendance.field_op_subject_grades__present_classes
+msgid "Present Classes"
+msgstr "Посещено занятий"
+
+#. module: openeducat_attendance
+#: model_terms:ir.ui.view,arch_db:openeducat_attendance.class_grades_quarterly_form_view
+#: model_terms:ir.ui.view,arch_db:openeducat_attendance.class_grades_summary_form_view
 #: model_terms:ir.ui.view,arch_db:openeducat_attendance.student_attendance_form
+#: model_terms:ir.ui.view,arch_db:openeducat_attendance.student_grades_by_date_form_view
+#: model_terms:ir.ui.view,arch_db:openeducat_attendance.student_grades_by_subject_form_view
 msgid "Print"
 msgstr "Печать"
+
+#. module: openeducat_attendance
+#: model:ir.model.fields,field_description:openeducat_attendance.field_op_subject_grades__q1_average_mark
+msgid "Q1 Average Mark"
+msgstr ""
+
+#. module: openeducat_attendance
+#: model:ir.model.fields,field_description:openeducat_attendance.field_op_subject_grades__q1_last_attendance_date
+msgid "Q1 Last Attendance Date"
+msgstr ""
+
+#. module: openeducat_attendance
+#: model:ir.model.fields,field_description:openeducat_attendance.field_op_subject_grades__q1_present_classes
+msgid "Q1 Present Classes"
+msgstr ""
+
+#. module: openeducat_attendance
+#: model:ir.model.fields,field_description:openeducat_attendance.field_op_subject_grades__q1_total_classes
+msgid "Q1 Total Classes"
+msgstr ""
+
+#. module: openeducat_attendance
+#: model:ir.model.fields,field_description:openeducat_attendance.field_op_subject_grades__q2_average_mark
+msgid "Q2 Average Mark"
+msgstr ""
+
+#. module: openeducat_attendance
+#: model:ir.model.fields,field_description:openeducat_attendance.field_op_subject_grades__q2_last_attendance_date
+msgid "Q2 Last Attendance Date"
+msgstr ""
+
+#. module: openeducat_attendance
+#: model:ir.model.fields,field_description:openeducat_attendance.field_op_subject_grades__q2_present_classes
+msgid "Q2 Present Classes"
+msgstr ""
+
+#. module: openeducat_attendance
+#: model:ir.model.fields,field_description:openeducat_attendance.field_op_subject_grades__q2_total_classes
+msgid "Q2 Total Classes"
+msgstr ""
+
+#. module: openeducat_attendance
+#: model:ir.model.fields,field_description:openeducat_attendance.field_op_subject_grades__q3_average_mark
+msgid "Q3 Average Mark"
+msgstr ""
+
+#. module: openeducat_attendance
+#: model:ir.model.fields,field_description:openeducat_attendance.field_op_subject_grades__q3_last_attendance_date
+msgid "Q3 Last Attendance Date"
+msgstr ""
+
+#. module: openeducat_attendance
+#: model:ir.model.fields,field_description:openeducat_attendance.field_op_subject_grades__q3_present_classes
+msgid "Q3 Present Classes"
+msgstr ""
+
+#. module: openeducat_attendance
+#: model:ir.model.fields,field_description:openeducat_attendance.field_op_subject_grades__q3_total_classes
+msgid "Q3 Total Classes"
+msgstr ""
+
+#. module: openeducat_attendance
+#: model:ir.model.fields,field_description:openeducat_attendance.field_op_subject_grades__q4_average_mark
+msgid "Q4 Average Mark"
+msgstr ""
+
+#. module: openeducat_attendance
+#: model:ir.model.fields,field_description:openeducat_attendance.field_op_subject_grades__q4_last_attendance_date
+msgid "Q4 Last Attendance Date"
+msgstr ""
+
+#. module: openeducat_attendance
+#: model:ir.model.fields,field_description:openeducat_attendance.field_op_subject_grades__q4_present_classes
+msgid "Q4 Present Classes"
+msgstr ""
+
+#. module: openeducat_attendance
+#: model:ir.model.fields,field_description:openeducat_attendance.field_op_subject_grades__q4_total_classes
+msgid "Q4 Total Classes"
+msgstr ""
+
+#. module: openeducat_attendance
+#: model:ir.model.fields,field_description:openeducat_attendance.field_op_attendance_line__rating_ids
+#: model:ir.model.fields,field_description:openeducat_attendance.field_op_attendance_register__rating_ids
+#: model:ir.model.fields,field_description:openeducat_attendance.field_op_attendance_sheet__rating_ids
+#: model:ir.model.fields,field_description:openeducat_attendance.field_op_attendance_type__rating_ids
+msgid "Ratings"
+msgstr ""
 
 #. module: openeducat_attendance
 #: model:ir.model.fields,field_description:openeducat_attendance.field_op_attendance_line__register_id
 #: model:ir.model.fields,field_description:openeducat_attendance.field_op_attendance_sheet__register_id
 #: model_terms:ir.ui.view,arch_db:openeducat_attendance.view_op_attendance_sheet_search
 msgid "Register"
-msgstr "Зарегистрировать"
+msgstr "Журнал"
 
 #. module: openeducat_attendance
 #: model:ir.ui.menu,name:openeducat_attendance.menu_op_attendance_register_sub
 msgid "Registers"
-msgstr "Регистры"
+msgstr "Журналы"
 
 #. module: openeducat_attendance
 #: model:ir.model.fields,field_description:openeducat_attendance.field_op_attendance_line__remark
+#: model_terms:ir.ui.view,arch_db:openeducat_attendance.student_attendance_detailed_report
 #: model_terms:ir.ui.view,arch_db:openeducat_attendance.student_attendance_report
 msgid "Remark"
 msgstr "Примечание"
+
+#. module: openeducat_attendance
+#: model:ir.model.fields,field_description:openeducat_attendance.field_student_attendance__report_type
+msgid "Report Type"
+msgstr ""
+
+#. module: openeducat_attendance
+#: model:ir.ui.menu,name:openeducat_attendance.menu_op_attendance_reports
+msgid "Reports"
+msgstr "Отчеты"
 
 #. module: openeducat_attendance
 #: model:ir.model.fields,field_description:openeducat_attendance.field_op_attendance_line__message_has_sms_error
@@ -628,12 +1018,12 @@ msgstr "Ошибка доставки SMS"
 #: model:ir.model.fields,field_description:openeducat_attendance.field_op_attendance_sheet__session_id
 #: model:ir.model.fields,field_description:openeducat_attendance.field_op_session__attendance_sheet
 msgid "Session"
-msgstr "Сессия"
+msgstr "Урок"
 
 #. module: openeducat_attendance
 #: model:ir.model,name:openeducat_attendance.model_op_session
 msgid "Sessions"
-msgstr "Сеансы"
+msgstr "Уроки"
 
 #. module: openeducat_attendance
 #: model:ir.ui.menu,name:openeducat_attendance.menu_attendance_config
@@ -648,19 +1038,21 @@ msgstr "Лист должен быть уникальным в течение р
 #. module: openeducat_attendance
 #: model:ir.ui.menu,name:openeducat_attendance.menu_op_attendance_sheet_sub
 msgid "Sheets"
-msgstr "Простыни"
+msgstr "Журналы уроков"
 
 #. module: openeducat_attendance
 #: model:ir.model.fields,field_description:openeducat_attendance.field_op_attendance_sheet__state
+#: model_terms:ir.ui.view,arch_db:openeducat_attendance.student_attendance_detailed_report
 msgid "Status"
 msgstr "Статус"
 
 #. module: openeducat_attendance
 #: model:ir.model,name:openeducat_attendance.model_op_student
 #: model:ir.model.fields,field_description:openeducat_attendance.field_op_attendance_line__student_id
+#: model:ir.model.fields,field_description:openeducat_attendance.field_op_subject_grades__student_id
 #: model_terms:ir.ui.view,arch_db:openeducat_attendance.view_op_attendance_line_search
 msgid "Student"
-msgstr "Студент"
+msgstr "Ученик"
 
 #. module: openeducat_attendance
 #: model:ir.actions.act_window,name:openeducat_attendance.op_student_attendance_act
@@ -674,9 +1066,41 @@ msgid "Student Attendance Report"
 msgstr "Отчет о посещении студентов"
 
 #. module: openeducat_attendance
+#: model:ir.actions.act_window,name:openeducat_attendance.action_student_grades_by_date_wizard
+#: model:ir.model,name:openeducat_attendance.model_student_grades_by_date
+#: model_terms:ir.ui.view,arch_db:openeducat_attendance.student_grades_by_date_form_view
+msgid "Student Grades by Date"
+msgstr "Отчет по классам и предметам"
+
+#. module: openeducat_attendance
+#: model:ir.actions.report,name:openeducat_attendance.action_report_student_grades_by_date
+#: model:ir.model,name:openeducat_attendance.model_report_openeducat_attendance_student_grades_by_date_report
+#: model:ir.ui.menu,name:openeducat_attendance.menu_op_student_grades_by_date_report
+msgid "Student Grades by Date Report"
+msgstr "Отчет по классам и предметам"
+
+#. module: openeducat_attendance
+#: model:ir.model,name:openeducat_attendance.model_student_grades_by_subject
+#: model_terms:ir.ui.view,arch_db:openeducat_attendance.student_grades_by_subject_form_view
+msgid "Student Grades by Subject"
+msgstr ""
+
+#. module: openeducat_attendance
+#: model:ir.actions.report,name:openeducat_attendance.action_report_student_grades_by_subject
+#: model:ir.model,name:openeducat_attendance.model_report_openeducat_attendance_student_grades_by_subject_report
+#: model:ir.model.fields.selection,name:openeducat_attendance.selection__student_attendance__report_type__grades_by_subject
+msgid "Student Grades by Subject Report"
+msgstr ""
+
+#. module: openeducat_attendance
+#: model:ir.model.fields,field_description:openeducat_attendance.field_op_subject_grades__student_name_short
+msgid "Student Name Short"
+msgstr ""
+
+#. module: openeducat_attendance
 #: model_terms:ir.ui.view,arch_db:openeducat_attendance.view_op_attendance_type_form
 msgid "Student Should Be Marked As"
-msgstr "Студент должен быть отмечен как"
+msgstr "Ученик должен быть отмечен как"
 
 #. module: openeducat_attendance
 #: model:ir.model.constraint,message:openeducat_attendance.constraint_op_attendance_line_unique_student
@@ -686,29 +1110,54 @@ msgstr "Студент должен быть уникальным за посе�
 #. module: openeducat_attendance
 #: model_terms:ir.ui.view,arch_db:openeducat_attendance.view_op_attendance_sheet_form
 msgid "Students"
-msgstr "Студенты"
+msgstr "Ученики"
 
 #. module: openeducat_attendance
 #: model:ir.model.fields,field_description:openeducat_attendance.field_op_attendance_register__subject_id
+#: model:ir.model.fields,field_description:openeducat_attendance.field_op_subject_grades__subject_id
+#: model:ir.model.fields,field_description:openeducat_attendance.field_student_grades_by_date__subject_id
 msgid "Subject"
 msgstr "Предмет"
 
 #. module: openeducat_attendance
-#: model:ir.model.fields,field_description:openeducat_attendance.field_student_attendance__to_date
-msgid "To Date"
-msgstr "На сегодняшний день"
+#: model:ir.model,name:openeducat_attendance.model_op_subject_grades
+msgid "Subject Grades"
+msgstr ""
 
 #. module: openeducat_attendance
-#. odoo-python
-#: code:addons/openeducat_attendance/wizards/student_attendance_wizard.py:0
-msgid "To Date cannot be set before From Date."
-msgstr "На сегодняшний день не может быть установлен ранее с даты."
+#: model:ir.model.fields,field_description:openeducat_attendance.field_op_subject_grades__table_entries
+msgid "Table Entries"
+msgstr "Записи в таблице"
+
+#. module: openeducat_attendance
+#: model:ir.model.fields,field_description:openeducat_attendance.field_op_subject_grades__textbook_image
+msgid "Textbook Image"
+msgstr "Изображение"
+
+#. module: openeducat_attendance
+#: model:ir.model.fields,field_description:openeducat_attendance.field_class_grades_summary__to_date
+#: model:ir.model.fields,field_description:openeducat_attendance.field_student_attendance__to_date
+#: model:ir.model.fields,field_description:openeducat_attendance.field_student_grades_by_date__to_date
+#: model:ir.model.fields,field_description:openeducat_attendance.field_student_grades_by_subject__to_date
+msgid "To Date"
+msgstr "На сегодняшний день"
 
 #. module: openeducat_attendance
 #: model_terms:ir.ui.view,arch_db:openeducat_attendance.view_op_attendance_line_search
 #: model_terms:ir.ui.view,arch_db:openeducat_attendance.view_op_attendance_sheet_search
 msgid "Today"
 msgstr "Сегодня"
+
+#. module: openeducat_attendance
+#: model:ir.model.fields,field_description:openeducat_attendance.field_op_subject_grades__total_classes
+msgid "Total Classes"
+msgstr "Всего занятий"
+
+#. module: openeducat_attendance
+#: model:ir.model,name:openeducat_attendance.model_op_update_subject_grades
+#: model_terms:ir.ui.view,arch_db:openeducat_attendance.view_op_update_subject_grades_form
+msgid "Update Subject Grades"
+msgstr ""
 
 #. module: openeducat_attendance
 #: model:res.groups,name:openeducat_attendance.group_op_attendance_user
@@ -737,61 +1186,229 @@ msgid "Week"
 msgstr "Неделя"
 
 #. module: openeducat_attendance
-#: model:ir.actions.report,name:openeducat_attendance.action_report_class_grades_summary
-msgid "Class Grades Summary Report"
-msgstr "Сводный отчет по оценкам класса"
+#: model_terms:ir.ui.view,arch_db:openeducat_attendance.view_op_subject_grades_kanban
+msgid "Аватар преподавателя"
+msgstr ""
 
 #. module: openeducat_attendance
-#: model:ir.actions.report,name:openeducat_attendance.action_report_student_grades_by_date
-msgid "Student Grades by Date Report"
-msgstr "Отчет по оценкам студентов по датам"
+#: model_terms:ir.ui.view,arch_db:openeducat_attendance.view_op_subject_grades_kanban
+msgid "Аватар студента"
+msgstr ""
 
 #. module: openeducat_attendance
-#: model:ir.ui.menu,name:openeducat_attendance.menu_op_class_grades_summary_report
-msgid "Class Grades Summary Report"
-msgstr "Сводный отчет по оценкам класса"
+#: model:ir.actions.server,name:openeducat_attendance.ir_cron_update_subject_grades_ir_actions_server
+msgid "Автоматическое обновление оценок по предметам"
+msgstr ""
 
 #. module: openeducat_attendance
-#: model:ir.ui.menu,name:openeducat_attendance.menu_op_student_grades_by_date_report
-msgid "Student Grades by Date Report"
-msgstr "Отчет по оценкам студентов по датам"
-#. module: openeducat_attendance
-#. odoo-javascript
-#: code:addons/openeducat_attendance/report/class_grades_summary_report.xml:0
-msgid "Class Grades Summary Report"
-msgstr "Сводный отчет по оценкам класса"
+#: model_terms:ir.ui.view,arch_db:openeducat_attendance.view_op_subject_grades_kanban
+#: model_terms:ir.ui.view,arch_db:openeducat_attendance.view_op_subject_grades_tree
+msgid "Всего занятий"
+msgstr ""
 
 #. module: openeducat_attendance
-#. odoo-javascript
-#: code:addons/openeducat_attendance/report/class_grades_summary_report.xml:0
-msgid "Class:"
-msgstr "Класс:"
+#: model_terms:ir.ui.view,arch_db:openeducat_attendance.view_op_subject_grades_search
+msgid "Группировать по..."
+msgstr ""
 
 #. module: openeducat_attendance
-#. odoo-javascript
-#: code:addons/openeducat_attendance/report/class_grades_summary_report.xml:0
-msgid "From Date:"
-msgstr "С даты:"
+#: model_terms:ir.ui.view,arch_db:openeducat_attendance.student_grades_by_subject_report
+msgid "Дата"
+msgstr ""
 
 #. module: openeducat_attendance
-#. odoo-javascript
-#: code:addons/openeducat_attendance/report/class_grades_summary_report.xml:0
-msgid "To Date:"
-msgstr "По дату:"
+#: model_terms:ir.ui.view,arch_db:openeducat_attendance.view_op_subject_grades_kanban
+#: model_terms:ir.ui.view,arch_db:openeducat_attendance.view_op_subject_grades_tree
+msgid "Дата последнего посещения"
+msgstr ""
 
 #. module: openeducat_attendance
-#. odoo-javascript
-#: code:addons/openeducat_attendance/report/class_grades_summary_report.xml:0
-msgid "Student Name"
-msgstr "Имя студента"
+#: model_terms:ir.actions.act_window,help:openeducat_attendance.act_open_op_subject_grades_view
+msgid "Здесь будут отображаться оценки по предметам."
+msgstr ""
 
 #. module: openeducat_attendance
-#. odoo-javascript
-#: code:addons/openeducat_attendance/report/class_grades_summary_report.xml:0
-msgid "Average Grade"
-msgstr "Средняя оценка"
+#: model:ir.model.fields,field_description:openeducat_attendance.field_op_subject_grades__final_quarter_grade
+#: model_terms:ir.ui.view,arch_db:openeducat_attendance.view_op_subject_grades_search
+msgid "Итоговая оценка"
+msgstr "Итоговая оценка за четверть"
 
 #. module: openeducat_attendance
-#. odoo-javascript
-#: code:addons/openeducat_attendance/report/class_grades_summary_report.xml:0
-msgid "Class Average"
+#: model:ir.model.fields,field_description:openeducat_attendance.field_op_subject_grades__q1_final_grade
+msgid "Итоговая оценка за 1 четверть"
+msgstr ""
+
+#. module: openeducat_attendance
+#: model:ir.model.fields,field_description:openeducat_attendance.field_op_subject_grades__q2_final_grade
+msgid "Итоговая оценка за 2 четверть"
+msgstr ""
+
+#. module: openeducat_attendance
+#: model:ir.model.fields,field_description:openeducat_attendance.field_op_subject_grades__q3_final_grade
+msgid "Итоговая оценка за 3 четверть"
+msgstr ""
+
+#. module: openeducat_attendance
+#: model:ir.model.fields,field_description:openeducat_attendance.field_op_subject_grades__q4_final_grade
+msgid "Итоговая оценка за 4 четверть"
+msgstr ""
+
+#. module: openeducat_attendance
+#: model_terms:ir.ui.view,arch_db:openeducat_attendance.view_op_subject_grades_form
+#: model_terms:ir.ui.view,arch_db:openeducat_attendance.view_op_subject_grades_kanban
+#: model_terms:ir.ui.view,arch_db:openeducat_attendance.view_op_subject_grades_search
+#: model_terms:ir.ui.view,arch_db:openeducat_attendance.view_op_subject_grades_tree
+msgid "Класс"
+msgstr ""
+
+#. module: openeducat_attendance
+#: model_terms:ir.ui.view,arch_db:openeducat_attendance.student_grades_by_subject_report
+msgid "Комментарий"
+msgstr ""
+
+#. module: openeducat_attendance
+#: model_terms:ir.actions.act_window,help:openeducat_attendance.act_open_op_subject_grades_view
+msgid "Нет данных об оценках"
+msgstr ""
+
+#. module: openeducat_attendance
+#: model_terms:ir.ui.view,arch_db:openeducat_attendance.view_op_update_subject_grades_form
+msgid "Обновить"
+msgstr ""
+
+#. module: openeducat_attendance
+#: model:ir.actions.act_window,name:openeducat_attendance.action_op_update_subject_grades
+#: model:ir.ui.menu,name:openeducat_attendance.menu_op_update_subject_grades
+#: model_terms:ir.ui.view,arch_db:openeducat_attendance.view_op_subject_grades_form
+#: model_terms:ir.ui.view,arch_db:openeducat_attendance.view_op_subject_grades_tree
+msgid "Обновить оценки по предметам"
+msgstr ""
+
+#. module: openeducat_attendance
+#: model_terms:ir.ui.view,arch_db:openeducat_attendance.view_op_update_subject_grades_form
+msgid "Отмена"
+msgstr ""
+
+#. module: openeducat_attendance
+#: model:ir.ui.menu,name:openeducat_attendance.menu_op_class_grades_quarterly_report
+msgid "Отчет по классу за четверть"
+msgstr ""
+
+#. module: openeducat_attendance
+#: model:ir.model.fields,field_description:openeducat_attendance.field_op_attendance_line__x_mark
+#: model_terms:ir.ui.view,arch_db:openeducat_attendance.student_grades_by_subject_report
+msgid "Оценка"
+msgstr "Оценка 1"
+
+#. module: openeducat_attendance
+#: model:ir.actions.act_window,name:openeducat_attendance.act_open_op_subject_grades_view
+#: model_terms:ir.ui.view,arch_db:openeducat_attendance.view_op_subject_grades_form
+#: model_terms:ir.ui.view,arch_db:openeducat_attendance.view_op_subject_grades_search
+#: model_terms:ir.ui.view,arch_db:openeducat_attendance.view_op_subject_grades_tree
+msgid "Оценки по предметам"
+msgstr ""
+
+#. module: openeducat_attendance
+#: model:ir.model.fields,field_description:openeducat_attendance.field_op_attendance_line__x_behavior
+#: model_terms:ir.ui.view,arch_db:openeducat_attendance.student_grades_by_subject_report
+msgid "Поведение"
+msgstr "Оценка 2"
+
+#. module: openeducat_attendance
+#: model_terms:ir.ui.view,arch_db:openeducat_attendance.view_op_subject_grades_kanban
+#: model_terms:ir.ui.view,arch_db:openeducat_attendance.view_op_subject_grades_tree
+msgid "Посещено занятий"
+msgstr ""
+
+#. module: openeducat_attendance
+#: model:ir.model.fields,field_description:openeducat_attendance.field_op_attendance_line__x_subject
+#: model_terms:ir.ui.view,arch_db:openeducat_attendance.view_op_subject_grades_form
+#: model_terms:ir.ui.view,arch_db:openeducat_attendance.view_op_subject_grades_kanban
+#: model_terms:ir.ui.view,arch_db:openeducat_attendance.view_op_subject_grades_search
+#: model_terms:ir.ui.view,arch_db:openeducat_attendance.view_op_subject_grades_tree
+msgid "Предмет"
+msgstr ""
+
+#. module: openeducat_attendance
+#: model_terms:ir.ui.view,arch_db:openeducat_attendance.view_op_subject_grades_form
+#: model_terms:ir.ui.view,arch_db:openeducat_attendance.view_op_subject_grades_kanban
+msgid "Преподаватель"
+msgstr ""
+
+#. module: openeducat_attendance
+#: model_terms:ir.ui.view,arch_db:openeducat_attendance.view_op_update_subject_grades_form
+msgid "Процесс может занять несколько минут в зависимости от объема данных."
+msgstr ""
+
+#. module: openeducat_attendance
+#: model_terms:ir.ui.view,arch_db:openeducat_attendance.student_grades_by_date_report
+msgid "Средний балл класса"
+msgstr ""
+
+#. module: openeducat_attendance
+#: model_terms:ir.ui.view,arch_db:openeducat_attendance.class_grades_quarterly_report
+msgid "Средняя итоговая оценка"
+msgstr ""
+
+#. module: openeducat_attendance
+#: model_terms:ir.ui.view,arch_db:openeducat_attendance.class_grades_summary_report
+#: model_terms:ir.ui.view,arch_db:openeducat_attendance.student_grades_by_date_report
+#: model_terms:ir.ui.view,arch_db:openeducat_attendance.view_op_subject_grades_kanban
+#: model_terms:ir.ui.view,arch_db:openeducat_attendance.view_op_subject_grades_search
+#: model_terms:ir.ui.view,arch_db:openeducat_attendance.view_op_subject_grades_tree
+msgid "Средняя оценка"
+msgstr ""
+
+#. module: openeducat_attendance
+#: model:ir.ui.menu,name:openeducat_attendance.menu_op_subject_grades_kanban
+msgid "Текущая успеваемость"
+msgstr ""
+
+#. module: openeducat_attendance
+#: model:ir.model.fields,field_description:openeducat_attendance.field_op_attendance_sheet__lesson_topic
+msgid "Тема урока"
+msgstr ""
+
+#. module: openeducat_attendance
+#: model:ir.model.fields,help:openeducat_attendance.field_op_attendance_line__lesson_topic
+#: model:ir.model.fields,help:openeducat_attendance.field_op_attendance_sheet__lesson_topic
+msgid "Тема урока, которая будет отображаться в оценках по предметам"
+msgstr ""
+
+#. module: openeducat_attendance
+#: model:ir.model.fields,field_description:openeducat_attendance.field_op_subject_grades__lesson_topics
+msgid "Темы уроков"
+msgstr ""
+
+#. module: openeducat_attendance
+#: model:ir.model.fields,help:openeducat_attendance.field_op_subject_grades__lesson_topics
+msgid "Темы уроков по данному предмету"
+msgstr ""
+
+#. module: openeducat_attendance
+#: model_terms:ir.ui.view,arch_db:openeducat_attendance.class_grades_quarterly_report
+#: model_terms:ir.ui.view,arch_db:openeducat_attendance.class_grades_summary_report
+#: model_terms:ir.ui.view,arch_db:openeducat_attendance.student_grades_by_date_report
+#: model_terms:ir.ui.view,arch_db:openeducat_attendance.view_op_subject_grades_form
+#: model_terms:ir.ui.view,arch_db:openeducat_attendance.view_op_subject_grades_kanban
+#: model_terms:ir.ui.view,arch_db:openeducat_attendance.view_op_subject_grades_search
+#: model_terms:ir.ui.view,arch_db:openeducat_attendance.view_op_subject_grades_tree
+msgid "Ученик"
+msgstr ""
+
+#. module: openeducat_attendance
+#: model_terms:ir.ui.view,arch_db:openeducat_attendance.view_op_subject_grades_kanban
+msgid "Ученик (Имя Фамилия)"
+msgstr ""
+
+#. module: openeducat_attendance
+#: model:ir.model.fields,field_description:openeducat_attendance.field_op_attendance_line__x_faculty
+msgid "Учитель"
+msgstr ""
+
+#. module: openeducat_attendance
+#: model_terms:ir.ui.view,arch_db:openeducat_attendance.view_op_update_subject_grades_form
+msgid ""
+"Это действие обновит все агрегированные данные по оценкам студентов по "
+"предметам."
+msgstr ""

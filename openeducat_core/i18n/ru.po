@@ -4,16 +4,28 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: Odoo Server 18.0\n"
+"Project-Id-Version: Odoo Server 18.0-20260226\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-04-29 05:56+0000\n"
-"PO-Revision-Date: 2025-04-29 05:56+0000\n"
+"POT-Creation-Date: 2026-04-13 15:01+0000\n"
+"PO-Revision-Date: 2026-04-13 15:01+0000\n"
 "Last-Translator: \n"
 "Language-Team: \n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: \n"
 "Plural-Forms: \n"
+
+#. module: openeducat_core
+#: model:ir.model.fields,field_description:openeducat_core.field_op_faculty__meeting_count
+#: model:ir.model.fields,field_description:openeducat_core.field_op_student__meeting_count
+msgid "# Meetings"
+msgstr ""
+
+#. module: openeducat_core
+#: model:ir.model.fields,field_description:openeducat_core.field_op_faculty__supplier_invoice_count
+#: model:ir.model.fields,field_description:openeducat_core.field_op_student__supplier_invoice_count
+msgid "# Vendor Bills"
+msgstr ""
 
 #. module: openeducat_core
 #: model:ir.actions.report,print_report_name:openeducat_core.action_report_student_bonafide
@@ -41,22 +53,18 @@ msgid ""
 "<font color=\"white\"/>\n"
 "                                            is / was a bonafide student of this school / college studying in"
 msgstr ""
-"<font color = \"белый\"/>\n"
+"<font color=\"белый\"/>\n"
 "                                            это / был добросовестным учеником этой школы / колледжа, обучающейся в"
 
 #. module: openeducat_core
 #: model_terms:ir.ui.view,arch_db:openeducat_core.res_config_settings_view_form_core
 msgid "<span class=\"fa fa-info-circle \" title=\"Openeducat Enterprise Module\"/>"
-msgstr ""
-"<span class = \"fa fa-info-circle\" title = \"Openeducat Enterprise "
-"Module\"/>"
+msgstr "<span class=\"fa fa-info-circle\" title=\"Openeducat Enterprise Module\"/>"
 
 #. module: openeducat_core
 #: model_terms:ir.ui.view,arch_db:openeducat_core.res_config_settings_view_form_core
 msgid "<span class=\"fa fa-info-circle\" title=\"Openeducat Enterprise Module\"/>"
 msgstr ""
-"<span class = \"fa fa-info-circle\" title = \"Openeducat Enterprise "
-"Module\"/>"
 
 #. module: openeducat_core
 #: model_terms:ir.ui.view,arch_db:openeducat_core.report_student_idcard
@@ -96,30 +104,25 @@ msgstr ""
 #: model:ir.model.fields.selection,name:openeducat_core.selection__op_faculty__blood_group__a+
 #: model:ir.model.fields.selection,name:openeducat_core.selection__op_student__blood_group__a+
 msgid "A+ve"
-msgstr "A+и"
+msgstr "A+ve (II группа положительная)"
 
 #. module: openeducat_core
 #: model:ir.model.fields.selection,name:openeducat_core.selection__op_faculty__blood_group__a-
 #: model:ir.model.fields.selection,name:openeducat_core.selection__op_student__blood_group__a-
 msgid "A-ve"
-msgstr "А-а"
+msgstr "A-ve (II группа отрицательная)"
 
 #. module: openeducat_core
 #: model:ir.model.fields.selection,name:openeducat_core.selection__op_faculty__blood_group__ab+
 #: model:ir.model.fields.selection,name:openeducat_core.selection__op_student__blood_group__ab+
 msgid "AB+ve"
-msgstr "Ab+и"
+msgstr "AB+ve (IV группа положительная)"
 
 #. module: openeducat_core
 #: model:ir.model.fields.selection,name:openeducat_core.selection__op_faculty__blood_group__ab-
 #: model:ir.model.fields.selection,name:openeducat_core.selection__op_student__blood_group__ab-
 msgid "AB-ve"
-msgstr "Ab-and"
-
-#. module: openeducat_core
-#: model:op.student,first_name:openeducat_core.op_student_11
-msgid "Aarav"
-msgstr "Аарав"
+msgstr "AB-ve (IV группа отрицательная)"
 
 #. module: openeducat_core
 #: model:ir.actions.act_window,name:openeducat_core.act_op_academic_term_view
@@ -130,13 +133,13 @@ msgstr "Аарав"
 #: model_terms:ir.ui.view,arch_db:openeducat_core.view_op_academic_term_tree
 #: model_terms:ir.ui.view,arch_db:openeducat_core.view_op_student_course_search
 msgid "Academic Term"
-msgstr "Академический термин"
+msgstr "Учебные периоды"
 
 #. module: openeducat_core
 #: model:ir.model.fields,field_description:openeducat_core.field_op_academic_year__academic_term_ids
 #: model_terms:ir.ui.view,arch_db:openeducat_core.view_op_academic_year_form
 msgid "Academic Terms"
-msgstr "Академические термины"
+msgstr "Учебные периоды"
 
 #. module: openeducat_core
 #: model:ir.actions.act_window,name:openeducat_core.act_op_academic_year_view
@@ -150,6 +153,18 @@ msgstr "Академические термины"
 #: model_terms:ir.ui.view,arch_db:openeducat_core.view_op_student_course_search
 msgid "Academic Year"
 msgstr "Учебный год"
+
+#. module: openeducat_core
+#: model:ir.model.fields,field_description:openeducat_core.field_op_faculty__property_account_payable_id
+#: model:ir.model.fields,field_description:openeducat_core.field_op_student__property_account_payable_id
+msgid "Account Payable"
+msgstr ""
+
+#. module: openeducat_core
+#: model:ir.model.fields,field_description:openeducat_core.field_op_faculty__property_account_receivable_id
+#: model:ir.model.fields,field_description:openeducat_core.field_op_student__property_account_receivable_id
+msgid "Account Receivable"
+msgstr ""
 
 #. module: openeducat_core
 #: model:ir.model.fields,field_description:openeducat_core.field_res_company__accreditation
@@ -192,6 +207,12 @@ msgid "Active Lang Count"
 msgstr "Активный счет Lang"
 
 #. module: openeducat_core
+#: model:ir.model.fields,field_description:openeducat_core.field_op_faculty__loyalty_card_count
+#: model:ir.model.fields,field_description:openeducat_core.field_op_student__loyalty_card_count
+msgid "Active loyalty cards"
+msgstr ""
+
+#. module: openeducat_core
 #: model:ir.model.fields,field_description:openeducat_core.field_op_faculty__activity_ids
 #: model:ir.model.fields,field_description:openeducat_core.field_op_student__activity_ids
 msgid "Activities"
@@ -229,11 +250,6 @@ msgstr "Состояние деятельности"
 #: model:ir.model.fields,field_description:openeducat_core.field_op_student__activity_type_icon
 msgid "Activity Type Icon"
 msgstr "Значок типа деятельности"
-
-#. module: openeducat_core
-#: model:op.student,last_name:openeducat_core.op_student_12
-msgid "Adams"
-msgstr "Адамс"
 
 #. module: openeducat_core
 #: model:ir.model.fields,field_description:openeducat_core.field_op_faculty__additional_info
@@ -325,16 +341,6 @@ msgid "Admission Enterprise"
 msgstr "Приемное предприятие"
 
 #. module: openeducat_core
-#: model:op.student,first_name:openeducat_core.op_student_4
-msgid "Alex"
-msgstr "Алекс"
-
-#. module: openeducat_core
-#: model:op.faculty,first_name:openeducat_core.op_faculty_6
-msgid "Alice"
-msgstr "Алиса"
-
-#. module: openeducat_core
 #: model:ir.model.fields,help:openeducat_core.field_op_faculty__lang
 #: model:ir.model.fields,help:openeducat_core.field_op_student__lang
 msgid ""
@@ -394,11 +400,6 @@ msgid "Alumni Job Enterprise"
 msgstr "Выпускники работы предприятия"
 
 #. module: openeducat_core
-#: model:op.faculty,first_name:openeducat_core.op_faculty_14
-msgid "Amina"
-msgstr "Амина"
-
-#. module: openeducat_core
 #: model_terms:ir.ui.view,arch_db:openeducat_core.res_config_settings_view_form_core
 msgid ""
 "An attendance system\n"
@@ -432,7 +433,7 @@ msgstr "Утвердить"
 #. module: openeducat_core
 #: model:ir.model.fields.selection,name:openeducat_core.selection__op_subject_registration__state__approved
 msgid "Approved"
-msgstr "Одобренный"
+msgstr "Одобрено"
 
 #. module: openeducat_core
 #: model_terms:ir.ui.view,arch_db:openeducat_core.kanban_view_faculty
@@ -477,7 +478,7 @@ msgstr ""
 #: model:ir.model.fields,field_description:openeducat_core.field_res_config_settings__module_openeducat_assignment
 #: model_terms:ir.ui.view,arch_db:openeducat_core.res_config_settings_view_form_core
 msgid "Assignment"
-msgstr "Назначение"
+msgstr "Задания"
 
 #. module: openeducat_core
 #: model:ir.model.fields,field_description:openeducat_core.field_res_config_settings__module_openeducat_assignment_enterprise
@@ -539,6 +540,12 @@ msgid "Attendance Xlsx Report"
 msgstr "Посещаемость XLSX Report"
 
 #. module: openeducat_core
+#: model:ir.model.fields,field_description:openeducat_core.field_op_faculty__autopost_bills
+#: model:ir.model.fields,field_description:openeducat_core.field_op_student__autopost_bills
+msgid "Auto-post bills"
+msgstr ""
+
+#. module: openeducat_core
 #: model_terms:ir.ui.view,arch_db:openeducat_core.res_config_settings_view_form_core
 msgid ""
 "Automate lead and opportunity tracking\n"
@@ -546,6 +553,12 @@ msgid ""
 msgstr ""
 "Автоматизировать отслеживание свинца и возможностей\n"
 "                                        с передовым CRM для непревзойденного преимущества."
+
+#. module: openeducat_core
+#: model:ir.model.fields,help:openeducat_core.field_op_faculty__autopost_bills
+#: model:ir.model.fields,help:openeducat_core.field_op_student__autopost_bills
+msgid "Automatically post bills for this trusted partner"
+msgstr ""
 
 #. module: openeducat_core
 #: model:ir.model.fields,field_description:openeducat_core.field_op_faculty__avatar_1920
@@ -581,238 +594,13 @@ msgstr "Аватар 512"
 #: model:ir.model.fields.selection,name:openeducat_core.selection__op_faculty__blood_group__b+
 #: model:ir.model.fields.selection,name:openeducat_core.selection__op_student__blood_group__b+
 msgid "B+ve"
-msgstr "B+и"
+msgstr "B+ve (III группа положительная)"
 
 #. module: openeducat_core
 #: model:ir.model.fields.selection,name:openeducat_core.selection__op_faculty__blood_group__b-
 #: model:ir.model.fields.selection,name:openeducat_core.selection__op_student__blood_group__b-
 msgid "B-ve"
-msgstr "Группа"
-
-#. module: openeducat_core
-#: model:op.program,name:openeducat_core.program_3
-msgid "B.Com - Accounting and Finance"
-msgstr "B.com - бухгалтерский учет и финансы"
-
-#. module: openeducat_core
-#: model:op.program,name:openeducat_core.program_6
-msgid "B.Tech - Chemical Engineering"
-msgstr "B.Tech - Химическая инженерия"
-
-#. module: openeducat_core
-#: model:op.program,name:openeducat_core.program_5
-msgid "B.Tech - Civil Engineering"
-msgstr "B.Tech - гражданское строительство"
-
-#. module: openeducat_core
-#: model:op.program,name:openeducat_core.program_4
-msgid "BA - Psychology"
-msgstr "BA - Психология"
-
-#. module: openeducat_core
-#: model:op.program,code:openeducat_core.program_4
-msgid "BA-PSC"
-msgstr "BA-PSC"
-
-#. module: openeducat_core
-#: model:op.course,name:openeducat_core.op_course_8
-msgid "BA-PY-Semester-1"
-msgstr "BA-PY-SEMESTER-1"
-
-#. module: openeducat_core
-#: model:op.course,name:openeducat_core.op_course_10
-msgid "BA-PY-Semester-2"
-msgstr "BA-PY-SEMESTER-2"
-
-#. module: openeducat_core
-#: model:op.course,name:openeducat_core.op_course_32
-msgid "BA-PY-Semester-3"
-msgstr "BA-PY-SEMESTE-3"
-
-#. module: openeducat_core
-#: model:op.course,name:openeducat_core.op_course_33
-msgid "BA-PY-Semester-4"
-msgstr "BA-PY-SEMESTE-4"
-
-#. module: openeducat_core
-#: model:op.course,name:openeducat_core.op_course_34
-msgid "BA-PY-Semester-5"
-msgstr "BA-PY-SEMESTE-5"
-
-#. module: openeducat_core
-#: model:op.course,name:openeducat_core.op_course_35
-msgid "BA-PY-Semester-6"
-msgstr "BA-PY-SEMESTE-6"
-
-#. module: openeducat_core
-#: model:op.program,name:openeducat_core.program_1
-msgid "BCA - Cloud Computing"
-msgstr "BCA - облачные вычисления"
-
-#. module: openeducat_core
-#: model:op.program,code:openeducat_core.program_1
-msgid "BCA-CC"
-msgstr "BCA-CC"
-
-#. module: openeducat_core
-#: model:op.course,name:openeducat_core.op_course_1
-msgid "BCA-CC-Semester-1"
-msgstr "BCA-CC-SEMESTER-1"
-
-#. module: openeducat_core
-#: model:op.course,name:openeducat_core.op_course_4
-msgid "BCA-CC-Semester-2"
-msgstr "BCA-CC-SEMESTER-2"
-
-#. module: openeducat_core
-#: model:op.course,name:openeducat_core.op_course_15
-msgid "BCA-CC-Semester-3"
-msgstr "BCA-CC-SEMESTE-3"
-
-#. module: openeducat_core
-#: model:op.course,name:openeducat_core.op_course_16
-msgid "BCA-CC-Semester-4"
-msgstr "BCA-CC-SEMESTE-4"
-
-#. module: openeducat_core
-#: model:op.course,name:openeducat_core.op_course_17
-msgid "BCA-CC-Semester-5"
-msgstr "BCA-CC-SEMESTE-5"
-
-#. module: openeducat_core
-#: model:op.course,name:openeducat_core.op_course_18
-msgid "BCA-CC-Semester-6"
-msgstr "BCA-CC-SEMESTE-6"
-
-#. module: openeducat_core
-#: model:op.program,code:openeducat_core.program_3
-msgid "BCOM-AF"
-msgstr "BCOM-AF"
-
-#. module: openeducat_core
-#: model:op.course,name:openeducat_core.op_course_5
-msgid "BCOM-AF-Semester-1"
-msgstr "BCOM-AF-SEMESTER-1"
-
-#. module: openeducat_core
-#: model:op.course,name:openeducat_core.op_course_6
-msgid "BCOM-AF-Semester-2"
-msgstr "BCOM-AF-SEMESTER-2"
-
-#. module: openeducat_core
-#: model:op.course,name:openeducat_core.op_course_21
-msgid "BCOM-AF-Semester-3"
-msgstr "Bcom-of-Semester-3"
-
-#. module: openeducat_core
-#: model:op.course,name:openeducat_core.op_course_22
-msgid "BCOM-AF-Semester-4"
-msgstr "Bcom-of-Semester-4"
-
-#. module: openeducat_core
-#: model:op.course,name:openeducat_core.op_course_23
-msgid "BCOM-AF-Semester-5"
-msgstr "BCOM-AF-SEMESTE-5"
-
-#. module: openeducat_core
-#: model:op.course,name:openeducat_core.op_course_24
-msgid "BCOM-AF-Semester-6"
-msgstr "Bcom-of-Semester-6"
-
-#. module: openeducat_core
-#: model:op.program,code:openeducat_core.program_6
-msgid "BT-CHE"
-msgstr "BT-C"
-
-#. module: openeducat_core
-#: model:op.program,code:openeducat_core.program_5
-msgid "BT-CIE"
-msgstr "Бт"
-
-#. module: openeducat_core
-#: model:op.course,name:openeducat_core.op_course_7
-msgid "BTECH-CE-Semester-1"
-msgstr "Btech-CE-Semester-1"
-
-#. module: openeducat_core
-#: model:op.course,name:openeducat_core.op_course_25
-msgid "BTECH-CE-Semester-2"
-msgstr "Btech-CE-Semester-2"
-
-#. module: openeducat_core
-#: model:op.course,name:openeducat_core.op_course_26
-msgid "BTECH-CE-Semester-3"
-msgstr "Btech-CE-Semester-3"
-
-#. module: openeducat_core
-#: model:op.course,name:openeducat_core.op_course_27
-msgid "BTECH-CE-Semester-4"
-msgstr "Btech-CE-Semester-4"
-
-#. module: openeducat_core
-#: model:op.course,name:openeducat_core.op_course_28
-msgid "BTECH-CE-Semester-5"
-msgstr "Btech-CE-Semester-5"
-
-#. module: openeducat_core
-#: model:op.course,name:openeducat_core.op_course_29
-msgid "BTECH-CE-Semester-6"
-msgstr "Btech-CE-Semester-6"
-
-#. module: openeducat_core
-#: model:op.course,name:openeducat_core.op_course_30
-msgid "BTECH-CE-Semester-7"
-msgstr "Btech-CE-Semester-7"
-
-#. module: openeducat_core
-#: model:op.course,name:openeducat_core.op_course_31
-msgid "BTECH-CE-Semester-8"
-msgstr "Btech-CE-Semester-8"
-
-#. module: openeducat_core
-#: model:op.course,name:openeducat_core.op_course_9
-msgid "BTECH-CH-Semester-1"
-msgstr "Btech-Ch-Semester-1"
-
-#. module: openeducat_core
-#: model:op.course,name:openeducat_core.op_course_36
-msgid "BTECH-CH-Semester-2"
-msgstr "Btech-Ch-Semester-2"
-
-#. module: openeducat_core
-#: model:op.course,name:openeducat_core.op_course_37
-msgid "BTECH-CH-Semester-3"
-msgstr "Btech-CH-Semester-3"
-
-#. module: openeducat_core
-#: model:op.course,name:openeducat_core.op_course_38
-msgid "BTECH-CH-Semester-4"
-msgstr "Btech-CH-Semester-4"
-
-#. module: openeducat_core
-#: model:op.course,name:openeducat_core.op_course_39
-msgid "BTECH-CH-Semester-5"
-msgstr "Btech-CH-Semester-5"
-
-#. module: openeducat_core
-#: model:op.course,name:openeducat_core.op_course_40
-msgid "BTECH-CH-Semester-6"
-msgstr "Btech-CH-Semester-6"
-
-#. module: openeducat_core
-#: model:op.course,name:openeducat_core.op_course_41
-msgid "BTECH-CH-Semester-7"
-msgstr "Btech-CH-Semester-7"
-
-#. module: openeducat_core
-#: model:op.course,name:openeducat_core.op_course_42
-msgid "BTECH-CH-Semester-8"
-msgstr "Btech-CH-Semester-8"
-
-#. module: openeducat_core
-#: model:op.program.level,name:openeducat_core.program_level_2
-msgid "Bachelors"
-msgstr "Бакалавр"
+msgstr "B-ve (III группа отрицательная)"
 
 #. module: openeducat_core
 #: model:ir.model.fields,field_description:openeducat_core.field_res_config_settings__module_backend_theme
@@ -824,6 +612,12 @@ msgstr "Бэкэнд Тема"
 #: model_terms:ir.ui.view,arch_db:openeducat_core.res_config_settings_view_form_core
 msgid "Backup"
 msgstr "Резервная копия"
+
+#. module: openeducat_core
+#: model:ir.model.fields,field_description:openeducat_core.field_op_faculty__bank_account_count
+#: model:ir.model.fields,field_description:openeducat_core.field_op_student__bank_account_count
+msgid "Bank"
+msgstr ""
 
 #. module: openeducat_core
 #: model:ir.model.fields,field_description:openeducat_core.field_op_faculty__bank_ids
@@ -838,11 +632,6 @@ msgid "Barcode"
 msgstr "Штрих -код"
 
 #. module: openeducat_core
-#: model:op.student,last_name:openeducat_core.op_student_25
-msgid "Bassam"
-msgstr "Бассам"
-
-#. module: openeducat_core
 #: model:ir.model.fields,field_description:openeducat_core.field_op_student_course__batch_id
 #: model:ir.model.fields,field_description:openeducat_core.field_op_subject_registration__batch_id
 #: model_terms:ir.ui.view,arch_db:openeducat_core.view_op_batch_form
@@ -852,23 +641,13 @@ msgstr "Бассам"
 #: model_terms:ir.ui.view,arch_db:openeducat_core.view_op_student_course_search
 #: model_terms:ir.ui.view,arch_db:openeducat_core.view_subject_registration_search
 msgid "Batch"
-msgstr "Партия"
+msgstr "Параллель"
 
 #. module: openeducat_core
 #: model:ir.actions.act_window,name:openeducat_core.act_open_op_batch_view
 #: model:ir.ui.menu,name:openeducat_core.menu_op_batch_sub
 msgid "Batches"
-msgstr "Партии"
-
-#. module: openeducat_core
-#: model:op.student,first_name:openeducat_core.op_student_18
-msgid "Bella"
-msgstr "Белла"
-
-#. module: openeducat_core
-#: model:op.student,first_name:openeducat_core.op_student_21
-msgid "Ben"
-msgstr "Бен"
+msgstr "Параллели"
 
 #. module: openeducat_core
 #: model:ir.model.fields,field_description:openeducat_core.field_res_config_settings__module_bigbluebutton
@@ -880,13 +659,6 @@ msgstr "BigBlueButton Enterprise"
 #: model:ir.model.fields,field_description:openeducat_core.field_op_student__birth_date
 msgid "Birth Date"
 msgstr "Дата рождения"
-
-#. module: openeducat_core
-#. odoo-python
-#: code:addons/openeducat_core/models/faculty.py:0
-#: code:addons/openeducat_core/models/student.py:0
-msgid "Birth Date can't be greater than current date!"
-msgstr "Дата рождения не может быть больше текущей даты!"
 
 #. module: openeducat_core
 #: model:ir.model.fields,field_description:openeducat_core.field_op_faculty__is_blacklisted
@@ -912,7 +684,7 @@ msgstr "Телефон с черным списком - телефон"
 #: model_terms:ir.ui.view,arch_db:openeducat_core.view_op_faculty_search
 #: model_terms:ir.ui.view,arch_db:openeducat_core.view_op_student_search
 msgid "Blood Group"
-msgstr "Кровавая группа"
+msgstr "Группа крови"
 
 #. module: openeducat_core
 #: model:ir.actions.report,name:openeducat_core.action_report_student_bonafide
@@ -931,44 +703,24 @@ msgid "Bounce"
 msgstr "Подпрыгивать"
 
 #. module: openeducat_core
-#: model:op.student,last_name:openeducat_core.op_student_16
-msgid "Brooks"
-msgstr "Брукс"
-
-#. module: openeducat_core
 #: model:ir.model.fields.selection,name:openeducat_core.selection__op_course__evaluation_type__cce
 msgid "CCE"
-msgstr "CCE"
+msgstr ""
 
 #. module: openeducat_core
 #: model_terms:ir.ui.view,arch_db:openeducat_core.res_config_settings_view_form_core
 msgid "CRM"
-msgstr "CRM"
+msgstr ""
 
 #. module: openeducat_core
 #: model:ir.model.fields,field_description:openeducat_core.field_res_config_settings__module_openeducat_crm_enterprise
 msgid "CRM Enterprise"
-msgstr "CRM Enterprise"
-
-#. module: openeducat_core
-#: model:op.program,code:openeducat_core.program_9
-msgid "CTP-CS"
-msgstr "CTP-CS"
+msgstr ""
 
 #. module: openeducat_core
 #: model:ir.model.fields.selection,name:openeducat_core.selection__op_course__evaluation_type__cwa
 msgid "CWA"
-msgstr "CWA"
-
-#. module: openeducat_core
-#: model:op.course,name:openeducat_core.op_course_13
-msgid "CYBER-SECURITY"
-msgstr "Кибербезопасность"
-
-#. module: openeducat_core
-#: model:op.student,first_name:openeducat_core.op_student_16
-msgid "Camila"
-msgstr "Камила"
+msgstr ""
 
 #. module: openeducat_core
 #: model_terms:ir.ui.view,arch_db:openeducat_core.res_config_settings_view_form_core
@@ -1014,11 +766,6 @@ msgid "Cancel"
 msgstr "Отмена"
 
 #. module: openeducat_core
-#: model:op.student,last_name:openeducat_core.op_student_18
-msgid "Carter"
-msgstr "Картер"
-
-#. module: openeducat_core
 #: model:ir.actions.act_window,name:openeducat_core.act_open_op_category_view
 #: model:ir.ui.menu,name:openeducat_core.menu_op_category_sub
 msgid "Categories"
@@ -1044,14 +791,10 @@ msgstr ""
 "                                                        Управление библиотекой."
 
 #. module: openeducat_core
-#: model:op.program,name:openeducat_core.program_9
-msgid "Certificate Program - Cyber Security"
-msgstr "Программа сертификатов - кибербезопасность"
-
-#. module: openeducat_core
-#: model:op.program.level,name:openeducat_core.program_level_3
-msgid "Certificate Programs"
-msgstr "Программы сертификатов"
+#: model:ir.model.fields,field_description:openeducat_core.field_op_faculty__certifications_count
+#: model:ir.model.fields,field_description:openeducat_core.field_op_student__certifications_count
+msgid "Certifications Count"
+msgstr ""
 
 #. module: openeducat_core
 #: model:ir.model.fields,field_description:openeducat_core.field_op_faculty__channel_ids
@@ -1071,11 +814,6 @@ msgstr ""
 #: model:ir.model.fields,help:openeducat_core.field_op_student__employee
 msgid "Check this box if this contact is an Employee."
 msgstr "Установите этот флажок, если этот контакт является сотрудником."
-
-#. module: openeducat_core
-#: model:op.faculty,first_name:openeducat_core.op_faculty_7
-msgid "Cheng"
-msgstr "Ченг"
 
 #. module: openeducat_core
 #: model:ir.model.fields,field_description:openeducat_core.field_res_users__child_ids
@@ -1100,12 +838,6 @@ msgstr "Классная комната"
 #: model:ir.model.fields,field_description:openeducat_core.field_res_config_settings__module_openeducat_classroom_enterprise
 msgid "Classroom Enterprise"
 msgstr "Классное предприятие"
-
-#. module: openeducat_core
-#. odoo-javascript
-#: code:addons/openeducat_core/static/src/xml/review.xml:0
-msgid "Close"
-msgstr "Закрывать"
 
 #. module: openeducat_core
 #: model:ir.model.fields,field_description:openeducat_core.field_op_batch__code
@@ -1139,6 +871,14 @@ msgid "Code should be unique per subject!"
 msgstr "Код должен быть уникальным по предмету!"
 
 #. module: openeducat_core
+#: model:ir.model.fields,help:openeducat_core.field_op_faculty__peppol_eas
+#: model:ir.model.fields,help:openeducat_core.field_op_student__peppol_eas
+msgid ""
+"Code used to identify the Endpoint for BIS Billing 3.0 and its derivatives.\n"
+"             List available at https://docs.peppol.eu/poacc/billing/3.0/codelist/eas/"
+msgstr ""
+
+#. module: openeducat_core
 #: model:ir.model.fields,field_description:openeducat_core.field_op_faculty__color
 #: model:ir.model.fields,field_description:openeducat_core.field_op_student__color
 msgid "Color Index"
@@ -1156,6 +896,12 @@ msgid "Companies"
 msgstr "Компании"
 
 #. module: openeducat_core
+#: model:ir.model.fields,field_description:openeducat_core.field_op_faculty__ref_company_ids
+#: model:ir.model.fields,field_description:openeducat_core.field_op_student__ref_company_ids
+msgid "Companies that refers to partner"
+msgstr ""
+
+#. module: openeducat_core
 #: model:ir.model.fields,field_description:openeducat_core.field_op_academic_term__company_id
 #: model:ir.model.fields,field_description:openeducat_core.field_op_academic_year__company_id
 #: model:ir.model.fields,field_description:openeducat_core.field_op_category__company_id
@@ -1164,6 +910,12 @@ msgstr "Компании"
 #: model:ir.model.fields,field_description:openeducat_core.field_op_subject_registration__company_id
 msgid "Company"
 msgstr "Компания"
+
+#. module: openeducat_core
+#: model:ir.model.fields,field_description:openeducat_core.field_op_faculty__certifications_company_count
+#: model:ir.model.fields,field_description:openeducat_core.field_op_student__certifications_company_count
+msgid "Company Certifications Count"
+msgstr ""
 
 #. module: openeducat_core
 #: model:ir.model.fields,field_description:openeducat_core.field_op_faculty__company_registry
@@ -1216,13 +968,13 @@ msgstr "Полное имя"
 #. module: openeducat_core
 #: model:ir.model.fields.selection,name:openeducat_core.selection__op_subject__subject_type__compulsory
 msgid "Compulsory"
-msgstr "Принудительный"
+msgstr "Обязательный"
 
 #. module: openeducat_core
 #: model:ir.model.fields,field_description:openeducat_core.field_op_subject_registration__compulsory_subject_ids
 #: model_terms:ir.ui.view,arch_db:openeducat_core.view_subject_registration_form
 msgid "Compulsory Subjects"
-msgstr "Обязательные субъекты"
+msgstr "Обязательные предметы"
 
 #. module: openeducat_core
 #: model:ir.model,name:openeducat_core.model_res_config_settings
@@ -1284,12 +1036,6 @@ msgid "Contact"
 msgstr "Контакт"
 
 #. module: openeducat_core
-#. odoo-javascript
-#: code:addons/openeducat_core/static/src/xml/dashboard_ext_openeducat.xml:0
-msgid "Contact Support"
-msgstr "Контактная поддержка"
-
-#. module: openeducat_core
 #: model_terms:ir.ui.view,arch_db:openeducat_core.kanban_view_faculty
 #: model_terms:ir.ui.view,arch_db:openeducat_core.kanban_view_student
 msgid "Contact image"
@@ -1333,7 +1079,7 @@ msgstr "Код страны"
 #: model_terms:ir.ui.view,arch_db:openeducat_core.view_op_student_course_search
 #: model_terms:ir.ui.view,arch_db:openeducat_core.view_subject_registration_search
 msgid "Course"
-msgstr "Курс"
+msgstr "Класс"
 
 #. module: openeducat_core
 #: model:ir.model.fields,field_description:openeducat_core.field_op_student__course_detail_ids
@@ -1343,7 +1089,7 @@ msgstr "Подробности курса"
 #. module: openeducat_core
 #: model:ir.ui.menu,name:openeducat_core.menu_op_school_config_course
 msgid "Course Management"
-msgstr "Управление курсом"
+msgstr "Структура"
 
 #. module: openeducat_core
 #: model_terms:ir.ui.view,arch_db:openeducat_core.view_subject_registration_form
@@ -1353,16 +1099,10 @@ msgid "Course Registration"
 msgstr "Регистрация курса"
 
 #. module: openeducat_core
-#. odoo-python
-#: code:addons/openeducat_core/models/subject_registration.py:0
-msgid "Course not found on student's admission!"
-msgstr "Курс не найден по приеме студента!"
-
-#. module: openeducat_core
 #: model:ir.actions.act_window,name:openeducat_core.act_open_op_course_view
 #: model:ir.ui.menu,name:openeducat_core.menu_op_course_sub
 msgid "Courses"
-msgstr "Курсы"
+msgstr "Классы"
 
 #. module: openeducat_core
 #: model:ir.model.fields,field_description:openeducat_core.field_op_academic_year__create_boolean
@@ -1454,80 +1194,46 @@ msgid "Created on"
 msgstr "Создан на"
 
 #. module: openeducat_core
-#: model:op.program,code:openeducat_core.program_8
-msgid "DIP-EE"
-msgstr "Dip-ee"
+#: model:ir.model.fields,field_description:openeducat_core.field_op_faculty__credit_limit
+#: model:ir.model.fields,field_description:openeducat_core.field_op_student__credit_limit
+msgid "Credit Limit"
+msgstr ""
 
 #. module: openeducat_core
-#: model:op.course,name:openeducat_core.op_course_11
-msgid "DIPLOMA-AE-Semester-1"
-msgstr "Диплом-Э-Семестер-1"
+#: model:ir.model.fields,field_description:openeducat_core.field_op_faculty__credit_to_invoice
+#: model:ir.model.fields,field_description:openeducat_core.field_op_student__credit_to_invoice
+msgid "Credit To Invoice"
+msgstr ""
 
 #. module: openeducat_core
-#: model:op.course,name:openeducat_core.op_course_43
-msgid "DIPLOMA-AE-Semester-2"
-msgstr "Диплом-Э-Семестер-2"
+#: model:ir.model.fields,help:openeducat_core.field_op_faculty__credit_limit
+#: model:ir.model.fields,help:openeducat_core.field_op_student__credit_limit
+msgid "Credit limit specific to this partner."
+msgstr ""
 
 #. module: openeducat_core
-#: model:op.course,name:openeducat_core.op_course_44
-msgid "DIPLOMA-AE-Semester-3"
-msgstr "Диплом-Э-Семестер-3"
+#: model:ir.model.fields,field_description:openeducat_core.field_op_faculty__currency_id
+#: model:ir.model.fields,field_description:openeducat_core.field_op_student__currency_id
+msgid "Currency"
+msgstr ""
 
 #. module: openeducat_core
-#: model:op.course,name:openeducat_core.op_course_45
-msgid "DIPLOMA-AE-Semester-4"
-msgstr "Диплом-Э-Семестер-4"
+#: model:ir.model.fields,field_description:openeducat_core.field_op_faculty__property_stock_customer
+#: model:ir.model.fields,field_description:openeducat_core.field_op_student__property_stock_customer
+msgid "Customer Location"
+msgstr ""
 
 #. module: openeducat_core
-#: model:op.course,name:openeducat_core.op_course_46
-msgid "DIPLOMA-AE-Semester-5"
-msgstr "Диплом-Э-Семестер-5"
+#: model:ir.model.fields,field_description:openeducat_core.field_op_faculty__property_payment_term_id
+#: model:ir.model.fields,field_description:openeducat_core.field_op_student__property_payment_term_id
+msgid "Customer Payment Terms"
+msgstr ""
 
 #. module: openeducat_core
-#: model:op.course,name:openeducat_core.op_course_47
-msgid "DIPLOMA-AE-Semester-6"
-msgstr "Диплом-Э-Семестер-6"
-
-#. module: openeducat_core
-#: model:op.course,name:openeducat_core.op_course_12
-msgid "DIPLOMA-EE-Semester-1"
-msgstr "Диплом-Эй-Семестер-1"
-
-#. module: openeducat_core
-#: model:op.course,name:openeducat_core.op_course_48
-msgid "DIPLOMA-EE-Semester-2"
-msgstr "Диплом-Эй-Семестер-2"
-
-#. module: openeducat_core
-#: model:op.course,name:openeducat_core.op_course_49
-msgid "DIPLOMA-EE-Semester-3"
-msgstr "Диплом-Эй-Семестер-3"
-
-#. module: openeducat_core
-#: model:op.course,name:openeducat_core.op_course_50
-msgid "DIPLOMA-EE-Semester-4"
-msgstr "Диплом-Эй-Семестер-4"
-
-#. module: openeducat_core
-#: model:op.course,name:openeducat_core.op_course_51
-msgid "DIPLOMA-EE-Semester-5"
-msgstr "Диплом-Эй-Семестер-5"
-
-#. module: openeducat_core
-#: model:op.course,name:openeducat_core.op_course_52
-msgid "DIPLOMA-EE-Semester-6"
-msgstr "Диплом-Эй-Семестер-6"
-
-#. module: openeducat_core
-#: model:op.student,first_name:openeducat_core.op_student_14
-msgid "Daniel"
-msgstr "Даниэль"
-
-#. module: openeducat_core
-#. odoo-javascript
-#: code:addons/openeducat_core/static/src/xml/dashboard_ext_openeducat.xml:0
-msgid "Dashboard"
-msgstr "Приборная панель"
+#: model:ir.model.fields,field_description:openeducat_core.field_op_faculty__customer_rank
+#: model:ir.model.fields,field_description:openeducat_core.field_op_student__customer_rank
+msgid "Customer Rank"
+msgstr ""
 
 #. module: openeducat_core
 #: model:ir.model.fields,field_description:openeducat_core.field_res_config_settings__module_openeducat_dashboard_kpi
@@ -1565,9 +1271,16 @@ msgid "Database Backup to Remote SFTP Server"
 msgstr "Резервное копирование базы данных для удаленного SFTP -сервера"
 
 #. module: openeducat_core
-#: model:op.student,first_name:openeducat_core.op_student_12
-msgid "David"
-msgstr "Дэйвид"
+#: model:ir.model.fields,field_description:openeducat_core.field_op_faculty__days_sales_outstanding
+#: model:ir.model.fields,field_description:openeducat_core.field_op_student__days_sales_outstanding
+msgid "Days Sales Outstanding (DSO)"
+msgstr ""
+
+#. module: openeducat_core
+#: model:ir.model.fields,field_description:openeducat_core.field_op_faculty__trust
+#: model:ir.model.fields,field_description:openeducat_core.field_op_student__trust
+msgid "Degree of trust you have in this debtor"
+msgstr ""
 
 #. module: openeducat_core
 #: model_terms:ir.ui.view,arch_db:openeducat_core.res_config_settings_view_form_core
@@ -1590,7 +1303,7 @@ msgstr ""
 #: model_terms:ir.ui.view,arch_db:openeducat_core.view_op_department_tree
 #: model_terms:ir.ui.view,arch_db:openeducat_core.view_op_program_search
 msgid "Department"
-msgstr "Отделение"
+msgstr "Департамент"
 
 #. module: openeducat_core
 #: model:ir.model.fields,field_description:openeducat_core.field_res_users__dept_id
@@ -1600,7 +1313,7 @@ msgstr "Название отделения"
 #. module: openeducat_core
 #: model:ir.actions.act_window,name:openeducat_core.act_open_op_department_view
 msgid "Departments"
-msgstr "Отделы"
+msgstr "Департаменты"
 
 #. module: openeducat_core
 #: model_terms:ir.ui.view,arch_db:openeducat_core.view_inherit_user_form_openeducat_core
@@ -1613,29 +1326,21 @@ msgid "Digital Library"
 msgstr "Цифровая библиотека"
 
 #. module: openeducat_core
-#: model:op.program.level,name:openeducat_core.program_level_4
-msgid "Diploma"
-msgstr "Диплом"
-
-#. module: openeducat_core
-#: model:op.program,name:openeducat_core.program_7
-msgid "Diploma - Agricultural Engineering"
-msgstr "Диплом - сельскохозяйственная инженерия"
-
-#. module: openeducat_core
-#: model:op.program,name:openeducat_core.program_8
-msgid "Diploma - Electrical Engineering"
-msgstr "Диплом - электротехника"
-
-#. module: openeducat_core
-#: model:op.program,code:openeducat_core.program_7
-msgid "Diploma-AE"
-msgstr "Диплом-А.А."
-
-#. module: openeducat_core
 #: model:ir.model.fields,field_description:openeducat_core.field_res_config_settings__module_openeducat_discipline
 msgid "Discipline Enterprise"
 msgstr "Дисциплина предприятия"
+
+#. module: openeducat_core
+#: model:ir.model.fields,field_description:openeducat_core.field_op_faculty__display_invoice_edi_format
+#: model:ir.model.fields,field_description:openeducat_core.field_op_student__display_invoice_edi_format
+msgid "Display Invoice Edi Format"
+msgstr ""
+
+#. module: openeducat_core
+#: model:ir.model.fields,field_description:openeducat_core.field_op_faculty__display_invoice_template_pdf_report_id
+#: model:ir.model.fields,field_description:openeducat_core.field_op_student__display_invoice_template_pdf_report_id
+msgid "Display Invoice Template Pdf Report"
+msgstr ""
 
 #. module: openeducat_core
 #: model:ir.model.fields,field_description:openeducat_core.field_op_academic_term__display_name
@@ -1658,11 +1363,6 @@ msgid "Display Name"
 msgstr "Отображаемое имя"
 
 #. module: openeducat_core
-#: model:op.program.level,name:openeducat_core.program_level_5
-msgid "Doctoral Programs"
-msgstr "Докторские программы"
-
-#. module: openeducat_core
 #: model_terms:ir.ui.view,arch_db:openeducat_core.res_config_settings_view_form_core
 msgid "Documentation"
 msgstr "Документация"
@@ -1680,6 +1380,12 @@ msgstr ""
 #: model:ir.model.fields.selection,name:openeducat_core.selection__op_subject_registration__state__draft
 msgid "Draft"
 msgstr "Черновик"
+
+#. module: openeducat_core
+#: model:ir.model.fields,field_description:openeducat_core.field_op_faculty__duplicated_bank_account_partners_count
+#: model:ir.model.fields,field_description:openeducat_core.field_op_student__duplicated_bank_account_partners_count
+msgid "Duplicated Bank Account Partners Count"
+msgstr ""
 
 #. module: openeducat_core
 #: model:ir.model.fields,field_description:openeducat_core.field_res_config_settings__module_openeducat_dynamic_admission
@@ -1737,7 +1443,7 @@ msgstr "Факультативный"
 #: model:ir.model.fields,field_description:openeducat_core.field_op_subject_registration__elective_subject_ids
 #: model_terms:ir.ui.view,arch_db:openeducat_core.view_subject_registration_form
 msgid "Elective Subjects"
-msgstr "Платовые субъекты"
+msgstr "Элективные предметы"
 
 #. module: openeducat_core
 #: model:ir.model.fields,field_description:openeducat_core.field_op_faculty__email
@@ -1749,12 +1455,7 @@ msgstr "Электронная почта"
 #: model:ir.model.fields,field_description:openeducat_core.field_op_faculty__emergency_contact
 #: model:ir.model.fields,field_description:openeducat_core.field_op_student__emergency_contact
 msgid "Emergency Contact"
-msgstr "Аварийный контакт"
-
-#. module: openeducat_core
-#: model:op.student,first_name:openeducat_core.op_student_1
-msgid "Emma"
-msgstr "Эмма"
+msgstr "Контакт для экстренных случаев"
 
 #. module: openeducat_core
 #: model:ir.model,name:openeducat_core.model_hr_employee
@@ -1825,12 +1526,6 @@ msgid "End Date"
 msgstr "Дата окончания"
 
 #. module: openeducat_core
-#. odoo-python
-#: code:addons/openeducat_core/models/batch.py:0
-msgid "End Date cannot be set before Start Date."
-msgstr "Дата окончания не может быть установлен до даты начала."
-
-#. module: openeducat_core
 #: model_terms:ir.ui.view,arch_db:openeducat_core.res_config_settings_view_form_core
 msgid ""
 "Engage in class discussions\n"
@@ -1853,12 +1548,6 @@ msgstr ""
 "                                                    деятельность и достижения."
 
 #. module: openeducat_core
-#. odoo-python
-#: code:addons/openeducat_core/models/update.py:0
-msgid "Error during communication with the  warranty server."
-msgstr "Ошибка во время связи с гарантийным сервером."
-
-#. module: openeducat_core
 #: model:ir.model.fields,field_description:openeducat_core.field_op_course__evaluation_type
 #: model_terms:ir.ui.view,arch_db:openeducat_core.view_op_course_search
 msgid "Evaluation Type"
@@ -1872,7 +1561,7 @@ msgstr "Событие"
 #. module: openeducat_core
 #: model:ir.model.fields,field_description:openeducat_core.field_res_config_settings__module_openeducat_event_enterprise
 msgid "Event Enterprise"
-msgstr "Event Enterprise"
+msgstr ""
 
 #. module: openeducat_core
 #: model:ir.model.fields,field_description:openeducat_core.field_res_config_settings__module_openeducat_exam
@@ -1920,7 +1609,7 @@ msgstr "Предприятие предприятия"
 #: model:ir.model.fields,field_description:openeducat_core.field_wizard_op_faculty__faculty_ids
 #: model:ir.ui.menu,name:openeducat_core.menu_op_faculty_main
 msgid "Faculties"
-msgstr "Факультеты"
+msgstr "Учителя"
 
 #. module: openeducat_core
 #: model_terms:ir.ui.view,arch_db:openeducat_core.res_config_settings_view_form_core
@@ -1972,11 +1661,6 @@ msgid "Fees Plan"
 msgstr "План сборов"
 
 #. module: openeducat_core
-#: model:op.program.level,name:openeducat_core.program_level_6
-msgid "Fellowship Programs"
-msgstr "Программы стипендии"
-
-#. module: openeducat_core
 #: model:ir.model.fields.selection,name:openeducat_core.selection__op_faculty__gender__female
 #: model:ir.model.fields.selection,name:openeducat_core.selection__op_student__gender__f
 msgid "Female"
@@ -2000,7 +1684,7 @@ msgstr "Оценки последнего года подразделяются 
 #. module: openeducat_core
 #: model:ir.model.fields.selection,name:openeducat_core.selection__op_student_course__state__finished
 msgid "Finished"
-msgstr "Законченный"
+msgstr "Завершен"
 
 #. module: openeducat_core
 #: model:ir.model.fields,field_description:openeducat_core.field_op_faculty__first_name
@@ -2009,6 +1693,18 @@ msgstr "Законченный"
 #: model_terms:ir.ui.view,arch_db:openeducat_core.view_op_student_form
 msgid "First Name"
 msgstr "Имя"
+
+#. module: openeducat_core
+#: model:ir.model.fields,field_description:openeducat_core.field_op_faculty__fiscal_country_codes
+#: model:ir.model.fields,field_description:openeducat_core.field_op_student__fiscal_country_codes
+msgid "Fiscal Country Codes"
+msgstr ""
+
+#. module: openeducat_core
+#: model:ir.model.fields,field_description:openeducat_core.field_op_faculty__property_account_position_id
+#: model:ir.model.fields,field_description:openeducat_core.field_op_student__property_account_position_id
+msgid "Fiscal Position"
+msgstr ""
 
 #. module: openeducat_core
 #: model:ir.model.fields,field_description:openeducat_core.field_op_batch__message_follower_ids
@@ -2065,11 +1761,6 @@ msgid "GPA"
 msgstr "Средний балл"
 
 #. module: openeducat_core
-#: model:op.student,last_name:openeducat_core.op_student_2
-msgid "Garcia"
-msgstr "Гарсия"
-
-#. module: openeducat_core
 #: model:ir.model.fields,field_description:openeducat_core.field_op_faculty__gender
 #: model:ir.model.fields,field_description:openeducat_core.field_op_student__gender
 msgid "Gender"
@@ -2104,19 +1795,20 @@ msgid "Geo Longitude"
 msgstr "Гео долгота"
 
 #. module: openeducat_core
-#: model_terms:ir.ui.view,arch_db:openeducat_core.view_subject_registration_form
-msgid "Get Subjects"
-msgstr "Получите предметы"
+#: model:ir.model.fields,field_description:openeducat_core.field_op_faculty__date_localization
+#: model:ir.model.fields,field_description:openeducat_core.field_op_student__date_localization
+msgid "Geolocation Date"
+msgstr ""
 
 #. module: openeducat_core
-#: model:op.program.level,name:openeducat_core.program_level_7
-msgid "Global Programs"
-msgstr "Глобальные программы"
+#: model_terms:ir.ui.view,arch_db:openeducat_core.view_subject_registration_form
+msgid "Get Subjects"
+msgstr "Получить предметы"
 
 #. module: openeducat_core
 #: model:ir.model.fields,field_description:openeducat_core.field_res_config_settings__module_googlemeet
 msgid "Google Meet"
-msgstr "Google Meet"
+msgstr ""
 
 #. module: openeducat_core
 #: model_terms:ir.ui.view,arch_db:openeducat_core.res_config_settings_view_form_core
@@ -2126,12 +1818,6 @@ msgid ""
 msgstr ""
 "Google Meet позволяет вам организовать\n"
 "                                        онлайн классные комнаты и живые встречи."
-
-#. module: openeducat_core
-#: model:op.faculty,first_name:openeducat_core.op_faculty_11
-#: model:op.faculty,first_name:openeducat_core.op_faculty_15
-msgid "Grace"
-msgstr "Милость"
 
 #. module: openeducat_core
 #: model:ir.model.fields,field_description:openeducat_core.field_op_subject__grade_weightage
@@ -2203,16 +1889,6 @@ msgid "Helps you manage your institutes different-different users."
 msgstr "Помогает вам управлять вашими институтами различными пользователями."
 
 #. module: openeducat_core
-#: model:op.student,first_name:openeducat_core.op_student_15
-msgid "Henry"
-msgstr "Генри"
-
-#. module: openeducat_core
-#: model:op.student,last_name:openeducat_core.op_student_23
-msgid "Hill"
-msgstr "Холм"
-
-#. module: openeducat_core
 #: model_terms:ir.ui.view,arch_db:openeducat_core.report_student_bonafide
 msgid ""
 "His / Her birthday as recorded in the General Register of the school /\n"
@@ -2220,6 +1896,18 @@ msgid ""
 msgstr ""
 "Его / ее день рождения, записанный в общем регистре школы /\n"
 "                                            колледж есть"
+
+#. module: openeducat_core
+#: model:ir.model.fields,field_description:openeducat_core.field_op_faculty__iap_enrich_info
+#: model:ir.model.fields,field_description:openeducat_core.field_op_student__iap_enrich_info
+msgid "IAP Enrich Info"
+msgstr ""
+
+#. module: openeducat_core
+#: model:ir.model.fields,help:openeducat_core.field_op_faculty__iap_enrich_info
+#: model:ir.model.fields,help:openeducat_core.field_op_student__iap_enrich_info
+msgid "IAP response stored as a JSON string"
+msgstr ""
 
 #. module: openeducat_core
 #: model:ir.model.fields,field_description:openeducat_core.field_op_academic_term__id
@@ -2246,51 +1934,6 @@ msgstr "ИДЕНТИФИКАТОР"
 #: model:ir.model.fields,field_description:openeducat_core.field_op_student__id_number
 msgid "ID Card Number"
 msgstr "Номер удостоверения личности"
-
-#. module: openeducat_core
-#: model:op.program,code:openeducat_core.program_10
-msgid "IE-CSE-M"
-msgstr "IE-CSE-M"
-
-#. module: openeducat_core
-#: model:op.course,name:openeducat_core.op_course_14
-msgid "IE-CSE-MICROSOFT-Semester-1"
-msgstr "IE-CSE-Microsoft-Semester-1"
-
-#. module: openeducat_core
-#: model:op.course,name:openeducat_core.op_course_53
-msgid "IE-CSE-MICROSOFT-Semester-2"
-msgstr "IE-CSE-Microsoft-Semester-2"
-
-#. module: openeducat_core
-#: model:op.course,name:openeducat_core.op_course_54
-msgid "IE-CSE-MICROSOFT-Semester-3"
-msgstr "IE-CSE-Microsoft-Semester-3"
-
-#. module: openeducat_core
-#: model:op.course,name:openeducat_core.op_course_55
-msgid "IE-CSE-MICROSOFT-Semester-4"
-msgstr "IE-CSE-Microsoft-Semester-4"
-
-#. module: openeducat_core
-#: model:op.course,name:openeducat_core.op_course_56
-msgid "IE-CSE-MICROSOFT-Semester-5"
-msgstr "IE-CSE-Microsoft-Semester-5"
-
-#. module: openeducat_core
-#: model:op.course,name:openeducat_core.op_course_57
-msgid "IE-CSE-MICROSOFT-Semester-6"
-msgstr "IE-CSE-Microsoft-Semester-6"
-
-#. module: openeducat_core
-#: model:op.course,name:openeducat_core.op_course_58
-msgid "IE-CSE-MICROSOFT-Semester-7"
-msgstr "IE-CSE-Microsoft-Semester-7"
-
-#. module: openeducat_core
-#: model:op.course,name:openeducat_core.op_course_59
-msgid "IE-CSE-MICROSOFT-Semester-8"
-msgstr "IE-CSE-Microsoft-Semester-8"
 
 #. module: openeducat_core
 #: model:ir.model.fields,field_description:openeducat_core.field_op_faculty__im_status
@@ -2366,6 +2009,18 @@ msgstr ""
 "больше не будет получать массовые рассылки SMS, из любого списка"
 
 #. module: openeducat_core
+#: model:ir.model.fields,field_description:openeducat_core.field_op_faculty__ignore_abnormal_invoice_amount
+#: model:ir.model.fields,field_description:openeducat_core.field_op_student__ignore_abnormal_invoice_amount
+msgid "Ignore Abnormal Invoice Amount"
+msgstr ""
+
+#. module: openeducat_core
+#: model:ir.model.fields,field_description:openeducat_core.field_op_faculty__ignore_abnormal_invoice_date
+#: model:ir.model.fields,field_description:openeducat_core.field_op_student__ignore_abnormal_invoice_date
+msgid "Ignore Abnormal Invoice Date"
+msgstr ""
+
+#. module: openeducat_core
 #: model:ir.model.fields,field_description:openeducat_core.field_op_faculty__image_1920
 #: model:ir.model.fields,field_description:openeducat_core.field_op_program__image_1920
 #: model:ir.model.fields,field_description:openeducat_core.field_op_student__image_1920
@@ -2395,47 +2050,6 @@ msgstr "Изображение 256"
 #: model:ir.model.fields,field_description:openeducat_core.field_op_student__image_512
 msgid "Image 512"
 msgstr "Изображение 512"
-
-#. module: openeducat_core
-#: model:op.student,first_name:openeducat_core.op_student_13
-msgid "Imani"
-msgstr "Имани"
-
-#. module: openeducat_core
-#. odoo-python
-#: code:addons/openeducat_core/models/batch.py:0
-msgid "Import Template for Batch"
-msgstr "Импортный шаблон для партии"
-
-#. module: openeducat_core
-#. odoo-python
-#: code:addons/openeducat_core/models/course.py:0
-msgid "Import Template for Courses"
-msgstr "Шаблон импорта для курсов"
-
-#. module: openeducat_core
-#. odoo-python
-#: code:addons/openeducat_core/models/faculty.py:0
-msgid "Import Template for Faculties"
-msgstr "Шаблон импорта для факультетов"
-
-#. module: openeducat_core
-#. odoo-python
-#: code:addons/openeducat_core/models/student.py:0
-msgid "Import Template for Student Course Details"
-msgstr "Шаблон импорта для сведений студенческого курса"
-
-#. module: openeducat_core
-#. odoo-python
-#: code:addons/openeducat_core/models/student.py:0
-msgid "Import Template for Students"
-msgstr "Шаблон импорта для студентов"
-
-#. module: openeducat_core
-#. odoo-python
-#: code:addons/openeducat_core/models/subject.py:0
-msgid "Import Template for Subjects"
-msgstr "Шаблон импорта для субъектов"
 
 #. module: openeducat_core
 #: model:ir.model.fields,help:openeducat_core.field_op_faculty__mobile_blacklisted
@@ -2468,16 +2082,6 @@ msgid "Industry"
 msgstr "Промышленность"
 
 #. module: openeducat_core
-#: model:op.program,name:openeducat_core.program_10
-msgid "Industry Embedded - B.Tech CSE with Microsoft"
-msgstr "Индустрия встроена - B.Tech CSE с Microsoft"
-
-#. module: openeducat_core
-#: model:op.program.level,name:openeducat_core.program_level_8
-msgid "Industry Embedded Programs"
-msgstr "Промышленные встроенные программы"
-
-#. module: openeducat_core
 #: model:ir.model.fields,field_description:openeducat_core.field_op_faculty__contact_address_inline
 #: model:ir.model.fields,field_description:openeducat_core.field_op_student__contact_address_inline
 msgid "Inlined Complete Address"
@@ -2487,6 +2091,42 @@ msgstr "Вставленный полный адрес"
 #: model_terms:ir.ui.view,arch_db:openeducat_core.view_company_form_openeducat_core
 msgid "Institute Detail"
 msgstr "Институт детали"
+
+#. module: openeducat_core
+#: model:ir.model.fields,field_description:openeducat_core.field_op_faculty__invoice_warn
+#: model:ir.model.fields,field_description:openeducat_core.field_op_student__invoice_warn
+msgid "Invoice"
+msgstr ""
+
+#. module: openeducat_core
+#: model:ir.model.fields,field_description:openeducat_core.field_op_faculty__invoice_edi_format_store
+#: model:ir.model.fields,field_description:openeducat_core.field_op_student__invoice_edi_format_store
+msgid "Invoice Edi Format Store"
+msgstr ""
+
+#. module: openeducat_core
+#: model:ir.model.fields,field_description:openeducat_core.field_op_faculty__invoice_sending_method
+#: model:ir.model.fields,field_description:openeducat_core.field_op_student__invoice_sending_method
+msgid "Invoice sending"
+msgstr ""
+
+#. module: openeducat_core
+#: model:ir.model.fields,field_description:openeducat_core.field_op_faculty__invoice_template_pdf_report_id
+#: model:ir.model.fields,field_description:openeducat_core.field_op_student__invoice_template_pdf_report_id
+msgid "Invoice template"
+msgstr ""
+
+#. module: openeducat_core
+#: model:ir.model.fields,field_description:openeducat_core.field_op_faculty__invoice_ids
+#: model:ir.model.fields,field_description:openeducat_core.field_op_student__invoice_ids
+msgid "Invoices"
+msgstr ""
+
+#. module: openeducat_core
+#: model:ir.model.fields,field_description:openeducat_core.field_op_faculty__is_coa_installed
+#: model:ir.model.fields,field_description:openeducat_core.field_op_student__is_coa_installed
+msgid "Is Coa Installed"
+msgstr ""
 
 #. module: openeducat_core
 #: model:ir.model.fields,field_description:openeducat_core.field_op_batch__message_is_follower
@@ -2502,6 +2142,12 @@ msgid "Is Follower"
 msgstr "Это последователь"
 
 #. module: openeducat_core
+#: model:ir.model.fields,field_description:openeducat_core.field_op_faculty__is_peppol_edi_format
+#: model:ir.model.fields,field_description:openeducat_core.field_op_student__is_peppol_edi_format
+msgid "Is Peppol Edi Format"
+msgstr ""
+
+#. module: openeducat_core
 #: model:ir.model.fields,field_description:openeducat_core.field_op_faculty__is_public
 #: model:ir.model.fields,field_description:openeducat_core.field_op_student__is_public
 msgid "Is Public"
@@ -2512,6 +2158,12 @@ msgstr "Это публично"
 #: model:ir.model.fields,field_description:openeducat_core.field_op_student__is_published
 msgid "Is Published"
 msgstr "Опубликовано"
+
+#. module: openeducat_core
+#: model:ir.model.fields,field_description:openeducat_core.field_op_faculty__is_ubl_format
+#: model:ir.model.fields,field_description:openeducat_core.field_op_student__is_ubl_format
+msgid "Is Ubl Format"
+msgstr ""
 
 #. module: openeducat_core
 #: model:ir.model.fields,field_description:openeducat_core.field_op_faculty__is_company
@@ -2766,16 +2418,6 @@ msgid "Its Specify lesson planing for the upcoming session."
 msgstr "Укажите планирование урока для предстоящей сессии."
 
 #. module: openeducat_core
-#: model:op.student,first_name:openeducat_core.op_student_2
-msgid "James"
-msgstr "Джеймс"
-
-#. module: openeducat_core
-#: model:op.student,last_name:openeducat_core.op_student_13
-msgid "Jengo"
-msgstr "Здание"
-
-#. module: openeducat_core
 #: model:ir.model.fields,field_description:openeducat_core.field_res_config_settings__module_openeducat_jitsi_enterprise
 msgid "Jitsi Enterprise"
 msgstr "Jetsi Enterprise"
@@ -2806,44 +2448,15 @@ msgstr ""
 "                                        Управление позволяет пользователям создавать задания."
 
 #. module: openeducat_core
-#: model:op.faculty,first_name:openeducat_core.op_faculty_2
-msgid "John"
-msgstr "Джон"
-
-#. module: openeducat_core
-#: model:op.student,last_name:openeducat_core.op_student_17
-msgid "Johnson"
-msgstr "Джонсон"
-
-#. module: openeducat_core
-#: model:op.student,first_name:openeducat_core.op_student_10
-msgid "Joon"
-msgstr "Джун"
-
-#. module: openeducat_core
-#: model:op.student,first_name:openeducat_core.op_student_24
-msgid "Jun"
-msgstr "Июнь"
-
-#. module: openeducat_core
-#: model:op.student,last_name:openeducat_core.op_student_5
-msgid "Kamau"
-msgstr "Камау"
-
-#. module: openeducat_core
-#: model:op.student,last_name:openeducat_core.op_student_10
-msgid "Kim"
-msgstr "Ким"
-
-#. module: openeducat_core
-#: model:op.student,last_name:openeducat_core.op_student_14
-msgid "King"
-msgstr "Король"
+#: model:ir.model.fields,field_description:openeducat_core.field_op_faculty__journal_item_count
+#: model:ir.model.fields,field_description:openeducat_core.field_op_student__journal_item_count
+msgid "Journal Items"
+msgstr ""
 
 #. module: openeducat_core
 #: model_terms:ir.ui.view,arch_db:openeducat_core.res_config_settings_view_form_core
 msgid "LMS"
-msgstr "LMS"
+msgstr ""
 
 #. module: openeducat_core
 #: model:ir.model.fields,field_description:openeducat_core.field_res_config_settings__module_openeducat_lms_admission
@@ -2853,27 +2466,27 @@ msgstr "LMS вход"
 #. module: openeducat_core
 #: model:ir.model.fields,field_description:openeducat_core.field_res_config_settings__module_openeducat_lms_blog
 msgid "LMS Blog Enterprise"
-msgstr "LMS Blog Enterprise"
+msgstr ""
 
 #. module: openeducat_core
 #: model:ir.model.fields,field_description:openeducat_core.field_res_config_settings__module_openeducat_lms
 msgid "LMS Enterprise"
-msgstr "LMS Enterprise"
+msgstr ""
 
 #. module: openeducat_core
 #: model:ir.model.fields,field_description:openeducat_core.field_res_config_settings__module_openeducat_lms_forum
 msgid "LMS Forum Enterprise"
-msgstr "LMS Forum Enterprise"
+msgstr ""
 
 #. module: openeducat_core
 #: model:ir.model.fields,field_description:openeducat_core.field_res_config_settings__module_openeducat_lms_gamification
 msgid "LMS Gamification Enterprise"
-msgstr "LMS Gamification Enterprise"
+msgstr ""
 
 #. module: openeducat_core
 #: model:ir.model.fields,field_description:openeducat_core.field_res_config_settings__module_openeducat_lms_h5p
 msgid "LMS H5P Enterprise"
-msgstr "LMS H5P Enterprise"
+msgstr ""
 
 #. module: openeducat_core
 #: model:ir.model.fields,field_description:openeducat_core.field_res_config_settings__module_openeducat_lms_sale
@@ -2883,13 +2496,7 @@ msgstr "LMS SALE ENTERPRISE"
 #. module: openeducat_core
 #: model:ir.model.fields,field_description:openeducat_core.field_res_config_settings__module_openeducat_lms_survey
 msgid "LMS Survey Enterprise"
-msgstr "LMS Survey Enterprise"
-
-#. module: openeducat_core
-#. odoo-javascript
-#: code:addons/openeducat_core/static/src/xml/base.xml:0
-msgid "LOGO"
-msgstr "Логотип"
+msgstr ""
 
 #. module: openeducat_core
 #: model:ir.model.fields,field_description:openeducat_core.field_op_faculty__lang
@@ -2948,19 +2555,15 @@ msgid "Last Updated on"
 msgstr "Последнее обновлено"
 
 #. module: openeducat_core
-#: model:op.program.level,name:openeducat_core.program_level_9
-msgid "Lateral Entry Programs"
-msgstr "Боковые программы входа"
+#: model:ir.model.fields,field_description:openeducat_core.field_op_faculty__calendar_last_notif_ack
+#: model:ir.model.fields,field_description:openeducat_core.field_op_student__calendar_last_notif_ack
+msgid "Last notification marked as read from base Calendar"
+msgstr ""
 
 #. module: openeducat_core
 #: model:ir.model.fields,field_description:openeducat_core.field_op_faculty__last_login
 msgid "Latest Connection"
 msgstr "Последнее соединение"
-
-#. module: openeducat_core
-#: model:op.student,last_name:openeducat_core.op_student_15
-msgid "Lee"
-msgstr "Ли"
 
 #. module: openeducat_core
 #: model:ir.model.fields,field_description:openeducat_core.field_res_config_settings__module_openeducat_lesson
@@ -2986,11 +2589,6 @@ msgstr ""
 "                                        Система конференций для онлайн -обучения."
 
 #. module: openeducat_core
-#: model:op.student,last_name:openeducat_core.op_student_8
-msgid "Lewis"
-msgstr "Льюис"
-
-#. module: openeducat_core
 #: model:ir.model.fields,field_description:openeducat_core.field_res_config_settings__module_openeducat_library
 #: model_terms:ir.ui.view,arch_db:openeducat_core.res_config_settings_view_form_core
 msgid "Library"
@@ -3005,11 +2603,6 @@ msgstr "Библиотека штрих -кодов предприятия"
 #: model:ir.model.fields,field_description:openeducat_core.field_res_config_settings__module_openeducat_library_enterprise
 msgid "Library Enterprise"
 msgstr "Библиотечное предприятие"
-
-#. module: openeducat_core
-#: model:op.student,first_name:openeducat_core.op_student_23
-msgid "Lily"
-msgstr "Лили"
 
 #. module: openeducat_core
 #: model:ir.model.fields,field_description:openeducat_core.field_res_users__student_line
@@ -3056,41 +2649,6 @@ msgstr ""
 #: model:ir.model.fields,field_description:openeducat_core.field_op_faculty__login
 msgid "Login"
 msgstr "Авторизоваться"
-
-#. module: openeducat_core
-#: model:op.student,first_name:openeducat_core.op_student_8
-msgid "Lucas"
-msgstr "Лукас"
-
-#. module: openeducat_core
-#: model:op.program,name:openeducat_core.program_2
-msgid "MCA - Big Data Analytics"
-msgstr "MCA - аналитика больших данных"
-
-#. module: openeducat_core
-#: model:op.program,code:openeducat_core.program_2
-msgid "MCA-AI"
-msgstr "MCA-AI"
-
-#. module: openeducat_core
-#: model:op.course,name:openeducat_core.op_course_2
-msgid "MCA-BD-Semester-1"
-msgstr "MCA-BD-Semester-1"
-
-#. module: openeducat_core
-#: model:op.course,name:openeducat_core.op_course_3
-msgid "MCA-BD-Semester-2"
-msgstr "MCA-BD-SEMESTER-2"
-
-#. module: openeducat_core
-#: model:op.course,name:openeducat_core.op_course_19
-msgid "MCA-BD-Semester-3"
-msgstr "MCA-BD-Semester-3"
-
-#. module: openeducat_core
-#: model:op.course,name:openeducat_core.op_course_20
-msgid "MCA-BD-Semester-4"
-msgstr "MCA-BD-Semester-4"
 
 #. module: openeducat_core
 #: model:ir.model.fields,field_description:openeducat_core.field_op_faculty__main_department_id
@@ -3202,26 +2760,16 @@ msgid "Manger"
 msgstr "Манера"
 
 #. module: openeducat_core
-#: model:op.faculty,first_name:openeducat_core.op_faculty_4
-msgid "Mary"
-msgstr "Мэри"
-
-#. module: openeducat_core
 #: model:ir.model.fields,field_description:openeducat_core.field_res_config_settings__module_openeducat_mass_subject_registration
 msgid "Mass Subject Registration"
 msgstr "Регистрация массовых предметов"
-
-#. module: openeducat_core
-#: model:op.program.level,name:openeducat_core.program_level_1
-msgid "Masters"
-msgstr "Мастера"
 
 #. module: openeducat_core
 #: model:ir.model.fields,field_description:openeducat_core.field_op_course__max_unit_load
 #: model:ir.model.fields,field_description:openeducat_core.field_op_program__max_unit_load
 #: model:ir.model.fields,field_description:openeducat_core.field_op_subject_registration__max_unit_load
 msgid "Maximum Unit Load"
-msgstr "Максимальная единица нагрузки"
+msgstr "Максимальная учебная нагрузка"
 
 #. module: openeducat_core
 #: model_terms:ir.ui.view,arch_db:openeducat_core.res_config_settings_view_form_core
@@ -3232,6 +2780,12 @@ msgstr "Встреча"
 #: model:ir.model.fields,field_description:openeducat_core.field_res_config_settings__module_openeducat_meeting_enterprise
 msgid "Meeting Enterprise"
 msgstr "Встреча предприятия"
+
+#. module: openeducat_core
+#: model:ir.model.fields,field_description:openeducat_core.field_op_faculty__meeting_ids
+#: model:ir.model.fields,field_description:openeducat_core.field_op_student__meeting_ids
+msgid "Meetings"
+msgstr ""
 
 #. module: openeducat_core
 #: model:ir.model.fields,field_description:openeducat_core.field_op_batch__message_has_error
@@ -3247,6 +2801,18 @@ msgid "Message Delivery error"
 msgstr "Ошибка доставки сообщения"
 
 #. module: openeducat_core
+#: model:ir.model.fields,field_description:openeducat_core.field_op_faculty__invoice_warn_msg
+#: model:ir.model.fields,field_description:openeducat_core.field_op_student__invoice_warn_msg
+msgid "Message for Invoice"
+msgstr ""
+
+#. module: openeducat_core
+#: model:ir.model.fields,field_description:openeducat_core.field_op_faculty__picking_warn_msg
+#: model:ir.model.fields,field_description:openeducat_core.field_op_student__picking_warn_msg
+msgid "Message for Stock Picking"
+msgstr ""
+
+#. module: openeducat_core
 #: model:ir.model.fields,field_description:openeducat_core.field_op_batch__message_ids
 #: model:ir.model.fields,field_description:openeducat_core.field_op_course__message_ids
 #: model:ir.model.fields,field_description:openeducat_core.field_op_faculty__message_ids
@@ -3258,11 +2824,6 @@ msgstr "Ошибка доставки сообщения"
 #: model:ir.model.fields,field_description:openeducat_core.field_op_subject_registration__message_ids
 msgid "Messages"
 msgstr "Сообщения"
-
-#. module: openeducat_core
-#: model:op.student,first_name:openeducat_core.op_student_9
-msgid "Michael"
-msgstr "Майкл"
 
 #. module: openeducat_core
 #: model_terms:ir.ui.view,arch_db:openeducat_core.res_config_settings_view_form_core
@@ -3279,19 +2840,14 @@ msgstr ""
 #: model_terms:ir.ui.view,arch_db:openeducat_core.view_op_faculty_form
 #: model_terms:ir.ui.view,arch_db:openeducat_core.view_op_student_form
 msgid "Middle Name"
-msgstr "Второе имя"
+msgstr "Отчество"
 
 #. module: openeducat_core
 #: model:ir.model.fields,field_description:openeducat_core.field_op_course__min_unit_load
 #: model:ir.model.fields,field_description:openeducat_core.field_op_program__min_unit_load
 #: model:ir.model.fields,field_description:openeducat_core.field_op_subject_registration__min_unit_load
 msgid "Minimum Unit Load"
-msgstr "Минимальная нагрузка на единицу"
-
-#. module: openeducat_core
-#: model:op.student,last_name:openeducat_core.op_student_6
-msgid "Mitchell"
-msgstr "Митчелл"
+msgstr "Минимальная учебная нагрузка"
 
 #. module: openeducat_core
 #: model:ir.model.fields,field_description:openeducat_core.field_op_faculty__mobile
@@ -3336,7 +2892,13 @@ msgstr "Имя"
 #: model_terms:ir.ui.view,arch_db:openeducat_core.view_op_faculty_search
 #: model_terms:ir.ui.view,arch_db:openeducat_core.view_op_student_search
 msgid "Nationality"
-msgstr "Национальность"
+msgstr "Гражданство"
+
+#. module: openeducat_core
+#: model:ir.model.fields,field_description:openeducat_core.field_op_faculty__activity_calendar_event_id
+#: model:ir.model.fields,field_description:openeducat_core.field_op_student__activity_calendar_event_id
+msgid "Next Activity Calendar Event"
+msgstr ""
 
 #. module: openeducat_core
 #: model:ir.model.fields,field_description:openeducat_core.field_op_faculty__activity_date_deadline
@@ -3444,13 +3006,13 @@ msgstr "Количество сообщений с ошибкой доставк
 #: model:ir.model.fields.selection,name:openeducat_core.selection__op_faculty__blood_group__o+
 #: model:ir.model.fields.selection,name:openeducat_core.selection__op_student__blood_group__o+
 msgid "O+ve"
-msgstr "O+и"
+msgstr "O+ve (I группа положительная)"
 
 #. module: openeducat_core
 #: model:ir.model.fields.selection,name:openeducat_core.selection__op_faculty__blood_group__o-
 #: model:ir.model.fields.selection,name:openeducat_core.selection__op_student__blood_group__o-
 msgid "O-ve"
-msgstr "О-и"
+msgstr "O-ve (I группа отрицательная)"
 
 #. module: openeducat_core
 #: model:ir.model.fields,field_description:openeducat_core.field_res_config_settings__module_openeducat_omr
@@ -3468,11 +3030,6 @@ msgstr ""
 "                                        с до 100 участников по доступной стоимости."
 
 #. module: openeducat_core
-#: model:op.student,last_name:openeducat_core.op_student_19
-msgid "Omari"
-msgstr "Омари"
-
-#. module: openeducat_core
 #: model_terms:ir.ui.view,arch_db:openeducat_core.res_config_settings_view_form_core
 msgid "Online Appointment"
 msgstr "Онлайн встреча"
@@ -3481,11 +3038,6 @@ msgstr "Онлайн встреча"
 #: model:ir.model.fields,field_description:openeducat_core.field_res_config_settings__module_online_appointment
 msgid "Online Appointment Enterprise"
 msgstr "Онлайн -встречи предприятия"
-
-#. module: openeducat_core
-#: model:op.program.level,name:openeducat_core.program_level_11
-msgid "Online Programs"
-msgstr "Онлайн -программы"
 
 #. module: openeducat_core
 #: model:ir.module.category,name:openeducat_core.module_category_openeducat
@@ -3517,12 +3069,6 @@ msgstr "Отдел Openeducat"
 #: model:ir.model,name:openeducat_core.model_op_faculty
 msgid "OpenEduCat Faculty"
 msgstr "Openeducat Faculty"
-
-#. module: openeducat_core
-#. odoo-javascript
-#: code:addons/openeducat_core/static/src/xml/base.xml:0
-msgid "OpenEduCat Inc"
-msgstr "Openeducat Inc."
 
 #. module: openeducat_core
 #: model:ir.module.category,name:openeducat_core.module_category_openeducat_others
@@ -3592,6 +3138,18 @@ msgstr ""
 "-курс. Создайте в нем свои разделы и материал курса."
 
 #. module: openeducat_core
+#: model:ir.model.fields,field_description:openeducat_core.field_op_faculty__opportunity_ids
+#: model:ir.model.fields,field_description:openeducat_core.field_op_student__opportunity_ids
+msgid "Opportunities"
+msgstr ""
+
+#. module: openeducat_core
+#: model:ir.model.fields,field_description:openeducat_core.field_op_faculty__opportunity_count
+#: model:ir.model.fields,field_description:openeducat_core.field_op_student__opportunity_count
+msgid "Opportunity Count"
+msgstr ""
+
+#. module: openeducat_core
 #: model_terms:ir.ui.view,arch_db:openeducat_core.res_config_settings_view_form_core
 msgid ""
 "Optimize grading and\n"
@@ -3608,11 +3166,6 @@ msgid ""
 msgstr ""
 "Оптимизация управления активами для\n"
 "                                        Образовательные учреждения."
-
-#. module: openeducat_core
-#: model:op.student,first_name:openeducat_core.op_student_22
-msgid "Oren"
-msgstr "Орен"
 
 #. module: openeducat_core
 #: model_terms:ir.ui.view,arch_db:openeducat_core.res_config_settings_view_form_core
@@ -3678,22 +3231,40 @@ msgid "Parent name"
 msgstr "Родительское имя"
 
 #. module: openeducat_core
-#: model:op.student,last_name:openeducat_core.op_student_1
-#: model:op.student,last_name:openeducat_core.op_student_4
-msgid "Parker"
-msgstr "Паркер"
-
-#. module: openeducat_core
 #: model:ir.model.fields,field_description:openeducat_core.field_op_faculty__partner_id
 #: model:ir.model.fields,field_description:openeducat_core.field_op_student__partner_id
 #: model_terms:ir.ui.view,arch_db:openeducat_core.view_op_student_form
 msgid "Partner"
-msgstr "Партнер"
+msgstr "Контакт"
+
+#. module: openeducat_core
+#: model:ir.model.fields,field_description:openeducat_core.field_op_faculty__partner_company_registry_placeholder
+#: model:ir.model.fields,field_description:openeducat_core.field_op_student__partner_company_registry_placeholder
+msgid "Partner Company Registry Placeholder"
+msgstr ""
+
+#. module: openeducat_core
+#: model:ir.model.fields,field_description:openeducat_core.field_op_faculty__contract_ids
+#: model:ir.model.fields,field_description:openeducat_core.field_op_student__contract_ids
+msgid "Partner Contracts"
+msgstr ""
+
+#. module: openeducat_core
+#: model:ir.model.fields,field_description:openeducat_core.field_op_faculty__use_partner_credit_limit
+#: model:ir.model.fields,field_description:openeducat_core.field_op_student__use_partner_credit_limit
+msgid "Partner Limit"
+msgstr ""
 
 #. module: openeducat_core
 #: model:ir.model,name:openeducat_core.model_res_partner_title
 msgid "Partner Title"
 msgstr "Название партнера"
+
+#. module: openeducat_core
+#: model:ir.model.fields,field_description:openeducat_core.field_op_faculty__partner_vat_placeholder
+#: model:ir.model.fields,field_description:openeducat_core.field_op_student__partner_vat_placeholder
+msgid "Partner Vat Placeholder"
+msgstr ""
 
 #. module: openeducat_core
 #: model:ir.model.fields,field_description:openeducat_core.field_op_faculty__same_company_registry_partner_id
@@ -3708,20 +3279,40 @@ msgid "Partner with same Tax ID"
 msgstr "Партнер с тем же налоговым идентификатором"
 
 #. module: openeducat_core
-#: model:op.program.level,name:openeducat_core.program_level_12
-msgid "Pathway Programs"
-msgstr "Программы пути"
+#: model:ir.model.fields,field_description:openeducat_core.field_op_faculty__debit_limit
+#: model:ir.model.fields,field_description:openeducat_core.field_op_student__debit_limit
+msgid "Payable Limit"
+msgstr ""
+
+#. module: openeducat_core
+#: model:ir.model.fields,field_description:openeducat_core.field_op_faculty__payment_token_count
+#: model:ir.model.fields,field_description:openeducat_core.field_op_student__payment_token_count
+msgid "Payment Token Count"
+msgstr ""
+
+#. module: openeducat_core
+#: model:ir.model.fields,field_description:openeducat_core.field_op_faculty__payment_token_ids
+#: model:ir.model.fields,field_description:openeducat_core.field_op_student__payment_token_ids
+msgid "Payment Tokens"
+msgstr ""
+
+#. module: openeducat_core
+#: model:ir.model.fields,field_description:openeducat_core.field_op_faculty__peppol_endpoint
+#: model:ir.model.fields,field_description:openeducat_core.field_op_student__peppol_endpoint
+msgid "Peppol Endpoint"
+msgstr ""
+
+#. module: openeducat_core
+#: model:ir.model.fields,field_description:openeducat_core.field_op_faculty__peppol_eas
+#: model:ir.model.fields,field_description:openeducat_core.field_op_student__peppol_eas
+msgid "Peppol e-address (EAS)"
+msgstr ""
 
 #. module: openeducat_core
 #: model_terms:ir.ui.view,arch_db:openeducat_core.view_op_faculty_form
 #: model_terms:ir.ui.view,arch_db:openeducat_core.view_op_student_form
 msgid "Personal Information"
 msgstr "Персональная информация"
-
-#. module: openeducat_core
-#: model:op.student,last_name:openeducat_core.op_student_20
-msgid "Phillips"
-msgstr "Филлипс"
 
 #. module: openeducat_core
 #: model:ir.model.fields,field_description:openeducat_core.field_op_faculty__phone
@@ -3757,19 +3348,37 @@ msgid "Placement Job Enterprise"
 msgstr "Расположение работы предприятия"
 
 #. module: openeducat_core
-#: model:op.program.level,name:openeducat_core.program_level_13
-msgid "Post Doctoral Programs"
-msgstr "Пост докторские программы"
+#: model:ir.model.fields,field_description:openeducat_core.field_op_faculty__plan_to_change_bike
+#: model:ir.model.fields,field_description:openeducat_core.field_op_student__plan_to_change_bike
+msgid "Plan To Change Bike"
+msgstr ""
 
 #. module: openeducat_core
-#: model:op.program.level,name:openeducat_core.program_level_10
-msgid "Post Graduate Diploma Program"
-msgstr "Программа диплома после аспиранта"
+#: model:ir.model.fields,field_description:openeducat_core.field_op_faculty__plan_to_change_car
+#: model:ir.model.fields,field_description:openeducat_core.field_op_student__plan_to_change_car
+msgid "Plan To Change Car"
+msgstr ""
 
 #. module: openeducat_core
 #: model:ir.model.fields.selection,name:openeducat_core.selection__op_subject__type__practical
 msgid "Practical"
-msgstr "Практичный"
+msgstr "Практика"
+
+#. module: openeducat_core
+#: model:ir.model.fields,help:openeducat_core.field_op_faculty__property_outbound_payment_method_line_id
+#: model:ir.model.fields,help:openeducat_core.field_op_student__property_outbound_payment_method_line_id
+msgid ""
+"Preferred payment method when buying from this vendor. This will be set by "
+"default on all outgoing payments created for this vendor"
+msgstr ""
+
+#. module: openeducat_core
+#: model:ir.model.fields,help:openeducat_core.field_op_faculty__property_inbound_payment_method_line_id
+#: model:ir.model.fields,help:openeducat_core.field_op_student__property_inbound_payment_method_line_id
+msgid ""
+"Preferred payment method when selling to this customer. This will be set by "
+"default on all incoming payments created for this customer"
+msgstr ""
 
 #. module: openeducat_core
 #: model_terms:ir.ui.view,arch_db:openeducat_core.res_config_settings_view_form_core
@@ -3783,9 +3392,10 @@ msgstr ""
 "                                                    класса списка."
 
 #. module: openeducat_core
-#: model:op.student,first_name:openeducat_core.op_student_3
-msgid "Priya"
-msgstr "Прия"
+#: model:ir.model.fields,field_description:openeducat_core.field_op_faculty__property_product_pricelist
+#: model:ir.model.fields,field_description:openeducat_core.field_op_student__property_product_pricelist
+msgid "Pricelist"
+msgstr ""
 
 #. module: openeducat_core
 #: model:ir.ui.menu,name:openeducat_core.menu_op_student_main_student
@@ -3806,12 +3416,12 @@ msgstr "Программа"
 #: model_terms:ir.ui.view,arch_db:openeducat_core.view_op_program_level_form
 #: model_terms:ir.ui.view,arch_db:openeducat_core.view_op_program_level_tree
 msgid "Program Level"
-msgstr "Программный уровень"
+msgstr "Этапы обучения"
 
 #. module: openeducat_core
 #: model:ir.ui.menu,name:openeducat_core.menu_op_school_config_program
 msgid "Program Management"
-msgstr "Управление программой"
+msgstr "Программы обучения"
 
 #. module: openeducat_core
 #: model_terms:ir.ui.view,arch_db:openeducat_core.view_op_program_form
@@ -3827,10 +3437,16 @@ msgid "Programs"
 msgstr "Программы"
 
 #. module: openeducat_core
-#. odoo-javascript
-#: code:addons/openeducat_core/static/src/xml/base.xml:0
-msgid "Provided by"
-msgstr "Предоставлено"
+#: model:ir.model.fields,field_description:openeducat_core.field_op_faculty__property_inbound_payment_method_line_id
+#: model:ir.model.fields,field_description:openeducat_core.field_op_student__property_inbound_payment_method_line_id
+msgid "Property Inbound Payment Method Line"
+msgstr ""
+
+#. module: openeducat_core
+#: model:ir.model.fields,field_description:openeducat_core.field_op_faculty__property_outbound_payment_method_line_id
+#: model:ir.model.fields,field_description:openeducat_core.field_op_student__property_outbound_payment_method_line_id
+msgid "Property Outbound Payment Method Line"
+msgstr ""
 
 #. module: openeducat_core
 #: model_terms:ir.ui.view,arch_db:openeducat_core.res_config_settings_view_form_core
@@ -3883,19 +3499,22 @@ msgstr ""
 "try again later.That’s all we know."
 
 #. module: openeducat_core
-#: model:op.faculty,first_name:openeducat_core.op_faculty_8
-msgid "Raj"
-msgstr "Радж"
+#: model:ir.model.fields,field_description:openeducat_core.field_op_batch__rating_ids
+#: model:ir.model.fields,field_description:openeducat_core.field_op_course__rating_ids
+#: model:ir.model.fields,field_description:openeducat_core.field_op_faculty__rating_ids
+#: model:ir.model.fields,field_description:openeducat_core.field_op_program__rating_ids
+#: model:ir.model.fields,field_description:openeducat_core.field_op_program_level__rating_ids
+#: model:ir.model.fields,field_description:openeducat_core.field_op_student__rating_ids
+#: model:ir.model.fields,field_description:openeducat_core.field_op_student_course__rating_ids
+#: model:ir.model.fields,field_description:openeducat_core.field_op_subject__rating_ids
+#: model:ir.model.fields,field_description:openeducat_core.field_op_subject_registration__rating_ids
+msgid "Ratings"
+msgstr ""
 
 #. module: openeducat_core
 #: model:ir.model.fields,field_description:openeducat_core.field_op_subject_registration__is_read
 msgid "Read?"
 msgstr "Читать?"
-
-#. module: openeducat_core
-#: model:op.student,last_name:openeducat_core.op_student_3
-msgid "Reddy"
-msgstr "Редди"
 
 #. module: openeducat_core
 #: model:ir.model.fields,field_description:openeducat_core.field_op_faculty__ref
@@ -3916,12 +3535,12 @@ msgstr "Регистрационный номер должен быть уник
 #. module: openeducat_core
 #: model_terms:ir.ui.view,arch_db:openeducat_core.view_subject_registration_form
 msgid "Reject"
-msgstr "Отклонять"
+msgstr "Отклонить"
 
 #. module: openeducat_core
 #: model:ir.model.fields.selection,name:openeducat_core.selection__op_subject_registration__state__rejected
 msgid "Rejected"
-msgstr "Отклоненный"
+msgstr "Отклонено"
 
 #. module: openeducat_core
 #: model:ir.model.fields,field_description:openeducat_core.field_op_faculty__parent_id
@@ -3963,29 +3582,19 @@ msgid "Restrict to a specific website."
 msgstr "Ограничение на конкретный веб -сайт."
 
 #. module: openeducat_core
-#: model:op.faculty,first_name:openeducat_core.op_faculty_3
-msgid "Robert"
-msgstr "Роберт"
-
-#. module: openeducat_core
 #: model:ir.model.fields,field_description:openeducat_core.field_op_student_course__roll_number
 msgid "Roll Number"
-msgstr "Номера рулона"
+msgstr "ID ученика"
 
 #. module: openeducat_core
 #: model:ir.model.constraint,message:openeducat_core.constraint_op_student_course_unique_name_roll_number_id
 msgid "Roll Number & Student must be unique per Batch!"
-msgstr "Номер ролика и студент должен быть уникальным для партии!"
+msgstr "ID ученика и имя должны быть уникальными для параллели!"
 
 #. module: openeducat_core
 #: model:ir.model.constraint,message:openeducat_core.constraint_op_student_course_unique_name_roll_number_course_id
 msgid "Roll Number must be unique per Batch!"
-msgstr "Номер рулона должен быть уникальным для партии!"
-
-#. module: openeducat_core
-#: model:op.student,last_name:openeducat_core.op_student_7
-msgid "Rossi"
-msgstr "Росси"
+msgstr "ID ученика должен быть уникальным для параллели!"
 
 #. module: openeducat_core
 #: model_terms:ir.ui.view,arch_db:openeducat_core.res_config_settings_view_form_core
@@ -3997,21 +3606,21 @@ msgstr ""
 "                                        Предоставляет данные запуска для каждого маршрута."
 
 #. module: openeducat_core
-#: model:op.faculty,first_name:openeducat_core.op_faculty_12
-#: model:op.student,first_name:openeducat_core.op_student_17
-msgid "Ruby"
-msgstr "Рубин"
-
-#. module: openeducat_core
 #: model:ir.model.fields.selection,name:openeducat_core.selection__op_student_course__state__running
 msgid "Running"
-msgstr "Бег"
+msgstr "В процессе"
+
+#. module: openeducat_core
+#: model:ir.model.fields,field_description:openeducat_core.field_op_faculty__is_seo_optimized
+#: model:ir.model.fields,field_description:openeducat_core.field_op_student__is_seo_optimized
+msgid "SEO optimized"
+msgstr ""
 
 #. module: openeducat_core
 #: model:ir.ui.menu,name:openeducat_core.menu_op_school_root
 #: model_terms:ir.ui.view,arch_db:openeducat_core.res_config_settings_view_form_core
 msgid "SIS"
-msgstr "Сестренка"
+msgstr "Школа"
 
 #. module: openeducat_core
 #: model:ir.model.fields,field_description:openeducat_core.field_op_batch__message_has_sms_error
@@ -4037,25 +3646,10 @@ msgid "Salesperson"
 msgstr "Продавец"
 
 #. module: openeducat_core
-#: model:op.student,first_name:openeducat_core.op_student_20
-msgid "Sam"
-msgstr "Сэм"
-
-#. module: openeducat_core
-#: model:op.student,first_name:openeducat_core.op_student_25
-msgid "Samira"
-msgstr "Самира"
-
-#. module: openeducat_core
 #: model:ir.model.fields,field_description:openeducat_core.field_op_faculty__phone_sanitized
 #: model:ir.model.fields,field_description:openeducat_core.field_op_student__phone_sanitized
 msgid "Sanitized Number"
 msgstr "Продезинфицированный номер"
-
-#. module: openeducat_core
-#: model:op.faculty,first_name:openeducat_core.op_faculty_10
-msgid "Sarah"
-msgstr "Сара"
 
 #. module: openeducat_core
 #: model_terms:ir.ui.view,arch_db:openeducat_core.res_config_settings_view_form_core
@@ -4085,6 +3679,12 @@ msgid "Scholarship Enterprise"
 msgstr "Стипендия предприятия"
 
 #. module: openeducat_core
+#: model:ir.model.fields,field_description:openeducat_core.field_op_faculty__iap_search_domain
+#: model:ir.model.fields,field_description:openeducat_core.field_op_student__iap_search_domain
+msgid "Search Domain / Email"
+msgstr ""
+
+#. module: openeducat_core
 #: model_terms:ir.ui.view,arch_db:openeducat_core.res_config_settings_view_form_core
 msgid "Secure"
 msgstr "Безопасный"
@@ -4095,15 +3695,33 @@ msgid "Secure QR"
 msgstr "Безопасный QR"
 
 #. module: openeducat_core
-#: model:op.student,first_name:openeducat_core.op_student_19
-msgid "Sekou"
-msgstr "Облегчить"
+#: model:ir.model.fields,help:openeducat_core.field_op_faculty__invoice_warn
+#: model:ir.model.fields,help:openeducat_core.field_op_faculty__picking_warn
+#: model:ir.model.fields,help:openeducat_core.field_op_student__invoice_warn
+#: model:ir.model.fields,help:openeducat_core.field_op_student__picking_warn
+msgid ""
+"Selecting the \"Warning\" option will notify user with the message, "
+"Selecting \"Blocking Message\" will throw an exception with the message and "
+"block the flow. The Message has to be written in the next field."
+msgstr ""
 
 #. module: openeducat_core
 #: model:ir.model.fields,field_description:openeducat_core.field_op_faculty__self
 #: model:ir.model.fields,field_description:openeducat_core.field_op_student__self
 msgid "Self"
 msgstr "Себя"
+
+#. module: openeducat_core
+#: model:ir.model.fields,field_description:openeducat_core.field_op_faculty__seo_name
+#: model:ir.model.fields,field_description:openeducat_core.field_op_student__seo_name
+msgid "Seo name"
+msgstr ""
+
+#. module: openeducat_core
+#: model:ir.model.fields,help:openeducat_core.field_op_faculty__use_partner_credit_limit
+#: model:ir.model.fields,help:openeducat_core.field_op_student__use_partner_credit_limit
+msgid "Set a value greater than 0.0 to activate a credit limit check"
+msgstr ""
 
 #. module: openeducat_core
 #: model:ir.actions.act_window,name:openeducat_core.action_openeducat_configuration
@@ -4128,14 +3746,10 @@ msgstr ""
 "                                                        Хорошо продуманные блоги студентов и преподавателей."
 
 #. module: openeducat_core
-#: model:op.student,last_name:openeducat_core.op_student_11
-msgid "Sharma"
-msgstr "Шарма"
-
-#. module: openeducat_core
-#: model:op.student,last_name:openeducat_core.op_student_22
-msgid "Shimon"
-msgstr "Симон"
+#: model:ir.model.fields,field_description:openeducat_core.field_op_faculty__show_credit_limit
+#: model:ir.model.fields,field_description:openeducat_core.field_op_student__show_credit_limit
+msgid "Show Credit Limit"
+msgstr ""
 
 #. module: openeducat_core
 #: model:ir.model.fields,field_description:openeducat_core.field_res_company__signature
@@ -4164,9 +3778,10 @@ msgid "Skype Meet"
 msgstr "Скайп встречается"
 
 #. module: openeducat_core
-#: model:op.student,first_name:openeducat_core.op_student_7
-msgid "Sofia"
-msgstr "София"
+#: model:ir.model.fields,field_description:openeducat_core.field_op_faculty__specific_property_product_pricelist
+#: model:ir.model.fields,field_description:openeducat_core.field_op_student__specific_property_product_pricelist
+msgid "Specific Property Product Pricelist"
+msgstr ""
 
 #. module: openeducat_core
 #: model_terms:ir.ui.view,arch_db:openeducat_core.res_config_settings_view_form_core
@@ -4259,6 +3874,12 @@ msgstr ""
 "Запланировано: будущие мероприятия."
 
 #. module: openeducat_core
+#: model:ir.model.fields,field_description:openeducat_core.field_op_faculty__picking_warn
+#: model:ir.model.fields,field_description:openeducat_core.field_op_student__picking_warn
+msgid "Stock Picking"
+msgstr ""
+
+#. module: openeducat_core
 #: model_terms:ir.ui.view,arch_db:openeducat_core.res_config_settings_view_form_core
 msgid ""
 "Stores backups on a\n"
@@ -4318,7 +3939,7 @@ msgstr "Улица2"
 #: model_terms:ir.ui.view,arch_db:openeducat_core.view_op_student_search
 #: model_terms:ir.ui.view,arch_db:openeducat_core.view_op_student_tree
 msgid "Student"
-msgstr "Студент"
+msgstr "Ученик"
 
 #. module: openeducat_core
 #: model:ir.model.fields,field_description:openeducat_core.field_res_config_settings__module_openeducat_student_attendance_enterprise
@@ -4337,12 +3958,12 @@ msgstr "Студенческий курс"
 #: model_terms:ir.ui.view,arch_db:openeducat_core.view_op_student_course_form
 #: model_terms:ir.ui.view,arch_db:openeducat_core.view_op_student_course_tree
 msgid "Student Course Detail"
-msgstr "Деталь студенческого курса"
+msgstr "Информация об обучении"
 
 #. module: openeducat_core
 #: model:ir.model,name:openeducat_core.model_op_student_course
 msgid "Student Course Details"
-msgstr "Детали студенческого курса"
+msgstr "Информация об обучении"
 
 #. module: openeducat_core
 #: model:ir.actions.report,name:openeducat_core.action_report_student_idcard
@@ -4374,7 +3995,7 @@ msgstr "Студент должен быть уникальным на парт�
 #: model:ir.ui.menu,name:openeducat_core.menu_op_student_root
 #: model_terms:ir.ui.view,arch_db:openeducat_core.op_student_user_create_view
 msgid "Students"
-msgstr "Студенты"
+msgstr "Ученики"
 
 #. module: openeducat_core
 #: model_terms:ir.ui.view,arch_db:openeducat_core.res_config_settings_view_form_core
@@ -4397,7 +4018,7 @@ msgstr "Предмет"
 #. module: openeducat_core
 #: model:ir.ui.menu,name:openeducat_core.menu_op_school_config_subject
 msgid "Subject Management"
-msgstr "Управление субъектом"
+msgstr "Предметы"
 
 #. module: openeducat_core
 #: model:ir.model.fields,field_description:openeducat_core.field_res_config_settings__module_openeducat_subject_material_allocation
@@ -4408,7 +4029,7 @@ msgstr "Распределение материала предмета"
 #: model:ir.actions.act_window,name:openeducat_core.act_subject_registration_view
 #: model:ir.ui.menu,name:openeducat_core.subject_registration_student_menu
 msgid "Subject Registration"
-msgstr "Регистрация субъекта"
+msgstr "Регистрация предметов"
 
 #. module: openeducat_core
 #: model_terms:ir.ui.view,arch_db:openeducat_core.view_subject_registration_pivot
@@ -4423,7 +4044,7 @@ msgstr "Регистрационные детали субъекта"
 #. module: openeducat_core
 #: model:ir.model.fields,field_description:openeducat_core.field_op_subject__subject_type
 msgid "Subject Type"
-msgstr "Тип субъекта"
+msgstr "Тип предмета"
 
 #. module: openeducat_core
 #: model:ir.model.fields.selection,name:openeducat_core.selection__res_config_settings__attendance_subject_generic__subject
@@ -4441,7 +4062,7 @@ msgstr "График регистрации субъекта"
 #: model:ir.model.fields,field_description:openeducat_core.field_op_course__subject_ids
 #: model:ir.model.fields,field_description:openeducat_core.field_op_faculty__faculty_subject_ids
 msgid "Subject(s)"
-msgstr "Субъект (ы)"
+msgstr "Предметы"
 
 #. module: openeducat_core
 #: model_terms:ir.ui.view,arch_db:openeducat_core.res_config_settings_view_form_core
@@ -4473,17 +4094,23 @@ msgstr ""
 #: model_terms:ir.ui.view,arch_db:openeducat_core.view_op_faculty_form
 #: model_terms:ir.ui.view,arch_db:openeducat_core.view_op_student_course_form
 msgid "Subjects"
-msgstr "Субъекты"
+msgstr "Предметы"
 
 #. module: openeducat_core
 #: model_terms:ir.ui.view,arch_db:openeducat_core.view_subject_registration_form
 msgid "Submit"
-msgstr "Представлять на рассмотрение"
+msgstr "Отправить на утверждение"
 
 #. module: openeducat_core
 #: model:ir.model.fields.selection,name:openeducat_core.selection__op_subject_registration__state__submitted
 msgid "Submitted"
-msgstr "Поданный"
+msgstr "Подано"
+
+#. module: openeducat_core
+#: model:ir.model.fields,field_description:openeducat_core.field_op_faculty__supplier_rank
+#: model:ir.model.fields,field_description:openeducat_core.field_op_student__supplier_rank
+msgid "Supplier Rank"
+msgstr ""
 
 #. module: openeducat_core
 #: model:ir.model.fields,field_description:openeducat_core.field_op_faculty__category_id
@@ -4503,11 +4130,6 @@ msgid "Tax ID Label"
 msgstr "Метка для налога"
 
 #. module: openeducat_core
-#: model:op.student,first_name:openeducat_core.op_student_5
-msgid "Taye"
-msgstr "Чип"
-
-#. module: openeducat_core
 #: model:ir.model.fields,field_description:openeducat_core.field_res_config_settings__module_teams
 msgid "Teams"
 msgstr "Команды"
@@ -4520,7 +4142,7 @@ msgstr "Термин"
 #. module: openeducat_core
 #: model:ir.model.fields,field_description:openeducat_core.field_op_student_course__academic_term_id
 msgid "Terms"
-msgstr "Условия"
+msgstr "Учебный период"
 
 #. module: openeducat_core
 #: model:ir.model.fields,help:openeducat_core.field_op_faculty__country_code
@@ -4545,6 +4167,13 @@ msgstr ""
 "партнер не облагается налогом."
 
 #. module: openeducat_core
+#: model:ir.model.fields,help:openeducat_core.field_op_faculty__property_account_position_id
+#: model:ir.model.fields,help:openeducat_core.field_op_student__property_account_position_id
+msgid ""
+"The fiscal position determines the taxes/accounts used for this contact."
+msgstr ""
+
+#. module: openeducat_core
 #: model:ir.model.fields,help:openeducat_core.field_op_faculty__website_url
 #: model:ir.model.fields,help:openeducat_core.field_op_student__website_url
 msgid "The full URL to access the document through the website."
@@ -4565,6 +4194,20 @@ msgstr ""
 "Номер реестра компании. Используйте его, если он отличается от налогового "
 "идентификатора. Это должно быть уникальным для всех партнеров одной и той же"
 " страны"
+
+#. module: openeducat_core
+#: model:ir.model.fields,help:openeducat_core.field_op_faculty__property_stock_customer
+#: model:ir.model.fields,help:openeducat_core.field_op_student__property_stock_customer
+msgid ""
+"The stock location used as destination when sending goods to this contact."
+msgstr ""
+
+#. module: openeducat_core
+#: model:ir.model.fields,help:openeducat_core.field_op_faculty__property_stock_supplier
+#: model:ir.model.fields,help:openeducat_core.field_op_student__property_stock_supplier
+msgid ""
+"The stock location used as source when receiving goods from this contact."
+msgstr ""
 
 #. module: openeducat_core
 #: model:ir.model.fields.selection,name:openeducat_core.selection__op_subject__type__theory
@@ -4624,6 +4267,22 @@ msgstr ""
 "                                                            FTP -сервер."
 
 #. module: openeducat_core
+#: model:ir.model.fields,help:openeducat_core.field_op_faculty__property_account_payable_id
+#: model:ir.model.fields,help:openeducat_core.field_op_student__property_account_payable_id
+msgid ""
+"This account will be used instead of the default one as the payable account "
+"for the current partner"
+msgstr ""
+
+#. module: openeducat_core
+#: model:ir.model.fields,help:openeducat_core.field_op_faculty__property_account_receivable_id
+#: model:ir.model.fields,help:openeducat_core.field_op_student__property_account_receivable_id
+msgid ""
+"This account will be used instead of the default one as the receivable "
+"account for the current partner"
+msgstr ""
+
+#. module: openeducat_core
 #: model:ir.model.fields,help:openeducat_core.field_op_faculty__email_normalized
 #: model:ir.model.fields,help:openeducat_core.field_op_student__email_normalized
 msgid ""
@@ -4640,9 +4299,28 @@ msgid "This is to certify that"
 msgstr "Это должно подтвердить, что"
 
 #. module: openeducat_core
-#: model:op.faculty,first_name:openeducat_core.op_faculty_5
-msgid "Thomas"
-msgstr "Томас"
+#: model:ir.model.fields,help:openeducat_core.field_op_faculty__property_supplier_payment_term_id
+#: model:ir.model.fields,help:openeducat_core.field_op_student__property_supplier_payment_term_id
+msgid ""
+"This payment term will be used instead of the default one for purchase "
+"orders and vendor bills"
+msgstr ""
+
+#. module: openeducat_core
+#: model:ir.model.fields,help:openeducat_core.field_op_faculty__property_payment_term_id
+#: model:ir.model.fields,help:openeducat_core.field_op_student__property_payment_term_id
+msgid ""
+"This payment term will be used instead of the default one for sales orders "
+"and customer invoices"
+msgstr ""
+
+#. module: openeducat_core
+#: model:ir.model.fields,help:openeducat_core.field_op_faculty__property_product_pricelist
+#: model:ir.model.fields,help:openeducat_core.field_op_student__property_product_pricelist
+msgid ""
+"This pricelist will be used, instead of the default one, for sales to the "
+"current partner"
+msgstr ""
 
 #. module: openeducat_core
 #: model:ir.model.fields.selection,name:openeducat_core.selection__op_academic_year__term_structure__three_sem
@@ -4686,9 +4364,34 @@ msgid "To the best of my knowledge, he / she bears a Good Moral character."
 msgstr "Насколько мне известно, он / она носит хороший моральный характер."
 
 #. module: openeducat_core
-#: model:op.student,first_name:openeducat_core.op_student_6
-msgid "Tony"
-msgstr "Тони"
+#: model:ir.model.fields,field_description:openeducat_core.field_op_faculty__total_invoiced
+#: model:ir.model.fields,field_description:openeducat_core.field_op_student__total_invoiced
+msgid "Total Invoiced"
+msgstr ""
+
+#. module: openeducat_core
+#: model:ir.model.fields,field_description:openeducat_core.field_op_faculty__debit
+#: model:ir.model.fields,field_description:openeducat_core.field_op_student__debit
+msgid "Total Payable"
+msgstr ""
+
+#. module: openeducat_core
+#: model:ir.model.fields,field_description:openeducat_core.field_op_faculty__credit
+#: model:ir.model.fields,field_description:openeducat_core.field_op_student__credit
+msgid "Total Receivable"
+msgstr ""
+
+#. module: openeducat_core
+#: model:ir.model.fields,help:openeducat_core.field_op_faculty__credit
+#: model:ir.model.fields,help:openeducat_core.field_op_student__credit
+msgid "Total amount this customer owes you."
+msgstr ""
+
+#. module: openeducat_core
+#: model:ir.model.fields,help:openeducat_core.field_op_faculty__debit
+#: model:ir.model.fields,help:openeducat_core.field_op_student__debit
+msgid "Total amount you have to pay to this vendor."
+msgstr ""
 
 #. module: openeducat_core
 #: model_terms:ir.ui.view,arch_db:openeducat_core.res_config_settings_view_form_core
@@ -4728,6 +4431,14 @@ msgid "Type of the exception activity on record."
 msgstr "Тип исключения деятельности на записи."
 
 #. module: openeducat_core
+#: model:ir.model.fields,help:openeducat_core.field_op_faculty__peppol_endpoint
+#: model:ir.model.fields,help:openeducat_core.field_op_student__peppol_endpoint
+msgid ""
+"Unique identifier used by the BIS Billing 3.0 and its derivatives, also "
+"known as 'Endpoint ID'."
+msgstr ""
+
+#. module: openeducat_core
 #: model:ir.model.fields,help:openeducat_core.field_op_faculty__barcode
 #: model:ir.model.fields,help:openeducat_core.field_op_student__barcode
 msgid "Use a barcode to identify this contact."
@@ -4752,16 +4463,34 @@ msgid "User Line"
 msgstr "Пользовательская линия"
 
 #. module: openeducat_core
+#: model:ir.model.fields,field_description:openeducat_core.field_op_faculty__user_livechat_username
+#: model:ir.model.fields,field_description:openeducat_core.field_op_student__user_livechat_username
+msgid "User Livechat Username"
+msgstr ""
+
+#. module: openeducat_core
 #: model:ir.model.fields,field_description:openeducat_core.field_op_faculty__user_ids
 #: model:ir.model.fields,field_description:openeducat_core.field_op_student__user_ids
 msgid "Users"
 msgstr "Пользователи"
 
 #. module: openeducat_core
+#: model:ir.model.fields,field_description:openeducat_core.field_op_faculty__property_stock_supplier
+#: model:ir.model.fields,field_description:openeducat_core.field_op_student__property_stock_supplier
+msgid "Vendor Location"
+msgstr ""
+
+#. module: openeducat_core
+#: model:ir.model.fields,field_description:openeducat_core.field_op_faculty__property_supplier_payment_term_id
+#: model:ir.model.fields,field_description:openeducat_core.field_op_student__property_supplier_payment_term_id
+msgid "Vendor Payment Terms"
+msgstr ""
+
+#. module: openeducat_core
 #: model:ir.model.fields,field_description:openeducat_core.field_op_faculty__visa_info
 #: model:ir.model.fields,field_description:openeducat_core.field_op_student__visa_info
 msgid "Visa Info"
-msgstr "Просмотреть информацию"
+msgstr "Информация о визе"
 
 #. module: openeducat_core
 #: model:ir.model.fields,field_description:openeducat_core.field_op_faculty__website_published
@@ -4806,6 +4535,18 @@ msgid "Website Messages"
 msgstr "Сообщения веб -сайта"
 
 #. module: openeducat_core
+#: model:ir.model.fields,field_description:openeducat_core.field_op_faculty__website_description
+#: model:ir.model.fields,field_description:openeducat_core.field_op_student__website_description
+msgid "Website Partner Full Description"
+msgstr ""
+
+#. module: openeducat_core
+#: model:ir.model.fields,field_description:openeducat_core.field_op_faculty__website_short_description
+#: model:ir.model.fields,field_description:openeducat_core.field_op_student__website_short_description
+msgid "Website Partner Short Description"
+msgstr ""
+
+#. module: openeducat_core
 #: model:ir.model.fields,field_description:openeducat_core.field_op_faculty__website_url
 #: model:ir.model.fields,field_description:openeducat_core.field_op_student__website_url
 msgid "Website URL"
@@ -4825,6 +4566,30 @@ msgid "Website communication history"
 msgstr "История общения веб -сайта"
 
 #. module: openeducat_core
+#: model:ir.model.fields,field_description:openeducat_core.field_op_faculty__website_meta_description
+#: model:ir.model.fields,field_description:openeducat_core.field_op_student__website_meta_description
+msgid "Website meta description"
+msgstr ""
+
+#. module: openeducat_core
+#: model:ir.model.fields,field_description:openeducat_core.field_op_faculty__website_meta_keywords
+#: model:ir.model.fields,field_description:openeducat_core.field_op_student__website_meta_keywords
+msgid "Website meta keywords"
+msgstr ""
+
+#. module: openeducat_core
+#: model:ir.model.fields,field_description:openeducat_core.field_op_faculty__website_meta_title
+#: model:ir.model.fields,field_description:openeducat_core.field_op_student__website_meta_title
+msgid "Website meta title"
+msgstr ""
+
+#. module: openeducat_core
+#: model:ir.model.fields,field_description:openeducat_core.field_op_faculty__website_meta_og_img
+#: model:ir.model.fields,field_description:openeducat_core.field_op_student__website_meta_og_img
+msgid "Website opengraph image"
+msgstr ""
+
+#. module: openeducat_core
 #: model:ir.model.fields,help:openeducat_core.field_op_faculty__tz
 #: model:ir.model.fields,help:openeducat_core.field_op_student__tz
 msgid ""
@@ -4837,11 +4602,6 @@ msgstr ""
 "В любом месте, значения времени вычисляются в соответствии с временным смещением вашего веб -клиента."
 
 #. module: openeducat_core
-#: model:op.faculty,first_name:openeducat_core.op_faculty_1
-msgid "William"
-msgstr "Уильям"
-
-#. module: openeducat_core
 #: model_terms:ir.ui.view,arch_db:openeducat_core.res_config_settings_view_form_core
 msgid ""
 "With the increasing use\n"
@@ -4851,40 +4611,9 @@ msgstr ""
 "                                                        онлайн -обучения и экзаменов."
 
 #. module: openeducat_core
-#: model:op.student,last_name:openeducat_core.op_student_21
-msgid "Wood"
-msgstr "Древесина"
-
-#. module: openeducat_core
-#: model:op.student,last_name:openeducat_core.op_student_24
-msgid "Wu"
-msgstr "Ву"
-
-#. module: openeducat_core
-#: model:op.faculty,first_name:openeducat_core.op_faculty_9
-msgid "Xiulan"
-msgstr "Xiulan"
-
-#. module: openeducat_core
 #: model_terms:ir.ui.view,arch_db:openeducat_core.report_student_bonafide
 msgid "Year"
 msgstr "Год"
-
-#. module: openeducat_core
-#. odoo-python
-#: code:addons/openeducat_core/models/course.py:0
-msgid "You cannot create recursive categories."
-msgstr "Вы не можете создавать рекурсивные категории."
-
-#. module: openeducat_core
-#: model:op.student,last_name:openeducat_core.op_student_9
-msgid "Young"
-msgstr "Молодой"
-
-#. module: openeducat_core
-#: model:op.faculty,first_name:openeducat_core.op_faculty_13
-msgid "Yusuf"
-msgstr "Юсуф"
 
 #. module: openeducat_core
 #: model_terms:ir.ui.view,arch_db:openeducat_core.view_op_faculty_form
@@ -4904,6 +4633,14 @@ msgid "Zoom"
 msgstr "Зум"
 
 #. module: openeducat_core
+#: model:ir.model.fields,help:openeducat_core.field_op_faculty__days_sales_outstanding
+#: model:ir.model.fields,help:openeducat_core.field_op_student__days_sales_outstanding
+msgid ""
+"[(Total Receivable/Total Revenue) * number of days since the first invoice] "
+"for this customer"
+msgstr ""
+
+#. module: openeducat_core
 #: model_terms:ir.ui.view,arch_db:openeducat_core.view_op_course_form
 msgid "e.g. \"Computer Science for kids\""
 msgstr "например \"Информатика для детей\""
@@ -4919,12 +4656,33 @@ msgid "e.g. \"Master\""
 msgstr "например \"Владелец\""
 
 #. module: openeducat_core
+#: model:ir.model.fields,field_description:openeducat_core.field_op_faculty__invoice_edi_format
+#: model:ir.model.fields,field_description:openeducat_core.field_op_student__invoice_edi_format
+msgid "eInvoice format"
+msgstr ""
+
+#. module: openeducat_core
 #: model_terms:ir.ui.view,arch_db:openeducat_core.view_op_student_form
 msgid "miscellaneous"
-msgstr "разнообразный"
+msgstr "Прочее"
 
 #. module: openeducat_core
 #: model_terms:ir.ui.view,arch_db:openeducat_core.op_faculty_user_create_view
 #: model_terms:ir.ui.view,arch_db:openeducat_core.op_student_user_create_view
 msgid "or"
 msgstr "или"
+
+#. module: openeducat_core
+#: model:ir.ui.menu,name:openeducat_core.menu_student_main
+msgid "Образование"
+msgstr ""
+
+#. module: openeducat_core
+#: model:ir.ui.menu,name:openeducat_core.menu_student_grades
+msgid "Оценки"
+msgstr ""
+
+#. module: openeducat_core
+#: model:ir.ui.menu,name:openeducat_core.menu_student_attendance
+msgid "Посещаемость"
+msgstr ""

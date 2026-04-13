@@ -4,10 +4,10 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: Odoo Server 18.0\n"
+"Project-Id-Version: Odoo Server 18.0-20260226\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-04-29 10:20+0000\n"
-"PO-Revision-Date: 2025-04-29 10:20+0000\n"
+"POT-Creation-Date: 2026-04-13 15:06+0000\n"
+"PO-Revision-Date: 2026-04-13 15:06+0000\n"
 "Last-Translator: \n"
 "Language-Team: \n"
 "MIME-Version: 1.0\n"
@@ -111,20 +111,6 @@ msgid "Attachment Count"
 msgstr "Подсчет привязанности"
 
 #. module: openeducat_activity
-#. odoo-python
-#: code:addons/openeducat_activity/wizard/student_migrate_wizard.py:0
-msgid "Can't migrate, As selected courses don't share same parent course!"
-msgstr ""
-"Не могу мигрировать, так как выбранные курсы не разделяют такого же "
-"родительского курса!"
-
-#. module: openeducat_activity
-#. odoo-python
-#: code:addons/openeducat_activity/wizard/student_migrate_wizard.py:0
-msgid "Can't migrate, Proceed for new admission"
-msgstr "Не могу мигрировать, приступить к новому входу"
-
-#. module: openeducat_activity
 #: model_terms:ir.ui.view,arch_db:openeducat_activity.student_migrate_form
 msgid "Cancel"
 msgstr "Отмена"
@@ -196,12 +182,6 @@ msgstr "Вперед"
 #: model:ir.model.fields,field_description:openeducat_activity.field_student_migrate__course_from_id
 msgid "From Course"
 msgstr "Из курса"
-
-#. module: openeducat_activity
-#. odoo-python
-#: code:addons/openeducat_activity/wizard/student_migrate_wizard.py:0
-msgid "From Course must not be same as To Course!"
-msgstr "Из курса не должно быть таким же, как и курс!"
 
 #. module: openeducat_activity
 #: model:ir.model.fields,field_description:openeducat_activity.field_op_activity__has_message
@@ -277,18 +257,6 @@ msgid "Messages"
 msgstr "Сообщения"
 
 #. module: openeducat_activity
-#. odoo-python
-#: code:addons/openeducat_activity/wizard/student_migrate_wizard.py:0
-msgid "Migration From {} to Completed Course"
-msgstr "Миграция из {} в завершенный курс"
-
-#. module: openeducat_activity
-#. odoo-python
-#: code:addons/openeducat_activity/wizard/student_migrate_wizard.py:0
-msgid "Migration from {} to {}"
-msgstr "Миграция от {} в {}"
-
-#. module: openeducat_activity
 #: model:ir.model.fields,field_description:openeducat_activity.field_op_activity__my_activity_date_deadline
 msgid "My Activity Deadline"
 msgstr "Мой крайний срок действия"
@@ -297,6 +265,11 @@ msgstr "Мой крайний срок действия"
 #: model:ir.model.fields,field_description:openeducat_activity.field_op_activity_type__name
 msgid "Name"
 msgstr "Имя"
+
+#. module: openeducat_activity
+#: model:ir.model.fields,field_description:openeducat_activity.field_op_activity__activity_calendar_event_id
+msgid "Next Activity Calendar Event"
+msgstr ""
 
 #. module: openeducat_activity
 #: model:ir.model.fields,field_description:openeducat_activity.field_op_activity__activity_date_deadline
@@ -339,6 +312,11 @@ msgid "Optional Subjects"
 msgstr "Необязательные предметы"
 
 #. module: openeducat_activity
+#: model:ir.model.fields,field_description:openeducat_activity.field_op_activity__rating_ids
+msgid "Ratings"
+msgstr ""
+
+#. module: openeducat_activity
 #: model:ir.model.fields,field_description:openeducat_activity.field_op_activity__activity_user_id
 msgid "Responsible User"
 msgstr "Ответственный пользователь"
@@ -365,7 +343,7 @@ msgstr ""
 #: model:ir.model,name:openeducat_activity.model_op_student
 #: model:ir.model.fields,field_description:openeducat_activity.field_op_activity__student_id
 msgid "Student"
-msgstr "Студент"
+msgstr "Ученик"
 
 #. module: openeducat_activity
 #: model:ir.model,name:openeducat_activity.model_op_activity
