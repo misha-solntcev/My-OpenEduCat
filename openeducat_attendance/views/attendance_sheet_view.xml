@@ -95,7 +95,7 @@
                         <page string="Ученики и Оценки" name="marks">
                             <field name="attendance_line" colspan="4" nolabel="1" readonly="state in ('done','cancel')">                                
                                 <list string="Attendance Line" editable="top" create="false">                                                                        
-                                    <field name="student_avatar" widget="image" options="{'size': [32, 32]}" class="rounded-circle" string="" optional="show"/>
+                                    <field name="student_avatar" widget="image" options="{'size': [32, 32]}" class="rounded-circle" string="Аватар" optional="show"/>
                                     <field name="student_id" readonly="1" decoration-bf="1" options="{'no_open': True}" optional="show"/>
                                     <field name="attendance_type_id" string="Отметка" optional="show"
                                         decoration-bf="1"
