@@ -19,6 +19,8 @@
 ###############################################################################
 
 from odoo import api, fields, models
+from odoo.tools import SQL
+
 
 class OpAttendanceLine(models.Model):
     _name = "op.attendance.line"
@@ -70,35 +72,56 @@ class OpAttendanceLine(models.Model):
     lesson_topic = fields.Char(
         'Lesson Topic', related='attendance_id.lesson_topic', store=True, readonly=False)
 
+    remark = fields.Char('Remark', size=256, tracking=True)
+    active = fields.Boolean(default=True)
+
     # --- ОСНОВНОЕ ПОЛЕ СТАТУСА ---
     attendance_type_id = fields.Many2one(
         'op.attendance.type', string='Status', required=True, tracking=True)
 
-    # --- СВЯЗАННЫЕ ПОЛЯ (readonly, управляются через тип) ---
+    # --- СВЯЗАННЫЕ ПОЛЯ ---
     present = fields.Boolean('Present', related='attendance_type_id.present', store=True, readonly=True)
     excused = fields.Boolean('Absent Excused', related='attendance_type_id.excused', store=True, readonly=True)
     absent = fields.Boolean('Absent Unexcused', related='attendance_type_id.absent', store=True, readonly=True)
     late = fields.Boolean('Late', related='attendance_type_id.late', store=True, readonly=True)
 
-    grade_1 = fields.Float('Оценка 1', aggregator="avg")
-    grade_2 = fields.Float('Оценка 2', aggregator="avg")
-    grade_3 = fields.Float('Оценка 3', aggregator="avg")
+    grade_1 = fields.Float('Оценка 1', aggregator="avg", default=False)
+    grade_2 = fields.Float('Оценка 2', aggregator="avg", default=False)
+    grade_3 = fields.Float('Оценка 3', aggregator="avg", default=False)
 
-    remark = fields.Char('Remark', size=256, tracking=True)
-    active = fields.Boolean(default=True)
+    # Вычисляемый средний балл строки
+    grade_avg = fields.Float(
+        string='Средний балл', 
+        compute='_compute_grade_avg', 
+        store=True, 
+        aggregator="avg"
+    )
 
-    _sql_constraints = [
-        ('unique_student',
-         'unique(student_id,attendance_id,attendance_date)',
-         'Student must be unique per Attendance.'),
-    ]
+    @api.depends('grade_1', 'grade_2', 'grade_3')
+    def _compute_grade_avg(self):
+        for rec in self:
+            marks = [m for m in [rec.grade_1, rec.grade_2, rec.grade_3] if m and m > 0]            
+            rec.grade_avg = sum(marks) / len(marks) if marks else False
 
-    # --- ЛОГИКА ИНТЕРФЕЙСА ---
     @api.onchange('attendance_type_id')
     def onchange_attendance_type(self):
-        """Мгновенно обновляет скрытые boolean поля при выборе типа в UI"""
         if self.attendance_type_id:
             self.present = self.attendance_type_id.present
             self.excused = self.attendance_type_id.excused
             self.absent = self.attendance_type_id.absent
             self.late = self.attendance_type_id.late
+
+    # Перехватываем генерацию SQL для полей оценок.   
+    @api.model
+    def _field_to_sql(self, alias, fname, query=None, **kwargs):             
+        sql_expression = super()._field_to_sql(alias, fname, query, **kwargs)        
+        target_fields = ('grade_1', 'grade_2', 'grade_3', 'grade_avg')        
+        if fname in target_fields:            
+            return SQL("NULLIF(%s, 0)", sql_expression)            
+        return sql_expression
+
+    _sql_constraints = [
+        ('unique_student',
+         'unique(student_id,attendance_id,attendance_date)',
+         'Student must be unique per Attendance.'),
+    ]   
