@@ -25,9 +25,11 @@ class OpAttendanceType(models.Model):
     _name = "op.attendance.type"
     _inherit = ["mail.thread"]
     _description = "Attendance Type"
+    _order = "sequence, id"
 
     name = fields.Char(
         'Name', size=20, required=True, tracking=True)
+    sequence = fields.Integer('Последовательность', default=10)
     active = fields.Boolean(default=True)
     present = fields.Boolean(
         'Present ?', tracking=True)

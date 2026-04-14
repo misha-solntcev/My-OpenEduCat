@@ -4,14 +4,28 @@
     <record id="view_op_attendance_sheet_tree" model="ir.ui.view">
         <field name="name">op.attendance.sheet.list</field>
         <field name="model">op.attendance.sheet</field>
-        <field name="priority" eval="8"/>
         <field name="arch" type="xml">
-            <list string="Attendance Sheet">
-                <field name="register_id"/>
-                <field name="name"/>
-                <field name="session_id"/>
+            <!-- Раскрашиваем всю строку в зависимости от статуса -->
+            <list string="Журналы уроков" 
+                decoration-info="state == 'draft'" 
+                decoration-warning="state == 'start'" 
+                decoration-success="state == 'done'" 
+                decoration-muted="state == 'cancel'">
+                
                 <field name="attendance_date"/>
-                <field name="state" widget="badge" decoration-info="state == 'draft'" decoration-success="state == 'done'"/>
+                <field name="batch_id" string="Класс"/>
+                <field name="name" string="Номер журнала"/>
+                
+                <!-- Заменяем П и Н на Иконки + Число -->
+                <field name="total_present" string="✅ Присутствует" decoration-success="total_present > 0"/>
+                <field name="total_absent" string="❌ Отсутствует" decoration-danger="total_absent > 0"/>
+                
+                <!-- Статус в виде цветного бейджа -->
+                <field name="state" widget="badge" 
+                    decoration-info="state == 'draft'" 
+                    decoration-warning="state == 'start'" 
+                    decoration-success="state == 'done'" 
+                    decoration-danger="state == 'cancel'"/>
             </list>
         </field>
     </record>
@@ -24,45 +38,99 @@
         <field name="arch" type="xml">
             <form string="Attendance Sheet">
                 <header>
-                    <button type="object" name="action_attendance_start" invisible="state != 'draft'" string="Attendance Start" class="oe_highlight"/>
-                    <button type="object" name="action_attendance_done" invisible="state != 'start'" string="Attendance Taken" class="oe_highlight"/>
-                    <button type="object" name="action_attendance_draft" invisible="state != 'cancel'" string="Draft" class="oe_highlight"/>
-                    <button type="object" name="action_attendance_cancel" invisible="state not in ('draft','start')" string="Cancel"/>
-                    <button type="object" name="action_attendance_draft" string="Draft" invisible="state != 'done'" class="oe_highlight"/>
+                    <!-- Кнопки с иконками и русскими названиями -->
+                    <button type="object" name="action_attendance_start" invisible="state != 'draft'" 
+                            string="Начать урок" class="oe_highlight" icon="fa-play"/>
+                    
+                    <button type="object" name="action_attendance_done" invisible="state != 'start'" 
+                            string="Завершить урок" class="oe_highlight" icon="fa-check-circle"/>
+                    
+                    <button type="object" name="action_attendance_draft" invisible="state != 'cancel'" 
+                            string="Восстановить" icon="fa-undo"/>
+                    
+                    <button type="object" name="action_attendance_cancel" invisible="state not in ('draft','start')" 
+                            string="Отменить урок" icon="fa-times"/>
+                    
+                    <button type="object" name="action_attendance_draft" string="Редактировать" 
+                            invisible="state != 'done'" class="oe_highlight" icon="fa-edit"/>
+
                     <field name="state" widget="statusbar" statusbar_visible="draft,start,done"/>
                 </header>
                 <sheet>
-                    <field name="active" invisible="1"/>
-                    <widget name="web_ribbon" title="Archived" bg_color="bg-danger" invisible="active == True"/>
+                    <!-- Виджет со статистикой в углу (красивая раскраска) -->
+                    <div class="oe_button_box" name="button_box">
+                        <button class="oe_stat_button" icon="fa-users" disabled="1">
+                            <div class="o_field_widget o_stat_info">
+                                <span class="o_stat_value">
+                                    <field name="total_present"/> / <field name="total_students"/>
+                                </span>
+                                <span class="o_stat_text">Присутствует</span>
+                            </div>
+                        </button>
+                    </div>
+
+                    <div class="oe_title">
+                        <h1><field name="name"/></h1>
+                    </div>
+
                     <group>
                         <group>
                             <field name="register_id" readonly="state in ('done','cancel')"/>
-                            <field name="session_id" domain="[('course_id','=',course_id),('batch_id','=',batch_id)]" />
-                            <field name="course_id" invisible="1"/>
-                            <field name="batch_id" invisible="1"/>
-                            <field name="lesson_topic" readonly="state in ('done','cancel')"/>
+                            <field name="session_id" domain="[('course_id','=',course_id),('batch_id','=',batch_id)]" 
+                                readonly="state in ('done','cancel')" options="{'no_create': True}"/>
+                            <field name="subject_id" readonly="1" force_save="1"/>
                         </group>
                         <group>
-                            <field name="name" readonly="state in ('done','cancel')"/>
                             <field name="attendance_date" readonly="state in ('done','cancel')"/>
-                            <field name="subject_id" readonly="1"/>
+                            <field name="faculty_id" widget="many2one_avatar" readonly="state in ('done','cancel')"/>
+                            <field name="term_id" readonly="1"/>
                         </group>
                     </group>
-                    <group col="4" string="Students">
-                        <field name="attendance_line" colspan="4" nolabel="1" readonly="state in ('done','cancel')">
-                            <list string="Attendance Line" editable="top" create="false">
-                                <field name="student_id" readonly="1"/>
-                                <field name="attendance_type_id" string="Status" options="{'no_open': True, 'no_create': True}"/>
-                                <field name="grade_1" />
-                                <field name="grade_2" />
-                                <field name="remark"/>
-                                <field name="present" column_invisible="True"/>
-                                <field name="late" column_invisible="True"/>
-                                <field name="excused" column_invisible="True"/>
-                                <field name="absent" column_invisible="True"/>
-                            </list>
-                        </field>
+                    
+                    <group string="Информация об уроке">
+                        <field name="lesson_topic" placeholder="Тема занятия..." readonly="state == 'done'"/>
                     </group>
+
+                    <notebook>
+                        <page string="Ученики и Оценки" name="marks">
+                            <field name="attendance_line" colspan="4" nolabel="1" readonly="state in ('done','cancel')">                                
+                                <list string="Attendance Line" editable="top" create="false">                                                                        
+                                    <field name="student_avatar" widget="image" options="{'size': [32, 32]}" class="rounded-circle" string="" optional="show"/>
+                                    <field name="student_id" readonly="1" decoration-bf="1" options="{'no_open': True}" optional="show"/>
+                                    <field name="attendance_type_id" string="Отметка" optional="show"
+                                        decoration-bf="1"
+                                        decoration-success="present == True and late == False"
+                                        decoration-warning="late == True"
+                                        decoration-danger="absent == True"
+                                        decoration-info="not present and not absent and not late"
+                                        options="{'no_open': True, 'no_create': True}"/>
+                                    
+                                    <!-- 4. ОЦЕНКИ: Жирные, с логикой цвета успеваемости -->
+                                    <field name="grade_1" string="Оценка 1" decoration-bf="1" optional="show"
+                                        decoration-success="grade_1 &gt;= 4.5"
+                                        decoration-danger="grade_1 &lt; 2.5 and grade_1 &gt; 0"
+                                        decoration-warning="grade_1 &gt;= 2.5 and grade_1 &lt; 3.5"/>
+                                        
+                                    <field name="grade_2" string="Оценка 2" decoration-bf="1" optional="show"
+                                        decoration-success="grade_1 &gt;= 4.5"
+                                        decoration-danger="grade_1 &lt; 2.5 and grade_1 &gt; 0"
+                                        decoration-warning="grade_1 &gt;= 2.5 and grade_1 &lt; 3.5"/>
+
+                                    <field name="grade_3" string="Оценка 3" decoration-bf="1" optional="hide"
+                                        decoration-success="grade_1 &gt;= 4.5"
+                                        decoration-danger="grade_1 &lt; 2.5 and grade_1 &gt; 0"
+                                        decoration-warning="grade_1 &gt;= 2.5 and grade_1 &lt; 3.5"/>
+                                                                        
+                                    <field name="remark" placeholder="Примечание..."/>
+                                    
+                                    <!-- Технические невидимые поля для работы условий -->
+                                    <field name="present" column_invisible="True"/>
+                                    <field name="absent" column_invisible="True"/>
+                                    <field name="late" column_invisible="True"/>
+                                </list>
+                            </field>
+                        </page>
+                    </notebook>
                 </sheet>
                 <chatter/>
             </form>

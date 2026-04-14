@@ -5,7 +5,8 @@
             <field name="model">op.attendance.type</field>
             <field name="priority" eval="8"/>
             <field name="arch" type="xml">
-                <list string="Attendance Type">
+                <list string="Attendance Type" editable="bottom">
+                    <field name="sequence" widget="handle"/>
                     <field name="name"/>
                     <field name="present"/>
                     <field name="absent"/>

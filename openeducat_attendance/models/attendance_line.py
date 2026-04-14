@@ -75,6 +75,8 @@ class OpAttendanceLine(models.Model):
     remark = fields.Char('Remark', size=256, tracking=True)
     active = fields.Boolean(default=True)
 
+    student_avatar = fields.Image(related='student_id.image_128', string="Фото", readonly=True)
+
     # --- ОСНОВНОЕ ПОЛЕ СТАТУСА ---
     attendance_type_id = fields.Many2one(
         'op.attendance.type', string='Status', required=True, tracking=True)

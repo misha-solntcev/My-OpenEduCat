@@ -405,13 +405,13 @@ msgstr "Журналы уроков"
 #: model:ir.model.fields.selection,name:openeducat_attendance.selection__op_attendance_sheet__state__start
 #: model_terms:ir.ui.view,arch_db:openeducat_attendance.view_op_attendance_sheet_form
 msgid "Attendance Start"
-msgstr "Начать отмечать"
+msgstr "Урок идет"
 
 #. module: openeducat_attendance
 #: model:ir.model.fields.selection,name:openeducat_attendance.selection__op_attendance_sheet__state__done
 #: model_terms:ir.ui.view,arch_db:openeducat_attendance.view_op_attendance_sheet_form
 msgid "Attendance Taken"
-msgstr "Отмечено"
+msgstr "Проведен"
 
 #. module: openeducat_attendance
 #: model:ir.model,name:openeducat_attendance.model_op_attendance_type
@@ -633,7 +633,7 @@ msgstr "Отображаемое имя"
 #: model:ir.model.fields.selection,name:openeducat_attendance.selection__op_attendance_sheet__state__draft
 #: model_terms:ir.ui.view,arch_db:openeducat_attendance.view_op_attendance_sheet_form
 msgid "Draft"
-msgstr "Черновик"
+msgstr "Запланирован"
 
 #. module: openeducat_attendance
 #: model:ir.model.fields,field_description:openeducat_attendance.field_op_attendance_type__excused
@@ -645,7 +645,7 @@ msgstr "Отсутствует по уважительной причине"
 #: model:ir.model.fields,field_description:openeducat_attendance.field_op_subject_grades__faculty_id
 #: model:ir.model.fields,field_description:openeducat_attendance.field_student_grades_by_date__faculty_id
 msgid "Faculty"
-msgstr "Факультет"
+msgstr "Учитель"
 
 #. module: openeducat_attendance
 #: model:ir.model.fields,field_description:openeducat_attendance.field_op_attendance_line__message_follower_ids

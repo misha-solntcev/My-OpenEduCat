@@ -57,11 +57,12 @@ class OpAttendanceSheet(models.Model):
     lesson_topic = fields.Char('Тема урока', size=256)
 
     state = fields.Selection([
-        ('draft', 'Draft'),
-        ('start', 'Attendance Start'),
-        ('done', 'Attendance Taken'),
-        ('cancel', 'Cancelled'),
-    ], string='Status', default='draft', tracking=True)
+        ('draft', 'Запланирован'),
+        ('start', 'Урок идет'),
+        ('done', 'Проведен'),
+        ('cancel', 'Отменен'),
+    ], string='Статус', default='draft', tracking=True)
+
 
     @api.depends('session_id.faculty_id', 'register_id')
     def _compute_faculty_id(self):
@@ -87,12 +88,12 @@ class OpAttendanceSheet(models.Model):
                 ], limit=1)
                 record.term_id = term
 
+
     def action_attendance_start(self):
         for rec in self:
             if not rec.attendance_line:
                 rec._fill_student_lines()
             rec.state = 'start'
-
     def action_attendance_done(self):
         self.write({'state': 'done'})
 
@@ -116,6 +117,26 @@ class OpAttendanceSheet(models.Model):
                 'attendance_type_id': present_type.id if present_type else False,
             }))
         self.attendance_line = lines
+
+    # --- СЧЕТЧИКИ ПОСЕЩАЕМОСТИ ---
+    total_students = fields.Integer(compute='_compute_attendance_stats', string='Всего учеников')
+    total_present = fields.Integer(compute='_compute_attendance_stats', string='Присутствует')
+    total_absent = fields.Integer(compute='_compute_attendance_stats', string='Отсутствует')
+
+    @api.depends('attendance_line.present')
+    def _compute_attendance_stats(self):
+        for rec in self:
+            # Общее количество детей в списке
+            rec.total_students = len(rec.attendance_line)
+            
+            # Считаем тех, у кого в строке стоит галочка "Присутствует" 
+            # (это наши типы: Присутствует, Дистанционно, Опоздал)
+            present_lines = rec.attendance_line.filtered(lambda l: l.present)
+            rec.total_present = len(present_lines)
+            
+            # Все остальные — отсутствующие
+            rec.total_absent = rec.total_students - rec.total_present
+    
 
     @api.model_create_multi
     def create(self, vals_list):
