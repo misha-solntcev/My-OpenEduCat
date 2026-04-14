@@ -9,7 +9,7 @@
                 <field name="attendance_date" optional="show" readonly="1"/>
                 <field name="term_id" optional="hide" readonly="1"/>
                 <field name="student_id" optional="show" readonly="1" options="{'no_open': True}"/>
-                <field name="batch_id" string="Класс" optional="show" readonly="1" options="{'no_open': True}/>
+                <field name="batch_id" string="Класс" optional="show" readonly="1" options="{'no_open': True}"/>
                 <field name="subject_id" optional="show" readonly="1" options="{'no_open': True}"/>
                 
                 <field name="grade_1" string="Оценка 1" optional="show"
@@ -112,23 +112,24 @@
             </search>
         </field>
     </record>
+ 
 
-        <!-- 4. ДЕЙСТВИЕ (Автоматическая сборка отчета) -->
-        <record model="ir.actions.act_window" id="act_open_op_attendance_line_view">
-            <field name="name">Электронный дневник</field>
-            <field name="res_model">op.attendance.line</field>
-            <field name="view_mode">pivot,list</field>
-            <field name="search_view_id" ref="view_op_attendance_line_search"/>
-            <field name="domain">[
-                ('term_id', '!=', False), 
-                ('subject_id', '!=', False), 
-                '|', '|', ('grade_1', '>', 0), ('grade_2', '>', 0), ('grade_3', '>', 0)
+    <!-- 4. ДЕЙСТВИЕ (Автоматическая сборка отчета) -->
+    <record model="ir.actions.act_window" id="act_open_op_attendance_line_view">
+        <field name="name">Электронный дневник</field>
+        <field name="res_model">op.attendance.line</field>
+        <field name="view_mode">pivot,list</field>
+        <field name="search_view_id" ref="view_op_attendance_line_search"/>
+        <field name="domain">[
+            ('term_id', '!=', False), 
+            ('subject_id', '!=', False), 
+            '|', '|', ('grade_1', '>', 0), ('grade_2', '>', 0), ('grade_3', '>', 0)
             ]</field>
-            <field name="context">{
-                'search_default_curr_year': 1,
-                'pivot_row_groupby': ['academic_year_id', 'term_id', 'batch_id'],
-                'pivot_col_groupby': ['subject_id'],
-                'pivot_measures': ['grade_avg'], 
-            }</field>
+        <field name="context">{
+            'search_default_curr_year': 1,
+            'pivot_row_groupby': ['academic_year_id', 'term_id', 'batch_id'],
+            'pivot_col_groupby': ['subject_id'],
+            'pivot_measures': ['grade_avg'], 
+        }</field>
         </record>
     </odoo>
