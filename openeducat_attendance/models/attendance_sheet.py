@@ -26,7 +26,15 @@ class OpAttendanceSheet(models.Model):
     _description = "Attendance Sheet"
     _order = "attendance_date desc"
 
+    # Техническое поле (Старый код типа 11А4чAR-AS2358). Оставлен для целостности БД
     name = fields.Char('Name', readonly=True, size=32)
+
+    # 2. Красивый заголовок (Для учителей)
+    display_title = fields.Char(
+        string='Журнал урока', 
+        compute='_compute_display_title', 
+        store=True)
+
     register_id = fields.Many2one(
         'op.attendance.register', 'Register', required=True,
         tracking=True)
@@ -38,7 +46,7 @@ class OpAttendanceSheet(models.Model):
         readonly=True)
     session_id = fields.Many2one('op.session', 'Session')
     attendance_date = fields.Date(
-        'Date', required=True, default=lambda self: fields.Date.today(),
+        'Date', required=True, default=fields.Date.context_today,
         tracking=True)
     attendance_line = fields.One2many(
         'op.attendance.line', 'attendance_id', 'Attendance Line')
@@ -63,6 +71,19 @@ class OpAttendanceSheet(models.Model):
         ('cancel', 'Отменен'),
     ], string='Статус', default='draft', tracking=True)
 
+    # --- ЛОГИКА ОТОБРАЖЕНИЯ ИМЕНИ ---
+    @api.depends('session_id', 'register_id', 'attendance_date')
+    def _compute_display_title(self):
+        for rec in self:
+            subj = rec.session_id.subject_id.name or rec.register_id.subject_id.name or "Урок"
+            batch = rec.batch_id.name or ""
+            date_str = rec.attendance_date.strftime('%d.%m.%Y') if rec.attendance_date else ""
+            rec.display_title = f"{subj} ({batch}) — {date_str}"
+
+    def _compute_display_name(self):
+        """Переопределяем, что Odoo показывает в ссылках и заголовках"""
+        for rec in self:
+            rec.display_name = rec.display_title or rec.name
 
     @api.depends('session_id.faculty_id', 'register_id')
     def _compute_faculty_id(self):
@@ -118,30 +139,48 @@ class OpAttendanceSheet(models.Model):
             }))
         self.attendance_line = lines
 
-    # --- СЧЕТЧИКИ ПОСЕЩАЕМОСТИ ---
-    total_students = fields.Integer(compute='_compute_attendance_stats', string='Всего учеников')
-    total_present = fields.Integer(compute='_compute_attendance_stats', string='Присутствует')
-    total_absent = fields.Integer(compute='_compute_attendance_stats', string='Отсутствует')
+# --- СЧЕТЧИКИ ПОСЕЩАЕМОСТИ (store=True обязателен для поиска и Pivot) ---
+    total_students = fields.Integer(compute='_compute_attendance_stats', 
+        store=True, aggregator="sum")
+    total_present = fields.Integer(compute='_compute_attendance_stats', 
+        store=True, aggregator="sum")
+    total_absent = fields.Integer(compute='_compute_attendance_stats', 
+        store=True, aggregator="sum")
+    attendance_rate = fields.Float(compute='_compute_attendance_stats', 
+        store=True, aggregator="avg")
 
-    @api.depends('attendance_line.present')
+
+    @api.depends('attendance_line', 'attendance_line.present')
     def _compute_attendance_stats(self):
         for rec in self:
-            # Общее количество детей в списке
-            rec.total_students = len(rec.attendance_line)
+            total = len(rec.attendance_line)
+            present = len(rec.attendance_line.filtered(lambda l: l.present))
             
-            # Считаем тех, у кого в строке стоит галочка "Присутствует" 
-            # (это наши типы: Присутствует, Дистанционно, Опоздал)
-            present_lines = rec.attendance_line.filtered(lambda l: l.present)
-            rec.total_present = len(present_lines)
-            
-            # Все остальные — отсутствующие
-            rec.total_absent = rec.total_students - rec.total_present
-    
+            rec.total_students = total
+            rec.total_present = present
+            rec.total_absent = total - present
+            # Считаем процент здесь же
+            rec.attendance_rate = (present / total * 100) if total > 0 else 0.0
 
     @api.model_create_multi
     def create(self, vals_list):
         for vals in vals_list:
-            sheet_seq = self.env['ir.sequence'].next_by_code('op.attendance.sheet')
-            register = self.env['op.attendance.register'].browse(vals['register_id']).code
-            vals['name'] = (register or '') + (sheet_seq or '')
+            # name теперь будет просто порядковым номером из последовательности
+            if not vals.get('name'):
+                vals['name'] = self.env['ir.sequence'].next_by_code('op.attendance.sheet') or '/'
         return super(OpAttendanceSheet, self).create(vals_list)
+
+
+    # Авто-заполнение данных при выборе урока вручную (если зашли не из расписания)
+    @api.onchange('session_id')
+    def onchange_session_id(self):
+        if self.session_id:
+            self.attendance_date = self.session_id.start_datetime.date()
+            self.faculty_id = self.session_id.faculty_id
+            
+            register = self.env['op.attendance.register'].search([
+                ('course_id', '=', self.session_id.course_id.id),
+                ('batch_id', '=', self.session_id.batch_id.id)
+            ], limit=1)
+            if register:
+                self.register_id = register

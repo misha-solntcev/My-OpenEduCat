@@ -18,60 +18,41 @@
 #
 ###############################################################################
 
-from odoo import fields, models
-
+from odoo import fields, models, api
 
 class OpSession(models.Model):
     _inherit = "op.session"
 
-    attendance_sheet = fields.One2many('op.attendance.sheet',
-                                       'session_id', string='Session')
-
-    def get_attendance(self, context=None):
-        self.ensure_one() # Убеждаемся, что работаем с одним уроком
+    def get_attendance(self):
+        self.ensure_one()
+        # 1. Ищем, есть ли уже журнал для этого урока
+        sheet = self.env['op.attendance.sheet'].search([('session_id', '=', self.id)], limit=1)
         
-        sheet = self.env['op.attendance.sheet'].search(
-            [('session_id', '=', self.id)])
-        register = self.env['op.attendance.register'].search(
-            [('course_id', '=', self.course_id.id),
-             ('batch_id', '=', self.batch_id.id)], limit=1)
+        if not sheet:
+            # 2. Если журнала нет, автоматически ищем "Регистр" (папку) этого класса
+            register = self.env['op.attendance.register'].search([
+                ('course_id', '=', self.course_id.id),
+                ('batch_id', '=', self.batch_id.id)
+            ], limit=1)
 
-        # Формируем общий контекст, чтобы не дублировать код
-        common_context = {
-            'default_session_id': self.id,
-            'default_register_id': register.id if register else False,
-            'default_subject_id': self.subject_id.id,
-            'default_faculty_id': self.faculty_id.id,
-            'default_attendance_date': self.start_datetime.date(),
+            # 3. Создаем новый журнал урока
+            sheet = self.env['op.attendance.sheet'].create({
+                'session_id': self.id,
+                'register_id': register.id if register else False,
+                'attendance_date': self.start_datetime.date(),
+                'faculty_id': self.faculty_id.id,
+                'state': 'start', # Сразу переводим в статус "Урок идет"
+            })
+            # 4. Автоматически наполняем списком учеников
+            sheet._fill_student_lines()
+
+        # 5. Открываем форму журнала
+        return {
+            'name': 'Журнал урока',
+            'type': 'ir.actions.act_window',
+            'res_model': 'op.attendance.sheet',
+            'view_mode': 'form',
+            'res_id': sheet.id,
+            'target': 'current',
+            'context': {'form_view_initial_mode': 'edit'}, # Сразу открываем на редактирование
         }
-
-        if sheet:
-            if len(sheet) == 1:
-                view_id = self.env.ref('openeducat_attendance.view_op_attendance_sheet_form').id
-                return {
-                    'name': 'Attendance Sheet',
-                    'type': 'ir.actions.act_window',
-                    'view_mode': 'form',
-                    'res_model': 'op.attendance.sheet',
-                    'view_id': view_id,
-                    'res_id': sheet.id,
-                    'target': 'current',
-                    'context': common_context,
-                }
-            else:
-                action = self.env.ref('openeducat_attendance.act_open_op_attendance_sheet_view').read()[0]
-                action['domain'] = [('session_id', '=', self.id)]
-                action['context'] = common_context
-                return action
-        else:
-            # Если ведомости еще нет - открываем пустую форму с предустановленными данными
-            view_id = self.env.ref('openeducat_attendance.view_op_attendance_sheet_form').id
-            return {
-                'name': 'Attendance Sheet',
-                'type': 'ir.actions.act_window',
-                'view_mode': 'form',
-                'res_model': 'op.attendance.sheet',
-                'view_id': view_id,
-                'target': 'current',
-                'context': common_context,
-            }

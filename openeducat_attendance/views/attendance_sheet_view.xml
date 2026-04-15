@@ -10,15 +10,28 @@
                 decoration-info="state == 'draft'" 
                 decoration-warning="state == 'start'" 
                 decoration-success="state == 'done'" 
-                decoration-muted="state == 'cancel'">
+                decoration-muted="state == 'cancel'"
+                sample="1"
+                expand="1">
                 
-                <field name="attendance_date"/>
-                <field name="batch_id" string="Класс"/>
-                <field name="name" string="Номер журнала"/>
+                <field name="attendance_date" string="Дата" 
+                    widget="date" readonly="1" optional="show"/>
+                <field name="faculty_id" string="Учитель"
+                    widget="many2one_avatar_user" optional="show"/>
+                <field name="batch_id" string="Класс" 
+                    decoration-bf="1" optional="show"/>
+                <field name="subject_id" string="Предмет" 
+                    decoration-bf="1" optional="show"/>
+                <field name="lesson_topic" string="Тема занятия" 
+                    optional="hide"/>
                 
-                <!-- Заменяем П и Н на Иконки + Число -->
-                <field name="total_present" string="✅ Присутствует" decoration-success="total_present > 0"/>
-                <field name="total_absent" string="❌ Отсутствует" decoration-danger="total_absent > 0"/>
+                
+                <field name="total_present" string="👥 Явка" 
+                    decoration-success="total_present > 0"
+                    decoration-bf="1" />
+                <field name="total_absent" string="❌ Неявка" 
+                    decoration-danger="total_absent > 0"
+                    decoration-bf="1" />
                 
                 <!-- Статус в виде цветного бейджа -->
                 <field name="state" widget="badge" 
@@ -26,6 +39,9 @@
                     decoration-warning="state == 'start'" 
                     decoration-success="state == 'done'" 
                     decoration-danger="state == 'cancel'"/>
+
+                <!-- Техническое поле для техподдержки, скрыто -->
+                <field name="name" string="ID" optional="hide"/>
             </list>
         </field>
     </record>
@@ -70,20 +86,29 @@
                     </div>
 
                     <div class="oe_title">
-                        <h1><field name="name"/></h1>
+                        <h1><field name="display_title"/></h1>
                     </div>
 
                     <group>
-                        <group>
-                            <field name="register_id" readonly="state in ('done','cancel')"/>
-                            <field name="session_id" domain="[('course_id','=',course_id),('batch_id','=',batch_id)]" 
-                                readonly="state in ('done','cancel')" options="{'no_create': True}"/>
-                            <field name="subject_id" readonly="1" force_save="1"/>
+                        <group string="Связь с расписанием">
+                            <field name="session_id" string="Урок" 
+                                   required="1"
+                                   options="{'no_create': True, 'no_open': True}"
+                                   readonly="state in ('done','cancel')"/>
+                            
+                            <field name="register_id" string="Папка (Регистр)" 
+                                   readonly="1" force_save="1" 
+                                   groups="base.group_no_one"
+                                   options="{'no_open': True}"/>
+                                   
+                            <field name="course_id" invisible="1"/>
+                            <field name="batch_id" invisible="1"/>
                         </group>
-                        <group>
-                            <field name="attendance_date" readonly="state in ('done','cancel')"/>
-                            <field name="faculty_id" widget="many2one_avatar" readonly="state in ('done','cancel')"/>
-                            <field name="term_id" readonly="1"/>
+                        <group string="Детали">
+                            <field name="attendance_date" string="Дата занятия" readonly="1" force_save="1"/>
+                            <field name="subject_id" string="Предмет" readonly="1" force_save="1"/>
+                            <field name="faculty_id" string="Преподаватель" widget="many2one_avatar" readonly="state in ('done','cancel')"/>
+                            <field name="term_id" string="Четверть" readonly="1" force_save="1"/>
                         </group>
                     </group>
                     
@@ -143,18 +168,46 @@
         <field name="model">op.attendance.sheet</field>
         <field name="arch" type="xml">
             <search>
-                <field name="batch_id"/>
-                <field name="subject_id"/>
-                <field name="faculty_id"/>
-                <field name="attendance_date"/>
-                <filter string="Мои уроки" name="my_lessons" domain="[('faculty_id.user_id', '=', uid)]"/>
+                <field name="display_title" string="Название журнала"/>
+                <field name="batch_id" string="Класс"/>
+                <field name="subject_id" string="Предмет"/>
+                <field name="faculty_id" string="Учитель"/>
+
+                <!-- Группа 1: ПЕРИОДЫ -->
+                <filter string="Сегодня" name="today" 
+                        domain="[('attendance_date', '=', context_today().strftime('%Y-%m-%d'))]"/>
+                
+                <filter string="Текущая неделя" name="this_week"
+                        domain="[
+                        ('attendance_date', '&gt;=', (context_today() + relativedelta(weeks=-1, days=1, weekday=0)).strftime('%Y-%m-%d')),
+                        ('attendance_date', '&lt;=', (context_today() + relativedelta(weekday=6)).strftime('%Y-%m-%d'))]"/>
+                
                 <separator/>
-                <filter string="Сегодня" name="today" domain="[('attendance_date', '=', context_today().strftime('%Y-%m-%d'))]"/>
+                
+                <filter string="👨‍🏫 Мои уроки" name="my_lessons" domain="[('faculty_id.user_id', '=', uid)]"/>
+
+                <separator/>
+
+                <!-- Группа 2: СОСТОЯНИЕ УРОКА -->
+                <filter string="📝 Запланирован" name="draft_state" domain="[('state', '=', 'draft')]"/>
+                <filter string="⏳ Идет урок" name="progress_state" domain="[('state', '=', 'start')]"/>
+                <filter string="✅ Проведен" name="done_state" domain="[('state', '=', 'done')]"/>
+                
+                <separator/>
+
+                <!-- Группа 3: ПОСЕЩАЕМОСТЬ -->
+                <filter string="⚠️ Есть пропуски" name="has_absent" domain="[('total_absent', '>', 0)]"/>
+                <filter string="💯 Все присутствуют" name="full_attendance" domain="[('total_absent', '=', 0), ('state', '=', 'done')]"/>
+
+                
+                <!-- Группировки (Появятся вверху списка при нажатии на +) -->
                 <group expand="0" string="Группировать по...">
-                    <filter string="Класс" name="group_batch" context="{'group_by': 'batch_id'}"/>
-                    <filter string="Предмет" name="group_subject" context="{'group_by': 'subject_id'}"/>
-                    <filter string="Дата" name="group_date" context="{'group_by': 'attendance_date:day'}"/>
-                </group>
+                    <filter string="🏫 Класс" name="group_batch" context="{'group_by': 'batch_id'}"/>
+                    <filter string="📚 Предмет" name="group_subject" context="{'group_by': 'subject_id'}"/>
+                    <filter string="👨‍🏫 Учитель" name="group_faculty" context="{'group_by': 'faculty_id'}"/>
+                    <filter string="🕒 Статус" name="group_state" context="{'group_by': 'state'}"/>
+                    <filter string="🗓️ Дата урока" name="group_date" context="{'group_by': 'attendance_date'}"/>
+                </group>                
             </search>
         </field>
     </record>
@@ -169,6 +222,12 @@
                 <field name="subject_id" type="row"/>
                 <field name="faculty_id" type="row"/>
                 <field name="attendance_date" interval="month" type="col"/>
+
+                <!-- МЕРЫ -->
+                <field name="attendance_rate" type="measure" string="Явка (%)"/>
+                <field name="total_present" type="measure" string="Явка (чел.)"/>  
+                <field name="total_absent" type="measure" string="Неявка (чел.)"/>
+                <field name="total_students" type="measure" string="Всего (чел.)"/> 
             </pivot>
         </field>
     </record>
@@ -178,8 +237,9 @@
         <field name="name">op.attendance.sheet.graph</field>
         <field name="model">op.attendance.sheet</field>
         <field name="arch" type="xml">
-            <graph string="Attendance Sheet" type="pie">
-                <field name="batch_id"/>
+            <graph string="Посещаемость" type="line" sample="1">
+                <field name="attendance_date" interval="week" string="Неделя"/>
+                <field name="attendance_rate" type="measure" string="Явка (%)"/>
             </graph>
         </field>
     </record>
@@ -191,8 +251,10 @@
         <field name="view_mode">list,pivot,form,graph</field>
         <field name="search_view_id" ref="view_op_attendance_sheet_search"/>
         <field name="context">{
+            'search_default_my_lessons': 1,
             'search_default_today': 1,
             'search_default_group_batch': 1
+            'pivot_measures': ['attendance_rate'],
         }</field>
     </record>
 </odoo>
