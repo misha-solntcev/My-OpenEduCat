@@ -80,20 +80,76 @@
                     <button name="action_migrate_old_data" type="object" string="ПЕРЕНЕСТИ ОЦЕНКИ" class="btn-danger"/>
                 </header>
                 <sheet>
-                    <field name="textbook_image" widget="image" class="oe_avatar" alt="Учебник"/>
-                    <div class="oe_title">
-                        <h1><field name="student_id" readonly="1"/></h1>
-                        <h2><field name="subject_id" readonly="1"/></h2>
+                    <!-- Заголовок: Фото студента, Имена и Учебник -->
+                    <div class="d-flex align-items-start mb-4">
+                        <!-- Аватар студента -->
+                        <div class="me-3">
+                            <field name="student_avatar" widget="image" class="oe_avatar shadow-sm" style="width: 85px; height: 85px; border-radius: 12px; object-fit: cover;"/>
+                        </div>
+                        
+                        <div class="flex-grow-1">
+                            <h1 class="mb-1 fw-bold">
+                                <field name="student_id" readonly="1" options="{'no_open': True}"/>
+                                <span class="text-muted ms-2" style="font-size: 1.1rem; font-weight: normal;">
+                                    (<field name="batch_id" readonly="1"/>)
+                                </span>
+                            </h1>
+                            
+                            <div class="d-flex flex-wrap align-items-center gap-3">
+                                <h2 class="text-primary mb-0"><field name="subject_id" readonly="1"/></h2>
+                                
+                                <!-- Блок учителя с маленькой аватаркой -->
+                                <div class="d-flex align-items-center text-muted border-start ps-3 py-1">
+                                    <field name="faculty_avatar" widget="image" class="me-2" 
+                                        style="width: 28px; height: 28px; border-radius: 50%; overflow: hidden; border: 1px solid #ddd;" 
+                                        options="{'preview_image': 'faculty_avatar'}"/>
+                                    <field name="faculty_id" readonly="1" options="{'no_open': True}"/>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Учебник: Жесткая рамка (Именно это выровняет все картинки) -->
+                        <div class="ms-auto d-none d-md-flex align-items-center justify-content-center shadow-sm" 
+                            style="width: 100px; height: 130px; background: #fff; border: 1px solid #e0e0e0; border-radius: 6px; overflow: hidden; padding: 4px;">
+                            <field name="textbook_image" widget="image" class="w-100 h-100 object-fit-contain" options="{'preview_image': 'textbook_image'}"/>
+                        </div>
                     </div>
-                    <group>
-                        <group string="Итоги">
-                            <field name="average_mark" readonly="1"/><field name="total_classes" readonly="1"/><field name="present_classes" readonly="1"/>
-                        </group>
-                        <group string="Детали">
-                            <field name="batch_id" readonly="1"/><field name="faculty_id" readonly="1"/><field name="last_attendance_date" readonly="1"/>
-                            <field name="final_quarter_grade" string="Годовая (итог)"/>
-                        </group>
-                    </group>
+
+                    <!-- KPI Панель (4 плитки) -->
+                    <div class="row g-2 mb-4">
+                        <div class="col-6 col-md-3 text-center">
+                            <div class="border rounded bg-light p-2 h-100 shadow-sm">
+                                <div class="text-uppercase small fw-bold text-muted mb-1" style="font-size: 0.65rem;">Средний балл</div>
+                                <div class="h3 mb-0 fw-bold text-primary"><field name="average_mark"/></div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-6 col-md-3">                            
+                            <div class="border rounded bg-light p-3 h-100 shadow-sm d-flex flex-column text-center">                                
+                                <div class="text-uppercase fw-bold text-muted mb-3" style="font-size: 0.7rem; letter-spacing: 0.5px;">
+                                    ПОСЕЩАЕМОСТЬ
+                                </div>                                
+                                <div class="w-100 mt-auto">
+                                    <field name="attendance_rate" widget="progressbar" options="{'max_value': 100}"/>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-6 col-md-3 text-center">
+                            <div class="border rounded bg-light p-2 h-100 shadow-sm">
+                                <div class="text-uppercase small fw-bold text-muted mb-1" style="font-size: 0.65rem;">Всего уроков</div>
+                                <div class="h3 mb-0 fw-bold text-dark"><field name="total_classes"/></div>
+                            </div>
+                        </div>
+
+                        <div class="col-6 col-md-3 text-center">
+                            <div class="border rounded bg-light p-2 h-100 shadow-sm d-flex flex-column align-items-center justify-content-center">
+                                <div class="text-uppercase small fw-bold text-muted mb-1" style="font-size: 0.65rem;">Последний визит</div>        
+                                <div class="h5 mb-0 fw-bold text-dark"><field name="last_attendance_date" widget="date"/></div>
+                            </div>
+                        </div>
+                    </div>
+
                     <notebook>
                         <!-- ПОВТОРЯЮЩИЙСЯ БЛОК ДЛЯ КАЖДОЙ ЧЕТВЕРТИ -->
                         <page string="1 четверть" name="q1_page">

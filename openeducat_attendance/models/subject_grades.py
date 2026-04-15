@@ -11,12 +11,14 @@ class OpSubjectGrades(models.Model):
     _order = "student_id, subject_id"
 
     student_id = fields.Many2one('op.student', 'Student', required=True, ondelete='cascade')
+    student_avatar = fields.Image(related='student_id.image_128', string="Фото ученика")
     subject_id = fields.Many2one('op.subject', 'Subject', required=True, ondelete='cascade')
     batch_id = fields.Many2one('op.batch', 'Batch', required=True)
     faculty_id = fields.Many2one('op.faculty', 'Faculty', compute='_compute_faculty_id', store=True)
+    faculty_avatar = fields.Image(related='faculty_id.image_128', string="Фото учителя", readonly=True)
     
     table_entries = fields.Text('Table Entries') 
-    textbook_image = fields.Binary('Textbook Image', compute='_compute_textbook_image', store=True)
+    textbook_image = fields.Image('Textbook Image', compute='_compute_textbook_image', store=True, max_width=128, max_height=128)
     student_name_short = fields.Char('Student Name Short', compute='_compute_student_name_short', store=True)
     
     # --- Итоги (Stored) ---
@@ -24,6 +26,7 @@ class OpSubjectGrades(models.Model):
     total_classes = fields.Integer('Всего', compute='_compute_all_stats', store=True)
     present_classes = fields.Integer('Посещено', compute='_compute_all_stats', store=True)
     last_attendance_date = fields.Date('Дата последнего урока', compute='_compute_all_stats', store=True)
+    attendance_rate = fields.Float('Посещаемость %', compute='_compute_all_stats', store=True)
 
     # --- Списки линий (Editable) ---
     q1_line_ids = fields.Many2many('op.attendance.line', compute='_compute_line_ids', readonly=False)
@@ -57,7 +60,7 @@ class OpSubjectGrades(models.Model):
 
             rec.total_classes = len(lines)
             rec.present_classes = len(lines.filtered(lambda x: x.present or x.late))
-            rec.last_attendance_date = lines[0].attendance_date if lines else False
+            rec.attendance_rate = (rec.present_classes / rec.total_classes * 100) if rec.total_classes > 0 else 0.0
 
             for l in lines:
                 t_name = (l.term_id.name or '').lower()
