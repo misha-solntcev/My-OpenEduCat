@@ -13,6 +13,7 @@ class OpSubjectGrades(models.Model):
     student_id = fields.Many2one('op.student', 'Student', required=True, ondelete='cascade')
     student_avatar = fields.Image(related='student_id.image_128', string="Фото ученика")
     subject_id = fields.Many2one('op.subject', 'Subject', required=True, ondelete='cascade')
+    course_id = fields.Many2one('op.course', related='batch_id.course_id', string="Класс", store=True, readonly=True)
     batch_id = fields.Many2one('op.batch', 'Batch', required=True)
     faculty_id = fields.Many2one('op.faculty', 'Faculty', compute='_compute_faculty_id', store=True)
     faculty_avatar = fields.Image(related='faculty_id.image_128', string="Фото учителя", readonly=True)
@@ -27,6 +28,8 @@ class OpSubjectGrades(models.Model):
     present_classes = fields.Integer('Посещено', compute='_compute_all_stats', store=True)
     last_attendance_date = fields.Date('Дата последнего урока', compute='_compute_all_stats', store=True)
     attendance_rate = fields.Float('Посещаемость %', compute='_compute_all_stats', store=True)
+
+    attendance_bar_html = fields.Html(compute='_compute_attendance_bar', string="Виджет посещаемости")
 
     # --- Списки линий (Editable) ---
     q1_line_ids = fields.Many2many('op.attendance.line', compute='_compute_line_ids', readonly=False)
@@ -47,9 +50,15 @@ class OpSubjectGrades(models.Model):
     q4_final_grade = fields.Char('Итог Q4')
     final_quarter_grade = fields.Char('Годовая')
 
+    # Математическое среднее по четвертям (не по всем оценкам сразу, а именно по итогам периодов)
+    year_average_mark = fields.Float('Средняя за год', compute='_compute_all_stats', store=True)
+    # Поле для хранения SVG-кода графика
+    year_progress_svg = fields.Html(compute='_compute_all_stats', string="График прогресса", sanitize=False, store=True)
+
     @api.depends('student_id', 'subject_id')
     def _compute_all_stats(self):
         for rec in self:
+            # 1. Инициализация и обнуление
             res = {'ts': 0.0, 'tq': 0, 'q': {i: {'s': 0.0, 'q': 0, 'c5': 0, 'c4': 0, 'c3': 0, 'c2': 0, 'r': False} for i in range(1, 5)}}
             
             lines = self.env['op.attendance.line'].search([
@@ -60,30 +69,85 @@ class OpSubjectGrades(models.Model):
 
             rec.total_classes = len(lines)
             rec.present_classes = len(lines.filtered(lambda x: x.present or x.late))
+            rec.last_attendance_date = lines[0].attendance_date if lines else False
             rec.attendance_rate = (rec.present_classes / rec.total_classes * 100) if rec.total_classes > 0 else 0.0
 
+            # 2. Расчет четвертей
+            q_avgs = []
             for l in lines:
                 t_name = (l.term_id.name or '').lower()
                 q_idx = next((i for i in range(1, 5) if str(i) in t_name), None)
                 if not q_idx: continue
-
-                # Расчет среднего балла (валидация теперь на уровне модели lines)
                 for g in [l.grade_1, l.grade_2, l.grade_3]:
-                    if g and g > 0:
-                        val = int(g)
+                    if g and 2 <= g <= 5:
                         res['ts'] += g; res['tq'] += 1
                         res['q'][q_idx]['s'] += g; res['q'][q_idx]['q'] += 1
-                        if 2 <= val <= 5: 
-                            res['q'][q_idx][f'c{val}'] += 1
-                
+                        res['q'][q_idx][f'c{int(g)}'] += 1
                 if l.remark and not res['q'][q_idx]['r']:
                     res['q'][q_idx]['r'] = l.remark
 
             rec.average_mark = round(res['ts'] / res['tq'], 2) if res['tq'] > 0 else 0.0
+            
             for i in range(1, 5):
-                setattr(rec, f'q{i}_average_mark', round(res['q'][i]['s'] / res['q'][i]['q'], 2) if res['q'][i]['q'] > 0 else 0.0)
-                setattr(rec, f'q{i}_last_remark', res['q'][i]['r'])
+                q_val = round(res['q'][i]['s'] / res['q'][i]['q'], 2) if res['q'][i]['q'] > 0 else 0.0
+                setattr(rec, f'q{i}_average_mark', q_val)
+                setattr(rec, f'q{i}_last_remark', res['q'][i]['r'] or "—")
                 for g in range(2, 6): setattr(rec, f'q{i}_count_{g}', res['q'][i][f'c{g}'])
+                q_avgs.append(q_val)
+
+            # Годовая
+            active_qs = [v for v in q_avgs if v > 0]
+            rec.year_average_mark = round(sum(active_qs) / len(active_qs), 2) if active_qs else 0.0
+
+            # 3. ГЕНЕРАЦИЯ ГРАФИКА (ТЕПЕРЬ ТУТ)
+            w, h, px = 120, 40, [15, 45, 75, 105]
+            coords = []
+            for i, val in enumerate(q_avgs):
+                if val > 0:
+                    y = 35 - ((val - 2) * 10) # 5.0 -> 5px, 2.0 -> 35px
+                    coords.append((px[i], y))
+
+            if not coords:
+                rec.year_progress_svg = '<div class="text-muted small">Нет оценок</div>'
+                continue
+
+            # Рисуем Area Chart (линия + заливка)
+            color = "#714B67"
+            path = f"M {coords[0][0]} {coords[0][1]}"
+            for i in range(1, len(coords)): path += f" L {coords[i][0]} {coords[i][1]}"
+            area = path + f" L {coords[-1][0]} {h} L {coords[0][0]} {h} Z"
+
+            rec.year_progress_svg = f"""
+                <div style="width:100%; height:45px; display:flex; align-items:center; justify-content:center;">
+                    <svg viewBox="0 0 {w} {h}" preserveAspectRatio="xMidYMid meet">
+                        <defs><linearGradient id="g_{rec.id}" x1="0%" y1="0%" x2="0%" y2="100%">
+                            <stop offset="0%" style="stop-color:{color}; stop-opacity:0.2" />
+                            <stop offset="100%" style="stop-color:{color}; stop-opacity:0" />
+                        </linearGradient></defs>
+                        <line x1="10" y1="5" x2="110" y2="5" stroke="#eee" stroke-width="0.5"/>
+                        <line x1="10" y1="35" x2="110" y2="35" stroke="#eee" stroke-width="0.5"/>
+                        {f'<path d="{area}" fill="url(#g_{rec.id})" />' if len(coords)>1 else ''}
+                        {f'<path d="{path}" fill="none" stroke="{color}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>' if len(coords)>1 else ''}
+                        {" ".join([f'<circle cx="{c[0]}" cy="{c[1]}" r="2.5" fill="white" stroke="{color}" stroke-width="2"/>' for c in coords])}
+                    </svg>
+                </div>
+            """
+
+    @api.depends('attendance_rate')
+    def _compute_attendance_bar(self):
+        for rec in self:
+            rate = rec.attendance_rate
+            # Логика цвета
+            color = 'bg-danger'
+            if rate >= 80: color = 'bg-success'
+            elif rate >= 60: color = 'bg-warning'
+            
+            # Генерируем только HTML, не трогая основную статистику
+            rec.attendance_bar_html = f"""
+                <div class="progress" style="height: 10px; background-color: #eee; border-radius: 5px;">
+                    <div class="progress-bar {color}" role="progressbar" style="width: {rate}%;"></div>
+                </div>
+            """
 
     @api.depends('student_id', 'subject_id')
     def _compute_line_ids(self):
@@ -151,13 +215,14 @@ class OpAttendanceLineInherit(models.Model):
                 if g and g > 5:
                     raise ValidationError(_("Ошибка: Оценка %s недопустима. Оценка не может быть выше 5!") % g)
 
-    # Триггеры пересчета успеваемости
     def write(self, vals):
         res = super().write(vals)
         if any(f in vals for f in ['grade_1', 'grade_2', 'grade_3', 'present', 'term_id', 'remark']):
-            self.flush_recordset() 
-            grade_recs = self.env['op.subject.grades'].search([('student_id', '=', self.student_id.id)])
-            for g in grade_recs: g._compute_all_stats()
+            # Находим и ПРИНУДИТЕЛЬНО пересчитываем успеваемость
+            grades = self.env['op.subject.grades'].search([('student_id', '=', self.student_id.id)])
+            for g in grades:
+                g.invalidate_recordset() # Сброс кеша
+                g._compute_all_stats()   # Расчет цифр и графика
         return res
 
     def create(self, vals):
