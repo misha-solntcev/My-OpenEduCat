@@ -118,21 +118,70 @@ class OpSubjectGrades(models.Model):
 
     @api.depends('subject_id', 'batch_id')
     def _compute_faculty_id(self):
-        for record in self:
-            session = self.env['op.session'].search([('subject_id', '=', record.subject_id.id), ('batch_id', '=', record.batch_id.id)], limit=1)
-            record.faculty_id = session.faculty_id.id if session else False
+        subject_ids = self.mapped('subject_id').ids
+        batch_ids = self.mapped('batch_id').ids
 
+        sessions = self.env['op.session'].search([
+            ('subject_id', 'in', subject_ids),
+            ('batch_id', 'in', batch_ids)
+        ])
+
+        session_map = {(s.subject_id.id, s.batch_id.id): s.faculty_id.id 
+            for s in sessions}
+
+        for record in self:
+            record.faculty_id = session_map.get((record.subject_id.id, record.batch_id.id), False)
+    
+    
     @api.depends('student_id')
-    def _compute_student_name_short(self):
+    def _compute_student_name_short(self):        
         for record in self:
-            if record.student_id:
-                record.student_name_short = f"{record.student_id.first_name or ''} {record.student_id.last_name or ''}".strip()
+            student = record.student_id
+            if student:                
+                name_parts = [student.first_name, student.last_name]
+                record.student_name_short = " ".join(filter(None, name_parts))
+            else:
+                record.student_name_short = ""
 
-    @api.depends('subject_id')
-    def _compute_textbook_image(self):
+    @api.depends('subject_id', 'batch_id')
+    def _compute_textbook_image(self):        
+        subject_ids = self.mapped('subject_id').ids        
+        course_ids = self.mapped('batch_id.course_id').ids
+                
+        media_records = self.env['op.media'].search([
+            ('subject_ids', 'in', subject_ids)
+        ])
+
+        match_map = {}
+        general_map = {}
+
+        for m in media_records:
+            img = m.x_image_128
+            if not img:
+                continue
+                
+            m_subject_ids = m.subject_ids.ids
+            m_course_ids = m.course_ids.ids
+
+            for s_id in m_subject_ids:
+                if s_id not in subject_ids:
+                    continue
+                
+                if m_course_ids:                    
+                    for c_id in m_course_ids:
+                        if (s_id, c_id) not in match_map:
+                            match_map[(s_id, c_id)] = img
+                else:                    
+                    if s_id not in general_map:
+                        general_map[s_id] = img
+
         for record in self:
-            media = self.env['op.media'].search([('subject_ids', 'in', [record.subject_id.id])], limit=1)
-            record.textbook_image = media.x_image_128 if media else False
+            s_id = record.subject_id.id
+            c_id = record.batch_id.course_id.id
+ 
+            image = match_map.get((s_id, c_id)) or general_map.get(s_id)
+            
+            record.textbook_image = image or False
 
     def action_migrate_old_data(self):
         records = self if self else self.search([])
