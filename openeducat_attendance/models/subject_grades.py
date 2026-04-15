@@ -47,7 +47,7 @@ class OpSubjectGrades(models.Model):
     @api.depends('student_id', 'subject_id')
     def _compute_all_stats(self):
         for rec in self:
-            res = {'ts': 0.0, 'tq': 0, 'q': {i: {'s': 0.0, 'q': 0, 'c5': 0, 'c4': 0, 'c3': 0, 'c2': 0, 'r': "—"} for i in range(1, 5)}}
+            res = {'ts': 0.0, 'tq': 0, 'q': {i: {'s': 0.0, 'q': 0, 'c5': 0, 'c4': 0, 'c3': 0, 'c2': 0, 'r': False} for i in range(1, 5)}}
             
             lines = self.env['op.attendance.line'].search([
                 ('student_id', '=', rec.student_id.id),
@@ -73,7 +73,7 @@ class OpSubjectGrades(models.Model):
                         if 2 <= val <= 5: 
                             res['q'][q_idx][f'c{val}'] += 1
                 
-                if l.remark and res['q'][q_idx]['r'] == "—":
+                if l.remark and not res['q'][q_idx]['r']:
                     res['q'][q_idx]['r'] = l.remark
 
             rec.average_mark = round(res['ts'] / res['tq'], 2) if res['tq'] > 0 else 0.0
@@ -151,9 +151,10 @@ class OpAttendanceLineInherit(models.Model):
     # Триггеры пересчета успеваемости
     def write(self, vals):
         res = super().write(vals)
-        if any(f in vals for f in ['grade_1', 'grade_2', 'grade_3', 'present', 'term_id']):
-            # Пересчитываем успеваемость студента
-            self.env['op.subject.grades'].search([('student_id', '=', self.student_id.id)])._compute_all_stats()
+        if any(f in vals for f in ['grade_1', 'grade_2', 'grade_3', 'present', 'term_id', 'remark']):
+            self.flush_recordset() 
+            grade_recs = self.env['op.subject.grades'].search([('student_id', '=', self.student_id.id)])
+            for g in grade_recs: g._compute_all_stats()
         return res
 
     def create(self, vals):
