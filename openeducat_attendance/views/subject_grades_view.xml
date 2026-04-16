@@ -84,7 +84,7 @@
                     <div class="d-flex align-items-start mb-4">
                         <!-- Аватар студента -->
                         <div class="me-3">
-                            <field name="student_avatar" widget="image" class="oe_avatar shadow-sm" style="width: 85px; height: 85px; border-radius: 12px; object-fit: cover;"/>
+                            <field name="student_avatar" widget="image" class="oe_avatar shadow-sm" style="width: 85px; height: 85px; border-radius: 10%; object-fit: cover;"/>
                         </div>
                         
                         <div class="flex-grow-1">
@@ -108,7 +108,7 @@
                                 <!-- Контейнер учителя: теперь он принудительно уйдет вниз на мобильном -->
                                 <div class="d-flex align-items-center text-muted border-start ms-md-3 ms-0 ps-3 py-1">
                                     <field name="faculty_avatar" widget="image" class="me-2" 
-                                        style="width: 24px; height: 24px; border-radius: 50%; overflow: hidden; border: 1px solid #ddd;" 
+                                        style="width: 48px; height: 48px; border-radius: 10%; overflow: hidden; border: 1px solid #ddd;" 
                                         options="{'preview_image': 'faculty_avatar'}"/>
                                     <field name="faculty_id" readonly="1" options="{'no_open': True}"/>
                                 </div>
@@ -285,7 +285,7 @@
                                                         <div class="text-muted small mb-0" style="font-size: 0.6rem; font-weight: 600;">ОЦЕНКА</div>
                                                         <!-- Насыщенный цвет и увеличенный размер -->
                                                         <div class="display-3 fw-bolder mb-0" style="color: #714B67; line-height: 1;">
-                                                            <field name="q1_final_grade"/>
+                                                            <field name="q1_final_grade" placeholder="?"/>
                                                         </div>
                                                     </div>
                                                 </div>
