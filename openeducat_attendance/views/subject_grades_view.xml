@@ -146,12 +146,12 @@
                             </div>
                         </div>
 
-                        <!-- ПЛИТКА 3: ДИНАМИКА УСПЕХА -->
+                        <!-- ПЛИТКА 3: ДИНАМИКА  -->
                         <div class="col-6 col-md-3">
                             <div class="border rounded bg-light p-2 h-100 shadow-sm text-center d-flex flex-column justify-content-center">
                                 <!-- Заголовок с подсказкой (используем flex для выравнивания текста и иконки) -->
                                 <div class="text-uppercase small fw-bold text-muted mb-2 d-flex align-items-center justify-content-center" style="font-size: 1rem;">
-                                    Динамика успеха
+                                    Динамика 
                                     <!-- Иконка вопроса (i) -->
                                     <i class="fa fa-info-circle ms-2 text-primary opacity-75" 
                                     style="cursor: help;"
