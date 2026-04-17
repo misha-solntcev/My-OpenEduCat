@@ -335,7 +335,7 @@
                         <page string="1 четверть" name="q1_page">
                             <div class="row g-3 mb-3 align-items-stretch">
                                 <div class="col-md-4">
-                                    <div class="card border-0 shadow h-100"
+                                    <div class="card border-0 shadow h-100 bg-light"
                                         style="border-radius: 15px; overflow: hidden;">
                                         <div class="card-body p-3 d-flex flex-column">
                                             <div
@@ -423,7 +423,8 @@
                                                             </div>
                                                             <div
                                                                 class="small opacity-75 fw-bold">
-                                                            двойки</div>А </div>
+                                                            двойки</div>
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </div>

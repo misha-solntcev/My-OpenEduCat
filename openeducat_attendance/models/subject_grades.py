@@ -141,7 +141,7 @@ class OpSubjectGrades(models.Model):
                     y = 140 - ((val - 2) * 36.6)
                     coords.append((x, y))
                     # Крупные белые точки с жирным контуром
-                    dots_html.append(f'<circle cx="{x}" cy="{y}" r="10" fill="white" stroke="#714B67" stroke-width="5"/>')
+                    dots_html.append(f'<circle cx="{x}" cy="{y}" r="7" fill="white" stroke="#714B67" stroke-width="5"/>')
                 else:
                     # Плейсхолдеры (серые точки) на базовой линии
                     dots_html.append(f'<circle cx="{x}" cy="80" r="5" fill="#f0f0f0" stroke="#ccc" stroke-width="2"/>')
@@ -170,9 +170,14 @@ class OpSubjectGrades(models.Model):
             rec.year_progress_svg = f"""
                 <svg viewBox="0 0 {w} {h}" preserveAspectRatio="xMidYMid meet" style="width:100%; height:100px; display:block; margin:0;">
                     <!-- Сетка: уровни 5.0, 3.5, 2.0 -->
-                    <line x1="0" y1="30" x2="{w}" y2="30" stroke="#f0f0f0" stroke-width="2" stroke-dasharray="5,5"/>
-                    <line x1="0" y1="85" x2="{w}" y2="85" stroke="#f0f0f0" stroke-width="2" stroke-dasharray="5,5"/>
-                    <line x1="0" y1="140" x2="{w}" y2="140" stroke="#f0f0f0" stroke-width="2" stroke-dasharray="5,5"/>
+                    <text x="1" y="35" font-family="sans-serif" font-size="20" fill="#adb5bd" font-weight="bold">5</text>
+                    <line x1="35" y1="30" x2="{w}" y2="30" stroke="#e0e0e0" stroke-width="2" stroke-dasharray="4,4"/>
+                    <text x="1" y="71" font-family="sans-serif" font-size="20" fill="#adb5bd" font-weight="bold">4</text>
+                    <line x1="25" y1="66" x2="{w}" y2="66" stroke="#e0e0e0" stroke-width="2" stroke-dasharray="4,4"/>
+                    <text x="1" y="108" font-family="sans-serif" font-size="20" fill="#adb5bd" font-weight="bold">3</text>
+                    <line x1="25" y1="103" x2="{w}" y2="103" stroke="#e0e0e0" stroke-width="2" stroke-dasharray="4,4"/>
+                    <text x="1" y="145" font-family="sans-serif" font-size="20" fill="#adb5bd" font-weight="bold">2</text>
+                    <line x1="25" y1="140" x2="{w}" y2="140" stroke="#e0e0e0" stroke-width="2" stroke-dasharray="4,4"/>
                     {graph_content}
                     {" ".join(dots_html)}
                 </svg>
