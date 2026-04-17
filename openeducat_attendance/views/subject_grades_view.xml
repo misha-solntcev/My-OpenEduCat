@@ -336,6 +336,9 @@
                                 </div>
                             </div>
                             <field name="q1_line_ids" readonly="0"><list editable="bottom" create="false" delete="false">
+                                <field name="late" column_invisible="True"/>
+                                <field name="excused" column_invisible="True"/>
+                                <field name="absent" column_invisible="True"/>
                                 <field name="attendance_date" readonly="1"/><field name="lesson_topic" string="Тема урока"/><field name="present" widget="boolean"/><field name="grade_1"/><field name="grade_2"/><field name="grade_3"/><field name="remark"/>
                             </list></field>
                         </page>
@@ -378,6 +381,9 @@
                                 </div>
                             </div>
                             <field name="q2_line_ids" readonly="0"><list editable="bottom" create="false" delete="false">
+                                <field name="late" column_invisible="True"/>
+                                <field name="excused" column_invisible="True"/>
+                                <field name="absent" column_invisible="True"/>
                                 <field name="attendance_date" readonly="1"/><field name="lesson_topic" string="Тема урока"/><field name="present" widget="boolean"/><field name="grade_1"/><field name="grade_2"/><field name="grade_3"/><field name="remark"/>
                             </list></field>
                         </page>
@@ -420,6 +426,9 @@
                                 </div>
                             </div>
                             <field name="q3_line_ids" readonly="0"><list editable="bottom" create="false" delete="false">
+                                <field name="late" column_invisible="True"/>
+                                <field name="excused" column_invisible="True"/>
+                                <field name="absent" column_invisible="True"/>
                                 <field name="attendance_date" readonly="1"/><field name="lesson_topic" string="Тема урока"/><field name="present" widget="boolean"/><field name="grade_1"/><field name="grade_2"/><field name="grade_3"/><field name="remark"/>
                             </list></field>
                         </page>
@@ -462,6 +471,9 @@
                                 </div>
                             </div>
                             <field name="q4_line_ids" readonly="0"><list editable="bottom" create="false" delete="false">
+                                <field name="late" column_invisible="True"/>
+                                <field name="excused" column_invisible="True"/>
+                                <field name="absent" column_invisible="True"/>
                                 <field name="attendance_date" readonly="1"/><field name="lesson_topic" string="Тема урока"/><field name="present" widget="boolean"/><field name="grade_1"/><field name="grade_2"/><field name="grade_3"/><field name="remark"/>
                             </list></field>
                         </page>
