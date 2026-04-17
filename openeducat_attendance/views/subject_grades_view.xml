@@ -127,7 +127,7 @@
                         <!-- ПЛИТКА 1: ПОСЛЕДНИЙ ВИЗИТ (Переехала в начало) -->
                         <div class="col-6 col-md-3">
                             <div class="border rounded bg-light p-2 h-100 shadow-sm text-center d-flex flex-column justify-content-center">
-                                <div class="text-uppercase small fw-bold text-muted mb-1" style="font-size: 0.65rem;">Последний визит</div>
+                                <div class="text-uppercase small fw-bold text-muted mb-1" style="font-size: 1rem;">Последний визит</div>
                                 <div class="h5 mb-0 fw-bold text-dark mt-1">
                                     <field name="last_attendance_date" widget="date"/>
                                 </div>
@@ -137,7 +137,7 @@
                         <!-- ПЛИТКА 2: ПОСЕЩАЕМОСТЬ -->
                         <div class="col-6 col-md-3">
                             <div class="border rounded bg-light p-2 h-100 shadow-sm text-center d-flex flex-column align-items-center justify-content-center">
-                                <div class="text-uppercase small fw-bold text-muted mb-1" style="font-size: 0.65rem;">Посещаемость</div>
+                                <div class="text-uppercase small fw-bold text-muted mb-1" style="font-size: 1rem;">Посещаемость</div>
                                 <div class="mb-1">
                                     <field name="attendance_rate" widget="badge" decoration-success="attendance_rate >= 80" decoration-warning="attendance_rate >= 60 and attendance_rate &lt; 80" decoration-danger="attendance_rate &lt; 60"/>
                                     <span class="small fw-bold text-muted">%</span>
@@ -149,8 +149,17 @@
                         <!-- ПЛИТКА 3: ДИНАМИКА УСПЕХА -->
                         <div class="col-6 col-md-3">
                             <div class="border rounded bg-light p-2 h-100 shadow-sm text-center d-flex flex-column justify-content-center">
-                                <div class="text-uppercase small fw-bold text-muted mb-2" style="font-size: 0.65rem;">Динамика</div>
-                                <div class="px-2">
+                                <!-- Заголовок с подсказкой (используем flex для выравнивания текста и иконки) -->
+                                <div class="text-uppercase small fw-bold text-muted mb-2 d-flex align-items-center justify-content-center" style="font-size: 1rem;">
+                                    Динамика успеха
+                                    <!-- Иконка вопроса (i) -->
+                                    <i class="fa fa-info-circle ms-2 text-primary opacity-75" 
+                                    style="cursor: help;"
+                                    title="Как рассчитывается график:&#10;1. Система берет ВСЕ оценки (1, 2 и 3 колонки) из журнала за каждую четверть.&#10;2. Вычисляет средний балл для каждой четверти (сумма оценок ÷ их количество).&#10;3. Каждая точка на графике — средняя оценка за четверть.&#10;4. Линия показывает тренд: если она идет вверх, значит успеваемость улучшилась по сравнению с прошлым периодом.&#10;&#10;• Высокая точка — средний балл 5.0&#10;• Низкая точка — средний балл 2.0&#10;• Серая точка — будущая четверть"/>
+                                </div>
+
+                                <!-- Само поле графика -->
+                                <div class="px-1" style="overflow: hidden;">
                                     <field name="year_progress_svg" widget="html" nolabel="1"/>
                                 </div>
                             </div>
@@ -160,7 +169,7 @@
                         <div class="col-6 col-md-3">
                             <div class="border rounded bg-light p-2 h-100 shadow-sm d-flex flex-column">
                                 <!-- Заголовок -->
-                                <div class="text-uppercase small fw-bold text-muted mb-2 text-center" style="font-size: 0.7rem; letter-spacing: 0.5px;">
+                                <div class="text-uppercase small fw-bold text-muted mb-2 text-center" style="font-size: 1rem; letter-spacing: 0.5px;">
                                     ИТОГ ЗА ГОД
                                 </div>
 
@@ -190,7 +199,7 @@
 
                                         <!-- 3 четверть -->
                                         <div class="mb-1 d-flex align-items-center" style="position: relative; z-index: 2; font-size: 0.9rem;">
-                                            <div class="rounded-circle shadow-sm" style="width: 14px; height: 1014pxpx; position: absolute; left: -21px; border: 2px solid white; background: #28a745;" invisible="not q3_final_grade"/>
+                                            <div class="rounded-circle shadow-sm" style="width: 14px; height: 14px; position: absolute; left: -21px; border: 2px solid white; background: #28a745;" invisible="not q3_final_grade"/>
                                             <div class="rounded-circle" style="width: 14px; height: 14px; position: absolute; left: -21px; border: 2px solid white; background: #adb5bd;" invisible="q3_final_grade"/>
                                             <span class="text-muted">3 четверть:</span>
                                             <span class="fw-bold text-dark ms-1"><field name="q3_final_grade" readonly="1" placeholder="-"/></span>
