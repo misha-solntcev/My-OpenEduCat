@@ -146,19 +146,18 @@
                             </div>
                         </div>
 
-                        <!-- ПЛИТКА 3: ДИНАМИКА  -->
+                        <!-- ПЛИТКА 3: ДИНАМИКА -->
                         <div class="col-6 col-md-3">
-                            <!-- overflow-hidden важен, чтобы график не вылезал за скругления -->
-                            <div class="border rounded bg-white p-0 h-100 shadow-sm d-flex flex-column overflow-hidden" style="min-height: 130px;">
-                                <!-- Заголовок прижат кверху -->
-                                <div class="text-uppercase small fw-bold text-muted mt-2 d-flex align-items-center justify-content-center" style="font-size: 0.65rem;">
-                                    Динамика успеха
-                                    <i class="fa fa-info-circle ms-2 text-primary opacity-75" style="cursor: help;" title="КАК РАССЧИТЫВАЕТСЯ ГРАФИК..."/>
+                            <div class="border rounded bg-bg-light p-2 h-100 shadow-sm d-flex flex-column overflow-hidden" style="min-height: 130px;">
+                                <!-- Заголовок: увеличили font-size, убрали mt-2, добавили pt-2 -->
+                                <div class="text-uppercase fw-bold text-muted pt-2 d-flex align-items-center justify-content-center" style="font-size: 1rem; letter-spacing: 0.5px;">
+                                    Динамика
+                                    <i class="fa fa-info-circle ms-2 text-primary opacity-75" style="cursor: help; font-size: 1rem;" title="Как рассчитывается график:&#10;1. Система берет ВСЕ оценки (1, 2 и 3 колонки) из журнала за каждую четверть.&#10;2. Вычисляет средний балл для каждой четверти (сумма оценок ÷ их количество).&#10;3. Каждая точка на графике — средняя оценка за четверть.&#10;4. Линия показывает тренд: если она идет вверх, значит успеваемость улучшилась по сравнению с прошлым периодом.&#10;&#10;• Высокая точка — средний балл 5.0&#10;• Низкая точка — средний балл 2.0&#10;• Серая точка — будущая четверть"/>
                                 </div>
                                 
-                                <!-- График занимает всё оставшееся место -->
-                                <div class="flex-grow-1 d-flex align-items-end">
-                                    <field name="year_progress_svg" widget="html" nolabel="1" class="w-100"/>
+                                <!-- График: убрали align-items-end, используем stretch -->
+                                <div class="flex-grow-1 d-flex align-items-stretch">
+                                    <field name="year_progress_svg" widget="html" nolabel="1" class="w-100 h-100"/>
                                 </div>
                             </div>
                         </div>
