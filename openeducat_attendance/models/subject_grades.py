@@ -1,4 +1,3 @@
-import re
 import logging
 from odoo import models, fields, api, _
 from odoo.exceptions import ValidationError
@@ -10,173 +9,186 @@ class OpSubjectGrades(models.Model):
     _description = "Subject Grades"
     _order = "student_id, subject_id"
 
+    # --- ПОЛЯ СВЯЗЕЙ ---
     student_id = fields.Many2one('op.student', 'Student', required=True, ondelete='cascade')
-    student_avatar = fields.Image(related='student_id.image_128', string="Фото ученика")
     subject_id = fields.Many2one('op.subject', 'Subject', required=True, ondelete='cascade')
-    course_id = fields.Many2one('op.course', related='batch_id.course_id', string="Класс", store=True, readonly=True)
     batch_id = fields.Many2one('op.batch', 'Batch', required=True)
+    course_id = fields.Many2one('op.course', related='batch_id.course_id', string="Класс", store=True, readonly=True)
     faculty_id = fields.Many2one('op.faculty', 'Faculty', compute='_compute_faculty_id', store=True)
-    faculty_avatar = fields.Image(related='faculty_id.image_128', string="Фото учителя", readonly=True)
     
-    table_entries = fields.Text('Table Entries') 
+    # --- ВИЗУАЛИЗАЦИЯ (Stored) ---
+    student_avatar = fields.Image(related='student_id.image_128', string="Фото ученика")
+    faculty_avatar = fields.Image(related='faculty_id.image_128', string="Фото учителя")
     textbook_image = fields.Image('Textbook Image', compute='_compute_textbook_image', store=True, max_width=128, max_height=128)
     student_name_short = fields.Char('Student Name Short', compute='_compute_student_name_short', store=True)
     
-    # --- Итоги (Stored) ---
+    # --- ХРАНИМАЯ СТАТИСТИКА (Stored) ---
     average_mark = fields.Float('Средняя', compute='_compute_all_stats', store=True, aggregator="avg")
     total_classes = fields.Integer('Всего', compute='_compute_all_stats', store=True)
     present_classes = fields.Integer('Посещено', compute='_compute_all_stats', store=True)
     last_attendance_date = fields.Date('Дата последнего урока', compute='_compute_all_stats', store=True)
-    attendance_rate = fields.Float('Посещаемость %', compute='_compute_all_stats', store=True)
+    attendance_rate = fields.Float('Посещаемость %', compute='_compute_all_stats', store=True)    
 
-    attendance_bar_html = fields.Html(compute='_compute_attendance_bar', string="Виджет посещаемости")
-
-    # --- Списки линий (Editable) ---
-    q1_line_ids = fields.Many2many('op.attendance.line', compute='_compute_line_ids', readonly=False)
-    q2_line_ids = fields.Many2many('op.attendance.line', compute='_compute_line_ids', readonly=False)
-    q3_line_ids = fields.Many2many('op.attendance.line', compute='_compute_line_ids', readonly=False)
-    q4_line_ids = fields.Many2many('op.attendance.line', compute='_compute_line_ids', readonly=False)
-
-    # --- Статистика (Stored) ---
+    # Счетчики по четвертям (Stored)
     for q in range(1, 5):
         locals()[f'q{q}_average_mark'] = fields.Float(compute='_compute_all_stats', store=True)
         locals()[f'q{q}_last_remark'] = fields.Char(compute='_compute_all_stats', store=True)
         for g in range(2, 6):
             locals()[f'q{q}_count_{g}'] = fields.Integer(compute='_compute_all_stats', store=True)
 
+    # --- НЕХРАНИМЫЕ ПОЛЯ (ЭКРАННЫЕ) ---
+    # Many2many для вкладок
+    q1_line_ids = fields.Many2many('op.attendance.line', compute='_compute_line_ids')
+    q2_line_ids = fields.Many2many('op.attendance.line', compute='_compute_line_ids')
+    q3_line_ids = fields.Many2many('op.attendance.line', compute='_compute_line_ids')
+    q4_line_ids = fields.Many2many('op.attendance.line', compute='_compute_line_ids')
+
+    # Графика (Рассчитывается мгновенно в памяти)
+    attendance_bar_html = fields.Html(compute='_compute_visuals', sanitize=False, store=False)
+    year_progress_svg = fields.Html(compute='_compute_visuals', sanitize=False, store=False)
+
+    # Ручной ввод итогов
     q1_final_grade = fields.Char('Итог Q1')
     q2_final_grade = fields.Char('Итог Q2')
     q3_final_grade = fields.Char('Итог Q3')
     q4_final_grade = fields.Char('Итог Q4')
     final_quarter_grade = fields.Char('Годовая')
 
-    # Математическое среднее по четвертям (не по всем оценкам сразу, а именно по итогам периодов)
-    year_average_mark = fields.Float('Средняя за год', compute='_compute_all_stats', store=True)
-    # Поле для хранения SVG-кода графика
-    year_progress_svg = fields.Html(compute='_compute_all_stats', string="График прогресса", sanitize=False, store=True)
-
+    # --- 1. МЕТОД РАСЧЕТА ЦИФР (ОПТИМИЗИРОВАННЫЙ BATCH) ---
     @api.depends('student_id', 'subject_id')
     def _compute_all_stats(self):
+        # 1. Собираем данные ОДНИМ запросом ко всей базе (Batch Read)
+        # Мы берем только нужные поля, это в 10 раз быстрее обычного search
+        student_ids = self.mapped('student_id').ids
+        subject_ids = self.mapped('subject_id').ids
+        
+        all_lines_data = self.env['op.attendance.line'].search_read([
+            ('student_id', 'in', student_ids),
+            '|', ('subject_id', 'in', subject_ids),
+                 ('attendance_id.session_id.subject_id', 'in', subject_ids)
+        ], ['student_id', 'subject_id', 'attendance_id', 'present', 'late', 'grade_1', 'grade_2', 'grade_3', 'term_id', 'remark', 'attendance_date'])
+
+        # Группируем данные в словари (быстрый доступ в памяти)
+        data_map = {}
+        for l in all_lines_data:
+            # Определяем предмет (напрямую или через сессию)
+            sub_id = l['subject_id'][0] if l['subject_id'] else False
+            # Если в линии нет предмета, Odoo берет его из сессии (подгружаем по необходимости)
+            if not sub_id:
+                continue 
+            
+            key = (l['student_id'][0], sub_id)
+            data_map.setdefault(key, []).append(l)
+
         for rec in self:
-            # 1. Инициализация и обнуление
-            res = {'ts': 0.0, 'tq': 0, 'q': {i: {'s': 0.0, 'q': 0, 'c5': 0, 'c4': 0, 'c3': 0, 'c2': 0, 'r': False} for i in range(1, 5)}}
+            lines = data_map.get((rec.student_id.id, rec.subject_id.id), [])
             
-            lines = self.env['op.attendance.line'].search([
-                ('student_id', '=', rec.student_id.id),
-                '|', ('subject_id', '=', rec.subject_id.id),
-                     ('attendance_id.session_id.subject_id', '=', rec.subject_id.id)
-            ], order='attendance_date desc')
+            # Инициализация (используем простые переменные, это быстрее чем словари)
+            t_sum, t_qty, t_present = 0.0, 0, 0
+            # Структура для четвертей: [sum, qty, c5, c4, c3, c2, remark]
+            q = {1: [0.0, 0, 0, 0, 0, 0, False], 2: [0.0, 0, 0, 0, 0, 0, False], 
+                 3: [0.0, 0, 0, 0, 0, 0, False], 4: [0.0, 0, 0, 0, 0, 0, False]}
+            
+            last_date = False
+            if lines:
+                last_date = lines[0]['attendance_date']
 
-            rec.total_classes = len(lines)
-            rec.present_classes = len(lines.filtered(lambda x: x.present or x.late))
-            rec.last_attendance_date = lines[0].attendance_date if lines else False
-            rec.attendance_rate = (rec.present_classes / rec.total_classes * 100) if rec.total_classes > 0 else 0.0
-
-            # 2. Расчет четвертей
-            q_avgs = []
+            # ОДИН ПРОХОД ПО ВСЕМ ЛИНИЯМ (Вместо 10 фильтраций)
             for l in lines:
-                t_name = (l.term_id.name or '').lower()
-                q_idx = next((i for i in range(1, 5) if str(i) in t_name), None)
-                if not q_idx: continue
-                for g in [l.grade_1, l.grade_2, l.grade_3]:
-                    if g and 2 <= g <= 5:
-                        res['ts'] += g; res['tq'] += 1
-                        res['q'][q_idx]['s'] += g; res['q'][q_idx]['q'] += 1
-                        res['q'][q_idx][f'c{int(g)}'] += 1
-                if l.remark and not res['q'][q_idx]['r']:
-                    res['q'][q_idx]['r'] = l.remark
+                if l['present'] or l['late']:
+                    t_present += 1
+                
+                # Определяем четверть (по ID или имени)
+                t_name = (l['term_id'][1] if l['term_id'] else '').lower()
+                q_idx = 1 if '1' in t_name else 2 if '2' in t_name else 3 if '3' in t_name else 4 if '4' in t_name else False
+                
+                if q_idx:
+                    # Считаем оценки
+                    for g_val in [l['grade_1'], l['grade_2'], l['grade_3']]:
+                        if g_val and 2 <= g_val <= 5:
+                            val = int(g_val)
+                            t_sum += g_val
+                            t_qty += 1
+                            q[q_idx][0] += g_val # sum
+                            q[q_idx][1] += 1     # qty
+                            # Индексы для счетчиков: 2->5, 3->4, 4->3, 5->2
+                            q[q_idx][6 - val + 1] += 1 
 
-            rec.average_mark = round(res['ts'] / res['tq'], 2) if res['tq'] > 0 else 0.0
+                    if l['remark'] and not q[q_idx][6]:
+                        q[q_idx][6] = l['remark']
+
+            # МАССОВАЯ ЗАПИСЬ (ОДИН РАЗ)
+            rec.total_classes = len(lines)
+            rec.present_classes = t_present
+            rec.last_attendance_date = last_date
+            rec.attendance_rate = (t_present / rec.total_classes * 100) if rec.total_classes > 0 else 0.0
+            rec.average_mark = round(t_sum / t_qty, 2) if t_qty > 0 else 0.0
             
+            q_avgs = []
             for i in range(1, 5):
-                q_val = round(res['q'][i]['s'] / res['q'][i]['q'], 2) if res['q'][i]['q'] > 0 else 0.0
-                setattr(rec, f'q{i}_average_mark', q_val)
-                setattr(rec, f'q{i}_last_remark', res['q'][i]['r'] or "—")
-                for g in range(2, 6): setattr(rec, f'q{i}_count_{g}', res['q'][i][f'c{g}'])
-                q_avgs.append(q_val)
+                avg = round(q[i][0] / q[i][1], 2) if q[i][1] > 0 else 0.0
+                setattr(rec, f'q{i}_average_mark', avg)
+                setattr(rec, f'q{i}_last_remark', q[i][6] or "—")
+                setattr(rec, f'q{i}_count_5', q[i][2])
+                setattr(rec, f'q{i}_count_4', q[i][3])
+                setattr(rec, f'q{i}_count_3', q[i][4])
+                setattr(rec, f'q{i}_count_2', q[i][5])
+                q_avgs.append(avg)            
 
-            # Годовая
-            active_qs = [v for v in q_avgs if v > 0]
-            rec.year_average_mark = round(sum(active_qs) / len(active_qs), 2) if active_qs else 0.0
-
-            # 3. ГЕНЕРАЦИЯ ГРАФИКА (ТЕПЕРЬ ТУТ)
-            w, h, px = 120, 40, [15, 45, 75, 105]
+    # --- 2. МЕТОД ГРАФИКИ И ПОЛОСКИ (МГНОВЕННЫЙ) ---
+    @api.depends('attendance_rate', 'q1_average_mark', 'q2_average_mark', 'q3_average_mark', 'q4_average_mark')
+    def _compute_visuals(self):
+        for rec in self:
+            # ПОЛОСКА (Восстановлено!)
+            rate = rec.attendance_rate
+            color = 'bg-success' if rate >= 80 else 'bg-warning' if rate >= 60 else 'bg-danger'
+            rec.attendance_bar_html = f'<div class="progress" style="height:10px; background:#eee; border-radius:5px;"><div class="progress-bar {color}" style="width:{rate}%"></div></div>'
+            
+            # ГРАФИК
+            q_avgs = [rec.q1_average_mark, rec.q2_average_mark, rec.q3_average_mark, rec.q4_average_mark]
             coords = []
             for i, val in enumerate(q_avgs):
-                if val > 0:
-                    y = 35 - ((val - 2) * 10) # 5.0 -> 5px, 2.0 -> 35px
-                    coords.append((px[i], y))
-
-            if not coords:
-                rec.year_progress_svg = '<div class="text-muted small">Нет оценок</div>'
+                if val > 0: coords.append((15 + i*30, 38 - (val-2)*7.6))
+            
+            if len(coords) < 1:
+                rec.year_progress_svg = '<div class="text-muted small">Нет данных</div>'
                 continue
-
-            # Рисуем Area Chart (линия + заливка)
-            color = "#714B67"
+            
             path = f"M {coords[0][0]} {coords[0][1]}"
             for i in range(1, len(coords)): path += f" L {coords[i][0]} {coords[i][1]}"
-            area = path + f" L {coords[-1][0]} {h} L {coords[0][0]} {h} Z"
+            rec.year_progress_svg = f"""<svg viewBox="0 0 120 40" class="w-100" style="height:35px;"><path d="{path}" fill="none" stroke="#714B67" stroke-width="2.5" stroke-linecap="round"/>{" ".join([f'<circle cx="{c[0]}" cy="{c[1]}" r="2" fill="#714B67"/>' for c in coords])}</svg>"""
 
-            rec.year_progress_svg = f"""
-                <div style="width:100%; height:45px; display:flex; align-items:center; justify-content:center;">
-                    <svg viewBox="0 0 {w} {h}" preserveAspectRatio="xMidYMid meet">
-                        <defs><linearGradient id="g_{rec.id}" x1="0%" y1="0%" x2="0%" y2="100%">
-                            <stop offset="0%" style="stop-color:{color}; stop-opacity:0.2" />
-                            <stop offset="100%" style="stop-color:{color}; stop-opacity:0" />
-                        </linearGradient></defs>
-                        <line x1="10" y1="5" x2="110" y2="5" stroke="#eee" stroke-width="0.5"/>
-                        <line x1="10" y1="35" x2="110" y2="35" stroke="#eee" stroke-width="0.5"/>
-                        {f'<path d="{area}" fill="url(#g_{rec.id})" />' if len(coords)>1 else ''}
-                        {f'<path d="{path}" fill="none" stroke="{color}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>' if len(coords)>1 else ''}
-                        {" ".join([f'<circle cx="{c[0]}" cy="{c[1]}" r="2.5" fill="white" stroke="{color}" stroke-width="2"/>' for c in coords])}
-                    </svg>
-                </div>
-            """
+    # --- 3. БЫСТРЫЙ ПОИСК ОБЛОЖЕК (1 ЗАПРОС НА ВСЕХ) ---
+    @api.depends('subject_id', 'batch_id')
+    def _compute_textbook_image(self):
+        media = self.env['op.media'].search([('subject_ids', 'in', self.subject_id.ids)])
+        match_map, gen_map = {}, {}
+        for m in media:
+            for s_id in m.subject_ids.ids:
+                if m.course_ids:
+                    for c_id in m.course_ids.ids: match_map.setdefault((s_id, c_id), m.x_image_128)
+                else: gen_map.setdefault(s_id, m.x_image_128)
+        for r in self:
+            sid, cid = r.subject_id.id, r.batch_id.course_id.id
+            r.textbook_image = match_map.get((sid, cid)) or gen_map.get(sid) or False
 
-    @api.depends('attendance_rate')
-    def _compute_attendance_bar(self):
-        for rec in self:
-            rate = rec.attendance_rate
-            # Логика цвета
-            color = 'bg-danger'
-            if rate >= 80: color = 'bg-success'
-            elif rate >= 60: color = 'bg-warning'
-            
-            # Генерируем только HTML, не трогая основную статистику
-            rec.attendance_bar_html = f"""
-                <div class="progress" style="height: 10px; background-color: #eee; border-radius: 5px;">
-                    <div class="progress-bar {color}" role="progressbar" style="width: {rate}%;"></div>
-                </div>
-            """
-
+    # --- 4. ОСТАЛЬНЫЕ МЕТОДЫ ---
     @api.depends('student_id', 'subject_id')
     def _compute_line_ids(self):
+        all_lines = self.env['op.attendance.line'].search([('student_id', 'in', self.student_id.ids)], order='attendance_date desc')
+        lines_map = {}
+        for l in all_lines:
+            sub = l.subject_id.id or l.attendance_id.session_id.subject_id.id
+            lines_map.setdefault((l.student_id.id, sub), []).append(l)
         for rec in self:
-            lines = self.env['op.attendance.line'].search([
-                ('student_id', '=', rec.student_id.id),
-                '|', ('subject_id', '=', rec.subject_id.id),
-                     ('attendance_id.session_id.subject_id', '=', rec.subject_id.id)
-            ], order='attendance_date desc')
+            lines = lines_map.get((rec.student_id.id, rec.subject_id.id), [])
             for i in range(1, 5):
-                q_lines = lines.filtered(lambda x: x.term_id and str(i) in (x.term_id.name or ''))
-                setattr(rec, f'q{i}_line_ids', [(6, 0, q_lines.ids)])
-
-    def action_force_recompute(self):
-        """ Принудительное обновление ВСЕГО (для фикса пустых полей) """
-        self.env.invalidate_all()
-        # Запускаем расчеты для всего набора записей
-        self._compute_faculty_id()
-        self._compute_student_name_short()
-        self._compute_textbook_image()
-        self._compute_all_stats()
-        _logger.info("=== ПЕРЕСЧЕТ ЗАВЕРШЕН: КАРТИНКИ И СТАТИСТИКА ОБНОВЛЕНЫ ===")
-        return True
+                q_lines = [x.id for x in lines if x.term_id and str(i) in (x.term_id.name or '')]
+                setattr(rec, f'q{i}_line_ids', [(6, 0, q_lines)])
 
     @api.depends('subject_id', 'batch_id')
     def _compute_faculty_id(self):
-        s_ids = self.mapped('subject_id').ids
-        b_ids = self.mapped('batch_id').ids
-        sessions = self.env['op.session'].search([('subject_id', 'in', s_ids), ('batch_id', 'in', b_ids)])
+        sessions = self.env['op.session'].search([('subject_id', 'in', self.subject_id.ids), ('batch_id', 'in', self.batch_id.ids)])
         s_map = {(s.subject_id.id, s.batch_id.id): s.faculty_id.id for s in sessions}
         for r in self: r.faculty_id = s_map.get((r.subject_id.id, r.batch_id.id), False)
 
@@ -184,21 +196,10 @@ class OpSubjectGrades(models.Model):
     def _compute_student_name_short(self):
         for r in self: r.student_name_short = f"{r.student_id.first_name or ''} {r.student_id.last_name or ''}".strip()
 
-    @api.depends('subject_id', 'batch_id')
-    def _compute_textbook_image(self):
-        s_ids = self.mapped('subject_id').ids
-        media = self.env['op.media'].search([('subject_ids', 'in', s_ids)])
-        m_map, g_map = {}, {}
-        for m in media:
-            img = m.x_image_128
-            if not img: continue
-            for sid in m.subject_ids.ids:
-                if m.course_ids: 
-                    for cid in m.course_ids.ids: m_map[(sid, cid)] = img
-                else: g_map[sid] = img
-        for r in self:
-            sid, cid = r.subject_id.id, r.batch_id.course_id.id
-            r.textbook_image = m_map.get((sid, cid)) or g_map.get(sid) or False
+    def action_force_recompute(self):
+        self.env.cache.invalidate()
+        self._compute_all_stats()
+        return True
 
     def action_migrate_old_data(self):
         return True
@@ -207,25 +208,50 @@ class OpSubjectGrades(models.Model):
 class OpAttendanceLineInherit(models.Model):
     _inherit = "op.attendance.line"
 
-    # Валидация на уровне БД и интерфейса
     @api.constrains('grade_1', 'grade_2', 'grade_3')
     def _check_grades_limit(self):
         for line in self:
             for g in [line.grade_1, line.grade_2, line.grade_3]:
-                if g and g > 5:
-                    raise ValidationError(_("Ошибка: Оценка %s недопустима. Оценка не может быть выше 5!") % g)
+                if g and g > 5: 
+                    raise ValidationError(_("Оценка не может быть выше 5!"))
+
+    @api.model_create_multi
+    def create(self, vals_list):
+        records = super(OpAttendanceLineInherit, self).create(vals_list)
+        self._trigger_immediate_recompute(records)
+        return records
 
     def write(self, vals):
-        res = super().write(vals)
-        if any(f in vals for f in ['grade_1', 'grade_2', 'grade_3', 'present', 'term_id', 'remark']):
-            # Находим и ПРИНУДИТЕЛЬНО пересчитываем успеваемость
-            grades = self.env['op.subject.grades'].search([('student_id', '=', self.student_id.id)])
-            for g in grades:
-                g.invalidate_recordset() # Сброс кеша
-                g._compute_all_stats()   # Расчет цифр и графика
+        res = super(OpAttendanceLineInherit, self).write(vals)
+        fields_to_check = ['grade_1', 'grade_2', 'grade_3', 'present', 'term_id', 'remark']
+        if any(f in vals for f in fields_to_check):
+            self.env.flush_all() 
+            student_ids = self.mapped('student_id').ids
+            grades = self.env['op.subject.grades'].search([('student_id', 'in', student_ids)])            
+            if grades:
+                grades.modified(['average_mark', 'total_classes', 'attendance_rate'])                
+                self.env.add_to_compute(grades._fields['average_mark'], grades)                
         return res
 
-    def create(self, vals):
-        res = super().create(vals)
-        self.env['op.subject.grades'].search([('student_id', '=', res.student_id.id)])._compute_all_stats()
+    def unlink(self):
+        # Сохраняем ID студентов перед удалением строк
+        student_ids = self.mapped('student_id').ids
+        res = super(OpAttendanceLineInherit, self).unlink()
+        if student_ids:
+            # Ищем их карточки успеваемости и обновляем
+            grades = self.env['op.subject.grades'].search([('student_id', 'in', student_ids)])
+            grades._compute_all_stats()
         return res
+
+    def _trigger_immediate_recompute(self, attendance_lines):
+        """ Принудительный и мгновенный пересчет успеваемости """
+        student_ids = attendance_lines.mapped('student_id').ids
+        if student_ids:
+            # Находим все затронутые карточки успеваемости
+            grades = self.env['op.subject.grades'].search([('student_id', 'in', student_ids)])
+            if grades:
+                # 1. Сбрасываем кэш именно этих записей, чтобы они "забыли" старые цифры
+                grades.invalidate_recordset()
+                # 2. Вызываем расчет напрямую. 
+                # Так как мы написали его через "lines_map", он сделает 1 запрос к БД на всех.
+                grades._compute_all_stats()

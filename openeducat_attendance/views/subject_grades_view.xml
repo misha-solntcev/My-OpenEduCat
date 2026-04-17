@@ -158,28 +158,43 @@
 
                         <!-- ПЛИТКА 4: ИТОГО ЗА ГОД (Переехала в конец и стала светлой) -->
                         <div class="col-6 col-md-3">
-                            <div class="border rounded bg-white p-2 h-100 shadow-sm d-flex flex-column" 
-                                style="border: 1px dashed #ced4da !important; border-radius: 15px !important;">
+                            <!-- Общий фон плитки bg-light, как у всех остальных -->
+                            <div class="border rounded bg-light p-2 h-100 shadow-sm d-flex flex-column">
                                 
                                 <!-- Заголовок -->
-                                <div class="text-uppercase mb-2 fw-bold text-center" style="font-size: 0.7rem; letter-spacing: 1px; color: #adb5bd;">
+                                <div class="text-uppercase small fw-bold text-muted mb-2 text-center" style="font-size: 0.7rem; letter-spacing: 0.5px;">
                                     ИТОГ ЗА ГОД
                                 </div>
 
-                                <div class="row g-0 align-items-center flex-grow-1">
-                                    <!-- Лево: Средняя за год -->
-                                    <div class="col-5 border-end border-200 text-center">
-                                        <div style="font-size: 0.6rem; color: #adb5bd;" class="text-uppercase fw-bold mb-1">СРЕДНЯЯ</div>
-                                        <div class="h4 mb-0 fw-bold text-muted">
-                                            <field name="year_average_mark"/>
+                                <div class="row g-0 align-items-stretch flex-grow-1">
+                                    <!-- ЛЕВАЯ ЧАСТЬ: Список четвертей (Увеличили шрифт и уплотнили) -->
+                                    <div class="col-7 d-flex flex-column justify-content-center ps-1">
+                                        <div class="mb-1" style="white-space: nowrap;">
+                                            <span class="text-muted">1 четверть:</span>
+                                            <span class="fw-bold text-dark ms-1"><field name="q1_final_grade" placeholder="-"/></span>
+                                        </div>
+                                        <div class="mb-1" style="white-space: nowrap;">
+                                            <span class="text-muted">2 четверть:</span>
+                                            <span class="fw-bold text-dark ms-1"><field name="q2_final_grade" placeholder="-"/></span>
+                                        </div>
+                                        <div class="mb-1" style="white-space: nowrap;">
+                                            <span class="text-muted">3 четверть:</span>
+                                            <span class="fw-bold text-dark ms-1"><field name="q3_final_grade" placeholder="-"/></span>
+                                        </div>
+                                        <div style="white-space: nowrap;">
+                                            <span class="text-muted">4 четверть:</span>
+                                            <span class="fw-bold text-dark ms-1"><field name="q4_final_grade" placeholder="-"/></span>
                                         </div>
                                     </div>
 
-                                    <!-- Право: Годовая оценка -->
-                                    <div class="col-7 text-center">
-                                        <div style="font-size: 0.6rem; color: #adb5bd;" class="text-uppercase fw-bold mb-1">ОЦЕНКА</div>
-                                        <div class="h1 fw-bolder mb-0" style="color: #4D3A4D; line-height: 1;">
-                                            <field name="final_quarter_grade" placeholder="?"/>
+                                    <!-- ПРАВАЯ ЧАСТЬ: Белый остров с годовой оценкой (Стиль как во вкладках) -->
+                                    <div class="col-5 p-1">
+                                        <div class="bg-white h-100 rounded-3 shadow-sm d-flex flex-column justify-content-center text-center border border-white">
+                                            <div class="text-muted small mb-0" style="font-size: 0.6rem; font-weight: 600;">ГОДОВАЯ</div>
+                                            <!-- Большая фиолетовая цифра -->
+                                            <div class="display-4 fw-bolder mb-0" style="color: #714B67; line-height: 1;">
+                                                <field name="final_quarter_grade" placeholder="?"/>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
