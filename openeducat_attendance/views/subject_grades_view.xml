@@ -158,40 +158,57 @@
 
                         <!-- ПЛИТКА 4: ИТОГО ЗА ГОД (Переехала в конец и стала светлой) -->
                         <div class="col-6 col-md-3">
-                            <!-- Общий фон плитки bg-light, как у всех остальных -->
                             <div class="border rounded bg-light p-2 h-100 shadow-sm d-flex flex-column">
-                                
                                 <!-- Заголовок -->
                                 <div class="text-uppercase small fw-bold text-muted mb-2 text-center" style="font-size: 0.7rem; letter-spacing: 0.5px;">
                                     ИТОГ ЗА ГОД
                                 </div>
 
                                 <div class="row g-0 align-items-stretch flex-grow-1">
-                                    <!-- ЛЕВАЯ ЧАСТЬ: Список четвертей (Увеличили шрифт и уплотнили) -->
-                                    <div class="col-7 d-flex flex-column justify-content-center ps-1">
-                                        <div class="mb-1" style="white-space: nowrap;">
+                                    <!-- ЛЕВАЯ ЧАСТЬ: Список четвертей с точками -->
+                                    <div class="col-6 position-relative ps-4 d-flex flex-column justify-content-center">
+                                        <!-- Вертикальная серая линия-направляющая -->
+                                        <div style="position: absolute; left: 9px; top: 0%; bottom: 0%; width: 2px; background: #dee2e6; z-index: 1;"/>
+                                        
+                                        <!-- 1 четверть -->
+                                        <div class="mb-1 d-flex align-items-center" style="position: relative; z-index: 2; font-size: 0.9rem;">
+                                            <!-- Зеленая точка (показывается, если оценка есть) -->
+                                            <div class="rounded-circle shadow-sm" style="width: 14px; height: 14px; position: absolute; left: -21px; border: 2px solid white; background: #28a745;" invisible="not q1_final_grade"/>
+                                            <!-- Серая точка (показывается, если оценки нет) -->
+                                            <div class="rounded-circle" style="width: 14px; height: 14px; position: absolute; left: -21px; border: 2px solid white; background: #adb5bd;" invisible="q1_final_grade"/>
                                             <span class="text-muted">1 четверть:</span>
-                                            <span class="fw-bold text-dark ms-1"><field name="q1_final_grade" placeholder="-"/></span>
+                                            <span class="fw-bold text-dark ms-1"><field name="q1_final_grade" readonly="1" placeholder="-"/></span>
                                         </div>
-                                        <div class="mb-1" style="white-space: nowrap;">
+
+                                        <!-- 2 четверть -->
+                                        <div class="mb-1 d-flex align-items-center" style="position: relative; z-index: 2; font-size: 0.9rem;">
+                                            <div class="rounded-circle shadow-sm" style="width: 14px; height: 14px; position: absolute; left: -21px; border: 2px solid white; background: #28a745;" invisible="not q2_final_grade"/>
+                                            <div class="rounded-circle" style="width: 14px; height: 14px; position: absolute; left: -21px; border: 2px solid white; background: #adb5bd;" invisible="q2_final_grade"/>
                                             <span class="text-muted">2 четверть:</span>
-                                            <span class="fw-bold text-dark ms-1"><field name="q2_final_grade" placeholder="-"/></span>
+                                            <span class="fw-bold text-dark ms-1"><field name="q2_final_grade" readonly="1" placeholder="-"/></span>
                                         </div>
-                                        <div class="mb-1" style="white-space: nowrap;">
+
+                                        <!-- 3 четверть -->
+                                        <div class="mb-1 d-flex align-items-center" style="position: relative; z-index: 2; font-size: 0.9rem;">
+                                            <div class="rounded-circle shadow-sm" style="width: 14px; height: 1014pxpx; position: absolute; left: -21px; border: 2px solid white; background: #28a745;" invisible="not q3_final_grade"/>
+                                            <div class="rounded-circle" style="width: 14px; height: 14px; position: absolute; left: -21px; border: 2px solid white; background: #adb5bd;" invisible="q3_final_grade"/>
                                             <span class="text-muted">3 четверть:</span>
-                                            <span class="fw-bold text-dark ms-1"><field name="q3_final_grade" placeholder="-"/></span>
+                                            <span class="fw-bold text-dark ms-1"><field name="q3_final_grade" readonly="1" placeholder="-"/></span>
                                         </div>
-                                        <div style="white-space: nowrap;">
+
+                                        <!-- 4 четверть -->
+                                        <div class="d-flex align-items-center" style="position: relative; z-index: 2; font-size: 0.9rem;">
+                                            <div class="rounded-circle shadow-sm" style="width: 14px; height: 14px; position: absolute; left: -21px; border: 2px solid white; background: #28a745;" invisible="not q4_final_grade"/>
+                                            <div class="rounded-circle" style="width: 14px; height: 14px; position: absolute; left: -21px; border: 2px solid white; background: #adb5bd;" invisible="q4_final_grade"/>
                                             <span class="text-muted">4 четверть:</span>
-                                            <span class="fw-bold text-dark ms-1"><field name="q4_final_grade" placeholder="-"/></span>
+                                            <span class="fw-bold text-dark ms-1"><field name="q4_final_grade" readonly="1" placeholder="-"/></span>
                                         </div>
                                     </div>
 
-                                    <!-- ПРАВАЯ ЧАСТЬ: Белый остров с годовой оценкой (Стиль как во вкладках) -->
-                                    <div class="col-5 p-1">
+                                    <!-- ПРАВАЯ ЧАСТЬ: Итоговая оценка (белый остров) -->
+                                    <div class="col-6 p-1">
                                         <div class="bg-white h-100 rounded-3 shadow-sm d-flex flex-column justify-content-center text-center border border-white">
                                             <div class="text-muted small mb-0" style="font-size: 0.6rem; font-weight: 600;">ГОДОВАЯ</div>
-                                            <!-- Большая фиолетовая цифра -->
                                             <div class="display-4 fw-bolder mb-0" style="color: #714B67; line-height: 1;">
                                                 <field name="final_quarter_grade" placeholder="?"/>
                                             </div>
