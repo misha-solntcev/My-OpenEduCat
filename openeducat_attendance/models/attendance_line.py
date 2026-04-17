@@ -126,4 +126,125 @@ class OpAttendanceLine(models.Model):
         ('unique_student',
          'unique(student_id,attendance_id,attendance_date)',
          'Student must be unique per Attendance.'),
-    ]   
+    ]
+
+    @api.model
+    def get_aggregated_stats(self, domain):
+        """ Универсальный метод агрегации Odoo (как в Пивоте) """
+        # Считаем средние и суммы прямо в SQL
+        # В Odoo 18 для 'grade_avg:avg' нужно, чтобы у поля был aggregator="avg"
+        res = self.read_group(domain, 
+            ['grade_avg:avg', 'present:sum', 'absent:sum', 'late:sum', 'excused:sum', 'id:count'], 
+            []
+        )
+        if not res or not res[0]:
+            return {'avg': 0.0, 'present': 0, 'absent': 0, 'late': 0, 'excused': 0, 'total': 0}
+        
+        data = res[0]
+        return {
+            'avg': round(data.get('grade_avg', 0.0) or 0.0, 2),
+            'present': int(data.get('present', 0)),
+            'absent': int(data.get('absent', 0)),
+            'late': int(data.get('late', 0)),
+            'excused': int(data.get('excused', 0)),
+            'total': int(data.get('id_count', 0)),
+        }
+
+    @api.model
+    def get_stats_from_lines(self, lines):
+        """ Универсальный движок расчета: принимает RecordSet строк, возвращает словарь """
+        res = {
+            'avg': 0.0, 'total': len(lines),
+            'present': 0, 'absent': 0, 'late': 0, 'excused': 0,
+            'counts': {5: 0, 4: 0, 3: 0, 2: 0},
+            'last_remark': "—", 'last_date': False,
+            'html_summary': "",
+            'types_detailed': {}, 
+            'rate': 0.0,  # ДОБАВИЛИ ЭТОТ КЛЮЧ
+        }
+        if not lines: return res
+
+        sorted_l = lines.sorted('attendance_date', reverse=True)
+        res['last_date'] = sorted_l[0].attendance_date
+        
+        marks = []
+        type_counts = {}
+
+        for l in sorted_l:
+            if l.present: res['present'] += 1
+            if l.absent: res['absent'] += 1
+            if l.late: res['late'] += 1
+            if l.excused: res['excused'] += 1
+
+            if l.attendance_type_id:
+                name = l.attendance_type_id.name
+                type_counts[name] = type_counts.get(name, 0) + 1
+
+            for v in [l.grade_1, l.grade_2, l.grade_3]:
+                if v and 2 <= v <= 5:
+                    marks.append(v)
+                    res['counts'][int(v)] += 1
+            
+            if l.remark and res['last_remark'] == "—":
+                res['last_remark'] = l.remark
+
+        # Математика
+        res['avg'] = round(sum(marks) / len(marks), 2) if marks else 0.0
+        # РАСЧЕТ ПРОЦЕНТА (теперь записывается в словарь)
+        res['rate'] = round(res['present'] / res['total'] * 100, 2) if res['total'] > 0 else 0.0
+        
+        res['types_detailed'] = type_counts 
+
+        # Генерация HTML
+        html = []
+        p_count = type_counts.pop('Присутствует', 0)
+        if p_count:
+            html.append(f'<span class="badge rounded-pill me-2" style="background:#e8f5e9; color:#1b5e20; border:1px solid #c8e6c9; padding:4px 8px;">✅ Присутствовал: {p_count}</span>')
+        for name, count in type_counts.items():
+            color = "background:#fff3e0; color:#e65100;" if name in ['Прогул', 'Опоздал'] else "background:#f5f5f5; color:#666;"
+            html.append(f'<span class="badge rounded-pill me-1" style="padding:4px 8px; border:1px solid #ddd; {color}">{name}: {count}</span>')
+        res['html_summary'] = "".join(html)
+
+        return res
+
+    @api.model_create_multi
+    def create(self, vals_list):
+        # 1. Создаем записи
+        records = super(OpAttendanceLine, self).create(vals_list)
+        # 2. Сразу вызываем пересчет
+        records._trigger_immediate_recompute()
+        return records
+
+    def write(self, vals):
+        res = super(OpAttendanceLine, self).write(vals)
+        trigger_fields = ['grade_1', 'grade_2', 'grade_3', 'attendance_type_id', 'remark']
+        
+        if any(f in vals for f in trigger_fields):
+            # Находим записи успеваемости для всей "пачки" измененных строк
+            grades = self.env['op.subject.grades'].search([('student_id', 'in', self.student_id.ids)])
+            if grades:
+                # 1. Помечаем поля как требующие пересчета
+                grades.modified(['average_mark', 'attendance_rate', 'q1_average_mark'])
+                # 2. Сообщаем Odoo, что их нужно посчитать прямо сейчас (в этой транзакции)
+                # Это объединит 10 вызовов в 1
+                self.env.add_to_compute(grades._fields['average_mark'], grades)
+                self.env.add_to_compute(grades._fields['attendance_rate'], grades)
+        return res
+    def _trigger_immediate_recompute(self):
+        """ Вспомогательный метод для мгновенного обновления успеваемости """
+        # Находим всех затронутых студентов
+        student_ids = self.mapped('student_id').ids
+        if not student_ids:
+            return
+            
+        # Заставляем Odoo сбросить всё, что он запомнил, в базу данных (SQL)
+        self.env.flush_all()
+        
+        # Находим карточки успеваемости этих студентов
+        grades = self.env['op.subject.grades'].search([('student_id', 'in', student_ids)])
+        
+        if grades:
+            # Сбрасываем кэш, чтобы расчет увидел свежие данные из SQL
+            grades.invalidate_recordset()
+            # ВЫЗЫВАЕМ РАСЧЕТ НАПРЯМУЮ (как это делает кнопка)
+            grades._compute_all_stats()

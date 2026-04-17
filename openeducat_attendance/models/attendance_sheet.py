@@ -150,17 +150,14 @@ class OpAttendanceSheet(models.Model):
         store=True, aggregator="avg")
 
 
-    @api.depends('attendance_line', 'attendance_line.present')
+    @api.depends('attendance_line', 'attendance_line.attendance_type_id')
     def _compute_attendance_stats(self):
         for rec in self:
-            total = len(rec.attendance_line)
-            present = len(rec.attendance_line.filtered(lambda l: l.present))
-            
-            rec.total_students = total
-            rec.total_present = present
-            rec.total_absent = total - present
-            # Считаем процент здесь же
-            rec.attendance_rate = (present / total * 100) if total > 0 else 0.0
+            stats = self.env['op.attendance.line'].get_stats_from_lines(rec.attendance_line)
+            rec.total_students = stats['total']
+            rec.total_present = stats['present']
+            rec.total_absent = stats['absent']
+            rec.attendance_rate = stats['rate']
 
     @api.model_create_multi
     def create(self, vals_list):
