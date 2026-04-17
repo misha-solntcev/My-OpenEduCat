@@ -139,24 +139,52 @@ class OpSubjectGrades(models.Model):
     @api.depends('attendance_rate', 'q1_average_mark', 'q2_average_mark', 'q3_average_mark', 'q4_average_mark')
     def _compute_visuals(self):
         for rec in self:
-            # ПОЛОСКА (Восстановлено!)
+            # 1. Полоска посещаемости (без изменений)
             rate = rec.attendance_rate
             color = 'bg-success' if rate >= 80 else 'bg-warning' if rate >= 60 else 'bg-danger'
             rec.attendance_bar_html = f'<div class="progress" style="height:10px; background:#eee; border-radius:5px;"><div class="progress-bar {color}" style="width:{rate}%"></div></div>'
             
-            # ГРАФИК
+            # 2. УВЕЛИЧЕННЫЙ ГРАФИК
             q_avgs = [rec.q1_average_mark, rec.q2_average_mark, rec.q3_average_mark, rec.q4_average_mark]
+            # Увеличили h до 60, px растянули
+            w, h, px = 120, 60, [10, 43, 76, 110]
             coords = []
+            dots_html = []
+
             for i, val in enumerate(q_avgs):
-                if val > 0: coords.append((15 + i*30, 38 - (val-2)*7.6))
-            
-            if len(coords) < 1:
-                rec.year_progress_svg = '<div class="text-muted small">Нет данных</div>'
-                continue
-            
-            path = f"M {coords[0][0]} {coords[0][1]}"
-            for i in range(1, len(coords)): path += f" L {coords[i][0]} {coords[i][1]}"
-            rec.year_progress_svg = f"""<svg viewBox="0 0 120 40" class="w-100" style="height:35px;"><path d="{path}" fill="none" stroke="#714B67" stroke-width="2.5" stroke-linecap="round"/>{" ".join([f'<circle cx="{c[0]}" cy="{c[1]}" r="2" fill="#714B67"/>' for c in coords])}</svg>"""
+                x = px[i]
+                if val > 0:
+                    # Новая формула: 5.0 -> 10px, 2.0 -> 55px (размах 45px вместо 23px)
+                    y = 55 - ((val - 2) * 15)
+                    coords.append((x, y))
+                    dots_html.append(f'<circle cx="{x}" cy="{y}" r="3.5" fill="white" stroke="#714B67" stroke-width="2.5"/>')
+                else:
+                    # Пустые точки чуть ниже заголовка
+                    dots_html.append(f'<circle cx="{x}" cy="30" r="2" fill="#eee" stroke="#ddd" stroke-width="1"/>')
+
+            line_html = ""
+            area_html = ""
+            if len(coords) >= 2:
+                path_data = f"M {coords[0][0]} {coords[0][1]}"
+                for i in range(1, len(coords)):
+                    path_data += f" L {coords[i][0]} {coords[i][1]}"
+                
+                # Линия
+                line_html = f'<path d="{path_data}" fill="none" stroke="#714B67" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>'
+                
+                # Заливка под линией для объема
+                area_data = path_data + f" L {coords[-1][0]} {h} L {coords[0][0]} {h} Z"
+                area_html = f'<path d="{area_data}" fill="#714B67" fill-opacity="0.1"/>'
+
+            rec.year_progress_svg = f"""
+                <div style="width:100%; height:65px; display:flex; align-items:center; justify-content:center;">
+                    <svg viewBox="0 0 {w} {h}" preserveAspectRatio="xMidYMid meet" style="width:100%; height:60px;">
+                        {area_html}
+                        {line_html}
+                        {" ".join(dots_html)}
+                    </svg>
+                </div>
+            """
 
     # --- 3. БЫСТРЫЙ ПОИСК ОБЛОЖЕК (1 ЗАПРОС НА ВСЕХ) ---
     @api.depends('subject_id', 'batch_id')
