@@ -211,14 +211,29 @@ class OpSubjectGrades(models.Model):
         return True
 
     # --- ВСПОМОГАТЕЛЬНЫЕ МЕТОДЫ (Без изменений) ---
-    @api.depends('attendance_rate', 'q1_average_mark', 'q2_average_mark', 'q3_average_mark', 'q4_average_mark')
+    @api.depends('attendance_rate', 'q1_line_ids', 'q2_line_ids', 'q3_line_ids', 'q4_line_ids')
     def _compute_visuals(self):
+        if self.env.context.get('skip_compute'): return
         line_obj = self.env['op.attendance.line']
         for rec in self:
-            r = rec.attendance_rate; c = 'bg-success' if r >= 80 else 'bg-warning' if r >= 60 else 'bg-danger'
-            rec.attendance_bar_html = f'<div class="progress" style="height:10px; background:#eee;"><div class="progress-bar {c}" style="width:{r}%"></div></div>'
-            for i in range(1, 5): setattr(rec, f'q{i}_attendance_stats_html', line_obj.get_stats_from_lines(getattr(rec, f'q{i}_line_ids'))['html_summary'])
+            # 1. Сбор всех строк для расчетов
+            all_l = rec.q1_line_ids | rec.q2_line_ids | rec.q3_line_ids | rec.q4_line_ids
+            
+            # 2. Обновление текстовых сводок по четвертям (бейджи снизу)
+            for i in range(1, 5):
+                q_stats = line_obj.get_stats_from_lines(getattr(rec, f'q{i}_line_ids'))
+                setattr(rec, f'q{i}_attendance_stats_html', q_stats['html_summary'])
+            
+            # 3. Генератор линейного графика (уже был)
             rec.year_progress_svg = self._generate_svg_graph(rec)
+            
+            # 4. Генератор круговой диаграммы (новый)
+            rec.attendance_donut_svg = self._generate_attendance_donut(rec)
+            
+            # 5. Старый прогресс-бар (оставим для совместимости)
+            r = rec.attendance_rate
+            c = 'bg-success' if r >= 80 else 'bg-warning' if r >= 60 else 'bg-danger'
+            rec.attendance_bar_html = f'<div class="progress" style="height:10px; background:#eee;"><div class="progress-bar {c}" style="width:{r}%"></div></div>'
 
     def _generate_svg_graph(self, rec):
         """ 
@@ -279,6 +294,58 @@ class OpSubjectGrades(models.Model):
             """
         
         return f'<svg viewBox="0 0 400 160" preserveAspectRatio="xMidYMid meet" style="width:100%; height:100px; display:block;">{grid}{path_html}{"".join(dots)}</svg>'
+
+    def _generate_attendance_donut(self, rec):
+        """ Генерирует кольцевую диаграмму посещаемости """
+        stats = self.env['op.attendance.line'].get_stats_from_lines(rec.q1_line_ids | rec.q2_line_ids | rec.q3_line_ids | rec.q4_line_ids)
+        total = stats['total']
+        
+        if total == 0:
+            return '<div class="text-muted small text-center py-3">Нет данных</div>'
+
+        # Данные в процентах (длина окружности = 100)
+        p = (stats['present'] / total) * 100
+        l = (stats['late'] / total) * 100
+        e = (stats['excused'] / total) * 100
+        a = (stats['absent'] / total) * 100
+
+        # Смещения сегментов
+        off_l = -p
+        off_e = -(p + l)
+        off_a = -(p + l + e)
+
+        # Цвета: Зеленый, Желтый, Голубой, Красный
+        svg = f"""
+        <div class="d-flex align-items-center justify-content-center w-100 py-1">
+            <svg width="80" height="80" viewBox="0 0 42 42" style="transform: rotate(-90deg); flex-shrink: 0;">
+                <circle cx="21" cy="21" r="15.915" fill="transparent" stroke="#f3f3f3" stroke-width="4"></circle>
+                
+                <circle cx="21" cy="21" r="15.915" fill="transparent" stroke="#28a745" stroke-width="6" 
+                        stroke-dasharray="{p} {100-p}" stroke-dashoffset="0"></circle>
+                
+                <circle cx="21" cy="21" r="15.915" fill="transparent" stroke="#ffc107" stroke-width="6" 
+                        stroke-dasharray="{l} {100-l}" stroke-dashoffset="{off_l}"></circle>
+                
+                <circle cx="21" cy="21" r="15.915" fill="transparent" stroke="#17a2b8" stroke-width="6" 
+                        stroke-dasharray="{e} {100-e}" stroke-dashoffset="{off_e}"></circle>
+                
+                <circle cx="21" cy="21" r="15.915" fill="transparent" stroke="#dc3545" stroke-width="6" 
+                        stroke-dasharray="{a} {100-a}" stroke-dashoffset="{off_a}"></circle>
+                
+                <g style="transform: rotate(90deg) translate(0, -42px);">
+                    <text x="21" y="24" text-anchor="middle" font-size="9" font-weight="bold" fill="#333">{int(p)}%</text>
+                </g>
+            </svg>
+            
+            <div class="ms-3 small" style="line-height: 1.4; font-size: 0.8rem;">
+                <div class="d-flex align-items-center"><span class="me-2" style="width:8px; height:8px; background:#28a745; border-radius:50%;"></span>Был: <b>{stats['present']}</b></div>
+                <div class="d-flex align-items-center"><span class="me-2" style="width:8px; height:8px; background:#ffc107; border-radius:50%;"></span>Опзд: <b>{stats['late']}</b></div>
+                <div class="d-flex align-items-center"><span class="me-2" style="width:8px; height:8px; background:#17a2b8; border-radius:50%;"></span>Уваж: <b>{stats['excused']}</b></div>
+                <div class="d-flex align-items-center"><span class="me-2" style="width:8px; height:8px; background:#dc3545; border-radius:50%;"></span>Прог: <b>{stats['absent']}</b></div>
+            </div>
+        </div>
+        """
+        return svg
 
     @api.depends('subject_id', 'batch_id')
     def _compute_faculty_id(self):

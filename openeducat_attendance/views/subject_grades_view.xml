@@ -171,14 +171,10 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="col-6 col-md-3">
-                            <div class="border rounded bg-light p-2 h-100 shadow">
-                                <div class="text-uppercase small fw-bold text-muted mb-1">
-                                    Посещаемость</div>
-                                <div class="mb-1"><field name="attendance_rate" widget="badge"
-                                        decoration-success="attendance_rate >= 80"
-                                        decoration-danger="attendance_rate &lt; 60" /> %</div>
-                                <field name="attendance_bar_html" nolabel="1" />
+                       <div class="col-6 col-md-3">
+                            <div class="border rounded bg-white p-2 h-100 shadow-sm">
+                                <div class="text-uppercase small fw-bold text-muted mb-2 text-center" style="font-size: 0.75rem;">Посещаемость</div>
+                                <field name="attendance_donut_svg" widget="html" nolabel="1"/>
                             </div>
                         </div>
                         <div class="col-6 col-md-3">
