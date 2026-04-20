@@ -197,7 +197,7 @@ class OpAttendanceLine(models.Model):
 
         # Генерация HTML
         html = []
-        p_count = type_counts.pop('Присутствует', 0)
+        p_count = type_counts.get('Присутствует', 0)
         if p_count:
             html.append(f'<span class="badge rounded-pill me-2" style="background:#e8f5e9; color:#1b5e20; border:1px solid #c8e6c9; padding:4px 8px;">✅ Присутствовал: {p_count}</span>')
         for name, count in type_counts.items():

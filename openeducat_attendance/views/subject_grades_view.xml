@@ -127,7 +127,7 @@
                 </header>
                 <sheet>
                     <div class="d-flex align-items-start mb-4">
-                        <field name="student_avatar" widget="image" class="oe_avatar shadow-sm me-3"
+                        <field name="student_avatar" widget="image" class="oe_avatar shadow me-3"
                             style="width: 85px; height: 85px; border-radius: 10%; object-fit: cover;" />
                         <div class="flex-grow-1">
                             <div class="d-flex align-items-center mb-1">
@@ -162,21 +162,22 @@
                     </div>
 
                     <div class="row g-2 mb-4 text-center">
+                        <!-- ПЛИТКА 1: ПОСЕЩАЕМОСТЬ -->
                         <div class="col-6 col-md-3">
                             <div class="border rounded bg-light p-2 h-100 shadow">
-                                <div class="text-uppercase small fw-bold text-muted mb-1">Последний
-                                    визит</div>
-                                <div class="h5 mb-0 fw-bold text-dark">
-                                    <field name="last_attendance_date" />
-                                </div>
-                            </div>
-                        </div>
-                       <div class="col-6 col-md-3">
-                            <div class="border rounded bg-white p-2 h-100 shadow-sm">
-                                <div class="text-uppercase small fw-bold text-muted mb-2 text-center" style="font-size: 0.75rem;">Посещаемость</div>
+                                <div class="text-uppercase small fw-bold text-muted mb-2">Посещаемость</div>                                
                                 <field name="attendance_donut_svg" widget="html" nolabel="1"/>
                             </div>
                         </div>
+
+                        <!-- ПЛИТКА 2: ГИСТОГРАММА ОЦЕНОК -->
+                        <div class="col-6 col-md-3">
+                            <div class="border rounded bg-light p-2 h-100 shadow">
+                                <div class="text-uppercase small fw-bold text-muted mb-2">Успеваемость</div>
+                                <field name="grades_histogram_svg" widget="html" nolabel="1"/>
+                            </div>
+                        </div>
+
                         <div class="col-6 col-md-3">
                             <div class="border rounded bg-light p-2 h-100 shadow">
                                 <div class="text-uppercase small fw-bold text-muted mb-1">Динамика</div>
@@ -186,7 +187,7 @@
 
                         <div class="col-6 col-md-3">
                             <div class="border rounded bg-light p-2 h-100 shadow d-flex flex-column">
-                                <div class="text-uppercase small fw-bold text-muted mb-2 text-center" style="font-size: 1rem; letter-spacing: 0.5px;">
+                                <div class="text-uppercase small fw-bold text-muted mb-2">
                                     ИТОГО ЗА ГОД
                                 </div>
 
@@ -312,14 +313,7 @@
                                     </div>
                                 </div>
                             </div>
-                            <div class="alert alert-info py-2 mb-3 d-flex align-items-center" role="alert">
-                                <i class="fa fa-info-circle fa-lg me-3" title="Info"/>
-                                <div>
-                                    <strong>Посещаемость:</strong>
-                                    <field name="q1_attendance_stats_html" widget="html"
-                                        class="d-inline-block ms-2" />
-                                </div>
-                            </div>
+                            
                             <field name="q1_line_ids" readonly="0">
                                 <list editable="bottom" create="false" delete="false">
                                     <field name="attendance_date" readonly="1" />

@@ -55,6 +55,7 @@ class OpSubjectGrades(models.Model):
     attendance_bar_html = fields.Html(compute='_compute_visuals', sanitize=False)
     year_progress_svg = fields.Html(compute='_compute_visuals', sanitize=False)
     attendance_donut_svg = fields.Html(compute='_compute_visuals', sanitize=False)
+    grades_histogram_svg = fields.Html(compute='_compute_visuals', sanitize=False)
     q1_attendance_stats_html = fields.Html(compute='_compute_visuals', sanitize=False)
     q2_attendance_stats_html = fields.Html(compute='_compute_visuals', sanitize=False)
     q3_attendance_stats_html = fields.Html(compute='_compute_visuals', sanitize=False)
@@ -218,6 +219,7 @@ class OpSubjectGrades(models.Model):
         for rec in self:
             # 1. Сбор всех строк для расчетов
             all_l = rec.q1_line_ids | rec.q2_line_ids | rec.q3_line_ids | rec.q4_line_ids
+            stats = line_obj.get_stats_from_lines(all_l)
             
             # 2. Обновление текстовых сводок по четвертям (бейджи снизу)
             for i in range(1, 5):
@@ -229,6 +231,9 @@ class OpSubjectGrades(models.Model):
             
             # 4. Генератор круговой диаграммы (новый)
             rec.attendance_donut_svg = self._generate_attendance_donut(rec)
+
+            # Гистограмма оценок
+            rec.grades_histogram_svg = self._generate_grades_histogram(stats)
             
             # 5. Старый прогресс-бар (оставим для совместимости)
             r = rec.attendance_rate
@@ -296,56 +301,87 @@ class OpSubjectGrades(models.Model):
         return f'<svg viewBox="0 0 400 160" preserveAspectRatio="xMidYMid meet" style="width:100%; height:100px; display:block;">{grid}{path_html}{"".join(dots)}</svg>'
 
     def _generate_attendance_donut(self, rec):
-        """ Генерирует кольцевую диаграмму посещаемости """
-        stats = self.env['op.attendance.line'].get_stats_from_lines(rec.q1_line_ids | rec.q2_line_ids | rec.q3_line_ids | rec.q4_line_ids)
+        """ Генерирует сплошную круговую диаграмму (Pie Chart) с компактной легендой """
+        line_obj = self.env['op.attendance.line']
+        stats = line_obj.get_stats_from_lines(rec.q1_line_ids | rec.q2_line_ids | rec.q3_line_ids | rec.q4_line_ids)
         total = stats['total']
+        if total == 0: return '<div class="text-muted small text-center py-3">Нет данных</div>'
+
+        # Цветовая карта (названия должны совпадать с БД)
+        color_map = {
+            'Присутствует': '#28a745', 'Дистанционно': '#a5d6a7', 'Опоздал': '#ffc107',
+            'Болеет': '#9c27b0', 'Уважительная причина': '#17a2b8', 'Прогул': '#dc3545',
+        }
+        # Очистка ключей от возможных пробелов
+        detailed = {k.strip(): v for k, v in stats.get('types_detailed', {}).items()}
         
-        if total == 0:
-            return '<div class="text-muted small text-center py-3">Нет данных</div>'
+        segments = []
+        current_offset = 0
+        legend_html = ""
 
-        # Данные в процентах (длина окружности = 100)
-        p = (stats['present'] / total) * 100
-        l = (stats['late'] / total) * 100
-        e = (stats['excused'] / total) * 100
-        a = (stats['absent'] / total) * 100
+        for label, color in color_map.items():
+            count = detailed.get(label, 0)
+            if count > 0:
+                percent = (count / total) * 100
+                # stroke-width="31.8" делает круг полностью закрашенным (без дырки)
+                segments.append(f"""
+                    <circle cx="21" cy="21" r="15.915" fill="transparent" 
+                            stroke="{color}" stroke-width="31.8" 
+                            stroke-dasharray="{percent} {100-percent}" 
+                            stroke-dashoffset="-{current_offset}"></circle>
+                """)
+                current_offset += percent
+                # Добавляем в легенду только если count > 0
+                legend_html += f"""
+                    <div class="col-6 d-flex align-items-center mb-1" style="font-size: 0.7rem; line-height: 1.1;">
+                        <span style="width:8px; height:8px; background:{color}; border-radius:2px; flex-shrink:0;" class="me-1"></span>
+                        <span class="text-truncate" title="{label}">{label}: <b>{count}</b></span>
+                    </div>"""
 
-        # Смещения сегментов
-        off_l = -p
-        off_e = -(p + l)
-        off_a = -(p + l + e)
-
-        # Цвета: Зеленый, Желтый, Голубой, Красный
-        svg = f"""
-        <div class="d-flex align-items-center justify-content-center w-100 py-1">
-            <svg width="80" height="80" viewBox="0 0 42 42" style="transform: rotate(-90deg); flex-shrink: 0;">
-                <circle cx="21" cy="21" r="15.915" fill="transparent" stroke="#f3f3f3" stroke-width="4"></circle>
-                
-                <circle cx="21" cy="21" r="15.915" fill="transparent" stroke="#28a745" stroke-width="6" 
-                        stroke-dasharray="{p} {100-p}" stroke-dashoffset="0"></circle>
-                
-                <circle cx="21" cy="21" r="15.915" fill="transparent" stroke="#ffc107" stroke-width="6" 
-                        stroke-dasharray="{l} {100-l}" stroke-dashoffset="{off_l}"></circle>
-                
-                <circle cx="21" cy="21" r="15.915" fill="transparent" stroke="#17a2b8" stroke-width="6" 
-                        stroke-dasharray="{e} {100-e}" stroke-dashoffset="{off_e}"></circle>
-                
-                <circle cx="21" cy="21" r="15.915" fill="transparent" stroke="#dc3545" stroke-width="6" 
-                        stroke-dasharray="{a} {100-a}" stroke-dashoffset="{off_a}"></circle>
-                
-                <g style="transform: rotate(90deg) translate(0, -42px);">
-                    <text x="21" y="24" text-anchor="middle" font-size="9" font-weight="bold" fill="#333">{int(p)}%</text>
-                </g>
-            </svg>
-            
-            <div class="ms-3 small" style="line-height: 1.4; font-size: 0.8rem;">
-                <div class="d-flex align-items-center"><span class="me-2" style="width:8px; height:8px; background:#28a745; border-radius:50%;"></span>Был: <b>{stats['present']}</b></div>
-                <div class="d-flex align-items-center"><span class="me-2" style="width:8px; height:8px; background:#ffc107; border-radius:50%;"></span>Опзд: <b>{stats['late']}</b></div>
-                <div class="d-flex align-items-center"><span class="me-2" style="width:8px; height:8px; background:#17a2b8; border-radius:50%;"></span>Уваж: <b>{stats['excused']}</b></div>
-                <div class="d-flex align-items-center"><span class="me-2" style="width:8px; height:8px; background:#dc3545; border-radius:50%;"></span>Прог: <b>{stats['absent']}</b></div>
+        return f"""
+        <div class="w-100">
+            <div class="d-flex align-items-center justify-content-center mb-2">
+                <svg width="80" height="80" viewBox="0 0 42 42" style="transform: rotate(-90deg); border-radius: 50%;">
+                    <circle cx="21" cy="21" r="15.915" fill="#f8f9fa"></circle>
+                    {"".join(segments)}
+                </svg>
             </div>
-        </div>
-        """
-        return svg
+            <div class="row g-0 border-top pt-2">{legend_html}</div>
+        </div>"""
+
+    def _generate_grades_histogram(self, stats):
+        """ Генерирует гистограмму оценок с правильными отступами для цифр """
+        counts = stats['counts']
+        max_count = max(counts.values()) or 1
+        colors = {5: "#28a745", 4: "#007bff", 3: "#ffc107", 2: "#dc3545"}
+        labels = {5: "5", 4: "4", 3: "3", 2: "2"}
+        
+        top_margin = 20    # Запас места сверху для цифр
+        bar_area_h = 50    
+        bottom_margin = 20 
+        
+        svg_width = 130
+        svg_total_height = top_margin + bar_area_h + bottom_margin
+        bar_width = 20
+        gap = 8
+        bars_html = ""
+
+        for i, grade in enumerate([5, 4, 3, 2]):
+            val = counts[grade]
+            h = (val / max_count) * bar_area_h
+            x = i * (bar_width + gap) + 15
+            y_bar_top = top_margin + (bar_area_h - h)
+            
+            bars_html += f"""
+                <rect x="{x}" y="{y_bar_top}" width="{bar_width}" height="{h}" fill="{colors[grade]}" rx="3"></rect>
+                <text x="{x + bar_width/2}" y="{y_bar_top - 5}" text-anchor="middle" font-size="11" fill="#333" font-weight="bold">
+                    {val if val > 0 else ''}
+                </text>
+                <text x="{x + bar_width/2}" y="{top_margin + bar_area_h + 15}" text-anchor="middle" font-size="10" fill="#999">
+                    {labels[grade]}
+                </text>
+            """
+        return f'<div class="d-flex flex-column align-items-center justify-content-center w-100"><svg width="{svg_width}" height="{svg_total_height}" viewBox="0 0 {svg_width} {svg_total_height}">{bars_html}</svg></div>'
 
     @api.depends('subject_id', 'batch_id')
     def _compute_faculty_id(self):
