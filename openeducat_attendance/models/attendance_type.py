@@ -30,6 +30,7 @@ class OpAttendanceType(models.Model):
     name = fields.Char(
         'Name', size=20, required=True, tracking=True)
     sequence = fields.Integer('Последовательность', default=10)
+    color = fields.Integer('Цвет')
     active = fields.Boolean(default=True)
     present = fields.Boolean(
         'Present ?', tracking=True)

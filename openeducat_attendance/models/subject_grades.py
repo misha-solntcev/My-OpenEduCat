@@ -20,8 +20,8 @@ class OpSubjectGrades(models.Model):
     marks = fields.Char('Marks Old'); behaviors = fields.Char('Behaviors Old')
     attendance_dates = fields.Text('Attendance Dates Old'); lesson_topics = fields.Text('Lesson Topics Old')
     
-    student_avatar = fields.Image(related='student_id.image_128')
-    faculty_avatar = fields.Image(related='faculty_id.image_128')
+    student_avatar = fields.Image(related='student_id.image_128', string="Фото ученика")
+    faculty_avatar = fields.Image(related='faculty_id.image_128', string="Фото учителя")
     textbook_image = fields.Image('Учебник', compute='_compute_textbook_image', store=True)
     student_name_short = fields.Char('Имя', compute='_compute_student_name_short', store=True)
     
@@ -54,6 +54,7 @@ class OpSubjectGrades(models.Model):
 
     attendance_bar_html = fields.Html(compute='_compute_visuals', sanitize=False)
     year_progress_svg = fields.Html(compute='_compute_visuals', sanitize=False)
+    attendance_donut_svg = fields.Html(compute='_compute_visuals', sanitize=False)
     q1_attendance_stats_html = fields.Html(compute='_compute_visuals', sanitize=False)
     q2_attendance_stats_html = fields.Html(compute='_compute_visuals', sanitize=False)
     q3_attendance_stats_html = fields.Html(compute='_compute_visuals', sanitize=False)
@@ -132,82 +133,82 @@ class OpSubjectGrades(models.Model):
                 rec.update({f'q{i}_average_mark': qs['avg'], f'q{i}_last_remark': qs['last_remark'], f'q{i}_count_5': qs['counts'][5], f'q{i}_count_4': qs['counts'][4], f'q{i}_count_3': qs['counts'][3], f'q{i}_count_2': qs['counts'][2]})
 
     # --- МИГРАЦИЯ (ЖЕСТКАЯ ЛОГИКА) ---
-    # def action_migrate_old_data(self):
-    #     """ 
-    #     Турбо-мигратор с подавлением всех расчетов Odoo.
-    #     """
-    #     import re
-    #     from datetime import datetime
-    #     date_pattern = re.compile(r'^\d{4}-\d{2}-\d{2}$')
+    def action_migrate_old_data(self):
+        """ 
+        Турбо-мигратор с подавлением всех расчетов Odoo.
+        """
+        import re
+        from datetime import datetime
+        date_pattern = re.compile(r'^\d{4}-\d{2}-\d{2}$')
         
-    #     recs = self.sudo().search([('table_entries', '!=', False)])
-    #     total = len(recs)
-    #     _logger.info(f">>> СТАРТ ТУРБО-МИГРАЦИИ: {total} записей.")
+        recs = self.sudo().search([('table_entries', '!=', False)])
+        total = len(recs)
+        _logger.info(f">>> СТАРТ ТУРБО-МИГРАЦИИ: {total} записей.")
 
-    #     present_type = self.env['op.attendance.type'].sudo().search([('present', '=', True)], limit=1)
+        present_type = self.env['op.attendance.type'].sudo().search([('present', '=', True)], limit=1)
         
-    #     # 1. Загружаем все данные в кэш один раз
-    #     all_lines = self.env['op.attendance.line'].sudo().search([
-    #         ('student_id', 'in', recs.mapped('student_id').ids),
-    #         ('subject_id', 'in', recs.mapped('subject_id').ids)
-    #     ])
-    #     line_cache = {(l.student_id.id, l.subject_id.id, str(l.attendance_date)): l for l in all_lines}
+        # 1. Загружаем все данные в кэш один раз
+        all_lines = self.env['op.attendance.line'].sudo().search([
+            ('student_id', 'in', recs.mapped('student_id').ids),
+            ('subject_id', 'in', recs.mapped('subject_id').ids)
+        ])
+        line_cache = {(l.student_id.id, l.subject_id.id, str(l.attendance_date)): l for l in all_lines}
 
-    #     all_sheets = self.env['op.attendance.sheet'].sudo().search([
-    #         ('subject_id', 'in', recs.mapped('subject_id').ids),
-    #         ('batch_id', 'in', recs.mapped('batch_id').ids)
-    #     ])
-    #     sheet_cache = {(str(s.attendance_date), s.subject_id.id, s.batch_id.id): s.id for s in all_sheets}
+        all_sheets = self.env['op.attendance.sheet'].sudo().search([
+            ('subject_id', 'in', recs.mapped('subject_id').ids),
+            ('batch_id', 'in', recs.mapped('batch_id').ids)
+        ])
+        sheet_cache = {(str(s.attendance_date), s.subject_id.id, s.batch_id.id): s.id for s in all_sheets}
 
-    #     # 2. Обработка порциями (batch)
-    #     chunk_size = 50
-    #     for i in range(0, total, chunk_size):
-    #         chunk = recs[i:i + chunk_size]
+        # 2. Обработка порциями (batch)
+        chunk_size = 50
+        for i in range(0, total, chunk_size):
+            chunk = recs[i:i + chunk_size]
             
-    #         # Отключаем ВСЕ вычисления и трекинг внутри пачки
-    #         for record in chunk.with_context(skip_compute=True, tracking_disable=True, mail_notrack=True, no_recompute=True):
-    #             entries = record.table_entries.split(', ')
-    #             for entry in entries:
-    #                 parts = [p.strip() for p in entry.split('|')]
-    #                 if not parts or not date_pattern.match(parts[0]): continue
+            # Отключаем ВСЕ вычисления и трекинг внутри пачки
+            for record in chunk.with_context(skip_compute=True, tracking_disable=True, mail_notrack=True, no_recompute=True):
+                entries = record.table_entries.split(', ')
+                for entry in entries:
+                    parts = [p.strip() for p in entry.split('|')]
+                    if not parts or not date_pattern.match(parts[0]): continue
                     
-    #                 date_str = parts[0]
-    #                 vals = {}
-    #                 if len(parts) > 1 and parts[1] and parts[1][0].isdigit(): vals['grade_1'] = float(parts[1][0])
-    #                 if len(parts) > 2 and parts[2] and parts[2][0].isdigit(): vals['grade_2'] = float(parts[2][0])
-    #                 if len(parts) > 8 and parts[8]: vals['remark'] = parts[8]
-    #                 if '✓' in entry and present_type: vals['attendance_type_id'] = present_type.id
+                    date_str = parts[0]
+                    vals = {}
+                    if len(parts) > 1 and parts[1] and parts[1][0].isdigit(): vals['grade_1'] = float(parts[1][0])
+                    if len(parts) > 2 and parts[2] and parts[2][0].isdigit(): vals['grade_2'] = float(parts[2][0])
+                    if len(parts) > 8 and parts[8]: vals['remark'] = parts[8]
+                    if '✓' in entry and present_type: vals['attendance_type_id'] = present_type.id
                     
-    #                 if not vals: continue
+                    if not vals: continue
 
-    #                 line = line_cache.get((record.student_id.id, record.subject_id.id, date_str))
-    #                 if line:
-    #                     line.write(vals)
-    #                 else:
-    #                     sheet_id = sheet_cache.get((date_str, record.subject_id.id, record.batch_id.id))
-    #                     if sheet_id:
-    #                         cv = {'attendance_id': sheet_id, 'student_id': record.student_id.id}
-    #                         cv.update(vals)
-    #                         self.env['op.attendance.line'].create(cv)
+                    line = line_cache.get((record.student_id.id, record.subject_id.id, date_str))
+                    if line:
+                        line.write(vals)
+                    else:
+                        sheet_id = sheet_cache.get((date_str, record.subject_id.id, record.batch_id.id))
+                        if sheet_id:
+                            cv = {'attendance_id': sheet_id, 'student_id': record.student_id.id}
+                            cv.update(vals)
+                            self.env['op.attendance.line'].create(cv)
 
-    #         self.env.cr.commit()
-    #         _logger.info(f"--- Мигрировано {min(i + chunk_size, total)} из {total}")
+            self.env.cr.commit()
+            _logger.info(f"--- Мигрировано {min(i + chunk_size, total)} из {total}")
 
-    #     _logger.info(">>> ВСЁ! Нажмите 'Обновить статистику' для отрисовки.")
-    #     return {'type': 'ir.actions.client', 'tag': 'display_notification', 'params': {'title': 'Готово', 'message': 'Оценки перенесены. Запустите пересчет.', 'type': 'success'}}
+        _logger.info(">>> ВСЁ! Нажмите 'Обновить статистику' для отрисовки.")
+        return {'type': 'ir.actions.client', 'tag': 'display_notification', 'params': {'title': 'Готово', 'message': 'Оценки перенесены. Запустите пересчет.', 'type': 'success'}}
 
-    # def action_force_recompute(self):
-    #     all_recs = self if self else self.search([])
-    #     total = len(all_recs)
-    #     batch_size = 50
-    #     for i in range(0, total, batch_size):
-    #         batch = all_recs[i:i + batch_size]
-    #         batch.invalidate_recordset()
-    #         batch._compute_line_ids()
-    #         batch._compute_all_stats()
-    #         self.env.cr.commit()
-    #         _logger.info(f"--- Статистика: {i + len(batch)} из {total}")
-    #     return True
+    def action_force_recompute(self):
+        all_recs = self if self else self.search([])
+        total = len(all_recs)
+        batch_size = 50
+        for i in range(0, total, batch_size):
+            batch = all_recs[i:i + batch_size]
+            batch.invalidate_recordset()
+            batch._compute_line_ids()
+            batch._compute_all_stats()
+            self.env.cr.commit()
+            _logger.info(f"--- Статистика: {i + len(batch)} из {total}")
+        return True
 
     # --- ВСПОМОГАТЕЛЬНЫЕ МЕТОДЫ (Без изменений) ---
     @api.depends('attendance_rate', 'q1_average_mark', 'q2_average_mark', 'q3_average_mark', 'q4_average_mark')
@@ -287,110 +288,19 @@ class OpSubjectGrades(models.Model):
 
     @api.depends('subject_id', 'batch_id')
     def _compute_textbook_image(self):
-        for r in self:
-            m = self.env['op.media'].search([('subject_ids', 'in', r.subject_id.ids)], limit=1)
+        for r in self:        
+            m = self.env['op.media'].search([
+                ('subject_ids', 'in', r.subject_id.ids),
+                ('course_ids', 'in', r.batch_id.course_id.ids)
+            ], limit=1)        
+            
+            if not m:
+                m = self.env['op.media'].search([('subject_ids', 'in', r.subject_id.ids)], limit=1)
+                
             r.textbook_image = m.x_image_128 if m else False
+
 
     @api.depends('student_id')
     def _compute_student_name_short(self):
         for r in self: r.student_name_short = (f"{r.student_id.first_name or ''} {r.student_id.last_name or ''}").strip()
 
-
-
-
-    def action_migrate_old_data(self):
-        import re
-        date_pattern = re.compile(r'^\d{4}-\d{2}-\d{2}$')
-        all_records = self.sudo().search([('table_entries', '!=', False)])
-        present_type = self.env['op.attendance.type'].sudo().search([('present', '=', True)], limit=1)
-        
-        _logger.info(f">>> СТАРТ ТУРБО-МИГРАЦИИ: {len(all_records)} записей.")
-
-        batch_size = 50
-        for i in range(0, len(all_records), batch_size):
-            batch = all_records[i:i + batch_size]
-            
-            # Кэшируем всё для текущей пачки
-            all_lines = self.env['op.attendance.line'].sudo().search([
-                ('student_id', 'in', batch.mapped('student_id').ids),
-                ('subject_id', 'in', batch.mapped('subject_id').ids)
-            ])
-            # Кэш теперь глобальный для пачки, чтобы видеть изменения
-            line_cache = {(l.student_id.id, l.subject_id.id, str(l.attendance_date)): l for l in all_lines}
-
-            all_sheets = self.env['op.attendance.sheet'].sudo().search([
-                ('subject_id', 'in', batch.mapped('subject_id').ids),
-                ('batch_id', 'in', batch.mapped('batch_id').ids)
-            ])
-            sheet_cache = {(str(s.attendance_date), s.subject_id.id, s.batch_id.id): s for s in all_sheets}
-
-            for record in batch:
-                if not record.table_entries: continue
-                # Очищаем записи от возможных дублей внутри самой строки
-                entries = record.table_entries.split(', ')
-                
-                for entry in entries:
-                    parts = [p.strip() for p in entry.split('|')]
-                    if not parts or not date_pattern.match(parts[0]): continue
-                    
-                    date_str = parts[0]
-                    vals = {}
-                    if len(parts) > 1 and parts[1] and parts[1][0].isdigit(): vals['grade_1'] = float(parts[1][0])
-                    if len(parts) > 2 and parts[2] and parts[2][0].isdigit(): vals['grade_2'] = float(parts[2][0])
-                    if len(parts) > 8 and parts[8]: vals['remark'] = parts[8]
-                    if '✓' in entry and present_type: vals['attendance_type_id'] = present_type.id
-                    
-                    if not vals: continue
-
-                    # ПРОВЕРКА: Существует ли уже такая строка в базе ИЛИ в нашей текущей транзакции
-                    key = (record.student_id.id, record.subject_id.id, date_str)
-                    line = line_cache.get(key)
-                    
-                    if line:
-                        # Если строка уже есть - просто обновляем (не создаем дубль!)
-                        line.with_context(skip_compute=True).write(vals)
-                    else:
-                        # Если строки нет, ищем журнал
-                        sheet = sheet_cache.get((date_str, record.subject_id.id, record.batch_id.id))
-                        if sheet:
-                            try:
-                                cv = {'attendance_id': sheet.id, 'student_id': record.student_id.id, 'attendance_type_id': present_type.id}
-                                cv.update(vals)
-                                new_line = self.env['op.attendance.line'].with_context(skip_compute=True).create(cv)
-                                # ВАЖНО: Добавляем новую строку в кэш СРАЗУ, чтобы не создать её повторно
-                                line_cache[key] = new_line
-                            except Exception as e:
-                                _logger.error(f"Не удалось создать строку: {e}")
-
-            self.env.cr.commit()
-            _logger.info(f"--- Мигрировано пачка {i//batch_size + 1}")
-
-        self.action_force_recompute()
-        return {'type': 'ir.actions.client', 'tag': 'display_notification', 'params': {'title': 'Успех', 'message': 'Миграция завершена без дублей.', 'type': 'success'}}
-
-    def action_force_recompute(self):
-        """ 
-        Безопасный пересчет статистики порциями по 50 штук.
-        """
-        all_recs = self if self else self.search([])
-        total = len(all_recs)
-        _logger.info(f">>> ПЕРЕСЧЕТ СТАТИСТИКИ ДЛЯ {total} ЗАПИСЕЙ...")
-        
-        batch_size = 50
-        for i in range(0, total, batch_size):
-            batch = all_recs[i:i + batch_size]
-            
-            # Сбрасываем кэш и принудительно запускаем ваши рабочие compute-методы
-            batch.invalidate_recordset()
-            batch._compute_line_ids()
-            batch._compute_all_stats()
-            
-            # Фиксируем результат порции в базе данных
-            self.env.cr.commit()
-            _logger.info(f"--- Статистика: {i + len(batch)} из {total} готова.")
-            
-        return {'type': 'ir.actions.client', 'tag': 'display_notification', 'params': {
-            'title': 'Успех', 
-            'message': 'Вся статистика и графики обновлены.', 
-            'type': 'success', 'sticky': False
-        }}

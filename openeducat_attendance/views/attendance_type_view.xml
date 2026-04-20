@@ -12,6 +12,7 @@
                     <field name="absent"/>
                     <field name="excused"/>
                     <field name="late"/>
+                    <field name="color" widget="color_picker"/>
                     <field name="company_id" groups="base.group_multi_company" optional="show"/>
                 </list>
             </field>
@@ -40,7 +41,7 @@
                                 <field name="late"/>
                             </group>
                         </group>
-
+                        <field name="color" widget="color_picker"/>
                     </sheet>
                     <chatter/>
                 </form>

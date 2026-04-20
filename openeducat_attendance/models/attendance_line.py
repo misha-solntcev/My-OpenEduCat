@@ -77,9 +77,9 @@ class OpAttendanceLine(models.Model):
 
     student_avatar = fields.Image(related='student_id.image_128', string="Фото", readonly=True)
 
-    # --- ОСНОВНОЕ ПОЛЕ СТАТУСА ---
     attendance_type_id = fields.Many2one(
         'op.attendance.type', string='Status', required=True, tracking=True)
+    color = fields.Integer(related='attendance_type_id.color', store=True, string="Цвет")
 
     # --- СВЯЗАННЫЕ ПОЛЯ ---
     present = fields.Boolean('Present', related='attendance_type_id.present', store=True, readonly=True)

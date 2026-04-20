@@ -296,7 +296,7 @@
                                                 отзыв</div>
                                             <div class="fst-italic text-dark mt-1">
                                                 <i
-                                                    class="fa fa-quote-left me-2 text-primary opacity-50" />
+                                                    class="fa fa-quote-left me-2 text-primary opacity-50" title="Отзыв"/>
                                                 <field name="q1_last_remark" />
                                             </div>
                                         </div>
@@ -316,8 +316,8 @@
                                     </div>
                                 </div>
                             </div>
-                            <div class="alert alert-info py-2 mb-3 d-flex align-items-center">
-                                <i class="fa fa-info-circle fa-lg me-3" />
+                            <div class="alert alert-info py-2 mb-3 d-flex align-items-center" role="alert">
+                                <i class="fa fa-info-circle fa-lg me-3" title="Info"/>
                                 <div>
                                     <strong>Посещаемость:</strong>
                                     <field name="q1_attendance_stats_html" widget="html"
@@ -327,12 +327,21 @@
                             <field name="q1_line_ids" readonly="0">
                                 <list editable="bottom" create="false" delete="false">
                                     <field name="attendance_date" readonly="1" />
-                                    <field name="lesson_topic" />
-                                    <field name="present" widget="boolean" />
+                                    <field name="lesson_topic" string="Тема урока" />
+                                    <field name="color" column_invisible="True" /> 
+                                    <field name="attendance_type_id" 
+                                        string="Посещаемость"
+                                        widget="badge" 
+                                        decoration-success="color == 10"
+                                        decoration-warning="color == 3"
+                                        decoration-danger="color == 1"
+                                        decoration-info="color == 4"
+                                        decoration-primary="color == 5"
+                                        options="{'color_field': 'color'}"/>
                                     <field name="grade_1" />
                                     <field name="grade_2" />
                                     <field name="grade_3" />
-                                    <field name="remark" />
+                                    <field name="remark" />                                    
                                 </list>
                             </field>
                         </page>
