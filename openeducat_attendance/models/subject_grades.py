@@ -270,12 +270,48 @@ class OpSubjectGrades(models.Model):
         return f'<div class="text-center"><svg width="150" height="90">{bars}</svg></div>'
 
     # График динамики с градиентной заливкой под линией
-    def _generate_svg_graph(self, rec):        
+    def _generate_svg_graph(self, rec):
+        """ 
+        Анимированный график динамики с эффектом рисования линии
+        """
         avgs = [rec.q1_average_mark, rec.q2_average_mark, rec.q3_average_mark, rec.q4_average_mark]
-        h = 160  # Высота SVG
+        h = 160
         px = [45, 153, 261, 370]
         
-        # Сетка и подписи
+        # Стили анимации
+        styles = """
+        <style>
+            @keyframes draw-line {
+                to { stroke-dashoffset: 0; }
+            }
+            @keyframes pop-point {
+                0% { transform: scale(0); opacity: 0; }
+                70% { transform: scale(1.3); opacity: 1; }
+                100% { transform: scale(1); opacity: 1; }
+            }
+            @keyframes fade-fill {
+                from { opacity: 0; }
+                to { opacity: 1; }
+            }
+            .graph-line {
+                stroke-dasharray: 1000; /* Длина с запасом для анимации рисования */
+                stroke-dashoffset: 1000;
+                animation: draw-line 2s ease-in-out forwards;
+            }
+            .graph-point {
+                transform-origin: center;
+                opacity: 0;
+                animation: pop-point 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+            }
+            .graph-fill {
+                opacity: 0;
+                animation: fade-fill 1.5s ease-in forwards;
+                animation-delay: 1s; /* Проявляется, когда линия уже начала рисоваться */
+            }
+        </style>
+        """
+
+        # Сетка (оставляем без анимации для стабильности фона)
         grid = """
             <text x="5" y="35" font-family="sans-serif" font-size="22" fill="#adb5bd" font-weight="bold">5</text>
             <line x1="40" y1="30" x2="400" y2="30" stroke="#e0e0e0" stroke-width="2" stroke-dasharray="4,4"/>
@@ -293,33 +329,37 @@ class OpSubjectGrades(models.Model):
             if val > 0:
                 y = 140 - ((val - 2) * 36.6)
                 coords.append((x, y))
-                dots.append(f'<circle cx="{x}" cy="{y}" r="8" fill="white" stroke="#714B67" stroke-width="6"/>')
+                # Точки с задержкой, чтобы они появлялись по мере движения линии
+                # i*0.5s — задержка для каждой четверти (0.5, 1.0, 1.5 сек)
+                dots.append(f'<circle class="graph-point" cx="{x}" cy="{y}" r="8" fill="white" stroke="#714B67" stroke-width="6" style="animation-delay: {i*0.5}s;"/>')
             else:
-                dots.append(f'<circle cx="{x}" cy="85" r="5" fill="#f8f9fa" stroke="#e0e0e0" stroke-width="2"/>')
+                # Плейсхолдер для будущих оценок
+                dots.append(f'<circle cx="{x}" cy="85" r="5" fill="#f8f9fa" stroke="#e0e0e0" stroke-width="2" opacity="0.5"/>')
 
-        path_elements = ""
+        path_elements = styles + grid
         if len(coords) >= 2:
-            # Строим основную линию
             d_line = f"M {coords[0][0]} {coords[0][1]}"
             for i in range(1, len(coords)):
                 d_line += f" L {coords[i][0]} {coords[i][1]}"
             
-            # Строим замкнутый контур для градиента (линия -> низ -> начало)
             d_fill = f"{d_line} L {coords[-1][0]} {h} L {coords[0][0]} {h} Z"
             
             grad_id = f"grad_dyn_{rec.id}"
-            path_elements = f"""
+            path_elements += f"""
                 <defs>
                     <linearGradient id="{grad_id}" x1="0%" y1="0%" x2="0%" y2="100%">
                         <stop offset="0%" style="stop-color:#714B67; stop-opacity:0.25" />
                         <stop offset="100%" style="stop-color:#714B67; stop-opacity:0" />
                     </linearGradient>
                 </defs>
-                <path d="{d_fill}" fill="url(#{grad_id})" />
-                <path d="{d_line}" fill="none" stroke="#714B67" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+                <path class="graph-fill" d="{d_fill}" fill="url(#{grad_id})" />
+                <path class="graph-line" d="{d_line}" fill="none" stroke="#714B67" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
             """
+        elif len(coords) == 1:
+            # Если только одна точка — просто рисуем её без линии
+            pass
         
-        return f'<svg viewBox="0 0 400 160" preserveAspectRatio="xMidYMid meet" style="width:100%; height:100px;">{grid}{path_elements}{"".join(dots)}</svg>'
+        return f'<svg viewBox="0 0 400 160" preserveAspectRatio="xMidYMid meet" style="width:100%; height:100px;">{path_elements}{"".join(dots)}</svg>'
 
     @api.depends('subject_id', 'batch_id')
     def _compute_faculty_id(self):
