@@ -341,14 +341,14 @@
                             </div>
                             <field name="q1_line_ids" readonly="0">
                                 <list editable="bottom" create="false" delete="false">
-                                    <field name="attendance_date" readonly="1" />
-                                    <field name="lesson_topic" />
-                                    <field name="attendance_type_id" widget="badge"
-                                        options="{'color_field': 'color'}" />
-                                    <field name="grade_1" />
-                                    <field name="grade_2" />
-                                    <field name="grade_3" />
-                                    <field name="remark" />
+                                    <field name="attendance_date" readonly="1" optional="show"/>
+                                    <field name="lesson_topic" string="Тема урока" optional="show"/>
+                                    <field name="attendance_type_id" widget="badge" string="Посещаемость"
+                                        options="{'color_field': 'color'}" optional="show" />
+                                    <field name="grade_1" optional="show" />
+                                    <field name="grade_2" optional="show" />
+                                    <field name="grade_3" optional="hide" />
+                                    <field name="remark" optional="show" />
                                 </list>
                             </field>
                         </page>
@@ -407,14 +407,14 @@
                             </div>
                             <field name="q2_line_ids" readonly="0">
                                 <list editable="bottom" create="false" delete="false">
-                                    <field name="attendance_date" readonly="1" />
-                                    <field name="lesson_topic" />
-                                    <field name="attendance_type_id" widget="badge"
-                                        options="{'color_field': 'color'}" />
-                                    <field name="grade_1" />
-                                    <field name="grade_2" />
-                                    <field name="grade_3" />
-                                    <field name="remark" />
+                                    <field name="attendance_date" readonly="1" optional="show"/>
+                                    <field name="lesson_topic" string="Тема урока" optional="show"/>
+                                    <field name="attendance_type_id" widget="badge" string="Посещаемость"
+                                        options="{'color_field': 'color'}" optional="show" />
+                                    <field name="grade_1" optional="show" />
+                                    <field name="grade_2" optional="show" />
+                                    <field name="grade_3" optional="hide" />
+                                    <field name="remark" optional="show" />
                                 </list>
                             </field>
                         </page>
@@ -473,14 +473,14 @@
                             </div>
                             <field name="q3_line_ids" readonly="0">
                                 <list editable="bottom" create="false" delete="false">
-                                    <field name="attendance_date" readonly="1" />
-                                    <field name="lesson_topic" />
-                                    <field name="attendance_type_id" widget="badge"
-                                        options="{'color_field': 'color'}" />
-                                    <field name="grade_1" />
-                                    <field name="grade_2" />
-                                    <field name="grade_3" />
-                                    <field name="remark" />
+                                    <field name="attendance_date" readonly="1" optional="show"/>
+                                    <field name="lesson_topic" string="Тема урока" optional="show"/>
+                                    <field name="attendance_type_id" widget="badge" string="Посещаемость"
+                                        options="{'color_field': 'color'}" optional="show"/>
+                                    <field name="grade_1" optional="show" />
+                                    <field name="grade_2" optional="show" />
+                                    <field name="grade_3" optional="hide" />
+                                    <field name="remark" optional="show" />
                                 </list>
                             </field>
                         </page>
@@ -539,14 +539,14 @@
                             </div>
                             <field name="q4_line_ids" readonly="0">
                                 <list editable="bottom" create="false" delete="false">
-                                    <field name="attendance_date" readonly="1" />
-                                    <field name="lesson_topic" />
-                                    <field name="attendance_type_id" widget="badge"
-                                        options="{'color_field': 'color'}" />
-                                    <field name="grade_1" />
-                                    <field name="grade_2" />
-                                    <field name="grade_3" />
-                                    <field name="remark" />
+                                    <field name="attendance_date" readonly="1" optional="show"/>
+                                    <field name="lesson_topic" string="Тема урока" optional="show"/>
+                                    <field name="attendance_type_id" widget="badge" string="Посещаемость"
+                                        options="{'color_field': 'color'}" optional="show"/>
+                                    <field name="grade_1" optional="show"/>
+                                    <field name="grade_2" optional="show"/>
+                                    <field name="grade_3" optional="hide"/>
+                                    <field name="remark" optional="show"/>
                                 </list>
                             </field>
                         </page>
