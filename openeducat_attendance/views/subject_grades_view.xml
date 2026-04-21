@@ -203,17 +203,17 @@
                                             style="position: absolute; left: 9px; top: 10%; bottom: 10%; width: 2px; background: #dee2e6; z-index: 1;" />
 
                                         <!-- 1 четверть -->
-                                        <div class="mb-1 d-flex align-items-baseline"
+                                        <div class="mb-1 d-flex flex-wrap"
                                             style="position: relative; z-index: 2; font-size: 0.85rem;">
                                             <!-- Зеленая точка (если есть оценка) -->
                                             <div class="rounded-circle shadow-sm"
-                                                style="width: 12px; height: 12px; position: absolute; left: -20px; border: 2px solid white; background: #28a745;"
+                                                style="width: 12px; top: 4px; height: 12px; position: absolute; left: -20px; border: 2px solid white; background: #28a745;"
                                                 invisible="not q1_final_grade" />
                                             <!-- Серая точка (если нет оценки) -->
                                             <div class="rounded-circle"
-                                                style="width: 12px; height: 12px; position: absolute; left: -20px; border: 2px solid white; background: #adb5bd;"
+                                                style="width: 12px; top: 4px; height: 12px; position: absolute; left: -20px; border: 2px solid white; background: #adb5bd;"
                                                 invisible="q1_final_grade" />
-                                            <span class="text-muted">1 четверть:</span>
+                                            <span class="text-muted" style="white-space: nowrap;">1 четверть:</span>
                                             <span class="fw-bold text-dark ms-1">
                                                 <field name="q1_final_grade" readonly="1"
                                                     placeholder="-" />
@@ -221,15 +221,15 @@
                                         </div>
 
                                         <!-- 2 четверть -->
-                                        <div class="mb-1 d-flex align-items-baseline"
+                                        <div class="mb-1 d-flex flex-wrap"
                                             style="position: relative; z-index: 2; font-size: 0.85rem;">
                                             <div class="rounded-circle shadow-sm"
-                                                style="width: 12px; height: 12px; position: absolute; left: -20px; border: 2px solid white; background: #28a745;"
+                                                style="width: 12px; top: 4px; height: 12px; position: absolute; left: -20px; border: 2px solid white; background: #28a745;"
                                                 invisible="not q2_final_grade" />
                                             <div class="rounded-circle"
-                                                style="width: 12px; height: 12px; position: absolute; left: -20px; border: 2px solid white; background: #adb5bd;"
+                                                style="width: 12px; top: 4px; height: 12px; position: absolute; left: -20px; border: 2px solid white; background: #adb5bd;"
                                                 invisible="q2_final_grade" />
-                                            <span class="text-muted">2 четверть:</span>
+                                            <span class="text-muted" style="white-space: nowrap;">2 четверть:</span>
                                             <span class="fw-bold text-dark ms-1">
                                                 <field name="q2_final_grade" readonly="1"
                                                     placeholder="-" />
@@ -237,15 +237,15 @@
                                         </div>
 
                                         <!-- 3 четверть -->
-                                        <div class="mb-1 d-flex align-items-baseline"
+                                        <div class="mb-1 d-flex flex-wrap"
                                             style="position: relative; z-index: 2; font-size: 0.85rem;">
                                             <div class="rounded-circle shadow-sm"
-                                                style="width: 12px; height: 12px; position: absolute; left: -20px; border: 2px solid white; background: #28a745;"
+                                                style="width: 12px; top: 4px; height: 12px; position: absolute; left: -20px; border: 2px solid white; background: #28a745;"
                                                 invisible="not q3_final_grade" />
                                             <div class="rounded-circle"
-                                                style="width: 12px; height: 12px; position: absolute; left: -20px; border: 2px solid white; background: #adb5bd;"
+                                                style="width: 12px; top: 4px; height: 12px; position: absolute; left: -20px; border: 2px solid white; background: #adb5bd;"
                                                 invisible="q3_final_grade" />
-                                            <span class="text-muted">3 четверть:</span>
+                                            <span class="text-muted" style="white-space: nowrap;">3 четверть:</span>
                                             <span class="fw-bold text-dark ms-1">
                                                 <field name="q3_final_grade" readonly="1"
                                                     placeholder="-" />
@@ -253,15 +253,15 @@
                                         </div>
 
                                         <!-- 4 четверть -->
-                                        <div class="d-flex align-items-baseline"
+                                        <div class="d-flex flex-wrap"
                                             style="position: relative; z-index: 2; font-size: 0.85rem;">
                                             <div class="rounded-circle shadow-sm"
-                                                style="width: 12px; height: 12px; position: absolute; left: -20px; border: 2px solid white; background: #28a745;"
+                                                style="width: 12px; top: 4px; height: 12px; position: absolute; left: -20px; border: 2px solid white; background: #28a745;"
                                                 invisible="not q4_final_grade" />
                                             <div class="rounded-circle"
-                                                style="width: 12px; height: 12px; position: absolute; left: -20px; border: 2px solid white; background: #adb5bd;"
+                                                style="width: 12px; top: 4px; height: 12px; position: absolute; left: -20px; border: 2px solid white; background: #adb5bd;"
                                                 invisible="q4_final_grade" />
-                                            <span class="text-muted">4 четверть:</span>
+                                            <span class="text-muted" style="white-space: nowrap;">4 четверть:</span>
                                             <span class="fw-bold text-dark ms-1">
                                                 <field name="q4_final_grade" readonly="1"
                                                     placeholder="-" />
@@ -287,7 +287,7 @@
 
                     <notebook>
                         <!-- ЧЕТВЕРТЬ 1 -->
-                        <page string="1 четверть" name="q1_page">
+                        <page string="🍂 1 четверть" name="q1_page">
                             <div class="row g-2 mb-4 text-center">
                                 <div class="col-6 col-md-3">
                                     <div class="border rounded bg-white p-2 h-100 shadow-sm">
@@ -308,10 +308,10 @@
                                 <div class="col-6 col-md-3">
                                     <div
                                         class="border rounded bg-white p-2 h-100 shadow-sm d-flex flex-column">
-                                        <div class="text-uppercase small fw-bold text-muted mb-2"
+                                        <div class="text-uppercase small fw-bold text-muted"
                                             style="font-size: 0.7rem;">Последний отзыв</div>
                                         <div
-                                            class="flex-grow-1 d-flex align-items-center justify-content-center p-2 italic text-muted"
+                                            class="flex-grow-1 p-2 italic text-muted text-start"
                                             style="font-size: 0.85rem;">
                                             <div>
                                                 <i class="fa fa-quote-left opacity-25 me-1"
@@ -332,14 +332,14 @@
 
                                         <div class="row g-0 align-items-stretch flex-grow-1">
                                             <!-- ЛЕВАЯ ЧАСТЬ: Горизонтальная гистограмма + пунктир -->
-                                            <div class="col-6 d-flex align-items-center">
+                                            <div class="col-7 d-flex align-items-center">
                                                 <field name="q1_summary_html" widget="html"
                                                     nolabel="1" />
                                             </div>
 
                                             <!-- ПРАВАЯ ЧАСТЬ: Только Белый остров -->
                                             <div
-                                                class="col-6 p-1 d-flex flex-column justify-content-center">
+                                                class="col-5 p-1 d-flex flex-column justify-content-center">
                                                 <div
                                                     class="bg-white rounded shadow d-flex flex-column justify-content-center text-center border border-white"
                                                     style="height: 90px;">
@@ -370,7 +370,7 @@
                         </page>
 
                         <!-- ЧЕТВЕРТЬ 2 -->
-                        <page string="2 четверть" name="q2_page">
+                        <page string="❄️ 2 четверть" name="q2_page">
                             <div class="row g-2 mb-4 text-center">
                                 <div class="col-6 col-md-3">
                                     <div class="border rounded bg-white p-2 h-100 shadow-sm">
@@ -438,7 +438,7 @@
                         </page>
 
                         <!-- ЧЕТВЕРТЬ 3 -->
-                        <page string="3 четверть" name="q3_page">
+                        <page string="🌨️ 3 четверть" name="q3_page">
                             <div class="row g-2 mb-4 text-center">
                                 <div class="col-6 col-md-3">
                                     <div class="border rounded bg-white p-2 h-100 shadow-sm">
@@ -506,7 +506,7 @@
                         </page>
 
                         <!-- ЧЕТВЕРТЬ 4 -->
-                        <page string="4 четверть" name="q4_page">
+                        <page string="🌱 4 четверть" name="q4_page">
                             <div class="row g-2 mb-4 text-center">
                                 <div class="col-6 col-md-3">
                                     <div class="border rounded bg-white p-2 h-100 shadow-sm">
@@ -530,7 +530,7 @@
                                         <div class="text-uppercase small fw-bold text-muted mb-2"
                                             style="font-size: 0.7rem;">Последний отзыв</div>
                                         <div
-                                            class="flex-grow-1 d-flex align-items-center justify-content-center p-2 italic text-muted"
+                                            class="flex-grow-1 p-2 italic text-muted text-start"
                                             style="font-size: 0.85rem;">
                                             <div>
                                                 <i class="fa fa-quote-left opacity-25 me-1"

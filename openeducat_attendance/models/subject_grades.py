@@ -410,7 +410,7 @@ class OpSubjectGrades(models.Model):
         max_v = max(counts.values()) or 1
         
         bar_start_x = 22
-        max_bar_w = 105 # Оптимграфикальная ширина для 140 viewBox
+        max_bar_w = 95 # Оптимграфикальная ширина для 140 viewBox
         
         # 1. Расчеты с защитой от ошибок
         try:
@@ -459,12 +459,13 @@ class OpSubjectGrades(models.Model):
             # Бейджик (используем групповой атрибут transform для стабильности)
             svg += f"""
             <g class="glass-badge" transform="translate({avg_x}, {avg_y})">
-                <!-- Капсула -->
-                <rect x="-16" y="-9" width="32" height="18" rx="9" 
-                      fill="white" fill-opacity="0.9" stroke="#714B67" stroke-width="1" />
-                <!-- Текст -->
-                <text x="0" y="4" text-anchor="middle" 
-                      font-family="sans-serif" font-size="10" font-weight="bold" 
+                <!-- Капсула: более мощная обводка и размер -->
+                <rect x="-23" y="-12" width="46" height="24" rx="12" 
+                      fill="white" fill-opacity="0.95" stroke="#714B67" stroke-width="1.5" 
+                      style="filter: drop-shadow(0px 2px 2px rgba(0,0,0,0.1));" />
+                <!-- Текст: шрифт увеличен с 10 до 13 -->
+                <text x="0" y="5" text-anchor="middle" 
+                      font-family="sans-serif" font-size="13" font-weight="bold" 
                       fill="#714B67">{avg_mark:.2f}</text>
             </g>
             """
@@ -488,7 +489,8 @@ class OpSubjectGrades(models.Model):
 
 
 
-    # Экспериментальные плитки    
+    # ЭКСПЕРИМЕНТАЛЬНЫЕ ПЛИТКИ
+
     def _generate_dot_matrix(self, stats, avg_mark):
         """ ВАРИАНТ 1: Точечная матрица (Dot Matrix) """
         counts = stats['counts']
