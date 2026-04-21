@@ -165,16 +165,18 @@
                         <!-- ПЛИТКА 1: ПОСЕЩАЕМОСТЬ -->
                         <div class="col-6 col-md-3">
                             <div class="border rounded bg-light p-2 h-100 shadow">
-                                <div class="text-uppercase small fw-bold text-muted mb-2">Посещаемость</div>                                
-                                <field name="attendance_donut_svg" widget="html" nolabel="1"/>
+                                <div class="text-uppercase small fw-bold text-muted mb-2">
+                                    Посещаемость</div>
+                                <field name="attendance_donut_svg" widget="html" nolabel="1" />
                             </div>
                         </div>
 
                         <!-- ПЛИТКА 2: ГИСТОГРАММА ОЦЕНОК -->
                         <div class="col-6 col-md-3">
                             <div class="border rounded bg-light p-2 h-100 shadow">
-                                <div class="text-uppercase small fw-bold text-muted mb-2">Успеваемость</div>
-                                <field name="grades_histogram_svg" widget="html" nolabel="1"/>
+                                <div class="text-uppercase small fw-bold text-muted mb-2">
+                                    Успеваемость</div>
+                                <field name="grades_histogram_svg" widget="html" nolabel="1" />
                             </div>
                         </div>
 
@@ -193,50 +195,87 @@
 
                                 <div class="row g-0 align-items-stretch flex-grow-1">
                                     <!-- ЛЕВАЯ ЧАСТЬ: Список четвертей с точками и линией -->
-                                    <div class="col-6 position-relative ps-4 d-flex flex-column justify-content-center">
+                                    <div
+                                        class="col-6 position-relative ps-4 d-flex flex-column justify-content-center">
                                         <!-- Вертикальная серая линия-направляющая -->
-                                        <div style="position: absolute; left: 9px; top: 10%; bottom: 10%; width: 2px; background: #dee2e6; z-index: 1;" />
+                                        <div
+                                            style="position: absolute; left: 9px; top: 10%; bottom: 10%; width: 2px; background: #dee2e6; z-index: 1;" />
 
                                         <!-- 1 четверть -->
-                                        <div class="mb-1 d-flex align-items-baseline" style="position: relative; z-index: 2; font-size: 0.85rem;">
+                                        <div class="mb-1 d-flex align-items-baseline"
+                                            style="position: relative; z-index: 2; font-size: 0.85rem;">
                                             <!-- Зеленая точка (если есть оценка) -->
-                                            <div class="rounded-circle shadow-sm" style="width: 12px; height: 12px; position: absolute; left: -20px; border: 2px solid white; background: #28a745;" invisible="not q1_final_grade" />
+                                            <div class="rounded-circle shadow-sm"
+                                                style="width: 12px; height: 12px; position: absolute; left: -20px; border: 2px solid white; background: #28a745;"
+                                                invisible="not q1_final_grade" />
                                             <!-- Серая точка (если нет оценки) -->
-                                            <div class="rounded-circle" style="width: 12px; height: 12px; position: absolute; left: -20px; border: 2px solid white; background: #adb5bd;" invisible="q1_final_grade" />
+                                            <div class="rounded-circle"
+                                                style="width: 12px; height: 12px; position: absolute; left: -20px; border: 2px solid white; background: #adb5bd;"
+                                                invisible="q1_final_grade" />
                                             <span class="text-muted">1 четверть:</span>
-                                            <span class="fw-bold text-dark ms-1"><field name="q1_final_grade" readonly="1" placeholder="-"/></span>
+                                            <span class="fw-bold text-dark ms-1">
+                                                <field name="q1_final_grade" readonly="1"
+                                                    placeholder="-" />
+                                            </span>
                                         </div>
 
                                         <!-- 2 четверть -->
-                                        <div class="mb-1 d-flex align-items-baseline" style="position: relative; z-index: 2; font-size: 0.85rem;">
-                                            <div class="rounded-circle shadow-sm" style="width: 12px; height: 12px; position: absolute; left: -20px; border: 2px solid white; background: #28a745;" invisible="not q2_final_grade" />
-                                            <div class="rounded-circle" style="width: 12px; height: 12px; position: absolute; left: -20px; border: 2px solid white; background: #adb5bd;" invisible="q2_final_grade" />
+                                        <div class="mb-1 d-flex align-items-baseline"
+                                            style="position: relative; z-index: 2; font-size: 0.85rem;">
+                                            <div class="rounded-circle shadow-sm"
+                                                style="width: 12px; height: 12px; position: absolute; left: -20px; border: 2px solid white; background: #28a745;"
+                                                invisible="not q2_final_grade" />
+                                            <div class="rounded-circle"
+                                                style="width: 12px; height: 12px; position: absolute; left: -20px; border: 2px solid white; background: #adb5bd;"
+                                                invisible="q2_final_grade" />
                                             <span class="text-muted">2 четверть:</span>
-                                            <span class="fw-bold text-dark ms-1"><field name="q2_final_grade" readonly="1" placeholder="-"/></span>
+                                            <span class="fw-bold text-dark ms-1">
+                                                <field name="q2_final_grade" readonly="1"
+                                                    placeholder="-" />
+                                            </span>
                                         </div>
 
                                         <!-- 3 четверть -->
-                                        <div class="mb-1 d-flex align-items-baseline" style="position: relative; z-index: 2; font-size: 0.85rem;">
-                                            <div class="rounded-circle shadow-sm" style="width: 12px; height: 12px; position: absolute; left: -20px; border: 2px solid white; background: #28a745;" invisible="not q3_final_grade" />
-                                            <div class="rounded-circle" style="width: 12px; height: 12px; position: absolute; left: -20px; border: 2px solid white; background: #adb5bd;" invisible="q3_final_grade" />
+                                        <div class="mb-1 d-flex align-items-baseline"
+                                            style="position: relative; z-index: 2; font-size: 0.85rem;">
+                                            <div class="rounded-circle shadow-sm"
+                                                style="width: 12px; height: 12px; position: absolute; left: -20px; border: 2px solid white; background: #28a745;"
+                                                invisible="not q3_final_grade" />
+                                            <div class="rounded-circle"
+                                                style="width: 12px; height: 12px; position: absolute; left: -20px; border: 2px solid white; background: #adb5bd;"
+                                                invisible="q3_final_grade" />
                                             <span class="text-muted">3 четверть:</span>
-                                            <span class="fw-bold text-dark ms-1"><field name="q3_final_grade" readonly="1" placeholder="-"/></span>
+                                            <span class="fw-bold text-dark ms-1">
+                                                <field name="q3_final_grade" readonly="1"
+                                                    placeholder="-" />
+                                            </span>
                                         </div>
 
                                         <!-- 4 четверть -->
-                                        <div class="d-flex align-items-baseline" style="position: relative; z-index: 2; font-size: 0.85rem;">
-                                            <div class="rounded-circle shadow-sm" style="width: 12px; height: 12px; position: absolute; left: -20px; border: 2px solid white; background: #28a745;" invisible="not q4_final_grade" />
-                                            <div class="rounded-circle" style="width: 12px; height: 12px; position: absolute; left: -20px; border: 2px solid white; background: #adb5bd;" invisible="q4_final_grade" />
+                                        <div class="d-flex align-items-baseline"
+                                            style="position: relative; z-index: 2; font-size: 0.85rem;">
+                                            <div class="rounded-circle shadow-sm"
+                                                style="width: 12px; height: 12px; position: absolute; left: -20px; border: 2px solid white; background: #28a745;"
+                                                invisible="not q4_final_grade" />
+                                            <div class="rounded-circle"
+                                                style="width: 12px; height: 12px; position: absolute; left: -20px; border: 2px solid white; background: #adb5bd;"
+                                                invisible="q4_final_grade" />
                                             <span class="text-muted">4 четверть:</span>
-                                            <span class="fw-bold text-dark ms-1"><field name="q4_final_grade" readonly="1" placeholder="-"/></span>
+                                            <span class="fw-bold text-dark ms-1">
+                                                <field name="q4_final_grade" readonly="1"
+                                                    placeholder="-" />
+                                            </span>
                                         </div>
                                     </div>
 
                                     <!-- ПРАВАЯ ЧАСТЬ: Итоговая годовая (белый остров) -->
                                     <div class="col-6 p-1">
-                                        <div class="bg-white h-100 rounded shadow-sm d-flex flex-column justify-content-center text-center border border-white">
-                                            <div class="text-muted small mb-0" style="font-size: 0.6rem; font-weight: 600;">ГОДОВАЯ</div>
-                                            <div class="display-4 fw-bolder mb-0" style="color: #714B67; line-height: 1;">
+                                        <div
+                                            class="bg-white h-100 rounded shadow-sm d-flex flex-column justify-content-center text-center border border-white">
+                                            <div class="text-muted small mb-0"
+                                                style="font-size: 0.6rem; font-weight: 600;">ГОДОВАЯ</div>
+                                            <div class="display-4 fw-bolder mb-0"
+                                                style="color: #714B67; line-height: 1;">
                                                 <field name="final_quarter_grade" placeholder="?" />
                                             </div>
                                         </div>
@@ -248,124 +287,130 @@
                     </div>
 
                     <notebook>
+                        <!-- ЧЕТВЕРТЬ 1 -->
                         <page string="1 четверть" name="q1_page">
-                            <div class="row g-3 mb-3">
-                                <div class="col-md-4">
-                                    <div class="card border-0 shadow-sm bg-light rounded-3">
-                                        <div class="card-body p-3">
-                                            <div
-                                                class="text-uppercase small fw-bold text-muted mb-3 text-center">Статистика
-                                                оценок</div>
-                                            <div class="row g-2 text-center">
-                                                <div class="col-3 border-end">
-                                                    <div class="h4 mb-0 text-success fw-bold">
-                                                        <field name="q1_count_5" />
-                                                    </div>
-                                                    <small>«5»</small>
-                                                </div>
-                                                <div class="col-3 border-end">
-                                                    <div class="h4 mb-0 text-primary fw-bold">
-                                                        <field name="q1_count_4" />
-                                                    </div>
-                                                    <small>«4»</small>
-                                                </div>
-                                                <div class="col-3 border-end">
-                                                    <div class="h4 mb-0 text-warning fw-bold">
-                                                        <field name="q1_count_3" />
-                                                    </div>
-                                                    <small>«3»</small>
-                                                </div>
-                                                <div class="col-3">
-                                                    <div class="h4 mb-0 text-danger fw-bold">
-                                                        <field name="q1_count_2" />
-                                                    </div>
-                                                    <small>«2»</small>
-                                                </div>
-                                            </div>
-                                        </div>
+                            <div class="row g-2 mb-4 text-center">
+                                <div class="col-6 col-md-3">
+                                    <div class="border rounded bg-white p-2 h-100 shadow-sm">
+                                        <div class="text-uppercase small fw-bold text-muted mb-2"
+                                            style="font-size: 0.7rem;">Посещаемость (1ч)</div>
+                                        <field name="q1_attendance_donut_svg" widget="html"
+                                            nolabel="1" />
                                     </div>
                                 </div>
-                                <div class="col-md-5">
-                                    <div class="card border-0 shadow-sm h-100 bg-white">
-                                        <div class="card-body">
-                                            <div
-                                                class="text-uppercase small fw-bold text-muted mb-2">Последний
-                                                отзыв</div>
-                                            <div class="fst-italic text-dark mt-1">
-                                                <i
-                                                    class="fa fa-quote-left me-2 text-primary opacity-50" title="Отзыв"/>
+                                <div class="col-6 col-md-3">
+                                    <div class="border rounded bg-white p-2 h-100 shadow-sm">
+                                        <div class="text-uppercase small fw-bold text-muted mb-2"
+                                            style="font-size: 0.7rem;">Успеваемость (1ч)</div>
+                                        <field name="q1_grades_histogram_svg" widget="html"
+                                            nolabel="1" />
+                                    </div>
+                                </div>
+                                <div class="col-6 col-md-3">
+                                    <div
+                                        class="border rounded bg-white p-2 h-100 shadow-sm d-flex flex-column">
+                                        <div class="text-uppercase small fw-bold text-muted mb-2"
+                                            style="font-size: 0.7rem;">Последний отзыв</div>
+                                        <div
+                                            class="flex-grow-1 d-flex align-items-center justify-content-center p-2 italic text-muted"
+                                            style="font-size: 0.85rem;">
+                                            <div>
+                                                <i class="fa fa-quote-left opacity-25 me-1" title="Цитата"/>
                                                 <field name="q1_last_remark" />
                                             </div>
                                         </div>
                                     </div>
                                 </div>
-                                <div class="col-md-3 text-center">
-                                    <div class="card border-0 shadow-sm h-100 bg-primary text-white">
+                                <div class="col-6 col-md-3">
+                                    <div
+                                        class="border rounded p-0 h-100 shadow-sm overflow-hidden d-flex flex-column"
+                                        style="background: #f8f9ff;">
+                                        <div class="text-uppercase small fw-bold text-white p-1"
+                                            style="font-size: 0.7rem; background: #714B67;">ИТОГ 1
+                                            ЧЕТВЕРТИ</div>
                                         <div
-                                            class="card-body d-flex flex-column justify-content-center">
-                                            <div class="small fw-bold opacity-75">ИТОГ ЧЕТВЕРТИ</div>
-                                            <div class="display-3 fw-bold">
+                                            class="flex-grow-1 d-flex flex-column align-items-center justify-content-center bg-white m-2 rounded">
+                                            <div class="display-4 fw-bolder" style="color: #714B67;">
                                                 <field name="q1_final_grade" placeholder="?" />
                                             </div>
-                                            <div class="small mt-1 opacity-75">Средний балл: <field
-                                                    name="q1_average_mark" /></div>
+                                            <div class="text-muted" style="font-size: 0.7rem;">ср.
+                                                балл: <field name="q1_average_mark" /></div>
                                         </div>
                                     </div>
                                 </div>
                             </div>
-                            
                             <field name="q1_line_ids" readonly="0">
                                 <list editable="bottom" create="false" delete="false">
                                     <field name="attendance_date" readonly="1" />
-                                    <field name="lesson_topic" string="Тема урока" />
-                                    <field name="color" column_invisible="True" /> 
-                                    <field name="attendance_type_id" 
-                                        string="Посещаемость"
-                                        widget="badge" 
-                                        decoration-success="color == 10"
-                                        decoration-warning="color == 3"
-                                        decoration-danger="color == 1"
-                                        decoration-info="color == 4"
-                                        decoration-primary="color == 5"
-                                        options="{'color_field': 'color'}"/>
+                                    <field name="lesson_topic" />
+                                    <field name="attendance_type_id" widget="badge"
+                                        options="{'color_field': 'color'}" />
                                     <field name="grade_1" />
                                     <field name="grade_2" />
                                     <field name="grade_3" />
-                                    <field name="remark" />                                    
+                                    <field name="remark" />
                                 </list>
                             </field>
                         </page>
+
                         <!-- ЧЕТВЕРТЬ 2 -->
                         <page string="2 четверть" name="q2_page">
-                            <div class="row g-3 mb-3">
-                                <div class="col-md-4">
-                                    <div class="card border-0 shadow-sm bg-light p-2">
-                                        <strong>Оценки: </strong> 5: <field name="q2_count_5" /> |
-                                        4: <field name="q2_count_4" /> | 3: <field name="q2_count_3" />
-                                        | 2: <field name="q2_count_2" />
+                            <div class="row g-2 mb-4 text-center">
+                                <div class="col-6 col-md-3">
+                                    <div class="border rounded bg-white p-2 h-100 shadow-sm">
+                                        <div class="text-uppercase small fw-bold text-muted mb-2"
+                                            style="font-size: 0.7rem;">Посещаемость (2ч)</div>
+                                        <field name="q2_attendance_donut_svg" widget="html"
+                                            nolabel="1" />
                                     </div>
                                 </div>
-                                <div class="col-md-5">
-                                    <div class="card border-0 shadow-sm p-2">
-                                        <strong>Отзыв: </strong>
-                                        <field name="q2_last_remark" />
+                                <div class="col-6 col-md-3">
+                                    <div class="border rounded bg-white p-2 h-100 shadow-sm">
+                                        <div class="text-uppercase small fw-bold text-muted mb-2"
+                                            style="font-size: 0.7rem;">Успеваемость (2ч)</div>
+                                        <field name="q2_grades_histogram_svg" widget="html"
+                                            nolabel="1" />
                                     </div>
                                 </div>
-                                <div class="col-md-3">
+                                <div class="col-6 col-md-3">
                                     <div
-                                        class="card border-0 shadow-sm bg-primary text-white p-2 text-center">
-                                        <strong>ИТОГ: </strong> <field name="q2_final_grade" />
-                                        (балл: <field name="q2_average_mark" />) </div>
+                                        class="border rounded bg-white p-2 h-100 shadow-sm d-flex flex-column">
+                                        <div class="text-uppercase small fw-bold text-muted mb-2"
+                                            style="font-size: 0.7rem;">Последний отзыв</div>
+                                        <div
+                                            class="flex-grow-1 d-flex align-items-center justify-content-center p-2 italic text-muted"
+                                            style="font-size: 0.85rem;">
+                                            <div>
+                                                <i class="fa fa-quote-left opacity-25 me-1" title="Цитата"/>
+                                                <field name="q2_last_remark" />
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
-                            </div>
-                            <div class="alert alert-info py-1 mb-2" role="alert">
-                                <field name="q2_attendance_stats_html" widget="html" />
+                                <div class="col-6 col-md-3">
+                                    <div
+                                        class="border rounded p-0 h-100 shadow-sm overflow-hidden d-flex flex-column"
+                                        style="background: #f8f9ff;">
+                                        <div class="text-uppercase small fw-bold text-white p-1"
+                                            style="font-size: 0.7rem; background: #714B67;">ИТОГ 2
+                                            ЧЕТВЕРТИ</div>
+                                        <div
+                                            class="flex-grow-1 d-flex flex-column align-items-center justify-content-center bg-white m-2 rounded">
+                                            <div class="display-4 fw-bolder" style="color: #714B67;">
+                                                <field name="q2_final_grade" placeholder="?" />
+                                            </div>
+                                            <div class="text-muted" style="font-size: 0.7rem;">ср.
+                                                балл: <field name="q2_average_mark" /></div>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                             <field name="q2_line_ids" readonly="0">
                                 <list editable="bottom" create="false" delete="false">
                                     <field name="attendance_date" readonly="1" />
                                     <field name="lesson_topic" />
-                                    <field name="present" widget="boolean" />
+                                    <field name="attendance_type_id" widget="badge"
+                                        options="{'color_field': 'color'}" />
                                     <field name="grade_1" />
                                     <field name="grade_2" />
                                     <field name="grade_3" />
@@ -376,35 +421,62 @@
 
                         <!-- ЧЕТВЕРТЬ 3 -->
                         <page string="3 четверть" name="q3_page">
-                            <div class="row g-3 mb-3">
-                                <div class="col-md-4">
-                                    <div class="card border-0 shadow-sm bg-light p-2">
-                                        <strong>Оценки: </strong> 5: <field name="q3_count_5" /> |
-                                        4: <field name="q3_count_4" /> | 3: <field name="q3_count_3" />
-                                        | 2: <field name="q3_count_2" />
+                            <div class="row g-2 mb-4 text-center">
+                                <div class="col-6 col-md-3">
+                                    <div class="border rounded bg-white p-2 h-100 shadow-sm">
+                                        <div class="text-uppercase small fw-bold text-muted mb-2"
+                                            style="font-size: 0.7rem;">Посещаемость (3ч)</div>
+                                        <field name="q3_attendance_donut_svg" widget="html"
+                                            nolabel="1" />
                                     </div>
                                 </div>
-                                <div class="col-md-5">
-                                    <div class="card border-0 shadow-sm p-2">
-                                        <strong>Отзыв: </strong>
-                                        <field name="q3_last_remark" />
+                                <div class="col-6 col-md-3">
+                                    <div class="border rounded bg-white p-2 h-100 shadow-sm">
+                                        <div class="text-uppercase small fw-bold text-muted mb-2"
+                                            style="font-size: 0.7rem;">Успеваемость (3ч)</div>
+                                        <field name="q3_grades_histogram_svg" widget="html"
+                                            nolabel="1" />
                                     </div>
                                 </div>
-                                <div class="col-md-3">
+                                <div class="col-6 col-md-3">
                                     <div
-                                        class="card border-0 shadow-sm bg-primary text-white p-2 text-center">
-                                        <strong>ИТОГ: </strong> <field name="q3_final_grade" />
-                                        (балл: <field name="q3_average_mark" />) </div>
+                                        class="border rounded bg-white p-2 h-100 shadow-sm d-flex flex-column">
+                                        <div class="text-uppercase small fw-bold text-muted mb-2"
+                                            style="font-size: 0.7rem;">Последний отзыв</div>
+                                        <div
+                                            class="flex-grow-1 d-flex align-items-center justify-content-center p-2 italic text-muted"
+                                            style="font-size: 0.85rem;">
+                                            <div>
+                                                <i class="fa fa-quote-left opacity-25 me-1" title="Цитата"/>
+                                                <field name="q3_last_remark" />
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
-                            </div>
-                            <div class="alert alert-info py-1 mb-2" role="alert">
-                                <field name="q3_attendance_stats_html" widget="html" />
+                                <div class="col-6 col-md-3">
+                                    <div
+                                        class="border rounded p-0 h-100 shadow-sm overflow-hidden d-flex flex-column"
+                                        style="background: #f8f9ff;">
+                                        <div class="text-uppercase small fw-bold text-white p-1"
+                                            style="font-size: 0.7rem; background: #714B67;">ИТОГ 3
+                                            ЧЕТВЕРТИ</div>
+                                        <div
+                                            class="flex-grow-1 d-flex flex-column align-items-center justify-content-center bg-white m-2 rounded">
+                                            <div class="display-4 fw-bolder" style="color: #714B67;">
+                                                <field name="q3_final_grade" placeholder="?" />
+                                            </div>
+                                            <div class="text-muted" style="font-size: 0.7rem;">ср.
+                                                балл: <field name="q3_average_mark" /></div>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                             <field name="q3_line_ids" readonly="0">
                                 <list editable="bottom" create="false" delete="false">
                                     <field name="attendance_date" readonly="1" />
                                     <field name="lesson_topic" />
-                                    <field name="present" widget="boolean" />
+                                    <field name="attendance_type_id" widget="badge"
+                                        options="{'color_field': 'color'}" />
                                     <field name="grade_1" />
                                     <field name="grade_2" />
                                     <field name="grade_3" />
@@ -415,35 +487,62 @@
 
                         <!-- ЧЕТВЕРТЬ 4 -->
                         <page string="4 четверть" name="q4_page">
-                            <div class="row g-3 mb-3">
-                                <div class="col-md-4">
-                                    <div class="card border-0 shadow-sm bg-light p-2">
-                                        <strong>Оценки: </strong> 5: <field name="q4_count_5" /> |
-                                        4: <field name="q4_count_4" /> | 3: <field name="q4_count_3" />
-                                        | 2: <field name="q4_count_2" />
+                            <div class="row g-2 mb-4 text-center">
+                                <div class="col-6 col-md-3">
+                                    <div class="border rounded bg-white p-2 h-100 shadow-sm">
+                                        <div class="text-uppercase small fw-bold text-muted mb-2"
+                                            style="font-size: 0.7rem;">Посещаемость (4ч)</div>
+                                        <field name="q4_attendance_donut_svg" widget="html"
+                                            nolabel="1" />
                                     </div>
                                 </div>
-                                <div class="col-md-5">
-                                    <div class="card border-0 shadow-sm p-2">
-                                        <strong>Отзыв: </strong>
-                                        <field name="q4_last_remark" />
+                                <div class="col-6 col-md-3">
+                                    <div class="border rounded bg-white p-2 h-100 shadow-sm">
+                                        <div class="text-uppercase small fw-bold text-muted mb-2"
+                                            style="font-size: 0.7rem;">Успеваемость (4ч)</div>
+                                        <field name="q4_grades_histogram_svg" widget="html"
+                                            nolabel="1" />
                                     </div>
                                 </div>
-                                <div class="col-md-3">
+                                <div class="col-6 col-md-3">
                                     <div
-                                        class="card border-0 shadow-sm bg-primary text-white p-2 text-center">
-                                        <strong>ИТОГ: </strong> <field name="q4_final_grade" />
-                                        (балл: <field name="q4_average_mark" />) </div>
+                                        class="border rounded bg-white p-2 h-100 shadow-sm d-flex flex-column">
+                                        <div class="text-uppercase small fw-bold text-muted mb-2"
+                                            style="font-size: 0.7rem;">Последний отзыв</div>
+                                        <div
+                                            class="flex-grow-1 d-flex align-items-center justify-content-center p-2 italic text-muted"
+                                            style="font-size: 0.85rem;">
+                                            <div>
+                                                <i class="fa fa-quote-left opacity-25 me-1" title="Цитата" />
+                                                <field name="q4_last_remark" />
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
-                            </div>
-                            <div class="alert alert-info py-1 mb-2" role="alert">
-                                <field name="q4_attendance_stats_html" widget="html" />
+                                <div class="col-6 col-md-3">
+                                    <div
+                                        class="border rounded p-0 h-100 shadow-sm overflow-hidden d-flex flex-column"
+                                        style="background: #f8f9ff;">
+                                        <div class="text-uppercase small fw-bold text-white p-1"
+                                            style="font-size: 0.7rem; background: #714B67;">ИТОГ 4
+                                            ЧЕТВЕРТИ</div>
+                                        <div
+                                            class="flex-grow-1 d-flex flex-column align-items-center justify-content-center bg-white m-2 rounded">
+                                            <div class="display-4 fw-bolder" style="color: #714B67;">
+                                                <field name="q4_final_grade" placeholder="?" />
+                                            </div>
+                                            <div class="text-muted" style="font-size: 0.7rem;">ср.
+                                                балл: <field name="q4_average_mark" /></div>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                             <field name="q4_line_ids" readonly="0">
                                 <list editable="bottom" create="false" delete="false">
                                     <field name="attendance_date" readonly="1" />
                                     <field name="lesson_topic" />
-                                    <field name="present" widget="boolean" />
+                                    <field name="attendance_type_id" widget="badge"
+                                        options="{'color_field': 'color'}" />
                                     <field name="grade_1" />
                                     <field name="grade_2" />
                                     <field name="grade_3" />
