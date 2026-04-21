@@ -380,85 +380,71 @@ class OpSubjectGrades(models.Model):
 
     def _generate_quarter_summary_html(self, stats, final_grade, avg_mark):
         """ 
-        Версия 28.0: Добавлен плавающий полупрозрачный бейдж среднего балла.
+        Версия 31.0: Исправлено позиционирование бейджика (без CSS translate).
         """
         counts = stats['counts']
         colors = {5: "#714B67", 4: "#00A09D", 3: "#E9C46A", 2: "#E46F78"}
         max_v = max(counts.values()) or 1
         
         bar_start_x = 22
-        max_bar_w = 95
+        max_bar_w = 105 # Оптимальная ширина для 140 viewBox
         
-        avg_val = float(avg_mark or 0)
+        # 1. Расчеты с защитой от ошибок
+        try:
+            avg_val = float(avg_mark or 0)
+        except:
+            avg_val = 0
+            
+        # Ограничиваем значения для шкалы 2.0 - 5.0
+        val_clamped = max(2, min(5, avg_val))
         
-        # 1. Расчет X (горизонталь)
-        if avg_val < 2: avg_x = bar_start_x
-        elif avg_val > 5: avg_x = bar_start_x + max_bar_w
-        else: avg_x = bar_start_x + ((avg_val - 2) / 3) * max_bar_w
-
-        # 2. Расчет Y (вертикаль): центр полоски "5" это 18, центр полоски "2" это 84
-        # Формула инвертирована, так как в SVG 0 — это верх
-        if avg_val < 2: avg_y = 84
-        elif avg_val > 5: avg_y = 18
-        else: avg_y = 84 - ((avg_val - 2) / 3) * 66
+        # Координаты X и Y
+        avg_x = bar_start_x + ((val_clamped - 2) / 3) * max_bar_w
+        # Y: от 84 (оценка 2) до 18 (оценка 5)
+        avg_y = 84 - ((val_clamped - 2) / 3) * 66
 
         svg = f"""
         <svg viewBox="0 0 140 100" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg" style="width:100%; height:100px;">
             <style>
                 @keyframes growWidth {{ from {{ width: 0; }} }}
-                @keyframes fadeInBadge {{ from {{ opacity: 0; transform: translateY(5px); }} to {{ opacity: 1; transform: translateY(0); }} }}
+                @keyframes fadeIn {{ from {{ opacity: 0; }} to {{ opacity: 1; }} }}
                 .bar {{ animation: growWidth 0.8s ease-out forwards; }}
                 .lbl-main {{ font-family: sans-serif; font-size: 12px; font-weight: bold; }}
-                .val-count {{ font-family: sans-serif; font-size: 12px; font-weight: bold; fill: #666; }}
-                .badge-group {{ animation: fadeInBadge 0.6s ease-out forwards; animation-delay: 1s; opacity: 0; }}
+                .glass-badge {{ animation: fadeIn 0.5s ease-out forwards; animation-delay: 0.8s; opacity: 0; }}
             </style>
         """
 
-        y_pos = 12
-        row_h = 22 
-
         # --- СЛОЙ 1: МЕТКИ И ПОЛОСКИ ---
-        bars_code = ""
         for i, g in enumerate([5, 4, 3, 2]):
             val = counts[g]
             color = colors[g]
             bar_w = (val / max_v) * max_bar_w if val > 0 else 0
-            y = y_pos + (i * row_h)
+            y = 12 + (i * 22)
             
             label_color = color if val > 0 else "#ccc"
             svg += f'<text x="5" y="{y+10}" class="lbl-main" fill="{label_color}">{g}</text>'
             
             if val > 0:
-                bars_code += f'<rect class="bar" x="{bar_start_x}" y="{y}" width="{bar_w}" height="12" fill="{color}" rx="3" />'
+                svg += f'<rect class="bar" x="{bar_start_x}" y="{y}" width="{bar_w}" height="12" fill="{color}" rx="3" />'
 
-        svg += bars_code
-
-        # --- СЛОЙ 2: ИНДИКАТОР (Линия) ---
+        # --- СЛОЙ 2: ИНДИКАТОР И БЕЙДЖ ---
         if avg_val >= 2:
-            # Белый разрез
+            # Линия
             svg += f'<line x1="{avg_x}" y1="8" x2="{avg_x}" y2="92" stroke="white" stroke-width="3" />'
-            # Пунктир
             svg += f'<line x1="{avg_x}" y1="8" x2="{avg_x}" y2="92" stroke="#adb5bd" stroke-width="1" stroke-dasharray="3, 3" />'
 
-            # --- СЛОЙ 3: ПЛАВАЮЩИЙ БЕЙДЖ (Поверх линии) ---
-            # Тень для бейджа
+            # Бейджик (используем групповой атрибут transform для стабильности)
             svg += f"""
-            <g class="badge-group" style="transform-origin: {avg_x}px {avg_y}px;">
-                <rect x="{avg_x - 16}" y="{avg_y - 8}" width="32" height="16" rx="8" 
-                      fill="#714B67" fill-opacity="0.85" />
-                <text x="{avg_x}" y="{avg_y + 4}" text-anchor="middle" 
+            <g class="glass-badge" transform="translate({avg_x}, {avg_y})">
+                <!-- Капсула -->
+                <rect x="-16" y="-9" width="32" height="18" rx="9" 
+                      fill="white" fill-opacity="0.9" stroke="#714B67" stroke-width="1" />
+                <!-- Текст -->
+                <text x="0" y="4" text-anchor="middle" 
                       font-family="sans-serif" font-size="10" font-weight="bold" 
-                      fill="white">{avg_mark:.2f}</text>
+                      fill="#714B67">{avg_mark:.2f}</text>
             </g>
             """
-
-        # --- СЛОЙ 4: ЦИФРЫ КОЛИЧЕСТВА ---
-        for i, g in enumerate([5, 4, 3, 2]):
-            val = counts[g]
-            bar_w = (val / max_v) * max_bar_w if val > 0 else 0
-            y = y_pos + (i * row_h)
-            if val > 0:
-                svg += f'<text x="{bar_start_x + bar_w + 5}" y="{y+10}" class="val-count">{val}</text>'
 
         svg += "</svg>"
         return svg
