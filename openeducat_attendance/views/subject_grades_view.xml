@@ -609,6 +609,66 @@
             </form>
         </field>
     </record>
+    
+    <!-- ПОИСК И ФИЛЬТРЫ -->
+    <record id="view_op_subject_grades_search" model="ir.ui.view">
+        <field name="name">op.subject.grades.search</field>
+        <field name="model">op.subject.grades</field>
+        <field name="arch" type="xml">
+            <search string="Поиск успеваемости">
+                <!-- Поля поиска -->
+                <field name="student_id" string="Ученик" 
+                       filter_domain="['|', ('student_id.last_name', 'ilike', self), ('student_id.first_name', 'ilike', self)]"/>
+                <field name="subject_id" string="Предмет"/>
+                <field name="batch_id" string="Класс"/>
+                <field name="faculty_id" string="Учитель"/>
+
+                <separator/>
+
+                <!-- Блок фильтров по баллам -->
+                <filter string="⭐ Отличники (>= 4.5)" name="high_performers" 
+                        domain="[('average_mark', '>=', 4.5)]"/>
+                
+                <filter string="👍 Хорошисты (4.0-4.5)" name="good_performers" 
+                        domain="[('average_mark', '>=', 4.0), ('average_mark', '&lt;', 4.5)]"/>
+
+                <filter string="⚠️ Группа риска (&lt; 3.5)" name="low_performers" 
+                        domain="[('average_mark', '&lt;', 3.5), ('average_mark', '>', 0)]"/>
+
+                <filter string="❓ Без оценок" name="no_grades" 
+                        domain="[('average_mark', '=', 0)]"/>
+
+                <separator/>
+
+                <!-- Блок фильтров по посещаемости -->
+                <filter string="🏃 Прогульщики (&lt; 80%)" name="low_attendance" 
+                        domain="[('attendance_rate', '&lt;', 80), ('total_classes', '>', 0)]"/>
+
+                <filter string="✅ Идеальная явка" name="perfect_attendance" 
+                        domain="[('attendance_rate', '=', 100)]"/>
+
+                <separator/>
+
+                <!-- Группировка -->
+                <group expand="0" string="Группировать по...">
+                    <filter string="🏫 Класс" name="group_by_batch" 
+                            context="{'group_by': 'batch_id'}"/>
+                    
+                    <filter string="📚 Предмет" name="group_by_subject" 
+                            context="{'group_by': 'subject_id'}"/>
+                    
+                    <filter string="👤 Ученик" name="group_by_student" 
+                            context="{'group_by': 'student_id'}"/>
+                    
+                    <filter string="👨‍🏫 Учитель" name="group_by_faculty" 
+                            context="{'group_by': 'faculty_id'}"/>
+
+                    <filter string="🎓 Курс (Параллель)" name="group_by_course" 
+                            context="{'group_by': 'course_id'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
 
     <record id="act_open_op_subject_grades_view" model="ir.actions.act_window">
         <field name="name">Успеваемость</field>
