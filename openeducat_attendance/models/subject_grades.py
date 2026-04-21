@@ -65,6 +65,12 @@ class OpSubjectGrades(models.Model):
     q4_attendance_donut_svg = fields.Html(compute='_compute_visuals', sanitize=False)
     q4_grades_histogram_svg = fields.Html(compute='_compute_visuals', sanitize=False)
 
+    # Поля для сводного виджета "Итог четверти" (HTML)
+    q1_summary_html = fields.Html(compute='_compute_visuals', sanitize=False)
+    q2_summary_html = fields.Html(compute='_compute_visuals', sanitize=False)
+    q3_summary_html = fields.Html(compute='_compute_visuals', sanitize=False)
+    q4_summary_html = fields.Html(compute='_compute_visuals', sanitize=False)
+
     @api.depends('student_id', 'subject_id')
     def _compute_line_ids(self):
         if self.env.context.get('skip_compute'): return
@@ -103,7 +109,18 @@ class OpSubjectGrades(models.Model):
             rec.attendance_donut_svg = self._generate_attendance_donut(year_stats)
             rec.grades_histogram_svg = self._generate_grades_histogram(year_stats)
             for i in range(1, 5):
-                q_stats = l_obj.get_stats_from_lines(getattr(rec, f'q{i}_line_ids'))
+                q_lines = getattr(rec, f'q{i}_line_ids')
+                q_stats = l_obj.get_stats_from_lines(q_lines)
+                
+                # Собираем данные: итоговая оценка и средний балл
+                f_grade = getattr(rec, f'q{i}_final_grade')
+                a_mark = getattr(rec, f'q{i}_average_mark')
+                
+                # Вызываем наш генератор HTML и записываем результат в поле
+                html_widget = self._generate_quarter_summary_html(q_stats, f_grade, a_mark)
+                setattr(rec, f'q{i}_summary_html', html_widget)
+                
+                # Графики для вкладок (пончик и гистограмма)
                 setattr(rec, f'q{i}_attendance_donut_svg', self._generate_attendance_donut(q_stats))
                 setattr(rec, f'q{i}_grades_histogram_svg', self._generate_grades_histogram(q_stats))
 
@@ -360,6 +377,36 @@ class OpSubjectGrades(models.Model):
             pass
         
         return f'<svg viewBox="0 0 400 160" preserveAspectRatio="xMidYMid meet" style="width:100%; height:100px;">{path_elements}{"".join(dots)}</svg>'
+
+    def _generate_quarter_summary_html(self, stats, final_grade, avg_mark):
+        """ 
+        Версия 8.0: Только левая часть (точки и линии). 
+        Правую часть (ввод оценки) мы сделаем в XML.
+        """
+        counts = stats['counts']
+        colors = {5: "#714B67", 4: "#00A09D", 3: "#E9C46A", 2: "#E46F78"}
+        
+        # Уменьшаем ширину холста до 140 (только для левой стороны)
+        svg = """
+        <svg viewBox="0 0 140 100" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg" style="width:100%; height:100px;">
+            <style>
+                @keyframes pop { from { transform: scale(0); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+                .dot { animation: pop 0.4s ease-out forwards; transform-origin: center; opacity: 0; }
+            </style>
+            <line x1="20" y1="15" x2="20" y2="85" stroke="#dee2e6" stroke-width="2" />
+        """
+
+        y_pos = [22, 41, 60, 79]
+        for i, grade in enumerate([5, 4, 3, 2]):
+            val = counts[grade]
+            color = colors[grade]
+            y = y_pos[i]
+            svg += f'<circle class="dot" cx="20" cy="{y}" r="5" fill="{color}" stroke="white" stroke-width="1.5" style="animation-delay: {i*0.1}s;" />'
+            svg += f'<text x="35" y="{y+4}" font-family="sans-serif" font-size="11" fill="#999">оценок «{grade}»:</text>'
+            svg += f'<text x="105" y="{y+4}" font-family="sans-serif" font-size="12" font-weight="bold" fill="#212529">{val}</text>'
+
+        svg += "</svg>"
+        return svg
 
     @api.depends('subject_id', 'batch_id')
     def _compute_faculty_id(self):

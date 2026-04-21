@@ -315,7 +315,8 @@
                                             class="flex-grow-1 d-flex align-items-center justify-content-center p-2 italic text-muted"
                                             style="font-size: 0.85rem;">
                                             <div>
-                                                <i class="fa fa-quote-left opacity-25 me-1" title="Цитата"/>
+                                                <i class="fa fa-quote-left opacity-25 me-1"
+                                                    title="Цитата" />
                                                 <field name="q1_last_remark" />
                                             </div>
                                         </div>
@@ -323,27 +324,61 @@
                                 </div>
                                 <div class="col-6 col-md-3">
                                     <div
-                                        class="border rounded p-0 h-100 shadow-sm overflow-hidden d-flex flex-column"
-                                        style="background: #f8f9ff;">
-                                        <div class="text-uppercase small fw-bold text-white p-1"
-                                            style="font-size: 0.7rem; background: #714B67;">ИТОГ 1
-                                            ЧЕТВЕРТИ</div>
+                                        class="border rounded bg-light p-2 h-100 shadow d-flex flex-column">
                                         <div
-                                            class="flex-grow-1 d-flex flex-column align-items-center justify-content-center bg-white m-2 rounded">
-                                            <div class="display-4 fw-bolder" style="color: #714B67;">
-                                                <field name="q1_final_grade" placeholder="?" />
+                                            class="text-uppercase small fw-bold text-muted mb-2 text-center"
+                                            style="font-size: 0.7rem;">
+                                            Итог 1 четверти
+                                        </div>
+
+                                        <div class="row g-0 align-items-stretch flex-grow-1">
+                                            <!-- ЛЕВАЯ ЧАСТЬ: Наш стабильный SVG с точками -->
+                                            <div class="col-6">
+                                                <field name="q1_summary_html" widget="html"
+                                                    nolabel="1" />
                                             </div>
-                                            <div class="text-muted" style="font-size: 0.7rem;">ср.
-                                                балл: <field name="q1_average_mark" /></div>
+
+                                            <!-- ПРАВАЯ ЧАСТЬ: Реальное поле для ввода учителем -->
+                                            <div class="col-6 p-1 d-flex flex-column">
+                                                <!-- БЕЛЫЙ ОСТРОВ (только для итога) -->
+                                                <div
+                                                    class="bg-white rounded shadow-sm d-flex flex-column justify-content-center text-center border border-white"
+                                                    style="height: 85px;"> <!-- Фиксируем высоту
+                                                    самого острова -->
+
+                                                    <div class="text-muted"
+                                                        style="font-size: 0.55rem; font-weight: 700; letter-spacing: 0.5px;">
+                                                        ЧЕТВЕРТНАЯ</div>
+
+                                                    <div class="fw-bolder"
+                                                        style="font-size: 2.5rem; color: #714B67; line-height: 1;">
+                                                        <field name="q1_final_grade" placeholder="?"
+                                                            class="text-center w-100" />
+                                                    </div>
+                                                </div>
+
+                                                <!-- СРЕДНИЙ БАЛЛ (Снаружи, под островом) -->
+                                                <div class="text-center mt-1">
+                                                    <span
+                                                        style="font-size: 0.65rem; color: #999; font-weight: 600; text-transform: uppercase;">
+                                                        ср. балл:
+                                                    </span>
+                                                    <span
+                                                        style="font-size: 0.75rem; color: #666; font-weight: 700;">
+                                                        <field name="q1_average_mark" />
+                                                    </span>
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
                             </div>
                             <field name="q1_line_ids" readonly="0">
                                 <list editable="bottom" create="false" delete="false">
-                                    <field name="attendance_date" readonly="1" optional="show"/>
-                                    <field name="lesson_topic" string="Тема урока" optional="show"/>
-                                    <field name="attendance_type_id" widget="badge" string="Посещаемость"
+                                    <field name="attendance_date" readonly="1" optional="show" />
+                                    <field name="lesson_topic" string="Тема урока" optional="show" />
+                                    <field name="attendance_type_id" widget="badge"
+                                        string="Посещаемость"
                                         options="{'color_field': 'color'}" optional="show" />
                                     <field name="grade_1" optional="show" />
                                     <field name="grade_2" optional="show" />
@@ -381,7 +416,8 @@
                                             class="flex-grow-1 d-flex align-items-center justify-content-center p-2 italic text-muted"
                                             style="font-size: 0.85rem;">
                                             <div>
-                                                <i class="fa fa-quote-left opacity-25 me-1" title="Цитата"/>
+                                                <i class="fa fa-quote-left opacity-25 me-1"
+                                                    title="Цитата" />
                                                 <field name="q2_last_remark" />
                                             </div>
                                         </div>
@@ -407,9 +443,10 @@
                             </div>
                             <field name="q2_line_ids" readonly="0">
                                 <list editable="bottom" create="false" delete="false">
-                                    <field name="attendance_date" readonly="1" optional="show"/>
-                                    <field name="lesson_topic" string="Тема урока" optional="show"/>
-                                    <field name="attendance_type_id" widget="badge" string="Посещаемость"
+                                    <field name="attendance_date" readonly="1" optional="show" />
+                                    <field name="lesson_topic" string="Тема урока" optional="show" />
+                                    <field name="attendance_type_id" widget="badge"
+                                        string="Посещаемость"
                                         options="{'color_field': 'color'}" optional="show" />
                                     <field name="grade_1" optional="show" />
                                     <field name="grade_2" optional="show" />
@@ -447,7 +484,8 @@
                                             class="flex-grow-1 d-flex align-items-center justify-content-center p-2 italic text-muted"
                                             style="font-size: 0.85rem;">
                                             <div>
-                                                <i class="fa fa-quote-left opacity-25 me-1" title="Цитата"/>
+                                                <i class="fa fa-quote-left opacity-25 me-1"
+                                                    title="Цитата" />
                                                 <field name="q3_last_remark" />
                                             </div>
                                         </div>
@@ -473,10 +511,11 @@
                             </div>
                             <field name="q3_line_ids" readonly="0">
                                 <list editable="bottom" create="false" delete="false">
-                                    <field name="attendance_date" readonly="1" optional="show"/>
-                                    <field name="lesson_topic" string="Тема урока" optional="show"/>
-                                    <field name="attendance_type_id" widget="badge" string="Посещаемость"
-                                        options="{'color_field': 'color'}" optional="show"/>
+                                    <field name="attendance_date" readonly="1" optional="show" />
+                                    <field name="lesson_topic" string="Тема урока" optional="show" />
+                                    <field name="attendance_type_id" widget="badge"
+                                        string="Посещаемость"
+                                        options="{'color_field': 'color'}" optional="show" />
                                     <field name="grade_1" optional="show" />
                                     <field name="grade_2" optional="show" />
                                     <field name="grade_3" optional="hide" />
@@ -513,7 +552,8 @@
                                             class="flex-grow-1 d-flex align-items-center justify-content-center p-2 italic text-muted"
                                             style="font-size: 0.85rem;">
                                             <div>
-                                                <i class="fa fa-quote-left opacity-25 me-1" title="Цитата" />
+                                                <i class="fa fa-quote-left opacity-25 me-1"
+                                                    title="Цитата" />
                                                 <field name="q4_last_remark" />
                                             </div>
                                         </div>
@@ -539,14 +579,15 @@
                             </div>
                             <field name="q4_line_ids" readonly="0">
                                 <list editable="bottom" create="false" delete="false">
-                                    <field name="attendance_date" readonly="1" optional="show"/>
-                                    <field name="lesson_topic" string="Тема урока" optional="show"/>
-                                    <field name="attendance_type_id" widget="badge" string="Посещаемость"
-                                        options="{'color_field': 'color'}" optional="show"/>
-                                    <field name="grade_1" optional="show"/>
-                                    <field name="grade_2" optional="show"/>
-                                    <field name="grade_3" optional="hide"/>
-                                    <field name="remark" optional="show"/>
+                                    <field name="attendance_date" readonly="1" optional="show" />
+                                    <field name="lesson_topic" string="Тема урока" optional="show" />
+                                    <field name="attendance_type_id" widget="badge"
+                                        string="Посещаемость"
+                                        options="{'color_field': 'color'}" optional="show" />
+                                    <field name="grade_1" optional="show" />
+                                    <field name="grade_2" optional="show" />
+                                    <field name="grade_3" optional="hide" />
+                                    <field name="remark" optional="show" />
                                 </list>
                             </field>
                         </page>
