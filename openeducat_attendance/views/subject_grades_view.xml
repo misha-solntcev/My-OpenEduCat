@@ -188,7 +188,7 @@
                         </div>
 
                         <div class="col-6 col-md-3">
-                            <div class="border rounded bg-light p-2 h-100 shadow d-flex flex-column">
+                            <div class="border rounded bg-light p-2 h-100 shadow-lg d-flex flex-column">
                                 <div class="text-uppercase small fw-bold text-muted mb-2">
                                     ИТОГО ЗА ГОД
                                 </div>
@@ -324,7 +324,7 @@
                                 </div>
                                 <div class="col-6 col-md-3">
                                     <div
-                                        class="border rounded bg-light p-2 h-100 shadow d-flex flex-column">
+                                        class="border rounded bg-light p-2 h-100 shadow-lg d-flex flex-column">
                                         <div
                                             class="text-uppercase small fw-bold text-muted mb-2 text-center"
                                             style="font-size: 0.7rem;">
@@ -332,41 +332,23 @@
                                         </div>
 
                                         <div class="row g-0 align-items-stretch flex-grow-1">
-                                            <!-- ЛЕВАЯ ЧАСТЬ: Наш стабильный SVG с точками -->
-                                            <div class="col-6">
+                                            <!-- ЛЕВАЯ ЧАСТЬ: Горизонтальная гистограмма + пунктир -->
+                                            <div class="col-6 d-flex align-items-center">
                                                 <field name="q1_summary_html" widget="html"
                                                     nolabel="1" />
                                             </div>
 
-                                            <!-- ПРАВАЯ ЧАСТЬ: Реальное поле для ввода учителем -->
-                                            <div class="col-6 p-1 d-flex flex-column">
-                                                <!-- БЕЛЫЙ ОСТРОВ (только для итога) -->
+                                            <!-- ПРАВАЯ ЧАСТЬ: Только Белый остров -->
+                                            <div
+                                                class="col-6 p-1 d-flex flex-column justify-content-center">
                                                 <div
                                                     class="bg-white rounded shadow-sm d-flex flex-column justify-content-center text-center border border-white"
-                                                    style="height: 85px;"> <!-- Фиксируем высоту
-                                                    самого острова -->
-
-                                                    <div class="text-muted"
-                                                        style="font-size: 0.55rem; font-weight: 700; letter-spacing: 0.5px;">
-                                                        ЧЕТВЕРТНАЯ</div>
-
+                                                    style="height: 90px;">
                                                     <div class="fw-bolder"
-                                                        style="font-size: 2.5rem; color: #714B67; line-height: 1;">
+                                                        style="font-size: 2.8rem; color: #714B67; line-height: 1;">
                                                         <field name="q1_final_grade" placeholder="?"
                                                             class="text-center w-100" />
                                                     </div>
-                                                </div>
-
-                                                <!-- СРЕДНИЙ БАЛЛ (Снаружи, под островом) -->
-                                                <div class="text-center mt-1">
-                                                    <span
-                                                        style="font-size: 0.65rem; color: #999; font-weight: 600; text-transform: uppercase;">
-                                                        ср. балл:
-                                                    </span>
-                                                    <span
-                                                        style="font-size: 0.75rem; color: #666; font-weight: 700;">
-                                                        <field name="q1_average_mark" />
-                                                    </span>
                                                 </div>
                                             </div>
                                         </div>
