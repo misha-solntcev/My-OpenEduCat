@@ -188,7 +188,8 @@
                         </div>
 
                         <div class="col-6 col-md-3">
-                            <div class="border rounded bg-light p-2 h-100 shadow-lg d-flex flex-column">
+                            <div
+                                class="border rounded bg-light p-2 h-100 shadow d-flex flex-column">
                                 <div class="text-uppercase small fw-bold text-muted mb-2">
                                     ИТОГО ЗА ГОД
                                 </div>
@@ -271,9 +272,7 @@
                                     <!-- ПРАВАЯ ЧАСТЬ: Итоговая годовая (белый остров) -->
                                     <div class="col-6 p-1">
                                         <div
-                                            class="bg-white h-100 rounded shadow-sm d-flex flex-column justify-content-center text-center border border-white">
-                                            <div class="text-muted small mb-0"
-                                                style="font-size: 0.6rem; font-weight: 600;">ГОДОВАЯ</div>
+                                            class="bg-white h-100 rounded shadow d-flex flex-column justify-content-center text-center border border-white">                                            
                                             <div class="display-4 fw-bolder mb-0"
                                                 style="color: #714B67; line-height: 1;">
                                                 <field name="final_quarter_grade" placeholder="?" />
@@ -282,7 +281,7 @@
                                     </div>
                                 </div>
                             </div>
-                        </div>
+                        </div>                        
 
                     </div>
 
@@ -324,11 +323,11 @@
                                 </div>
                                 <div class="col-6 col-md-3">
                                     <div
-                                        class="border rounded bg-light p-2 h-100 shadow-lg d-flex flex-column">
+                                        class="border rounded bg-light p-2 h-100 shadow d-flex flex-column">
                                         <div
                                             class="text-uppercase small fw-bold text-muted mb-2 text-center"
                                             style="font-size: 0.7rem;">
-                                            Итог 1 четверти
+                                            Итого за 1 четверть
                                         </div>
 
                                         <div class="row g-0 align-items-stretch flex-grow-1">
@@ -342,7 +341,7 @@
                                             <div
                                                 class="col-6 p-1 d-flex flex-column justify-content-center">
                                                 <div
-                                                    class="bg-white rounded shadow-sm d-flex flex-column justify-content-center text-center border border-white"
+                                                    class="bg-white rounded shadow d-flex flex-column justify-content-center text-center border border-white"
                                                     style="height: 90px;">
                                                     <div class="fw-bolder"
                                                         style="font-size: 2.8rem; color: #714B67; line-height: 1;">
@@ -574,6 +573,38 @@
                             </field>
                         </page>
                     </notebook>
+
+                    <!-- Найдите закрывающий тег </div> первого ряда годового дашборда и
+                        вставьте это: -->
+
+                    <div class="row g-2 mb-4 text-center">
+                        <div class="col-md-3">
+                            <div class="border rounded bg-light p-2 h-100 shadow-sm">
+                                <div class="small fw-bold text-muted mb-2">STYLE: DOT MATRIX</div>
+                                <field name="year_dot_matrix_svg" widget="html" nolabel="1" />
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="border rounded bg-light p-2 h-100 shadow-sm">
+                                <div class="small fw-bold text-muted mb-2">STYLE: BULLET GRAPH</div>
+                                <field name="year_bullet_graph_svg" widget="html" nolabel="1" />
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="border rounded bg-light p-2 h-100 shadow-sm">
+                                <div class="small fw-bold text-muted mb-2">STYLE: MODERN SLIDER</div>
+                                <field name="year_range_slider_svg" widget="html" nolabel="1" />
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="border rounded bg-light p-2 h-100 shadow-sm">
+                                <div class="small fw-bold text-muted mb-2 text-uppercase">Style:
+                                    Grade Mosaic</div>
+                                <field name="year_treemap_svg" widget="html" nolabel="1" />
+                            </div>
+                        </div>
+                    </div>
+
                 </sheet>
             </form>
         </field>

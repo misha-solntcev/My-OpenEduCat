@@ -71,6 +71,19 @@ class OpSubjectGrades(models.Model):
     q3_summary_html = fields.Html(compute='_compute_visuals', sanitize=False)
     q4_summary_html = fields.Html(compute='_compute_visuals', sanitize=False)
 
+
+
+
+    # Поля для тестирования новых стилей визуализации (Годовые)
+    year_dot_matrix_svg = fields.Html(compute='_compute_visuals', sanitize=False)
+    year_bullet_graph_svg = fields.Html(compute='_compute_visuals', sanitize=False)
+    year_range_slider_svg = fields.Html(compute='_compute_visuals', sanitize=False)
+
+    year_treemap_svg = fields.Html(compute='_compute_visuals', sanitize=False)
+
+
+
+
     @api.depends('student_id', 'subject_id')
     def _compute_line_ids(self):
         if self.env.context.get('skip_compute'): return
@@ -108,6 +121,16 @@ class OpSubjectGrades(models.Model):
             rec.year_progress_svg = self._generate_svg_graph(rec)
             rec.attendance_donut_svg = self._generate_attendance_donut(year_stats)
             rec.grades_histogram_svg = self._generate_grades_histogram(year_stats)
+
+            # НОВЫЕ ВАРИАНТЫ ДЛЯ ТЕСТА (Годовые)
+            rec.year_dot_matrix_svg = self._generate_dot_matrix(year_stats, rec.average_mark)
+            rec.year_bullet_graph_svg = self._generate_bullet_graph(year_stats, rec.average_mark)
+            rec.year_range_slider_svg = self._generate_range_slider(rec.average_mark)
+
+            # Внутри цикла for rec in self:
+            rec.year_treemap_svg = self._generate_treemap_svg(year_stats)
+
+
             for i in range(1, 5):
                 q_lines = getattr(rec, f'q{i}_line_ids')
                 q_stats = l_obj.get_stats_from_lines(q_lines)
@@ -387,7 +410,7 @@ class OpSubjectGrades(models.Model):
         max_v = max(counts.values()) or 1
         
         bar_start_x = 22
-        max_bar_w = 105 # Оптимальная ширина для 140 viewBox
+        max_bar_w = 105 # Оптимграфикальная ширина для 140 viewBox
         
         # 1. Расчеты с защитой от ошибок
         try:
@@ -458,3 +481,124 @@ class OpSubjectGrades(models.Model):
     @api.depends('student_id')
     def _compute_student_name_short(self):
         for r in self: r.student_name_short = f"{r.student_id.first_name or ''} {r.student_id.last_name or ''}".strip()
+
+
+
+
+
+
+
+    # Экспериментальные плитки    
+    def _generate_dot_matrix(self, stats, avg_mark):
+        """ ВАРИАНТ 1: Точечная матрица (Dot Matrix) """
+        counts = stats['counts']
+        colors = {5: "#714B67", 4: "#00A09D", 3: "#E9C46A", 2: "#E46F78"}
+        svg = '<svg viewBox="0 0 150 100" style="width:100%; height:100px;">'
+        for i, g in enumerate([5, 4, 3, 2]):
+            val = counts[g]
+            color = colors[g]
+            y = 15 + (i * 22)
+            svg += f'<text x="5" y="{y+8}" font-family="sans-serif" font-size="10" font-weight="bold" fill="{color if val>0 else "#ccc"}">{g}</text>'
+            for d in range(12):
+                x = 25 + (d * 10)
+                fill = color if d < val else "#f0f0f0"
+                svg += f'<circle cx="{x}" cy="{y+4}" r="3.5" fill="{fill}" />'
+        svg += '</svg>'
+        return svg
+
+    def _generate_bullet_graph(self, stats, avg_mark):
+        """ ВАРИАНТ 2: Bullet Graph (Компактная капсула) """
+        avg_val = float(avg_mark or 0)
+        # Шкала 2.0 (0%) - 5.0 (100%)
+        fill_w = max(0, min(100, ((avg_val - 2) / 3) * 100))
+        return f"""
+        <svg viewBox="0 0 150 100" style="width:100%; height:100px;">
+            <rect x="10" y="40" width="130" height="20" rx="10" fill="#f0f0f0" />
+            <rect x="10" y="40" width="{1.3 * fill_w}" height="20" rx="10" fill="#714B67" fill-opacity="0.3" />
+            <line x1="{10 + 1.3 * fill_w}" y1="35" x2="{10 + 1.3 * fill_w}" y2="65" stroke="#714B67" stroke-width="3" />
+            <text x="75" y="85" text-anchor="middle" font-family="sans-serif" font-size="14" font-weight="bold" fill="#714B67">{avg_val:.2f}</text>
+            <text x="10" y="30" font-family="sans-serif" font-size="9" fill="#999">2.0</text>
+            <text x="130" y="30" font-family="sans-serif" font-size="9" fill="#999">5.0</text>
+        </svg>
+        """
+
+    def _generate_range_slider(self, avg_mark):
+        """ ВАРИАНТ 3: Modern Slider (Градиентный слайдер) """
+        avg_val = float(avg_mark or 0)
+        fill_w = max(0, min(100, ((avg_val - 2) / 3) * 100))
+        return f"""
+        <svg viewBox="0 0 150 100" style="width:100%; height:100px;">
+            <defs>
+                <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="0%">
+                    <stop offset="0%" style="stop-color:#E46F78; stop-opacity:1" />
+                    <stop offset="50%" style="stop-color:#E9C46A; stop-opacity:1" />
+                    <stop offset="100%" style="stop-color:#714B67; stop-opacity:1" />
+                </linearGradient>
+            </defs>
+            <rect x="10" y="45" width="130" height="4" rx="2" fill="url(#grad1)" opacity="0.3" />
+            <circle cx="{10 + 1.3 * fill_w}" cy="47" r="8" fill="white" stroke="#714B67" stroke-width="2" />
+            <text x="{10 + 1.3 * fill_w}" y="75" text-anchor="middle" font-family="sans-serif" font-size="12" font-weight="bold" fill="#714B67">{avg_val:.2f}</text>
+        </svg>
+        """
+
+    def _generate_treemap_svg(self, stats):
+        """ ВАРИАНТ 4: Биржевая мозаика (Пазл) с защитой текста """
+        counts = stats['counts']
+        # Берем только существующие оценки и сортируем от больших к меньшим
+        items = sorted([(g, counts[g]) for g in [5, 4, 3, 2] if counts[g] > 0], key=lambda x: x[1], reverse=True)
+        total = sum(counts.values())
+        if total == 0: return '<div class="text-muted small py-4 text-center">Нет данных</div>'
+
+        colors = {5: "#714B67", 4: "#00A09D", 3: "#E9C46A", 2: "#E46F78"}
+        W, H = 200, 100
+        svg = f'<svg viewBox="0 0 {W} {H}" xmlns="http://www.w3.org/2000/svg" style="width:100%; height:100px; border-radius:8px; display:block;">'
+
+        def draw_block(x, y, w, h, grade, count):
+            if w < 10 or h < 10: return "" # Совсем мелкие не рисуем
+            color = colors[grade]
+            
+            # Динамический шрифт: берем 40% от меньшей стороны блока, но не больше 30px
+            fs_main = min(30, min(w, h) * 0.45)
+            # Показываем текст только если блок достаточно велик
+            show_text = fs_main > 9
+            # Показываем "шт." только в очень крупных блоках
+            show_sub = w > 45 and h > 45
+
+            res = f'<rect x="{x+0.5}" y="{y+0.5}" width="{w-1}" height="{h-1}" fill="{color}" rx="4" stroke="white" stroke-width="1.5" />'
+            
+            if show_text:
+                # Центрирование: dominant-baseline="central" + text-anchor="middle"
+                ty = y + h/2
+                if show_sub: ty -= fs_main * 0.2 # Смещаем чуть вверх, если есть подпись шт.
+                
+                res += f'<text x="{x + w/2}" y="{ty}" text-anchor="middle" dominant-baseline="central" fill="white" font-family="sans-serif" font-weight="900" font-size="{fs_main}px">{grade}</text>'
+                
+                if show_sub:
+                    res += f'<text x="{x + w/2}" y="{ty + fs_main*0.7}" text-anchor="middle" dominant-baseline="central" fill="white" fill-opacity="0.7" font-family="sans-serif" font-weight="bold" font-size="{fs_main*0.35}px">{count} шт.</text>'
+            return f'<g>{res}</g>'
+
+        # Алгоритм "Биржевого" пазла
+        n = len(items)
+        if n == 1:
+            svg += draw_block(0, 0, W, H, items[0][0], items[0][1])
+        elif n >= 2:
+            # Делим на левую (самая большая оценка) и правую (все остальные) части
+            # split_x зависит от веса первого элемента
+            split_x = (items[0][1] / total) * W
+            # Ограничим split_x, чтобы правая часть не была слишком узкой (минимум 30% ширины)
+            split_x = max(W*0.3, min(W*0.7, split_x))
+            
+            # Левый блок (главный)
+            svg += draw_block(0, 0, split_x, H, items[0][0], items[0][1])
+            
+            # Правую часть делим по горизонтали между остальными
+            right_items = items[1:]
+            right_total = sum(i[1] for i in right_items)
+            curr_y = 0
+            for grade, count in right_items:
+                block_h = (count / right_total) * H
+                svg += draw_block(split_x, curr_y, W - split_x, block_h, grade, count)
+                curr_y += block_h
+
+        svg += '</svg>'
+        return svg
