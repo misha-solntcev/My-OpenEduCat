@@ -141,43 +141,58 @@ class OpSubjectGrades(models.Model):
     # Круговая диаграмма посещаемости с легендой
     def _generate_attendance_donut(self, stats):
         total = stats['total']
-        if total == 0: return '<div class="text-muted small py-4 text-center">Нет данных</div>'
+        if total == 0: 
+            return '<div class="text-muted small py-4 text-center">Нет данных</div>'
         
-        # Полная карта цветов для легенды
-        color_map = {
+        detailed = stats.get('types_detailed', {})
+        segments, offset, legend = [], 0, ""
+
+        # Цвета посещаемости (прописываем здесь, так как constants.py не внедрен)
+        attendance_colors = {
             'Присутствует': '#28a745', 
             'Дистанционно': '#a5d6a7', 
             'Опоздал': '#ffc107', 
             'Болеет': '#9c27b0', 
             'Уважительная причина': '#17a2b8', 
-            'Прогул': '#dc3545'
+            'Прогул': '#dc3545',
+            'default': '#dee2e6'
         }
-        detailed = stats.get('types_detailed', {})
-        segments, offset, legend = [], 0, ""
-        
-        for label, color in color_map.items():
-            count = detailed.get(label, 0)
-            if count > 0:
-                pct = (count / total) * 100
-                # r=15.915 дает длину окружности ровно 100
-                segments.append(f"""
-                    <circle cx="21" cy="21" r="15.915" fill="none" 
-                            stroke="{color}" stroke-width="31.8" 
-                            stroke-dasharray="{pct} {100-pct}" 
-                            stroke-dashoffset="-{offset}"/>
-                """)
-                offset += pct
-                legend += f"""
-                    <div class="d-flex align-items-center mb-1" style="font-size:10px; line-height: 1;">
-                        <span style="width:7px; height:7px; background:{color}; border-radius:50%; flex-shrink:0;" class="me-1"></span>
-                        <span class="text-truncate">{label}: <b>{count}</b></span>
-                    </div>"""
+
+        # CSS Стили для анимации вращения и заполнения
+        styles = """
+        <style>
+            @keyframes donut-show {
+                from { stroke-dasharray: 0 100; }
+            }
+            .donut-seg {
+                animation: donut-show 1.2s ease-in-out forwards;
+            }
+        </style>
+        """
+
+        for label, count in detailed.items():
+            color = attendance_colors.get(label.strip(), attendance_colors['default'])
+            pct = (count / total) * 100
+            
+            # r=15.915 делает длину окружности ровно 100
+            segments.append(f"""
+                <circle class="donut-seg" cx="21" cy="21" r="15.915" fill="none" 
+                        stroke="{color}" stroke-width="31.8" 
+                        stroke-dasharray="{pct} {100-pct}" 
+                        stroke-dashoffset="-{offset}"/>
+            """)
+            offset += pct
+            legend += f"""
+                <div class="d-flex align-items-center mb-1" style="font-size:10px; line-height: 1;">
+                    <span style="width:7px; height:7px; background:{color}; border-radius:50%; flex-shrink:0;" class="me-1"></span>
+                    <span class="text-truncate">{label}: <b>{count}</b></span>
+                </div>"""
 
         return f"""
             <div class="row g-0 align-items-center h-100">
                 <div class="col-5 d-flex align-items-center justify-content-center">
-                    <svg viewBox="0 0 42 42" 
-                         style="width: 100%; max-width: 80px; aspect-ratio: 1/1; transform: rotate(-90deg); border-radius: 50%; display: block;">
+                    <svg viewBox="0 0 42 42" style="width: 80px; height: 80px; transform: rotate(-90deg); border-radius: 50%;">
+                        {styles}
                         <circle cx="21" cy="21" r="15.915" fill="#f8f9fa"/>
                         {"".join(segments)}
                     </svg>
@@ -193,32 +208,63 @@ class OpSubjectGrades(models.Model):
         if not any(counts.values()): return '<div class="text-muted small py-4 text-center">Нет оценок</div>'
         max_v = max(counts.values()) or 1
         
-        # ОБНОВЛЕННАЯ ПАЛИТРА: Уходим от серого в сторону "живых" цветов
         colors = {
-            5: "#714B67",  # Глубокий индиго (Превосходно)
-            4: "#00A09D",  # Бирюзовый (Хорошо)
-            3: "#E9C46A",  # Янтарный / Мягкий оранжевый (Удовлетворительно) - ТЕПЕРЬ НЕ СЕРЫЙ
-            2: "#E46F78"   # Приглушенный красный (Неудовлетворительно)
+            5: "#714B67", 4: "#00A09D", 3: "#E9C46A", 2: "#E46F78"
         }
+
+        # Блок стилей для анимации
+        # .bar-rect — анимирует рост столбика
+        # .bar-text — плавно проявляет цифры после того, как столбик вырос
+        styles = """
+        <style>
+            @keyframes grow-bar {
+                from { transform: scaleY(0); }
+                to { transform: scaleY(1); }
+            }
+            @keyframes fade-text {
+                from { opacity: 0; transform: translateY(5px); }
+                to { opacity: 1; transform: translateY(0); }
+            }
+            .bar-rect {
+                transform-origin: 0 72px; /* Фиксируем низ столбика на базовой линии */
+                animation: grow-bar 0.7s cubic-bezier(0.17, 0.67, 0.83, 0.67) forwards;
+            }
+            .bar-text {
+                opacity: 0;
+                animation: fade-text 0.5s ease-out forwards;
+            }
+        </style>
+        """
         
-        bars = ""
+        bars = styles
         for i, g in enumerate([5, 4, 3, 2]):
             val = counts[g]
             h = (val / max_v) * 50
             x = i * 32 + 20
             y = 20 + (50 - h)
             
-            # Рисуем столбик
-            bars += f'<rect x="{x}" y="{y}" width="22" height="{h}" fill="{colors[g]}" rx="3"/>'
+            # Добавляем класс bar-rect и задержку анимации (animation-delay)
+            # чтобы столбики росли по очереди (эффект волны)
+            bars += f"""
+                <rect class="bar-rect" x="{x}" y="{y}" width="22" height="{h}" 
+                      fill="{colors[g]}" rx="3" 
+                      style="animation-delay: {i*0.1}s;"/>
+            """
             
-            # Текст над столбиком (количество)
+            # Текст над столбиком (количество) с задержкой, чтобы он появился в конце
             if val > 0:
-                bars += f'<text x="{x+11}" y="{y-5}" text-anchor="middle" font-size="11" font-weight="bold" fill="{colors[g]}">{val}</text>'
+                bars += f"""
+                    <text class="bar-text" x="{x+11}" y="{y-5}" 
+                          text-anchor="middle" font-size="11" font-weight="bold" 
+                          fill="{colors[g]}" style="animation-delay: {0.5 + i*0.1}s;">
+                        {val}
+                    </text>
+                """
             
             # Подпись снизу (оценка)
             bars += f'<text x="{x+11}" y="90" text-anchor="middle" font-size="11" fill="#999" font-weight="bold">{g}</text>'
             
-            # Тонкая линия подчеркивания для каждой оценки
+            # Базовая линия
             bars += f'<line x1="{x}" y1="72" x2="{x+22}" y2="72" stroke="{colors[g]}" stroke-width="2" opacity="0.6"/>'
         
         return f'<div class="text-center"><svg width="150" height="90">{bars}</svg></div>'
