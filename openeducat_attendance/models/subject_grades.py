@@ -138,58 +138,6 @@ class OpSubjectGrades(models.Model):
         self._compute_all_stats()
         return True
 
-    # График динамики с градиентной заливкой под линией
-    def _generate_svg_graph(self, rec):        
-        avgs = [rec.q1_average_mark, rec.q2_average_mark, rec.q3_average_mark, rec.q4_average_mark]
-        h = 160  # Высота SVG
-        px = [45, 153, 261, 370]
-        
-        # Сетка и подписи
-        grid = """
-            <text x="5" y="35" font-family="sans-serif" font-size="22" fill="#adb5bd" font-weight="bold">5</text>
-            <line x1="40" y1="30" x2="400" y2="30" stroke="#e0e0e0" stroke-width="2" stroke-dasharray="4,4"/>
-            <text x="5" y="71" font-family="sans-serif" font-size="22" fill="#adb5bd" font-weight="bold">4</text>
-            <line x1="40" y1="66" x2="400" y2="66" stroke="#e0e0e0" stroke-width="2" stroke-dasharray="4,4"/>
-            <text x="5" y="108" font-family="sans-serif" font-size="22" fill="#adb5bd" font-weight="bold">3</text>
-            <line x1="40" y1="103" x2="400" y2="103" stroke="#e0e0e0" stroke-width="2" stroke-dasharray="4,4"/>
-            <text x="5" y="145" font-family="sans-serif" font-size="22" fill="#adb5bd" font-weight="bold">2</text>
-            <line x1="40" y1="140" x2="400" y2="140" stroke="#e0e0e0" stroke-width="2" stroke-dasharray="4,4"/>
-        """
-
-        coords, dots = [], []
-        for i, val in enumerate(avgs):
-            x = px[i]
-            if val > 0:
-                y = 140 - ((val - 2) * 36.6)
-                coords.append((x, y))
-                dots.append(f'<circle cx="{x}" cy="{y}" r="8" fill="white" stroke="#714B67" stroke-width="6"/>')
-            else:
-                dots.append(f'<circle cx="{x}" cy="85" r="5" fill="#f8f9fa" stroke="#e0e0e0" stroke-width="2"/>')
-
-        path_elements = ""
-        if len(coords) >= 2:
-            # Строим основную линию
-            d_line = f"M {coords[0][0]} {coords[0][1]}"
-            for i in range(1, len(coords)):
-                d_line += f" L {coords[i][0]} {coords[i][1]}"
-            
-            # Строим замкнутый контур для градиента (линия -> низ -> начало)
-            d_fill = f"{d_line} L {coords[-1][0]} {h} L {coords[0][0]} {h} Z"
-            
-            grad_id = f"grad_dyn_{rec.id}"
-            path_elements = f"""
-                <defs>
-                    <linearGradient id="{grad_id}" x1="0%" y1="0%" x2="0%" y2="100%">
-                        <stop offset="0%" style="stop-color:#714B67; stop-opacity:0.25" />
-                        <stop offset="100%" style="stop-color:#714B67; stop-opacity:0" />
-                    </linearGradient>
-                </defs>
-                <path d="{d_fill}" fill="url(#{grad_id})" />
-                <path d="{d_line}" fill="none" stroke="#714B67" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
-            """
-        
-        return f'<svg viewBox="0 0 400 160" preserveAspectRatio="xMidYMid meet" style="width:100%; height:100px;">{grid}{path_elements}{"".join(dots)}</svg>'
-
     # Круговая диаграмма посещаемости с легендой
     def _generate_attendance_donut(self, stats):
         total = stats['total']
@@ -244,17 +192,88 @@ class OpSubjectGrades(models.Model):
         counts = stats['counts']
         if not any(counts.values()): return '<div class="text-muted small py-4 text-center">Нет оценок</div>'
         max_v = max(counts.values()) or 1
-        colors = {5: "#28a745", 4: "#007bff", 3: "#ffc107", 2: "#dc3545"}
+        
+        # ОБНОВЛЕННАЯ ПАЛИТРА: Уходим от серого в сторону "живых" цветов
+        colors = {
+            5: "#714B67",  # Глубокий индиго (Превосходно)
+            4: "#00A09D",  # Бирюзовый (Хорошо)
+            3: "#E9C46A",  # Янтарный / Мягкий оранжевый (Удовлетворительно) - ТЕПЕРЬ НЕ СЕРЫЙ
+            2: "#E46F78"   # Приглушенный красный (Неудовлетворительно)
+        }
+        
         bars = ""
         for i, g in enumerate([5, 4, 3, 2]):
             val = counts[g]
             h = (val / max_v) * 50
             x = i * 32 + 20
             y = 20 + (50 - h)
-            bars += f'<rect x="{x}" y="{y}" width="20" height="{h}" fill="{colors[g]}" rx="3"/>'
-            bars += f'<text x="{x+10}" y="{y-5}" text-anchor="middle" font-size="11" font-weight="bold" fill="#333">{val if val>0 else ""}</text>'
-            bars += f'<text x="{x+10}" y="85" text-anchor="middle" font-size="10" fill="#999">{g}</text>'
+            
+            # Рисуем столбик
+            bars += f'<rect x="{x}" y="{y}" width="22" height="{h}" fill="{colors[g]}" rx="3"/>'
+            
+            # Текст над столбиком (количество)
+            if val > 0:
+                bars += f'<text x="{x+11}" y="{y-5}" text-anchor="middle" font-size="11" font-weight="bold" fill="{colors[g]}">{val}</text>'
+            
+            # Подпись снизу (оценка)
+            bars += f'<text x="{x+11}" y="90" text-anchor="middle" font-size="11" fill="#999" font-weight="bold">{g}</text>'
+            
+            # Тонкая линия подчеркивания для каждой оценки
+            bars += f'<line x1="{x}" y1="72" x2="{x+22}" y2="72" stroke="{colors[g]}" stroke-width="2" opacity="0.6"/>'
+        
         return f'<div class="text-center"><svg width="150" height="90">{bars}</svg></div>'
+
+    # График динамики с градиентной заливкой под линией
+    def _generate_svg_graph(self, rec):        
+        avgs = [rec.q1_average_mark, rec.q2_average_mark, rec.q3_average_mark, rec.q4_average_mark]
+        h = 160  # Высота SVG
+        px = [45, 153, 261, 370]
+        
+        # Сетка и подписи
+        grid = """
+            <text x="5" y="35" font-family="sans-serif" font-size="22" fill="#adb5bd" font-weight="bold">5</text>
+            <line x1="40" y1="30" x2="400" y2="30" stroke="#e0e0e0" stroke-width="2" stroke-dasharray="4,4"/>
+            <text x="5" y="71" font-family="sans-serif" font-size="22" fill="#adb5bd" font-weight="bold">4</text>
+            <line x1="40" y1="66" x2="400" y2="66" stroke="#e0e0e0" stroke-width="2" stroke-dasharray="4,4"/>
+            <text x="5" y="108" font-family="sans-serif" font-size="22" fill="#adb5bd" font-weight="bold">3</text>
+            <line x1="40" y1="103" x2="400" y2="103" stroke="#e0e0e0" stroke-width="2" stroke-dasharray="4,4"/>
+            <text x="5" y="145" font-family="sans-serif" font-size="22" fill="#adb5bd" font-weight="bold">2</text>
+            <line x1="40" y1="140" x2="400" y2="140" stroke="#e0e0e0" stroke-width="2" stroke-dasharray="4,4"/>
+        """
+
+        coords, dots = [], []
+        for i, val in enumerate(avgs):
+            x = px[i]
+            if val > 0:
+                y = 140 - ((val - 2) * 36.6)
+                coords.append((x, y))
+                dots.append(f'<circle cx="{x}" cy="{y}" r="8" fill="white" stroke="#714B67" stroke-width="6"/>')
+            else:
+                dots.append(f'<circle cx="{x}" cy="85" r="5" fill="#f8f9fa" stroke="#e0e0e0" stroke-width="2"/>')
+
+        path_elements = ""
+        if len(coords) >= 2:
+            # Строим основную линию
+            d_line = f"M {coords[0][0]} {coords[0][1]}"
+            for i in range(1, len(coords)):
+                d_line += f" L {coords[i][0]} {coords[i][1]}"
+            
+            # Строим замкнутый контур для градиента (линия -> низ -> начало)
+            d_fill = f"{d_line} L {coords[-1][0]} {h} L {coords[0][0]} {h} Z"
+            
+            grad_id = f"grad_dyn_{rec.id}"
+            path_elements = f"""
+                <defs>
+                    <linearGradient id="{grad_id}" x1="0%" y1="0%" x2="0%" y2="100%">
+                        <stop offset="0%" style="stop-color:#714B67; stop-opacity:0.25" />
+                        <stop offset="100%" style="stop-color:#714B67; stop-opacity:0" />
+                    </linearGradient>
+                </defs>
+                <path d="{d_fill}" fill="url(#{grad_id})" />
+                <path d="{d_line}" fill="none" stroke="#714B67" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+            """
+        
+        return f'<svg viewBox="0 0 400 160" preserveAspectRatio="xMidYMid meet" style="width:100%; height:100px;">{grid}{path_elements}{"".join(dots)}</svg>'
 
     @api.depends('subject_id', 'batch_id')
     def _compute_faculty_id(self):
