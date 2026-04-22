@@ -142,7 +142,8 @@
                             </div>
                             <div class="d-flex align-items-center">
                                 <h2 class="text-primary mb-0 me-3">
-                                    <field name="subject_id" readonly="1" />
+                                    <field name="subject_id" readonly="1"
+                                        options="{'no_open': True}" />
                                 </h2>
                                 <div
                                     class="d-flex align-items-center text-muted border-start ps-3 py-1">
@@ -357,35 +358,35 @@
                                     <field name="attendance_date" readonly="1" optional="show" />
                                     <field name="lesson_topic" string="Тема урока" optional="show" />
                                     <field name="attendance_type_id" widget="badge"
-                                        decoration-danger="absent" 
-                                        decoration-warning="late" 
+                                        decoration-danger="absent"
+                                        decoration-warning="late"
                                         decoration-info="excused"
                                         decoration-success="present and not late"
                                         string="Посещаемость" options="{'color_field': 'color'}"
                                         optional="show" />
-                                    <field name="grade_1"                                        
+                                    <field name="grade_1"
                                         decoration-bf="True"
                                         decoration-primary="grade_1 == 5"
                                         decoration-info="grade_1 == 4"
                                         decoration-warning="grade_1 == 3"
                                         decoration-danger="grade_1 == 2"
-                                        decoration-muted="grade_1 == 0"                                        
+                                        decoration-muted="grade_1 == 0"
                                         optional="show" />
-                                    <field name="grade_2"                                        
+                                    <field name="grade_2"
                                         decoration-bf="True"
                                         decoration-primary="grade_2 == 5"
                                         decoration-info="grade_2 == 4"
                                         decoration-warning="grade_2 == 3"
                                         decoration-danger="grade_2 == 2"
-                                        decoration-muted="grade_2 == 0"                                        
+                                        decoration-muted="grade_2 == 0"
                                         optional="show" />
-                                    <field name="grade_3"                                        
+                                    <field name="grade_3"
                                         font-weight="bold"
                                         decoration-primary="grade_3 == 5"
                                         decoration-info="grade_3 == 4"
                                         decoration-warning="grade_3 == 3"
                                         decoration-danger="grade_3 == 2"
-                                        decoration-muted="grade_3 == 0"                                        
+                                        decoration-muted="grade_3 == 0"
                                         optional="hide" />
                                     <field name="remark" optional="show" />
                                 </list>
@@ -459,8 +460,8 @@
                                     <field name="attendance_date" readonly="1" optional="show" />
                                     <field name="lesson_topic" string="Тема урока" optional="show" />
                                     <field name="attendance_type_id" widget="badge"
-                                        decoration-danger="absent" 
-                                        decoration-warning="late" 
+                                        decoration-danger="absent"
+                                        decoration-warning="late"
                                         decoration-info="excused"
                                         decoration-success="present and not late"
                                         string="Посещаемость" options="{'color_field': 'color'}"
@@ -471,7 +472,7 @@
                                         decoration-info="grade_1 == 4"
                                         decoration-warning="grade_1 == 3"
                                         decoration-danger="grade_1 == 2"
-                                        decoration-muted="grade_1 == 0"                                        
+                                        decoration-muted="grade_1 == 0"
                                         optional="show" />
                                     <field name="grade_2"
                                         decoration-bf="True"
@@ -479,7 +480,7 @@
                                         decoration-info="grade_2 == 4"
                                         decoration-warning="grade_2 == 3"
                                         decoration-danger="grade_2 == 2"
-                                        decoration-muted="grade_2 == 0"                                        
+                                        decoration-muted="grade_2 == 0"
                                         optional="show" />
                                     <field name="grade_3"
                                         font-weight="bold"
@@ -487,7 +488,7 @@
                                         decoration-info="grade_3 == 4"
                                         decoration-warning="grade_3 == 3"
                                         decoration-danger="grade_3 == 2"
-                                        decoration-muted="grade_3 == 0"                                        
+                                        decoration-muted="grade_3 == 0"
                                         optional="hide" />
                                     <field name="remark" optional="show" />
                                 </list>
@@ -561,8 +562,8 @@
                                     <field name="attendance_date" readonly="1" optional="show" />
                                     <field name="lesson_topic" string="Тема урока" optional="show" />
                                     <field name="attendance_type_id" widget="badge"
-                                        decoration-danger="absent" 
-                                        decoration-warning="late" 
+                                        decoration-danger="absent"
+                                        decoration-warning="late"
                                         decoration-info="excused"
                                         decoration-success="present and not late"
                                         string="Посещаемость" options="{'color_field': 'color'}"
@@ -573,7 +574,7 @@
                                         decoration-info="grade_1 == 4"
                                         decoration-warning="grade_1 == 3"
                                         decoration-danger="grade_1 == 2"
-                                        decoration-muted="grade_1 == 0"                                        
+                                        decoration-muted="grade_1 == 0"
                                         optional="show" />
                                     <field name="grade_2"
                                         decoration-bf="True"
@@ -581,7 +582,7 @@
                                         decoration-info="grade_2 == 4"
                                         decoration-warning="grade_2 == 3"
                                         decoration-danger="grade_2 == 2"
-                                        decoration-muted="grade_2 == 0"                                        
+                                        decoration-muted="grade_2 == 0"
                                         optional="show" />
                                     <field name="grade_3"
                                         font-weight="bold"
@@ -589,7 +590,7 @@
                                         decoration-info="grade_3 == 4"
                                         decoration-warning="grade_3 == 3"
                                         decoration-danger="grade_3 == 2"
-                                        decoration-muted="grade_3 == 0"                                        
+                                        decoration-muted="grade_3 == 0"
                                         optional="hide" />
                                     <field name="remark" optional="show" />
                                 </list>
@@ -663,8 +664,8 @@
                                     <field name="attendance_date" readonly="1" optional="show" />
                                     <field name="lesson_topic" string="Тема урока" optional="show" />
                                     <field name="attendance_type_id" widget="badge"
-                                        decoration-danger="absent" 
-                                        decoration-warning="late" 
+                                        decoration-danger="absent"
+                                        decoration-warning="late"
                                         decoration-info="excused"
                                         decoration-success="present and not late"
                                         string="Посещаемость" options="{'color_field': 'color'}"
@@ -675,7 +676,7 @@
                                         decoration-info="grade_1 == 4"
                                         decoration-warning="grade_1 == 3"
                                         decoration-danger="grade_1 == 2"
-                                        decoration-muted="grade_1 == 0"                                        
+                                        decoration-muted="grade_1 == 0"
                                         optional="show" />
                                     <field name="grade_2"
                                         decoration-bf="True"
@@ -683,7 +684,7 @@
                                         decoration-info="grade_2 == 4"
                                         decoration-warning="grade_2 == 3"
                                         decoration-danger="grade_2 == 2"
-                                        decoration-muted="grade_2 == 0"                                        
+                                        decoration-muted="grade_2 == 0"
                                         optional="show" />
                                     <field name="grade_3"
                                         font-weight="bold"
@@ -691,7 +692,7 @@
                                         decoration-info="grade_3 == 4"
                                         decoration-warning="grade_3 == 3"
                                         decoration-danger="grade_3 == 2"
-                                        decoration-muted="grade_3 == 0"                                        
+                                        decoration-muted="grade_3 == 0"
                                         optional="hide" />
                                     <field name="remark" optional="show" />
                                 </list>
@@ -798,6 +799,6 @@
     <record id="act_open_op_subject_grades_view" model="ir.actions.act_window">
         <field name="name">Успеваемость</field>
         <field name="res_model">op.subject.grades</field>
-        <field name="view_mode">kanban,list,form</field>        
+        <field name="view_mode">kanban,list,form</field>
     </record>
 </odoo>

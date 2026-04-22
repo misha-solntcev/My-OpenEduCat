@@ -47,7 +47,7 @@ class OpSubjectGrades(models.Model):
     q4_line_ids = fields.Many2many('op.attendance.line', 'rel_grades_q4_lines', 'grade_id', 'line_id', compute='_compute_line_ids', store=True)
     q4_average_mark = fields.Float(compute='_compute_all_stats', store=True)
     q4_last_remark = fields.Char(compute='_compute_all_stats', store=True)
-    q4_final_grade = fields.Char('Итог Q4')
+    q4_final_grade = fields.Char('Итог Q4')    
 
     # --- ВИЗУАЛИЗАЦИЯ (SVG/HTML) ---
     year_progress_svg = fields.Html(compute='_compute_visuals', sanitize=False)
@@ -101,6 +101,7 @@ class OpSubjectGrades(models.Model):
                     setattr(rec, f'q{i}_line_ids', [(6, 0, ids)])
                 else:
                     setattr(rec, f'q{i}_line_ids', [(6, 0, [])])
+   
 
     @api.depends('q1_line_ids', 'q2_line_ids', 'q3_line_ids', 'q4_line_ids')
     def _compute_all_stats(self):
@@ -480,7 +481,7 @@ class OpSubjectGrades(models.Model):
     @api.depends('subject_id', 'batch_id')
     def _compute_faculty_id(self):
         for r in self:
-            s = self.env['op.session'].search([('subject_id', '=', r.subject_id.id), ('batch_id', '=', r.batch_id.id)], limit=1)
+            s = self.env['op.session'].search([('subject_id', '=', r.subject_id.id), ('batch_id', '=', r.batch_id.id)], order='start_datetime desc', limit=1)
             r.faculty_id = s.faculty_id.id if s else False
 
     @api.depends('student_id')
