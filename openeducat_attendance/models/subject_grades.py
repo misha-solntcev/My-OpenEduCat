@@ -8,7 +8,7 @@ _logger = logging.getLogger(__name__)
 class OpSubjectGrades(models.Model):
     _name = "op.subject.grades"
     _description = "Subject Grades"
-    _order = "student_id, subject_id"
+    _order = "batch_id, subject_id, student_id"
 
     # --- БАЗОВЫЕ ПОЛЯ ---
     student_id = fields.Many2one('op.student', 'Student', required=True, ondelete='cascade', index=True)
@@ -23,7 +23,7 @@ class OpSubjectGrades(models.Model):
     textbook_image = fields.Image('Учебник', compute='_compute_textbook_image', store=True)
     student_name_short = fields.Char('Имя', compute='_compute_student_name_short', store=True)
     
-    average_mark = fields.Float('Средняя', compute='_compute_all_stats', store=True)
+    average_mark = fields.Float('Средняя', compute='_compute_all_stats', store=True, aggregator="avg")
     attendance_rate = fields.Float('Посещаемость %', compute='_compute_all_stats', store=True)
     total_classes = fields.Integer(compute='_compute_all_stats', store=True)
     present_classes = fields.Integer(compute='_compute_all_stats', store=True)
@@ -147,13 +147,17 @@ class OpSubjectGrades(models.Model):
                 setattr(rec, f'q{i}_attendance_donut_svg', self._generate_attendance_donut(q_stats))
                 setattr(rec, f'q{i}_grades_histogram_svg', self._generate_grades_histogram(q_stats))
 
-    @api.depends('subject_id', 'course_id')
+    @api.depends('subject_id', 'course_id')    
     def _compute_textbook_image(self):
         for r in self:
-            domain = [('subject_ids', 'in', r.subject_id.ids)]
-            media = self.env['op.media'].sudo().search(domain + [('course_ids', 'in', r.course_id.ids)], limit=1)
+            if not r.subject_id:
+                r.textbook_image = False
+                continue
+            base_domain = [('subject_ids', 'in', r.subject_id.ids), ('x_image_128', '!=', False)]            
+            media = self.env['op.media'].sudo().search(
+                base_domain + [('course_ids', 'in', r.course_id.ids)], limit=1)            
             if not media:
-                media = self.env['op.media'].sudo().search(domain, limit=1)
+                media = self.env['op.media'].sudo().search(base_domain, limit=1)                
             r.textbook_image = media.x_image_128 if media else False
 
     def action_migrate_old_data(self):
