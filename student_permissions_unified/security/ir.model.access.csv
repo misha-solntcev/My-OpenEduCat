@@ -3,7 +3,9 @@ access_student_core_student,Student Core,openeducat_core.model_op_student,__cust
 access_faculty_core_student,Faculty Student,openeducat_core.model_op_student,__custom__.group_op_faculty,1,1,0,0
 access_faculty_core_course,Faculty Course,openeducat_core.model_op_course,__custom__.group_op_faculty,1,0,0,0
 access_student_atten_line,Student Atten Line,openeducat_attendance.model_op_attendance_line,__custom__.group_op_students,1,0,0,0
-access_faculty_atten_line,Faculty Atten Line,openeducat_attendance.model_op_attendance_line,__custom__.group_op_faculty,1,1,1,1
+access_faculty_atten_line,Faculty Atten Line,openeducat_attendance.model_op_attendance_line,__custom__.group_op_faculty,1,1,1,0
+access_student_attendance_type,Student Attendance Type,openeducat_attendance.model_op_attendance_type,__custom__.group_op_students,1,0,0,0
+access_faculty_attendance_type,Faculty Attendance Type,openeducat_attendance.model_op_attendance_type,__custom__.group_op_faculty,1,0,0,0
 access_student_subj_grades,Student Grades,openeducat_attendance.model_op_subject_grades,__custom__.group_op_students,1,0,0,0
 access_faculty_subj_grades,Faculty Grades,openeducat_attendance.model_op_subject_grades,__custom__.group_op_faculty,1,1,1,0
 access_student_assignment,Student Assignment,openeducat_assignment.model_op_assignment,__custom__.group_op_students,1,0,0,0
