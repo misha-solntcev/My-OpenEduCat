@@ -1,7 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-    <!-- ПРАВИЛА ДЛЯ СТУДЕНТОВ (Видят только своё) -->
-    
     <record id="rule_student_own_profile" model="ir.rule">
         <field name="name">Student: Own Profile Only</field>
         <field name="model_id" ref="openeducat_core.model_op_student"/>
@@ -23,15 +21,6 @@
         <field name="domain_force">[('student_id.user_id', '=', user.id)]</field>
     </record>
 
-    <record id="rule_student_own_sessions" model="ir.rule">
-        <field name="name">Student: Own Timetable Sessions</field>
-        <field name="model_id" ref="openeducat_timetable.model_op_session"/>
-        <field name="groups" eval="[(4, ref('__custom__.group_op_students'))]"/>
-        <field name="domain_force">['|', ('user_ids', 'in', user.id), ('user_ids', 'in', user.child_ids.ids)]</field>
-    </record>
-
-    <!-- ПРАВИЛА ДЛЯ ПРЕПОДАВАТЕЛЕЙ (Видят всё в рамках работы, могут править) -->
-
     <record id="rule_faculty_all_students" model="ir.rule">
         <field name="name">Faculty: View All Students</field>
         <field name="model_id" ref="openeducat_core.model_op_student"/>
@@ -39,19 +28,18 @@
         <field name="domain_force">[(1, '=', 1)]</field>
     </record>
 
-    <record id="rule_faculty_edit_attendance" model="ir.rule">
-        <field name="name">Faculty: Manage Attendance</field>
+    <record id="rule_faculty_manage_attendance" model="ir.rule">
+        <field name="name">Faculty: Manage Attendance (No Delete)</field>
         <field name="model_id" ref="openeducat_attendance.model_op_attendance_line"/>
         <field name="groups" eval="[(4, ref('__custom__.group_op_faculty'))]"/>
         <field name="domain_force">[(1, '=', 1)]</field>
         <field name="perm_read" eval="1"/>
         <field name="perm_write" eval="1"/>
         <field name="perm_create" eval="1"/>
-        <field name="perm_unlink" eval="1"/>
-    </record>
+        <field name="perm_unlink" eval="0"/> </record>
 
-    <record id="rule_faculty_edit_grades" model="ir.rule">
-        <field name="name">Faculty: Manage Grades</field>
+    <record id="rule_faculty_manage_grades" model="ir.rule">
+        <field name="name">Faculty: Manage Grades (No Delete)</field>
         <field name="model_id" ref="openeducat_attendance.model_op_subject_grades"/>
         <field name="groups" eval="[(4, ref('__custom__.group_op_faculty'))]"/>
         <field name="domain_force">[(1, '=', 1)]</field>
@@ -61,25 +49,4 @@
         <field name="perm_unlink" eval="0"/>
     </record>
 
-    <!-- ОГРАНИЧЕНИЯ ДЛЯ БЕЗОПАСНОСТИ (Чтобы ученики не видели лишнего в системе) -->
-    <record id="rule_student_no_partners" model="ir.rule">
-        <field name="name">Student: Own Partner Record Only</field>
-        <field name="model_id" ref="base.model_res_partner"/>
-        <field name="groups" eval="[(4, ref('__custom__.group_op_students'))]"/>
-        <field name="domain_force">[('id', '=', user.partner_id.id)]</field>
-    </record>
-
-    <!-- Правило для Менеджеров Расписания: Разрешить ВСЁ -->
-    <record id="rule_timetable_manager_all_sessions" model="ir.rule">
-        <field name="name">Timetable Manager: Full Access</field>
-        <field name="model_id" ref="openeducat_timetable.model_op_session"/>
-        <!-- Привязываем к стандартной группе менеджеров OpenEduCat -->
-        <field name="groups" eval="[(4, ref('openeducat_timetable.group_op_timetable_manager'))]"/>
-        <field name="domain_force">[(1, '=', 1)]</field>
-        <field name="perm_read" eval="1"/>
-        <field name="perm_write" eval="1"/>
-        <field name="perm_create" eval="1"/>
-        <field name="perm_unlink" eval="1"/>
-    </record>
-
-</odoo>
+    </odoo>
