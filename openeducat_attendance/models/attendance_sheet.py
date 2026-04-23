@@ -126,17 +126,27 @@ class OpAttendanceSheet(models.Model):
 
     def _fill_student_lines(self):
         self.ensure_one()
+        # Добавляем .ids и set(), чтобы исключить дубликаты на уровне Python
         students = self.env['op.student'].search([
             ('course_detail_ids.course_id', '=', self.course_id.id),
             ('course_detail_ids.batch_id', '=', self.batch_id.id)
         ])
+        
+        # Оставляем только уникальные ID студентов
+        unique_student_ids = list(set(students.ids))
+        
         present_type = self.env['op.attendance.type'].search([('present', '=', True)], limit=1)
         lines = []
-        for student in students:
-            lines.append((0, 0, {
-                'student_id': student.id,
-                'attendance_type_id': present_type.id if present_type else False,
-            }))
+        
+        # Проверяем, какие студенты уже ЕСТЬ в журнале, чтобы не добавлять их снова
+        existing_students = self.attendance_line.mapped('student_id').ids
+        
+        for student_id in unique_student_ids:
+            if student_id not in existing_students: # Проверка на дубликат
+                lines.append((0, 0, {
+                    'student_id': student_id,
+                    'attendance_type_id': present_type.id if present_type else False,
+                }))
         self.attendance_line = lines
 
 # --- СЧЕТЧИКИ ПОСЕЩАЕМОСТИ (store=True обязателен для поиска и Pivot) ---
