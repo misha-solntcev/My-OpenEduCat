@@ -138,7 +138,37 @@ class OpSession(models.Model):
         self.state = 'draft'
 
     def lecture_confirm(self):
-        self.state = 'confirm'
+        """Создаем ведомость в момент подтверждения урока, 
+        чтобы учитель мог заполнять её в процессе занятия."""
+        self.write({'state': 'confirm'})
+        
+        AttendanceSheet = self.env['op.attendance.sheet']
+        for record in self:
+            # Проверяем, не создана ли уже ведомость (защита от дублей)
+            if not AttendanceSheet.search_count([('session_id', '=', record.id)]):
+                # Ищем студентов
+                students = self.env['op.student'].search([
+                    ('course_detail_ids.course_id', '=', record.course_id.id),
+                    ('course_detail_ids.batch_id', '=', record.batch_id.id)
+                ])
+                
+                present_type = self.env['op.attendance.type'].search([('present', '=', True)], limit=1)
+                
+                # Создаем ведомость
+                AttendanceSheet.create({
+                    'session_id': record.id,
+                    'attendance_date': record.start_datetime.date(),
+                    'faculty_id': record.faculty_id.id,
+                    'register_id': self.env['op.attendance.register'].search([
+                        ('course_id', '=', record.course_id.id),
+                        ('batch_id', '=', record.batch_id.id)
+                    ], limit=1).id,
+                    'attendance_line': [(0, 0, {
+                        'student_id': s.id,
+                        'attendance_type_id': present_type.id if present_type else False,
+                    }) for s in students],
+                    'state': 'draft', # Ведомость создается в черновике
+                })
 
     def lecture_done(self):
         self.state = 'done'
@@ -153,70 +183,24 @@ class OpSession(models.Model):
                 raise ValidationError(_(
                     'End Time cannot be set before Start Time.'))
 
-    @api.constrains('faculty_id', 'start_datetime', 'end_datetime', 'classroom_id',
-                    'batch_id', 'subject_id')
+    # 1. Оптимизированный метод валидации (без перебора всей базы)
+    @api.constrains('faculty_id', 'start_datetime', 'end_datetime', 'classroom_id', 'batch_id')
     def check_timetable_fields(self):
-        res_param = self.env['ir.config_parameter'].sudo()
-        faculty_constraint = res_param.search([
-            ('key', '=', 'timetable.is_faculty_constraint')])
-        classroom_constraint = res_param.search([
-            ('key', '=', 'timetable.is_classroom_constraint')])
-        batch_and_subject_constraint = res_param.search([
-            ('key', '=', 'timetable.is_batch_and_subject_constraint')])
-        batch_constraint = res_param.search([
-            ('key', '=', 'timetable.is_batch_constraint')])
-        is_faculty_constraint = faculty_constraint.value
-        is_classroom_constraint = classroom_constraint.value
-        is_batch_and_subject_constraint = batch_and_subject_constraint.value
-        is_batch_constraint = batch_constraint.value
-        sessions = self.env['op.session'].search([])
-        for session in sessions:
-            for rec in self:
-                if rec.id != session.id:
-                    if is_faculty_constraint:
-                        if rec.faculty_id.id == session.faculty_id.id and \
-                                rec.start_datetime.date() == session.start_datetime.date() and ( # noqa
-                                session.start_datetime.time() < rec.start_datetime.time() < session.end_datetime.time() or # noqa
-                                session.start_datetime.time() < rec.end_datetime.time() < session.end_datetime.time() or # noqa
-                                rec.start_datetime.time() <= session.start_datetime.time() < rec.end_datetime.time() or # noqa
-                                rec.start_datetime.time() < session.end_datetime.time() <= rec.end_datetime.time()): # noqa
-                            raise ValidationError(_(
-                                'You cannot create a session'
-                                ' with same faculty on same date '
-                                'and time'))
-                    if is_classroom_constraint:
-                        if rec.classroom_id.id == session.classroom_id.id and \
-                                rec.start_datetime.date() == session.start_datetime.date() and ( # noqa
-                                session.start_datetime.time() < rec.start_datetime.time() < session.end_datetime.time() or # noqa
-                                session.start_datetime.time() < rec.end_datetime.time() < session.end_datetime.time() or # noqa
-                                rec.start_datetime.time() <= session.start_datetime.time() < rec.end_datetime.time() or # noqa
-                                rec.start_datetime.time() < session.end_datetime.time() <= rec.end_datetime.time()): # noqa
-                            raise ValidationError(_(
-                                'You cannot create a session '
-                                'with same classroom on same date'
-                                ' and time'))
-                    if is_batch_and_subject_constraint:
-                        if rec.batch_id.id == session.batch_id.id and \
-                                rec.start_datetime.date() == session.start_datetime.date() and ( # noqa
-                                session.start_datetime.time() < rec.start_datetime.time() < session.end_datetime.time() or # noqa
-                                session.start_datetime.time() < rec.end_datetime.time() < session.end_datetime.time() or # noqa
-                                rec.start_datetime.time() <= session.start_datetime.time() < rec.end_datetime.time() or # noqa
-                                rec.start_datetime.time() < session.end_datetime.time() <= rec.end_datetime.time()) and rec.subject_id.id == session.subject_id.id: # noqa
-                            raise ValidationError(_(
-                                'You cannot create a session '
-                                'for the same batch on same time '
-                                'and for same subject'))
-                    if is_batch_constraint:
-                        if rec.batch_id.id == session.batch_id.id and \
-                                rec.start_datetime.date() == session.start_datetime.date() and ( # noqa
-                                session.start_datetime.time() < rec.start_datetime.time() < session.end_datetime.time() or # noqa
-                                session.start_datetime.time() < rec.end_datetime.time() < session.end_datetime.time() or # noqa
-                                rec.start_datetime.time() <= session.start_datetime.time() < rec.end_datetime.time() or # noqa
-                                rec.start_datetime.time() < session.end_datetime.time() <= rec.end_datetime.time()): # noqa
-                            raise ValidationError(_(
-                                'You cannot create a session for '
-                                'the same batch on same time '
-                                'even if it is different subject'))
+        for rec in self:
+            # Ищем конфликты только по времени текущего урока (это мгновенно)
+            domain = [
+                ('id', '!=', rec.id),
+                ('start_datetime', '<', rec.end_datetime),
+                ('end_datetime', '>', rec.start_datetime),
+            ]
+            
+            # Проверка учителя
+            if self.search_count(domain + [('faculty_id', '=', rec.faculty_id.id)]):
+                raise ValidationError(_('Учитель уже занят в это время'))
+            
+            # Проверка группы (класса)
+            if self.search_count(domain + [('batch_id', '=', rec.batch_id.id)]):
+                raise ValidationError(_('У этого класса уже есть урок в это время'))
 
     @api.model_create_multi
     def create(self, values):
