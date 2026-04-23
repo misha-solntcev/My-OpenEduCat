@@ -24,11 +24,10 @@
 
     <!-- КАНБАН -->
     <record id="view_op_subject_grades_kanban" model="ir.ui.view">
-        <field name="name">op.subject.grades.kanban</field>
-        <field name="model">op.subject.grades</field>
-        <field name="arch" type="xml">
-            <kanban create="false" group_by="batch_id" class="o_kanban_mobile"
-                default_order="student_id, subject_id">
+    <field name="name">op.subject.grades.kanban</field>
+    <field name="model">op.subject.grades</field>
+    <field name="arch" type="xml">
+        <kanban create="false" class="o_kanban_mobile" default_order="student_id, subject_id">
                 <field name="student_id" />
                 <field name="subject_id" />
                 <field name="faculty_id" />
@@ -125,7 +124,18 @@
                     <button name="action_force_recompute" type="object"
                         string="ПЕРЕСЧИТАТЬ СТАТИСТИКУ" class="btn-primary fw-bold" />
                 </header>
+
                 <sheet>
+                    <style>
+                        .o_list_record_remove {
+                            display: none !important;
+                        }
+                        th.o_list_record_remove_header {
+                            display: none !important;
+                        }
+                    </style>
+
+
                     <div class="d-flex align-items-start mb-4">
                         <field name="student_avatar" widget="image" class="oe_avatar shadow me-3"
                             style="width: 85px; height: 85px; border-radius: 10%; object-fit: cover;" />
@@ -353,8 +363,12 @@
                                     </div>
                                 </div>
                             </div>
-                            <field name="q1_line_ids" readonly="0">
-                                <list editable="bottom" create="false" delete="false">
+                            <field name="is_teacher" invisible="1" />
+                            <field name="q1_line_ids" 
+                                readonly="not is_teacher"
+                                context="{'form_view_ref': 'view_op_attendance_line_compact_form'}"
+                                options="{'no_create': True, 'no_delete': True}">    
+                                <list create="0" delete="0">
                                     <field name="attendance_date" readonly="1" optional="show" />
                                     <field name="lesson_topic" string="Тема урока" optional="show" />
                                     <field name="attendance_type_id" widget="badge"
@@ -799,6 +813,6 @@
     <record id="act_open_op_subject_grades_view" model="ir.actions.act_window">
         <field name="name">Успеваемость</field>
         <field name="res_model">op.subject.grades</field>
-        <field name="view_mode">kanban,list,form</field>
+        <field name="view_mode">kanban,list,form</field>        
     </record>
 </odoo>

@@ -41,6 +41,32 @@
         </field>
     </record>
 
+    <record id="view_op_attendance_line_compact_form" model="ir.ui.view">
+        <field name="name">op.attendance.line.compact.form</field>
+        <field name="model">op.attendance.line</field>
+        <field name="arch" type="xml">
+            <form string="Детали посещаемости и оценки">
+                <sheet>
+                    <group>
+                        <group string="Информация о уроке">
+                            <field name="attendance_date" readonly="1"/>
+                            <field name="lesson_topic" string="Тема урока" placeholder="Тема урока..."/>
+                        </group>
+                        <group string="Оценки">
+                            <field name="grade_1"/>
+                            <field name="grade_2"/>
+                            <field name="grade_3"/>
+                            <field name="attendance_type_id" string="Посещаемость" options="{'no_open': True, 'no_create': True}"/>
+                        </group>
+                    </group>
+                    <group string="Дополнительно">
+                        <field name="remark" placeholder="Ваше примечание..."/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
     <!-- 2. Электронный дневник-->
     <record id="view_op_attendance_line_pivot" model="ir.ui.view">
         <field name="name">op.attendance.line.pivot</field>

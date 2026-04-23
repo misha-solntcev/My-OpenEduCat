@@ -16,6 +16,8 @@ class OpSubjectGrades(models.Model):
     batch_id = fields.Many2one('op.batch', 'Batch', required=True)
     course_id = fields.Many2one('op.course', related='batch_id.course_id', store=True, readonly=True)
     faculty_id = fields.Many2one('op.faculty', 'Faculty', compute='_compute_faculty_id', store=True)
+
+    is_teacher = fields.Boolean(compute='_compute_is_teacher')
     
     table_entries = fields.Text('Table Entries')
     student_avatar = fields.Image(related='student_id.image_128', string="Фото ученика")
@@ -81,8 +83,11 @@ class OpSubjectGrades(models.Model):
 
     year_treemap_svg = fields.Html(compute='_compute_visuals', sanitize=False)
 
-
-
+    def _compute_is_teacher(self):
+        # Проверяем, входит ли текущий пользователь в группу учителей
+        teacher_group = self.env.ref('__custom__.group_op_faculty')
+        for record in self:
+            record.is_teacher = self.env.user in teacher_group.users
 
     @api.depends('student_id', 'subject_id')
     def _compute_line_ids(self):
