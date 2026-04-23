@@ -161,22 +161,22 @@ class OpSubjectGrades(models.Model):
                 media = self.env['op.media'].sudo().search(base_domain, limit=1)                
             r.textbook_image = media.x_image_128 if media else False
 
-    def action_migrate_old_data(self):
-        date_pattern = re.compile(r'^\d{4}-\d{2}-\d{2}$')
-        recs = self.sudo().search([('table_entries', '!=', False)])
-        present_type = self.env['op.attendance.type'].sudo().search([('present', '=', True)], limit=1)
-        for record in recs.with_context(skip_compute=True):
-            for entry in record.table_entries.split(', '):
-                parts = [p.strip() for p in entry.split('|')]
-                if not parts or not date_pattern.match(parts[0]): continue
-                vals = {}
-                if len(parts) > 1 and parts[1] and parts[1][0].isdigit(): vals['grade_1'] = float(parts[1][0])
-                if len(parts) > 2 and parts[2] and parts[2][0].isdigit(): vals['grade_2'] = float(parts[2][0])
-                if len(parts) > 8 and parts[8]: vals['remark'] = parts[8]
-                if '✓' in entry and present_type: vals['attendance_type_id'] = present_type.id
-                line = self.env['op.attendance.line'].sudo().search([('student_id', '=', record.student_id.id), ('subject_id', '=', record.subject_id.id), ('attendance_date', '=', parts[0])], limit=1)
-                if line: line.write(vals)
-        return True
+    # def action_migrate_old_data(self):
+    #     date_pattern = re.compile(r'^\d{4}-\d{2}-\d{2}$')
+    #     recs = self.sudo().search([('table_entries', '!=', False)])
+    #     present_type = self.env['op.attendance.type'].sudo().search([('present', '=', True)], limit=1)
+    #     for record in recs.with_context(skip_compute=True):
+    #         for entry in record.table_entries.split(', '):
+    #             parts = [p.strip() for p in entry.split('|')]
+    #             if not parts or not date_pattern.match(parts[0]): continue
+    #             vals = {}
+    #             if len(parts) > 1 and parts[1] and parts[1][0].isdigit(): vals['grade_1'] = float(parts[1][0])
+    #             if len(parts) > 2 and parts[2] and parts[2][0].isdigit(): vals['grade_2'] = float(parts[2][0])
+    #             if len(parts) > 8 and parts[8]: vals['remark'] = parts[8]
+    #             if '✓' in entry and present_type: vals['attendance_type_id'] = present_type.id
+    #             line = self.env['op.attendance.line'].sudo().search([('student_id', '=', record.student_id.id), ('subject_id', '=', record.subject_id.id), ('attendance_date', '=', parts[0])], limit=1)
+    #             if line: line.write(vals)
+    #     return True
 
     def action_force_recompute(self):
         self._compute_line_ids()
@@ -609,3 +609,70 @@ class OpSubjectGrades(models.Model):
 
         svg += '</svg>'
         return svg
+
+
+    
+
+
+
+    def action_migrate_old_data(self):
+        _logger = logging.getLogger(__name__)
+        
+        # 1. Справочники типов
+        AttendanceType = self.env['op.attendance.type'].sudo()
+        t_present = AttendanceType.search([('present', '=', True), ('late', '=', False)], limit=1)
+        t_late = AttendanceType.search([('late', '=', True)], limit=1)
+        t_absent = AttendanceType.search([('absent', '=', True)], limit=1)
+        t_excused = AttendanceType.search([('excused', '=', True)], limit=1)
+
+        # 2. SQL-выборка исходных данных
+        query = """
+            SELECT id, present, late, absent, excused, 
+                x_mark, x_behavior, x_subject, x_faculty, 
+                remark, lesson_topic
+            FROM op_attendance_line
+        """
+        self.env.cr.execute(query)
+        all_data = self.env.cr.dictfetchall()
+        
+        count = 0
+        for row in all_data:
+            vals = {}
+            
+            # Посещаемость
+            if row.get('late'): vals['attendance_type_id'] = t_late.id
+            elif row.get('excused'): vals['attendance_type_id'] = t_excused.id
+            elif row.get('absent'): vals['attendance_type_id'] = t_absent.id
+            elif row.get('present'): vals['attendance_type_id'] = t_present.id
+
+            # Успеваемость и поведение
+            if row.get('x_mark'): vals['grade_1'] = float(row['x_mark'])
+            if row.get('x_behavior'): vals['grade_2'] = float(row['x_behavior'])
+
+            # Связи
+            if row.get('x_subject'): vals['subject_id'] = row['x_subject']
+            if row.get('x_faculty'): vals['faculty_id'] = row['x_faculty']
+
+            # Текстовые поля
+            if row.get('lesson_topic'): vals['lesson_topic'] = row['lesson_topic']
+            if row.get('remark'): vals['remark'] = row['remark']
+
+            if vals:
+                line = self.env['op.attendance.line'].sudo().browse(row['id'])
+                if line.exists():
+                    line.write(vals)
+                    count += 1
+                    if count % 5000 == 0:
+                        _logger.info(f"Миграция: обработано {count} записей")
+
+        # 3. Финальный штрих: расчет среднего балла (grade_avg)
+        # Используем чистый SQL для скорости на 35к записей
+        self.env.cr.execute("""
+            UPDATE op_attendance_line 
+            SET grade_avg = (COALESCE(grade_1, 0) + COALESCE(grade_2, 0)) / 
+                            NULLIF((CASE WHEN grade_1 IS NOT NULL THEN 1 ELSE 0 END + 
+                                    CASE WHEN grade_2 IS NOT NULL THEN 1 ELSE 0 END), 0)
+            WHERE grade_1 IS NOT NULL OR grade_2 IS NOT NULL
+        """)
+
+        return True
