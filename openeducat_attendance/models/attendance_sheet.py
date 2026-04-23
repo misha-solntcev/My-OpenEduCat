@@ -109,12 +109,8 @@ class OpAttendanceSheet(models.Model):
                 ], limit=1)
                 record.term_id = term
 
-
     def action_attendance_start(self):
-        for rec in self:
-            if not rec.attendance_line:
-                rec._fill_student_lines()
-            rec.state = 'start'
+        self.write({'state': 'start'})
     def action_attendance_done(self):
         self.write({'state': 'done'})
 
@@ -124,30 +120,6 @@ class OpAttendanceSheet(models.Model):
     def action_attendance_cancel(self):
         self.write({'state': 'cancel'})
 
-    def _fill_student_lines(self):
-        self.ensure_one()
-        # Добавляем .ids и set(), чтобы исключить дубликаты на уровне Python
-        students = self.env['op.student'].search([
-            ('course_detail_ids.course_id', '=', self.course_id.id),
-            ('course_detail_ids.batch_id', '=', self.batch_id.id)
-        ])
-        
-        # Оставляем только уникальные ID студентов
-        unique_student_ids = list(set(students.ids))
-        
-        present_type = self.env['op.attendance.type'].search([('present', '=', True)], limit=1)
-        lines = []
-        
-        # Проверяем, какие студенты уже ЕСТЬ в журнале, чтобы не добавлять их снова
-        existing_students = self.attendance_line.mapped('student_id').ids
-        
-        for student_id in unique_student_ids:
-            if student_id not in existing_students: # Проверка на дубликат
-                lines.append((0, 0, {
-                    'student_id': student_id,
-                    'attendance_type_id': present_type.id if present_type else False,
-                }))
-        self.attendance_line = lines
 
 # --- СЧЕТЧИКИ ПОСЕЩАЕМОСТИ (store=True обязателен для поиска и Pivot) ---
     total_students = fields.Integer(compute='_compute_attendance_stats', 
@@ -158,7 +130,6 @@ class OpAttendanceSheet(models.Model):
         store=True, aggregator="sum")
     attendance_rate = fields.Float(compute='_compute_attendance_stats', 
         store=True, aggregator="avg")
-
 
     @api.depends('attendance_line', 'attendance_line.attendance_type_id')
     def _compute_attendance_stats(self):
@@ -177,17 +148,16 @@ class OpAttendanceSheet(models.Model):
                 vals['name'] = self.env['ir.sequence'].next_by_code('op.attendance.sheet') or '/'
         return super(OpAttendanceSheet, self).create(vals_list)
 
-
     # Авто-заполнение данных при выборе урока вручную (если зашли не из расписания)
     @api.onchange('session_id')
     def onchange_session_id(self):
         if self.session_id:
             self.attendance_date = self.session_id.start_datetime.date()
-            self.faculty_id = self.session_id.faculty_id
-            
+            self.faculty_id = self.session_id.faculty_id            
             register = self.env['op.attendance.register'].search([
                 ('course_id', '=', self.session_id.course_id.id),
                 ('batch_id', '=', self.session_id.batch_id.id)
             ], limit=1)
             if register:
                 self.register_id = register
+
