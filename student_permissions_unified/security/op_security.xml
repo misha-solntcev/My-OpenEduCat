@@ -14,12 +14,13 @@
         <field name="domain_force">[('student_id.user_id', '=', user.id)]</field>
     </record>
 
-    <record id="rule_student_own_grades" model="ir.rule">
-        <field name="name">Student: Own Grades Only</field>
-        <field name="model_id" ref="openeducat_attendance.model_op_subject_grades"/>
-        <field name="groups" eval="[(4, ref('__custom__.group_op_students'))]"/>
-        <field name="domain_force">[('student_id.user_id', '=', user.id)]</field>
-    </record>
+    <record id="rule_student_own_grades_unified" model="ir.rule">
+    <field name="name">Student: Own Grades Only</field>
+    <field name="model_id" ref="openeducat_attendance.model_op_subject_grades"/>
+    <field name="groups" eval="[(4, ref('__custom__.group_op_students'))]"/>
+    <field name="domain_force">[('student_id.user_id', '=', user.id)]</field>
+    <field name="perm_read" eval="True"/>
+</record>
 
     <record id="rule_faculty_all_students" model="ir.rule">
         <field name="name">Faculty: View All Students</field>
