@@ -17,4 +17,3 @@ access_op_attendance_sheet_user,Attendance Sheet User,model_op_attendance_sheet,
 access_op_attendance_sheet_manager,Attendance Sheet Manager,model_op_attendance_sheet,openeducat_attendance.group_op_attendance_manager,1,1,1,1
 access_op_attendance_line_user,Attendance Line User,model_op_attendance_line,openeducat_attendance.group_op_attendance_user,1,1,1,0
 access_op_attendance_line_manager,Attendance Line Manager,model_op_attendance_line,openeducat_attendance.group_op_attendance_manager,1,1,1,1
-access_op_attendance_type_students,Attendance Type Students,model_op_attendance_type,__custom__.group_op_students,1,0,0,0
