@@ -15,7 +15,7 @@
             <menuitem name="Sessions"
             id="menu_op_sessions"
             groups="openeducat_timetable.group_op_timetable_manager,openeducat_timetable.group_op_timetable_user"
-            action="act_open_op_session_view_list"
+            action="act_open_op_session_view"
             sequence="10"/>
 
              <menuitem id="menu_generate_time_table"
