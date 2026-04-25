@@ -112,7 +112,7 @@
         <field name="model">op.session</field>
         <field name="arch" type="xml">
             <kanban default_group_by="days" class="o_kanban_small_column" sample="1"
-                quick_create="false">
+                quick_create="false" default_order="start_datetime asc">                
                 <field name="color" />
                 <field name="state" />
                 <field name="days" />
@@ -192,8 +192,8 @@
         <field name="model">op.session</field>
         <field name="arch" type="xml">
             <search string="Поиск расписания">
-                <field name="subject_id" string="Предмет" />
                 <field name="faculty_id" string="Учитель" />
+                <field name="subject_id" string="Предмет" />
                 <field name="batch_id" string="Класс" />
 
                 <separator />
