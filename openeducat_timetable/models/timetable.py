@@ -45,12 +45,12 @@ class OpSession(models.Model):
     active = fields.Boolean(default=True)
     company_id = fields.Many2one('res.company', string='Company', default=lambda self: self.env.company)
 
-    type = fields.Selection([
-        ('lecture', 'Лекция'),
-        ('seminar', 'Семинар'),
-        ('exam', 'Экзамен'),
-        ('other', 'Другое')
-    ], string='Тип занятия', default='lecture', tracking=True)
+    # type = fields.Selection([
+    #     ('lecture', 'Лекция'),
+    #     ('seminar', 'Семинар'),
+    #     ('exam', 'Экзамен'),
+    #     ('other', 'Другое')
+    # ], string='Тип занятия', default='lecture', tracking=True)
     
     state = fields.Selection([
         ('draft', 'Draft'), 
@@ -101,11 +101,18 @@ class OpSession(models.Model):
 
     @api.depends('start_datetime')
     def _compute_day_info(self):
+        # Строгое соответствие ключам в field.Selection
+        days_map = {
+            0: 'monday', 1: 'tuesday', 2: 'wednesday', 
+            3: 'thursday', 4: 'friday', 5: 'saturday', 6: 'sunday'
+        }
         for record in self:
             if record.start_datetime:
-                # Получаем название дня недели на английском (техническое значение)
-                day_name = record.start_datetime.strftime('%A').lower()
-                record.days = day_name
+                # weekday() всегда возвращает число 0-6
+                day_index = record.start_datetime.weekday()
+                record.days = days_map.get(day_index)
+            else:
+                record.days = False
 
     @api.depends('batch_id', 'faculty_id')
     def _compute_user_ids(self):

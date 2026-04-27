@@ -71,19 +71,19 @@
                                 <div class="d-flex justify-content-between mb-2 text-center small">
                                     <div>1ч<br /><span
                                             t-attf-class="badge #{record.q1_average_mark.raw_value >= 4.5 ? 'bg-success' : (record.q1_average_mark.raw_value >= 3.5 ? 'bg-warning' : (record.q1_average_mark.raw_value > 0 ? 'bg-danger' : 'bg-light text-muted'))}">
-                                            <field name="q1_average_mark" />
+                                            <field name="q1_final_grade" />
                                         </span></div>
                                     <div>2ч<br /><span
                                             t-attf-class="badge #{record.q2_average_mark.raw_value >= 4.5 ? 'bg-success' : (record.q2_average_mark.raw_value >= 3.5 ? 'bg-warning' : (record.q2_average_mark.raw_value > 0 ? 'bg-danger' : 'bg-light text-muted'))}">
-                                            <field name="q2_average_mark" />
+                                            <field name="q2_final_grade" />
                                         </span></div>
                                     <div>3ч<br /><span
                                             t-attf-class="badge #{record.q3_average_mark.raw_value >= 4.5 ? 'bg-success' : (record.q3_average_mark.raw_value >= 3.5 ? 'bg-warning' : (record.q3_average_mark.raw_value > 0 ? 'bg-danger' : 'bg-light text-muted'))}">
-                                            <field name="q3_average_mark" />
+                                            <field name="q3_final_grade" />
                                         </span></div>
                                     <div>4ч<br /><span
                                             t-attf-class="badge #{record.q4_average_mark.raw_value >= 4.5 ? 'bg-success' : (record.q4_average_mark.raw_value >= 3.5 ? 'bg-warning' : (record.q4_average_mark.raw_value > 0 ? 'bg-danger' : 'bg-light text-muted'))}">
-                                            <field name="q4_average_mark" />
+                                            <field name="q4_final_grade" />
                                         </span></div>
                                 </div>
                                 <div class="progress mb-2" style="height: 8px;">
@@ -98,7 +98,7 @@
                                     <span class="fw-bold">Общая:</span>
                                     <span
                                         t-attf-class="badge p-2 #{record.average_mark.raw_value >= 4.5 ? 'bg-success' : (record.average_mark.raw_value >= 3.5 ? 'bg-warning' : 'bg-danger')}">
-                                        <field name="average_mark" />
+                                        <field name="final_quarter_grade" />
                                     </span>
                                 </div>
                             </div>
@@ -331,7 +331,9 @@
                                             <div>
                                                 <i class="fa fa-quote-left opacity-25 me-1"
                                                     title="Цитата" />
-                                                <field name="q1_last_remark" />
+                                                rror: can't access property 1, this.options.find(...) is undefined
+    get string@http://localhost:8069/web/assets/450aa8d/web.assets_web.min.js:8529:224
+    template@http://localhost:8069/web/assets/450aa8d/web.assets_web.min.js line 1585 > Function:15:18<field name="q1_last_remark" />
                                             </div>
                                         </div>
                                     </div>
@@ -813,6 +815,6 @@
     <record id="act_open_op_subject_grades_view" model="ir.actions.act_window">
         <field name="name">Успеваемость</field>
         <field name="res_model">op.subject.grades</field>
-        <field name="view_mode">kanban,list,form</field>        
+        <field name="view_mode">kanban,calendar,list,form</field>        
     </record>
 </odoo>
