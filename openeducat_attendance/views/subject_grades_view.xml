@@ -115,12 +115,7 @@
         <field name="model">op.subject.grades</field>
         <field name="arch" type="xml">
             <form>
-                <header>
-                    <button name="action_migrate_old_data"
-                        type="object"
-                        string="ПЕРЕНЕСТИ ОЦЕНКИ"
-                        class="btn-danger"
-                        confirm="Это перенесет оценки из текста в таблицу. Продолжить?" />
+                <header>                    
                     <button name="action_force_recompute" type="object"
                         string="ПЕРЕСЧИТАТЬ СТАТИСТИКУ" class="btn-primary fw-bold" />
                 </header>
