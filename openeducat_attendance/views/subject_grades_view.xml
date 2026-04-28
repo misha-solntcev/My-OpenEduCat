@@ -331,9 +331,7 @@
                                             <div>
                                                 <i class="fa fa-quote-left opacity-25 me-1"
                                                     title="Цитата" />
-                                                rror: can't access property 1, this.options.find(...) is undefined
-    get string@http://localhost:8069/web/assets/450aa8d/web.assets_web.min.js:8529:224
-    template@http://localhost:8069/web/assets/450aa8d/web.assets_web.min.js line 1585 > Function:15:18<field name="q1_last_remark" />
+                                                <field name="q1_last_remark" />
                                             </div>
                                         </div>
                                     </div>
@@ -815,6 +813,6 @@
     <record id="act_open_op_subject_grades_view" model="ir.actions.act_window">
         <field name="name">Успеваемость</field>
         <field name="res_model">op.subject.grades</field>
-        <field name="view_mode">kanban,calendar,list,form</field>        
+        <field name="view_mode">kanban,list,form</field>        
     </record>
 </odoo>
