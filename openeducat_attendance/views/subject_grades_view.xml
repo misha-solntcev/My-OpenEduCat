@@ -6,11 +6,7 @@
         <field name="model">op.subject.grades</field>
         <field name="arch" type="xml">
             <list string="Оценки">
-                <header>
-                    <button name="action_migrate_old_data"
-                        type="object"
-                        string="МИГРИРОВАТЬ ДАННЫЕ"
-                        class="btn-primary" />
+                <header>                    
                     <button name="action_force_recompute" type="object" string="ОБНОВИТЬ СТАТИСТИКУ"
                         class="btn-warning" />
                 </header>

@@ -1414,7 +1414,7 @@ msgid ""
 msgstr ""
 
 
-#. module: ваш_модуль
-#: model:ir.ui.menu,name:ваш_модуль.menu_id_вашего_пункта
+#. module: openeducat_attendance
+#: model:ir.ui.menu,name:openeducat_attendance.menu_op_subject_grades_kanban
 msgid "Current Grades"
-msgstr "Текущие оценки"
+msgstr "Дашборд"
