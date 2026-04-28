@@ -8,7 +8,7 @@
     'complexity': "easy",
     'author': 'OpenEduCat Inc',
     'website': 'https://www.openeducat.org',
-    'depends': ['openeducat_timetable'],
+    'depends': ['base', 'web', 'openeducat_core', 'openeducat_timetable'],
     'data': [
         'security/op_security.xml',
         'security/ir.model.access.csv',
@@ -32,7 +32,9 @@
         'report/class_grades_quarterly_report.xml',
         'report/student_grades_by_date_report.xml',
         'report/report_menu.xml',
-        'menus/op_menu.xml'
+        'menus/op_menu.xml',        
+        'wizards/student_report_wizard_view.xml',  # Окно и Экшн окна
+        'report/student_report_template.xml',     # Экшн отчета и Дизайн
     ],
     'demo': [
         'demo/attendance_register_demo.xml',

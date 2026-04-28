@@ -1,0 +1,41 @@
+<odoo>
+    <record id="view_student_report_wizard_form" model="ir.ui.view">
+        <field name="name">student.report.wizard.form</field>
+        <field name="model">student.report.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Итоговая ведомость">
+                <group>
+                    <group>
+                        <field name="batch_id" options="{'no_create': True, 'no_open': True}"/>
+                        <field name="academic_year_id" options="{'no_create': True, 'no_open': True}"/>
+                    </group>
+                    <group>
+                        <field name="student_ids" 
+                               widget="many2many_tags" 
+                               options="{'no_create': True}"
+                               domain="batch_id and [('course_detail_ids.batch_id', '=', batch_id)] or []"
+                               placeholder="Выберите учеников (или оставьте пустым для всех)"/>
+                    </group>
+                </group>
+                <footer>
+                    <button name="action_print_report" string="Сформировать PDF" type="object" class="btn-primary"/>
+                    <button string="Отмена" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_student_report_wizard" model="ir.actions.act_window">
+        <field name="name">Итоговая ведомость</field>
+        <field name="res_model">student.report.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+
+    <menuitem id="menu_student_summary_report"
+              name="Итоговая ведомость"
+              parent="openeducat_attendance.menu_op_attendance_reports"
+              action="action_student_report_wizard"
+              sequence="30"
+              groups="openeducat_attendance.group_op_attendance_user,openeducat_attendance.group_op_attendance_manager"/>
+</odoo>

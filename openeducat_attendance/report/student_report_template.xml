@@ -1,0 +1,154 @@
+<odoo>
+    <!-- 1. Действие для печати (Report Action) -->
+    <record id="action_student_summary_report" model="ir.actions.report">
+        <field name="name">Итоговая ведомость (Дневник)</field>
+        <field name="model">student.report.wizard</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">openeducat_attendance.student_summary_report_template</field>
+        <field name="report_file">openeducat_attendance.student_summary_report_template</field>
+        <field name="print_report_name">'Ведомость - %s' % object.batch_id.name</field>        
+    </record>
+
+    <!-- 2. Шаблон (Дизайн) -->
+    <template id="student_summary_report_template">
+        <t t-call="web.html_container">
+            <t t-call="web.basic_layout">
+                <style>
+                    /* Принудительный шрифт для всей страницы и всех заголовков */
+                    .page, h2, h3, h4, h5, table, div, span {
+                        font-family: "Times New Roman", Times, serif !important;
+                        color: black !important;
+                    }
+
+                    /* Главный заголовок документа */
+                    .report-title {
+                        text-align: center;
+                        font-size: 22pt !important;
+                        font-weight: bold !important;
+                        margin-bottom: 20pt !important;
+                    }
+
+                    /* Блок ученика */
+                    .student-block {
+                        page-break-inside: avoid !important;
+                        margin-bottom: 30pt !important;
+                        display: block;
+                        width: 100%;
+                    }
+
+                    /* Имя ученика */
+                    .student-info {
+                        font-size: 14pt !important;
+                        font-weight: bold !important;
+                        margin-bottom: 8pt !important;
+                    }
+
+                    /* Сетка таблицы */
+                    .diary-table {
+                        width: 100%;
+                        border-collapse: collapse !important;
+                        table-layout: fixed; /* Фиксируем ширину, чтобы колонки не прыгали */
+                    }
+
+                    .diary-table th, .diary-table td {
+                        border: 0.5pt solid black !important; /* Тонкая четкая линия */
+                        padding: 4pt 6pt !important;
+                        vertical-align: middle !important;
+                        font-weight: normal !important;
+                        font-size: 12pt !important;
+                    }
+
+                    /* Настройка ширины колонок */
+                    .col-no { width: 30pt; text-align: center; }
+                    .col-subj { width: auto; text-align: left; } /* Предмет заберет остаток места */
+                    .col-q { width: 65pt; text-align: center; }  /* Узкие колонки для четвертей */
+                    .col-year { width: 50pt; text-align: center; font-weight: bold !important; }
+
+                    /* Заголовки таблицы */
+                    .diary-table thead th {
+                        background-color: #f2f2f2 !important;
+                        font-size: 10pt !important;
+                        text-align: center !important;
+                    }
+
+                    .text-center { text-align: center !important; }
+                </style>
+
+                <div class="page">
+                    <!-- Заголовок пишется один раз -->
+                    <h4 class="report-title">ИТОГОВЫЕ ОЦЕНКИ</h4>
+
+                    <t t-foreach="student_data" t-as="res">
+                        <div class="student-block">
+                            <!-- Сведения об ученике -->
+                            <h4 class="student-info">
+                                <t t-out="res['student']"/>, <t t-out="res['batch']"/> класс, <t t-out="res['year']"/> уч. год
+                            </h4>
+
+                            <table class="diary-table">
+                                <thead>
+                                    <tr>
+                                        <th class="col-no">№</th>
+                                        <th class="col-subj">Предметы</th>
+                                        <th class="col-q">1 четверть</th>
+                                        <th class="col-q">2 четверть</th>
+                                        <th class="col-q">3 четверть</th>
+                                        <th class="col-q">4 четверть</th>
+                                        <th class="col-year">За год</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <t t-set="idx" t-value="1"/>
+                                    <t t-foreach="res['subjects']" t-as="sub">
+                                        <tr>
+                                            <td class="text-center"><t t-out="idx"/></td>
+                                            <td><t t-out="sub['name']"/></td>
+                                            <t t-foreach="sub['grades']" t-as="grade">
+                                                <td class="text-center"><t t-out="grade"/></td>
+                                            </t>
+                                            <td class="text-center" style="font-weight: bold !important;">
+                                                <t t-out="sub['year_grade']"/>
+                                            </td>
+                                        </tr>
+                                        <t t-set="idx" t-value="idx + 1"/>
+                                    </t>
+                                    
+                                    <!-- Посещаемость -->
+                                    <tr style="border-top: 1.5pt solid black !important;">
+                                        <td colspan="2">Пропущено уроков всего</td>
+                                        <t t-foreach="res['attendance']" t-as="att">
+                                            <td class="text-center"><t t-out="att['total_missed']"/></td>
+                                        </t>
+                                        <td class="text-center" style="font-weight: bold !important;">
+                                            <t t-out="res['year_total']['missed']"/>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td colspan="2">В т.ч. по болезни</td>
+                                        <t t-foreach="res['attendance']" t-as="att">
+                                            <td class="text-center"><t t-out="att['sick']"/></td>
+                                        </t>
+                                        <td class="text-center" style="font-weight: bold !important;">
+                                            <t t-out="res['year_total']['sick']"/>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+
+                            <!-- Подписи в одну строку -->
+                            <div style="margin-top: 15pt; width: 100%;">
+                                <div style="float: left; width: 60%;">
+                                    Кл. руководитель: _________________ / <t t-out="res['teacher']"/> /
+                                </div>
+                                <div style="float: right; width: 35%; text-align: right;">
+                                    Родитель: _________________
+                                </div>
+                                <div style="clear: both;"/>
+                            </div>
+                        </div>
+                    </t>
+                </div>
+            </t>
+        </t>
+    </template>
+</odoo>

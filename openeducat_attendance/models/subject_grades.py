@@ -118,6 +118,34 @@ class OpSubjectGrades(models.Model):
             for i in range(1, 5):
                 q_res = l_obj.get_stats_from_lines(getattr(rec, f'q{i}_line_ids'))
                 rec.update({f'q{i}_average_mark': q_res['avg'], f'q{i}_last_remark': q_res['last_remark']})
+    
+    @api.depends('subject_id', 'batch_id')
+    def _compute_faculty_id(self):
+        for r in self:
+            s = self.env['op.session'].search([('subject_id', '=', r.subject_id.id), ('batch_id', '=', r.batch_id.id)], order='start_datetime desc', limit=1)
+            r.faculty_id = s.faculty_id.id if s else False
+
+    @api.depends('student_id')
+    def _compute_student_name_short(self):
+        for r in self: r.student_name_short = f"{r.student_id.first_name or ''} {r.student_id.last_name or ''}".strip()
+
+    @api.depends('subject_id', 'course_id')    
+    def _compute_textbook_image(self):
+        for r in self:
+            if not r.subject_id:
+                r.textbook_image = False
+                continue
+            base_domain = [('subject_ids', 'in', r.subject_id.ids), ('x_image_128', '!=', False)]            
+            media = self.env['op.media'].sudo().search(
+                base_domain + [('course_ids', 'in', r.course_id.ids)], limit=1)            
+            if not media:
+                media = self.env['op.media'].sudo().search(base_domain, limit=1)                
+            r.textbook_image = media.x_image_128 if media else False
+
+    def action_force_recompute(self):
+        self._compute_line_ids()
+        self._compute_all_stats()
+        return True
 
     @api.depends('average_mark', 'attendance_rate', 'q1_line_ids', 'q2_line_ids', 'q3_line_ids', 'q4_line_ids')
     def _compute_visuals(self):
@@ -153,23 +181,6 @@ class OpSubjectGrades(models.Model):
                 setattr(rec, f'q{i}_attendance_donut_svg', self._generate_attendance_donut(q_stats))
                 setattr(rec, f'q{i}_grades_histogram_svg', self._generate_grades_histogram(q_stats))
 
-    @api.depends('subject_id', 'course_id')    
-    def _compute_textbook_image(self):
-        for r in self:
-            if not r.subject_id:
-                r.textbook_image = False
-                continue
-            base_domain = [('subject_ids', 'in', r.subject_id.ids), ('x_image_128', '!=', False)]            
-            media = self.env['op.media'].sudo().search(
-                base_domain + [('course_ids', 'in', r.course_id.ids)], limit=1)            
-            if not media:
-                media = self.env['op.media'].sudo().search(base_domain, limit=1)                
-            r.textbook_image = media.x_image_128 if media else False
-
-    def action_force_recompute(self):
-        self._compute_line_ids()
-        self._compute_all_stats()
-        return True
 
     # Круговая диаграмма посещаемости с легендой
     def _generate_attendance_donut(self, stats):
@@ -465,18 +476,6 @@ class OpSubjectGrades(models.Model):
 
         svg += "</svg>"
         return svg
-
-    @api.depends('subject_id', 'batch_id')
-    def _compute_faculty_id(self):
-        for r in self:
-            s = self.env['op.session'].search([('subject_id', '=', r.subject_id.id), ('batch_id', '=', r.batch_id.id)], order='start_datetime desc', limit=1)
-            r.faculty_id = s.faculty_id.id if s else False
-
-    @api.depends('student_id')
-    def _compute_student_name_short(self):
-        for r in self: r.student_name_short = f"{r.student_id.first_name or ''} {r.student_id.last_name or ''}".strip()
-
-
 
 
 
