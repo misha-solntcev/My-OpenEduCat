@@ -71,4 +71,6 @@ class ReportStudentSummary(models.AbstractModel):
                 'teacher': getattr(current_batch, 'faculty_id', getattr(current_batch, 'user_id', self.env['res.users'])).name or '________________',
             })
 
-        return {'student_data': final_data}
+        return {'student_data': final_data,
+                'year': year.name,
+        }
