@@ -3,7 +3,7 @@
         <field name="name">student.report.wizard.form</field>
         <field name="model">student.report.wizard</field>
         <field name="arch" type="xml">
-            <form string="Итоговая ведомость">
+            <form string="Итоговые оценки">
                 <group>
                     <group>
                         <field name="batch_id" options="{'no_create': True, 'no_open': True}"/>
@@ -26,14 +26,14 @@
     </record>
 
     <record id="action_student_report_wizard" model="ir.actions.act_window">
-        <field name="name">Итоговая ведомость</field>
+        <field name="name">Итоговые оценки</field>
         <field name="res_model">student.report.wizard</field>
         <field name="view_mode">form</field>
         <field name="target">new</field>
     </record>
 
     <menuitem id="menu_student_summary_report"
-              name="Итоговая ведомость"
+              name="Итоговые  оценки"
               parent="openeducat_attendance.menu_op_attendance_reports"
               action="action_student_report_wizard"
               sequence="30"
