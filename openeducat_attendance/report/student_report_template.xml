@@ -6,7 +6,7 @@
         <field name="report_type">qweb-pdf</field>
         <field name="report_name">openeducat_attendance.student_summary_report_template</field>
         <field name="report_file">openeducat_attendance.student_summary_report_template</field>
-        <field name="print_report_name">'Ведомость - %s' % object.batch_id.name</field>        
+        <field name="print_report_name">'Ведомость - %s' % object.batch_id.name</field>
     </record>
 
     <!-- 2. Шаблон (Дизайн) -->
@@ -29,7 +29,6 @@
 
                     /* Блок ученика */
                     .student-block {
-                        /* Это заставит блок (вместе с линией внутри) всегда переноситься целиком */
                         page-break-inside: avoid !important; 
                         display: block;
                         width: 100%;
@@ -48,24 +47,33 @@
                         width: 100%;
                         border-collapse: collapse !important;
                         vertical-align: middle !important;
-                        table-layout: fixed; /* Фиксируем ширину, чтобы колонки не прыгали */
+                        table-layout: fixed;
                     }
 
                     .diary-table th, .diary-table td {
-                        border: 0.5pt solid black !important; /* Границу не видно */
+                        border: 0.5pt solid black !important;
                         padding: 6pt 6pt !important;
                         vertical-align: middle !important;
                         font-weight: normal !important;
                         font-size: 14pt !important;
-
-                        /* Добавляем жесткое ограничение высоты строки текста */
                         line-height: 1 !important;
+                    }
+
+                    /* Зебра: каждая четная строка будет иметь светло-серый фон */
+                    .diary-table tbody tr:nth-child(even) {
+                        background-color: #f9f9f9 !important;
+                    }
+
+                    /* Выделение итоговой колонки "За год" */
+                    .diary-table td.col-year-cell {
+                        font-weight: bold !important; /* Делаем текст жирным */                        
+                        background-color: inherit; /* Позволяет "зебре" проходить сквозь ячейку */
                     }
 
                     /* Настройка ширины колонок */
                     .col-no { width: 30pt; text-align: center; }
-                    .col-subj { width: auto; text-align: left; } /* Предмет заберет остаток места */
-                    .col-q { width: 77pt; text-align: center; }  /* Узкие колонки для четвертей */
+                    .col-subj { width: auto; text-align: left; }
+                    .col-q { width: 77pt; text-align: center; }
                     .col-year { width: 50pt; text-align: center; font-weight: bold !important; }
 
                     /* Заголовки таблицы */
@@ -74,9 +82,8 @@
                         font-size: 12pt !important;
                         font-weight: bold !important;
                         text-align: center !important;
-                        /* 8pt - отступ сверху и снизу, 1pt - слева и справа */
                         padding: 6pt 1pt !important;
-                        border-bottom: 1pt solid black !important; /* Жирный низ */
+                        border-bottom: 1pt solid black !important;
                     }
 
                     .text-center { text-align: center !important; }
@@ -89,7 +96,6 @@
                         margin-bottom: 25pt !important;
                         position: relative;
                         height: 0;
-                        /* Чтобы линия не оставалась одна внизу страницы */
                         page-break-after: avoid !important;
                     }
 
@@ -104,21 +110,22 @@
                         color: #000;
                     }
 
-                    /* Стили для строк посещаемости */
+                    /* Стили для строк посещаемости (отключаем для них зебру, чтобы были белыми) */
+                    .attendance-row {
+                        background-color: #ffffff !important;
+                    }
+
                     .attendance-row td {
                         font-size: 11pt !important;
                         color: #444 !important;
-                        /* Возвращаем такой же padding, как у предметов, чтобы текст совпал */
                         padding: 4pt 6pt !important; 
                     }
 
-                    /* Ячейка для иконки (под колонкой №) */
                     .attendance-row .att-icon-cell {
                         text-align: center !important;
-                        width: 30pt; /* Ширина совпадает с col-no */
+                        width: 30pt;
                     }
 
-                    /* Ячейка для текста (под колонкой Предметы) */
                     .attendance-row .att-label {
                         text-align: left !important;
                     }
@@ -130,20 +137,19 @@
                 </style>
 
                 <div class="page">
-                    <!-- Заголовок пишется один раз -->
-                    <h3 class="report-title">Итоговые оценки за <t t-out="year"/> уч.год</h3>
+                    <!-- Заголовок -->
+                    <h3 class="report-title">Итоговые оценки за <t t-out="year" /> уч.год</h3>
 
-                    <t t-foreach="student_data" t-as="res">                        
-                        <!-- Линия появится перед каждым ВТОРЫМ учеником (индексы 1, 3, 5...) -->                        
-                        <t t-if="res_index % 2 == 1">
+                    <t t-foreach="student_data" t-as="res">
+                        <!-- Линия отреза -->
+                        <!-- <t t-if="res_index % 2 == 1">
                             <div class="cut-line"></div>
-                        </t>
+                        </t> -->
 
                         <div class="student-block">
                             <!-- Сведения об ученике -->
                             <h4 class="student-info">
-                                <t t-out="res['student']"/>, <t t-out="res['batch']"/> класс,
-                            </h4>
+                                <t t-out="res['student']" />, <t t-out="res['batch']" /> класс, </h4>
 
                             <table class="diary-table">
                                 <thead>
@@ -158,60 +164,83 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <t t-set="idx" t-value="1"/>
+                                    <t t-set="idx" t-value="1" />
                                     <t t-foreach="res['subjects']" t-as="sub">
                                         <tr>
-                                            <td class="text-center"><t t-out="idx"/></td>
-                                            <td><t t-out="sub['name']"/></td>
+                                            <td class="text-center">
+                                                <t t-out="idx" />
+                                            </td>
+                                            <td>
+                                                <t t-out="sub['name']" />
+                                            </td>
                                             <t t-foreach="sub['grades']" t-as="grade">
-                                                <td class="text-center"><t t-out="grade"/></td>
+                                                <td class="text-center">
+                                                    <t t-out="grade" />
+                                                </td>
                                             </t>
-                                            <td class="text-center" style="font-weight: bold !important;">
-                                                <t t-out="sub['year_grade']"/>
+                                            <!-- Применяем класс col-year-cell для заливки -->
+                                            <td class="text-center col-year-cell">
+                                                <t t-out="sub['year_grade']" />
                                             </td>
                                         </tr>
-                                        <t t-set="idx" t-value="idx + 1"/>
+                                        <t t-set="idx" t-value="idx + 1" />
                                     </t>
-                                    
+
                                     <!-- Посещаемость -->
-                                    <tr class="attendance-row" style="border-top: 1pt solid black !important;">
-                                        <!-- Иконка в первую колонку -->
-                                        <td class="att-icon-cell"><i class="fa fa-calendar-times-o"/></td>
-                                        <!-- Текст во вторую колонку -->
+                                    <tr class="attendance-row"
+                                        style="border-top: 1pt solid black !important;">
+                                        <td class="att-icon-cell">
+                                            <i class="fa fa-calendar-times-o" />
+                                        </td>
                                         <td class="att-label">Пропущено уроков всего</td>
-                                        
                                         <t t-foreach="res['attendance']" t-as="att">
-                                            <td class="text-center"><t t-out="att['total_missed']"/></td>
+                                            <td class="text-center">
+                                                <t t-out="att['total_missed']" />
+                                            </td>
                                         </t>
-                                        <td class="text-center" style="font-weight: bold !important;">
-                                            <t t-out="res['year_total']['missed']"/>
+                                        <!-- Убрали background-color, оставили только жирный шрифт и
+                                        класс col-year-cell -->
+                                        <td class="text-center col-year-cell">
+                                            <t t-out="res['year_total']['missed']" />
                                         </td>
                                     </tr>
 
                                     <tr class="attendance-row">
-                                        <td class="att-icon-cell"><i class="fa fa-medkit"/></td>
+                                        <td class="att-icon-cell">
+                                            <i class="fa fa-medkit" />
+                                        </td>
                                         <td class="att-label">В т.ч. по болезни</td>
                                         <t t-foreach="res['attendance']" t-as="att">
-                                            <td class="text-center"><t t-out="att['sick']"/></td>
+                                            <td class="text-center">
+                                                <t t-out="att['sick']" />
+                                            </td>
                                         </t>
-                                        <td class="text-center" style="font-weight: bold !important;">
-                                            <t t-out="res['year_total']['sick']"/>
+                                        <td class="text-center col-year-cell">
+                                            <t t-out="res['year_total']['sick']" />
                                         </td>
                                     </tr>
 
                                     <tr class="attendance-row">
-                                        <td class="att-icon-cell"><i class="fa fa-clock-o"/></td>
+                                        <td class="att-icon-cell">
+                                            <i class="fa fa-clock-o" />
+                                        </td>
                                         <td class="att-label">Опозданий</td>
                                         <t t-foreach="res['attendance']" t-as="att">
-                                            <td class="text-center"><t t-out="att['late']"/></td>
+                                            <td class="text-center">
+                                                <t t-out="att['late']" />
+                                            </td>
                                         </t>
-                                        <td class="text-center" style="font-weight: bold !important;">
-                                            <t t-out="res['year_total']['late']"/>
+                                        <td class="text-center col-year-cell">
+                                            <t t-out="res['year_total']['late']" />
                                         </td>
                                     </tr>
                                 </tbody>
                             </table>
-                        </div>                                                
+                        </div>
+                        <!-- Линия отреза -->
+                        <t>
+                            <div class="cut-line"></div>
+                        </t>
                     </t>
                 </div>
             </t>
