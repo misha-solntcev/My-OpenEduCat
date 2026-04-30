@@ -6,31 +6,37 @@ class ReportStudentSummary(models.AbstractModel):
 
     @api.model
     def _get_report_values(self, docids, data=None):
-        form = data.get('form')
-        batch_id = form.get('batch_id')[0] if form.get('batch_id') else False
-        year_id = form.get('academic_year_id')[0]
+        # В Odoo 18 docids — это ID нашего визарда
+        wizard = self.env['student.report.wizard'].browse(docids)
         
-        year = self.env['op.academic.year'].browse(year_id)
+        batch = wizard.batch_id
+        year = wizard.academic_year_id
+        
+        # Получаем 4 четверти
         terms = self.env['op.academic.term'].search([
             ('academic_year_id', '=', year.id),
             ('parent_term', '!=', False)
         ], order='term_start_date asc', limit=4)
 
         # Выборка учеников
-        if form.get('student_ids'):
-            students = self.env['op.student'].browse(form.get('student_ids'))
-        elif batch_id:
-            students = self.env['op.student'].search([('course_detail_ids.batch_id', '=', batch_id)])
+        if wizard.student_ids:
+            students = wizard.student_ids
+        # 2. Если ученики не выбраны, но выбран класс — берем всех учеников класса
+        elif wizard.batch_id:
+            students = self.env['op.student'].search([
+                ('course_detail_ids.batch_id', '=', wizard.batch_id.id)
+            ])
+        # 3. Если не выбраны ни ученики, ни класс — берем вообще всех учеников (вся школа)
         else:
             students = self.env['op.student'].search([])
 
         final_data = []
         for student in students:
-            # Определяем текущий класс для заголовка
-            current_batch = self.env['op.batch'].browse(batch_id) if batch_id else \
-                            (student.course_detail_ids[0].batch_id if student.course_detail_ids else False)
+            # Определяем класс для заголовка
+            current_batch = batch or (student.course_detail_ids[0].batch_id if student.course_detail_ids else False)
             if not current_batch: continue
 
+            # Оценки по предметам
             subject_lines = []
             for subject in current_batch.course_id.subject_ids:
                 grade_rec = self.env['op.subject.grades'].search([
@@ -52,9 +58,10 @@ class ReportStudentSummary(models.AbstractModel):
             for term in terms:
                 t_lines = self.env['op.attendance.line'].search([
                     ('student_id', '=', student.id), ('term_id', '=', term.id)])
-                m = len(t_lines.filtered(lambda x: x.absent))
-                s = len(t_lines.filtered(lambda x: x.excused))
-                l = len(t_lines.filtered(lambda x: x.late))
+                
+                m = len(t_lines.filtered('absent'))
+                s = len(t_lines.filtered('excused'))
+                l = len(t_lines.filtered('late'))
                 
                 attendance_summary.append({'total_missed': m + s, 'sick': s, 'late': l})
                 y_total['missed'] += (m + s)
@@ -64,13 +71,13 @@ class ReportStudentSummary(models.AbstractModel):
             final_data.append({
                 'student': student.name,
                 'batch': current_batch.name,
-                'year': year.name,
                 'subjects': subject_lines,
                 'attendance': attendance_summary,
                 'year_total': y_total,
-                'teacher': getattr(current_batch, 'faculty_id', getattr(current_batch, 'user_id', self.env['res.users'])).name or '________________',
             })
 
-        return {'student_data': final_data,
-                'year': year.name,
+        return {
+            'docs': wizard,
+            'student_data': final_data,
+            'year': year.name,
         }

@@ -12,14 +12,14 @@ class StudentReportWizard(models.TransientModel):
 
     @api.onchange('batch_id')
     def _onchange_batch_id(self):
-        """Очищаем список выбранных учеников при смене класса, чтобы не было путаницы"""
+        """Очищаем список выбранных учеников при смене класса"""
         self.student_ids = [(5, 0, 0)]
 
     def action_print_report(self):
-        data = {'form': self.read()[0]}
-        return self.env.ref('openeducat_attendance.action_student_summary_report').report_action(self, data=data)
+        self.ensure_one()
+        # Возвращаем действие отчета, передавая self (запись визарда)
+        return self.env.ref('openeducat_attendance.action_student_summary_report').report_action(self)
 
-    # Функция для определения года по умолчанию
     def _get_default_academic_year(self):
         today = fields.Date.today()        
         year = self.env['op.academic.year'].search([

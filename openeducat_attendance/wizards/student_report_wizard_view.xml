@@ -4,18 +4,17 @@
         <field name="model">student.report.wizard</field>
         <field name="arch" type="xml">
             <form string="Итоговые оценки">
-                <group>
-                    <group>
-                        <field name="batch_id" options="{'no_create': True, 'no_open': True}"/>
-                        <field name="academic_year_id" options="{'no_create': True, 'no_open': True}"/>
-                    </group>
-                    <group>
-                        <field name="student_ids" 
-                               widget="many2many_tags" 
-                               options="{'no_create': True}"
-                               domain="batch_id and [('course_detail_ids.batch_id', '=', batch_id)] or []"
-                               placeholder="Выберите учеников (или оставьте пустым для всех)"/>
-                    </group>
+                <group>                    
+                    <field name="academic_year_id" options="{'no_create': True, 'no_open': True}"/>
+                    <field name="batch_id" 
+                        options="{'no_create': True, 'no_open': True}"
+                        placeholder="Вся школа"/>
+                    <field name="student_ids" 
+                        widget="many2many_tags" 
+                        options="{'no_create': True}"
+                        domain="batch_id and [('course_detail_ids.batch_id', '=', batch_id)] or []"
+                        placeholder="Весь класс"/>
+                    
                 </group>
                 <footer>
                     <button name="action_print_report" string="Сформировать PDF" type="object" class="btn-primary"/>

@@ -1,12 +1,19 @@
 <odoo>
+   
     <!-- 1. Действие для печати (Report Action) -->
     <record id="action_student_summary_report" model="ir.actions.report">
         <field name="name">Итоговые оценки</field>
         <field name="model">student.report.wizard</field>
         <field name="report_type">qweb-pdf</field>
         <field name="report_name">openeducat_attendance.student_summary_report_template</field>
-        <field name="report_file">openeducat_attendance.student_summary_report_template</field>
-        <field name="print_report_name">'Ведомость - %s' % object.batch_id.name</field>
+        <field name="report_file">openeducat_attendance.student_summary_report_template</field>        
+        <field name="print_report_name">
+            'Итоговые оценки %s %s %s' % (
+                object.academic_year_id.name, 
+                object.batch_id.name if object.batch_id else 'вся школа',
+                object.student_ids[0].name.split()[0] if object.student_ids else ''
+                )
+        </field>
     </record>
 
     <!-- 2. Шаблон (Дизайн) -->
