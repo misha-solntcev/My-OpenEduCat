@@ -1,18 +1,17 @@
 <odoo>
-   
     <!-- 1. Действие для печати (Report Action) -->
     <record id="action_student_summary_report" model="ir.actions.report">
         <field name="name">Итоговые оценки</field>
         <field name="model">student.report.wizard</field>
         <field name="report_type">qweb-pdf</field>
         <field name="report_name">openeducat_attendance.student_summary_report_template</field>
-        <field name="report_file">openeducat_attendance.student_summary_report_template</field>        
+        <field name="report_file">openeducat_attendance.student_summary_report_template</field>
         <field name="print_report_name">
-            'Итоговые оценки %s %s %s' % (
+            'Итоговые оценки %s %s%s' % (
                 object.academic_year_id.name, 
                 object.batch_id.name if object.batch_id else 'вся школа',
-                object.student_ids[0].name.split()[0] if object.student_ids else ''
-                )
+                ' ' + object.student_ids[0].name.split()[0] if object.student_ids else ''
+            )
         </field>
     </record>
 
@@ -21,232 +20,186 @@
         <t t-call="web.html_container">
             <t t-call="web.basic_layout">
                 <style>
-                    /* Принудительный шрифт для всей страницы и всех заголовков */
                     .page, h2, h3, h4, h5, table, div, span {
                         font-family: "Times New Roman", Times, serif !important;
                         color: black !important;
                     }
 
-                    /* Главный заголовок документа */
                     .report-title {
                         text-align: center;                        
                         font-weight: bold !important;
-                        margin-bottom: 20pt !important;
+                        margin-bottom: 10pt !important;
                     }
 
-                    /* Блок ученика */
+                    /* Стиль заголовка класса для навигации PDF */
+                    .batch-header {
+                        <!-- page-break-before: always; /* Каждый класс с новой страницы */ -->
+                        border-bottom: 2pt solid black;
+                        margin-bottom: 15pt;
+                        padding-bottom: 5pt;
+                    }
+
                     .student-block {
                         page-break-inside: avoid !important; 
                         display: block;
                         width: 100%;
-                        margin-bottom: 20pt !important;
+                        margin-bottom: 10pt !important;
+                        position: relative;
                     }
                     
-                    /* Имя ученика */
                     .student-info {
                         font-size: 14pt !important;
                         font-weight: bold !important;
                         margin-bottom: 8pt !important;
                     }
 
-                    /* Сетка таблицы */
                     .diary-table {
                         width: 100%;
                         border-collapse: collapse !important;
-                        vertical-align: middle !important;
                         table-layout: fixed;
                     }
 
                     .diary-table th, .diary-table td {
                         border: 0.5pt solid black !important;
-                        padding: 6pt 6pt !important;
+                        padding: 4pt 6pt !important;
                         vertical-align: middle !important;
-                        font-weight: normal !important;
-                        font-size: 14pt !important;
-                        line-height: 1 !important;
+                        font-size: 12pt !important;
                     }
 
-                    /* Зебра: каждая четная строка будет иметь светло-серый фон */
                     .diary-table tbody tr:nth-child(even) {
                         background-color: #f9f9f9 !important;
                     }
 
-                    /* Выделение итоговой колонки "За год" */
                     .diary-table td.col-year-cell {
-                        font-weight: bold !important; /* Делаем текст жирным */                        
-                        background-color: inherit; /* Позволяет "зебре" проходить сквозь ячейку */
+                        font-weight: bold !important;
                     }
 
-                    /* Настройка ширины колонок */
                     .col-no { width: 30pt; text-align: center; }
                     .col-subj { width: auto; text-align: left; }
-                    .col-q { width: 77pt; text-align: center; }
+                    .col-q { width: 70pt; text-align: center; }
                     .col-year { width: 50pt; text-align: center; font-weight: bold !important; }
 
-                    /* Заголовки таблицы */
                     .diary-table thead th {
                         background-color: #f2f2f2 !important;
-                        font-size: 12pt !important;
+                        font-size: 11pt !important;
                         font-weight: bold !important;
                         text-align: center !important;
-                        padding: 6pt 1pt !important;
-                        border-bottom: 1pt solid black !important;
                     }
 
                     .text-center { text-align: center !important; }
 
-                    /* Линия отреза */
                     .cut-line {
+                        /* Дополнительная страховка: не начинать новую страницу с линии разрыва */
+                        page-break-before: avoid !important;
                         width: 100%;
                         border-top: 1pt dashed #666 !important;
                         margin-top: 5pt !important;
-                        margin-bottom: 25pt !important;
+                        margin-bottom: 20pt !important;
                         position: relative;
-                        height: 0;
-                        page-break-after: avoid !important;
                     }
 
                     .cut-line:after {
                         content: "✂";
                         position: absolute;
-                        top: -13pt;
+                        top: -12pt;
                         left: 20pt;
-                        font-size: 20pt;
+                        font-size: 16pt;
                         background: white;
                         padding: 0 4pt;
-                        color: #000;
                     }
 
-                    /* Стили для строк посещаемости (отключаем для них зебру, чтобы были белыми) */
-                    .attendance-row {
-                        background-color: #ffffff !important;
-                    }
-
-                    .attendance-row td {
-                        font-size: 11pt !important;
-                        color: #444 !important;
-                        padding: 4pt 6pt !important; 
-                    }
-
-                    .attendance-row .att-icon-cell {
-                        text-align: center !important;
-                        width: 30pt;
-                    }
-
-                    .attendance-row .att-label {
-                        text-align: left !important;
-                    }
-
-                    .attendance-row i {
-                        color: #666;
-                        font-size: 12pt;
-                    }              
+                    .attendance-row { background-color: #ffffff !important; }
+                    .attendance-row td { font-size: 10pt !important; color: #444 !important; }
+                    .attendance-row .att-icon-cell { text-align: center !important; width: 30pt; }
                 </style>
 
                 <div class="page">
-                    <!-- Заголовок -->
-                    <h3 class="report-title">Итоговые оценки за <t t-out="year" /> уч.год</h3>
+                    <h2 class="report-title">Итоговые оценки за <t t-out="year" /> уч.год</h2>
 
-                    <t t-foreach="student_data" t-as="res">
-                        <!-- Линия отреза -->
-                        <!-- <t t-if="res_index % 2 == 1">
-                            <div class="cut-line"></div>
-                        </t> -->
+                    <!-- ГЛАВНЫЙ ЦИКЛ: ПО КЛАССАМ -->
+                    <t t-foreach="grouped_data" t-as="group">
 
-                        <div class="student-block">
-                            <!-- Сведения об ученике -->
-                            <h4 class="student-info">
-                                <t t-out="res['student']" />, <t t-out="res['batch']" /> класс</h4>
-
-                            <table class="diary-table">
-                                <thead>
-                                    <tr>
-                                        <th class="col-no">№</th>
-                                        <th class="col-subj">Предметы</th>
-                                        <th class="col-q">1 четверть</th>
-                                        <th class="col-q">2 четверть</th>
-                                        <th class="col-q">3 четверть</th>
-                                        <th class="col-q">4 четверть</th>
-                                        <th class="col-year">За год</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <t t-set="idx" t-value="1" />
-                                    <t t-foreach="res['subjects']" t-as="sub">
-                                        <tr>
-                                            <td class="text-center">
-                                                <t t-out="idx" />
-                                            </td>
-                                            <td>
-                                                <t t-out="sub['name']" />
-                                            </td>
-                                            <t t-foreach="sub['grades']" t-as="grade">
-                                                <td class="text-center">
-                                                    <t t-out="grade" />
-                                                </td>
-                                            </t>
-                                            <!-- Применяем класс col-year-cell для заливки -->
-                                            <td class="text-center col-year-cell">
-                                                <t t-out="sub['year_grade']" />
-                                            </td>
-                                        </tr>
-                                        <t t-set="idx" t-value="idx + 1" />
-                                    </t>
-
-                                    <!-- Посещаемость -->
-                                    <tr class="attendance-row"
-                                        style="border-top: 1pt solid black !important;">
-                                        <td class="att-icon-cell">
-                                            <i class="fa fa-calendar-times-o" />
-                                        </td>
-                                        <td class="att-label">Пропущено уроков всего</td>
-                                        <t t-foreach="res['attendance']" t-as="att">
-                                            <td class="text-center">
-                                                <t t-out="att['total_missed']" />
-                                            </td>
-                                        </t>
-                                        <!-- Убрали background-color, оставили только жирный шрифт и
-                                        класс col-year-cell -->
-                                        <td class="text-center col-year-cell">
-                                            <t t-out="res['year_total']['missed']" />
-                                        </td>
-                                    </tr>
-
-                                    <tr class="attendance-row">
-                                        <td class="att-icon-cell">
-                                            <i class="fa fa-medkit" />
-                                        </td>
-                                        <td class="att-label">В т.ч. по болезни</td>
-                                        <t t-foreach="res['attendance']" t-as="att">
-                                            <td class="text-center">
-                                                <t t-out="att['sick']" />
-                                            </td>
-                                        </t>
-                                        <td class="text-center col-year-cell">
-                                            <t t-out="res['year_total']['sick']" />
-                                        </td>
-                                    </tr>
-
-                                    <tr class="attendance-row">
-                                        <td class="att-icon-cell">
-                                            <i class="fa fa-clock-o" />
-                                        </td>
-                                        <td class="att-label">Опозданий</td>
-                                        <t t-foreach="res['attendance']" t-as="att">
-                                            <td class="text-center">
-                                                <t t-out="att['late']" />
-                                            </td>
-                                        </t>
-                                        <td class="text-center col-year-cell">
-                                            <t t-out="res['year_total']['late']" />
-                                        </td>
-                                    </tr>
-                                </tbody>
-                            </table>
+                        <!-- ДОБАВЛЯЕМ РАЗРЫВ СТРАНИЦЫ ПЕРЕД КАЖДЫМ КЛАССОМ, КРОМЕ ПЕРВОГО -->
+                        <t t-if="not group_first">
+                            <p style="page-break-before: always;"></p>
+                        </t>
+                        
+                        <!-- Заголовок класса (попадёт в навигацию PDF) -->
+                        <div class="batch-header">
+                            <h3 style="margin: 0; font-weight: bold;">
+                                Класс: <t t-out="group['batch_name']"/>
+                            </h3>
                         </div>
-                        <!-- Линия отреза -->
-                        <t>
-                            <div class="cut-line"></div>
+
+                        <!-- ВЛОЖЕННЫЙ ЦИКЛ: ПО УЧЕНИКАМ -->
+                        <t t-foreach="group['students']" t-as="res">
+                            <div class="student-block">
+                                <h4 class="student-info">
+                                    <t t-out="res['student']" />, <t t-out="group['batch_name']" /> класс
+                                </h4>
+
+                                <table class="diary-table">
+                                    <thead>
+                                        <tr>
+                                            <th class="col-no">№</th>
+                                            <th class="col-subj">Предметы</th>
+                                            <th class="col-q">1 четверть</th>
+                                            <th class="col-q">2 четверть</th>
+                                            <th class="col-q">3 четверть</th>
+                                            <th class="col-q">4 четверть</th>
+                                            <th class="col-year">За год</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <t t-set="idx" t-value="1" />
+                                        <t t-foreach="res['subjects']" t-as="sub">
+                                            <tr>
+                                                <td class="text-center"><t t-out="idx" /></td>
+                                                <td><t t-out="sub['name']" /></td>
+                                                <t t-foreach="sub['grades']" t-as="grade">
+                                                    <td class="text-center"><t t-out="grade" /></td>
+                                                </t>
+                                                <td class="text-center col-year-cell"><t t-out="sub['year_grade']" /></td>
+                                            </tr>
+                                            <t t-set="idx" t-value="idx + 1" />
+                                        </t>
+
+                                        <!-- Посещаемость -->
+                                        <tr class="attendance-row" style="border-top: 1pt solid black !important;">
+                                            <td class="att-icon-cell"><i class="fa fa-calendar-times-o" /></td>
+                                            <td class="att-label">Пропущено уроков всего</td>
+                                            <t t-foreach="res['attendance']" t-as="att">
+                                                <td class="text-center"><t t-out="att['total_missed']" /></td>
+                                            </t>
+                                            <td class="text-center col-year-cell"><t t-out="res['year_total']['missed']" /></td>
+                                        </tr>
+
+                                        <tr class="attendance-row">
+                                            <td class="att-icon-cell"><i class="fa fa-medkit" /></td>
+                                            <td class="att-label">В т.ч. по болезни</td>
+                                            <t t-foreach="res['attendance']" t-as="att">
+                                                <td class="text-center"><t t-out="att['sick']" /></td>
+                                            </t>
+                                            <td class="text-center col-year-cell"><t t-out="res['year_total']['sick']" /></td>
+                                        </tr>
+
+                                        <tr class="attendance-row">
+                                            <td class="att-icon-cell"><i class="fa fa-clock-o" /></td>
+                                            <td class="att-label">Опозданий</td>
+                                            <t t-foreach="res['attendance']" t-as="att">
+                                                <td class="text-center"><t t-out="att['late']" /></td>
+                                            </t>
+                                            <td class="text-center col-year-cell"><t t-out="res['year_total']['late']" /></td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+
+                                <!-- Линия отреза  -->
+                                <t >
+                                    <div class="cut-line"></div>
+                                </t>
+
+                            </div>                            
                         </t>
                     </t>
                 </div>
