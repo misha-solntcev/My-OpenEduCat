@@ -65,6 +65,7 @@ class OpStudent(models.Model):
     _description = "Student"
     _inherit = ['mail.thread', 'mail.activity.mixin']
     _inherits = {"res.partner": "partner_id"}
+    _order = "name"
 
     first_name = fields.Char('First Name',  translate=True)
     middle_name = fields.Char('Middle Name', translate=True)
@@ -107,13 +108,12 @@ class OpStudent(models.Model):
 
     @api.onchange('first_name', 'middle_name', 'last_name')
     def _onchange_name(self):
-        if not self.middle_name:
-            self.name = str(self.first_name) + " " + str(
-                self.last_name
-            )
-        else:
-            self.name = str(self.first_name) + " " + str(
-                self.middle_name) + " " + str(self.last_name)
+        names = [
+            self.last_name or '',
+            self.first_name or '',
+            self.middle_name or ''
+        ]        
+        self.name = " ".join([n.strip() for n in names if n]).strip()
 
     @api.constrains('birth_date')
     def _check_birthdate(self):

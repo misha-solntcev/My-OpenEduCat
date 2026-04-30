@@ -26,7 +26,9 @@ class OpBatch(models.Model):
     _name = "op.batch"
     _inherit = "mail.thread"
     _description = "OpenEduCat Batch"
+    _order = 'sequence, name'
 
+    sequence = fields.Integer('Последовательность', default=10)
     code = fields.Char('Code', size=16, required=True)
     name = fields.Char('Name', size=32, required=True)
     start_date = fields.Date(

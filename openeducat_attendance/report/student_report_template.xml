@@ -156,7 +156,7 @@
                         <div class="student-block">
                             <!-- Сведения об ученике -->
                             <h4 class="student-info">
-                                <t t-out="res['student']" />, <t t-out="res['batch']" /> класс, </h4>
+                                <t t-out="res['student']" />, <t t-out="res['batch']" /> класс</h4>
 
                             <table class="diary-table">
                                 <thead>

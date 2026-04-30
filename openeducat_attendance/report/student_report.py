@@ -5,8 +5,7 @@ class ReportStudentSummary(models.AbstractModel):
     _description = 'Логика итоговой ведомости ученика'
 
     @api.model
-    def _get_report_values(self, docids, data=None):
-        # В Odoo 18 docids — это ID нашего визарда
+    def _get_report_values(self, docids, data=None):        
         wizard = self.env['student.report.wizard'].browse(docids)
         
         batch = wizard.batch_id
@@ -29,6 +28,11 @@ class ReportStudentSummary(models.AbstractModel):
         # 3. Если не выбраны ни ученики, ни класс — берем вообще всех учеников (вся школа)
         else:
             students = self.env['op.student'].search([])
+
+        students = students.sorted(key=lambda s: (
+            s.course_detail_ids[0].batch_id.sequence if s.course_detail_ids else 999,
+            s.name
+        ))
 
         final_data = []
         for student in students:

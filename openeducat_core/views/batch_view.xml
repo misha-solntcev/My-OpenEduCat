@@ -6,6 +6,7 @@
             <field name="priority" eval="8"/>
             <field name="arch" type="xml">
                 <list string="Batch">
+                    <field name="sequence" widget="handle"/>
                     <field name="name"/>
                     <field name="code"/>
                     <field name="start_date"/>
