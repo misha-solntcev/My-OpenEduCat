@@ -112,7 +112,40 @@ class OpAttendanceSheet(models.Model):
     def action_attendance_start(self):
         self.write({'state': 'start'})
     def action_attendance_done(self):
-        self.write({'state': 'done'})
+        # 1. Сначала выполняем стандартное действие (меняем статус на 'done')
+        res = self.write({'state': 'done'})
+        
+        # 2. Автоматизация для итоговых оценок (Subject Grades)
+        GradeObj = self.env['op.subject.grades']
+        
+        for sheet in self:
+            if not sheet.subject_id or not sheet.batch_id:
+                continue
+                
+            # Собираем ID всех учеников в этом журнале
+            student_ids = sheet.attendance_line.mapped('student_id')
+            
+            for student in student_ids:
+                # Ищем, есть ли уже карточка итоговых оценок
+                grade_card = GradeObj.search([
+                    ('student_id', '=', student.id),
+                    ('subject_id', '=', sheet.subject_id.id),
+                    ('batch_id', '=', sheet.batch_id.id)
+                ], limit=1)
+                
+                # Если карточки нет — создаем её «на лету»
+                if not grade_card:
+                    grade_card = GradeObj.create({
+                        'student_id': student.id,
+                        'subject_id': sheet.subject_id.id,
+                        'batch_id': sheet.batch_id.id,
+                    })
+                
+                # Запускаем пересчет статистики в этой карточке
+                # (используем ваш существующий метод из subject_grades.py)
+                grade_card.action_force_recompute()
+                
+        return res
 
     def action_attendance_draft(self):
         self.write({'state': 'draft'})

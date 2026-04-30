@@ -215,20 +215,37 @@ class OpAttendanceLine(models.Model):
         records._trigger_immediate_recompute()
         return records
 
+    # def write(self, vals):
+    #     res = super(OpAttendanceLine, self).write(vals)
+    #     trigger_fields = ['grade_1', 'grade_2', 'grade_3', 'attendance_type_id', 'remark']
+        
+    #     if any(f in vals for f in trigger_fields):
+    #         # Находим записи успеваемости для всей "пачки" измененных строк
+    #         grades = self.env['op.subject.grades'].search([('student_id', 'in', self.student_id.ids)])
+    #         if grades:
+    #             # 1. Помечаем поля как требующие пересчета
+    #             grades.modified(['average_mark', 'attendance_rate', 'q1_average_mark'])
+    #             # 2. Сообщаем Odoo, что их нужно посчитать прямо сейчас (в этой транзакции)
+    #             # Это объединит 10 вызовов в 1
+    #             self.env.add_to_compute(grades._fields['average_mark'], grades)
+    #             self.env.add_to_compute(grades._fields['attendance_rate'], grades)
+    #     return res
+
     def write(self, vals):
         res = super(OpAttendanceLine, self).write(vals)
         trigger_fields = ['grade_1', 'grade_2', 'grade_3', 'attendance_type_id', 'remark']
         
         if any(f in vals for f in trigger_fields):
-            # Находим записи успеваемости для всей "пачки" измененных строк
-            grades = self.env['op.subject.grades'].search([('student_id', 'in', self.student_id.ids)])
-            if grades:
-                # 1. Помечаем поля как требующие пересчета
-                grades.modified(['average_mark', 'attendance_rate', 'q1_average_mark'])
-                # 2. Сообщаем Odoo, что их нужно посчитать прямо сейчас (в этой транзакции)
-                # Это объединит 10 вызовов в 1
-                self.env.add_to_compute(grades._fields['average_mark'], grades)
-                self.env.add_to_compute(grades._fields['attendance_rate'], grades)
+            for line in self:
+                # Ищем строго ОДНУ нужную карточку
+                grade_card = self.env['op.subject.grades'].search([
+                    ('student_id', '=', line.student_id.id),
+                    ('subject_id', '=', line.subject_id.id),
+                    ('batch_id', '=', line.batch_id.id)
+                ], limit=1)
+                
+                if grade_card:                    
+                    grade_card.action_force_recompute()
         return res
     def _trigger_immediate_recompute(self):
         """ Вспомогательный метод для мгновенного обновления успеваемости """

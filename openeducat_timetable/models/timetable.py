@@ -81,6 +81,10 @@ class OpSession(models.Model):
     @api.depends('start_datetime', 'end_datetime', 'faculty_id', 'subject_id')
     def _compute_name(self):
         for session in self:
+            if not session.start_datetime or not session.end_datetime:
+                session.name = "Новое занятие..."
+                continue
+
             # Название оставляем хранимым, но используем фиксированный пояс (МСК)
             start_local = fields.Datetime.context_timestamp(session.with_context(tz='Europe/Moscow'), session.start_datetime)
             end_local = fields.Datetime.context_timestamp(session.with_context(tz='Europe/Moscow'), session.end_datetime)
@@ -94,6 +98,10 @@ class OpSession(models.Model):
     @api.depends('start_datetime', 'end_datetime')
     def _compute_timing(self):
         for session in self:
+            if not session.start_datetime or not session.end_datetime:
+                session.timing = ""
+                continue
+            
             # Время вычисляется на лету для интерфейса
             start_local = fields.Datetime.context_timestamp(session.with_context(tz='Europe/Moscow'), session.start_datetime)
             end_local = fields.Datetime.context_timestamp(session.with_context(tz='Europe/Moscow'), session.end_datetime)
