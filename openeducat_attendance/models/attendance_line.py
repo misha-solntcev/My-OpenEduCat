@@ -208,60 +208,21 @@ class OpAttendanceLine(models.Model):
         return res
 
     @api.model_create_multi
-    def create(self, vals_list):
-        # 1. Создаем записи
-        records = super(OpAttendanceLine, self).create(vals_list)
-        # 2. Сразу вызываем пересчет
-        records._trigger_immediate_recompute()
-        return records
-
-    # def write(self, vals):
-    #     res = super(OpAttendanceLine, self).write(vals)
-    #     trigger_fields = ['grade_1', 'grade_2', 'grade_3', 'attendance_type_id', 'remark']
-        
-    #     if any(f in vals for f in trigger_fields):
-    #         # Находим записи успеваемости для всей "пачки" измененных строк
-    #         grades = self.env['op.subject.grades'].search([('student_id', 'in', self.student_id.ids)])
-    #         if grades:
-    #             # 1. Помечаем поля как требующие пересчета
-    #             grades.modified(['average_mark', 'attendance_rate', 'q1_average_mark'])
-    #             # 2. Сообщаем Odoo, что их нужно посчитать прямо сейчас (в этой транзакции)
-    #             # Это объединит 10 вызовов в 1
-    #             self.env.add_to_compute(grades._fields['average_mark'], grades)
-    #             self.env.add_to_compute(grades._fields['attendance_rate'], grades)
-    #     return res
+    def create(self, vals_list):        
+        return super(OpAttendanceLine, self).create(vals_list)
 
     def write(self, vals):
         res = super(OpAttendanceLine, self).write(vals)
         trigger_fields = ['grade_1', 'grade_2', 'grade_3', 'attendance_type_id', 'remark']
         
-        if any(f in vals for f in trigger_fields):
-            for line in self:
-                # Ищем строго ОДНУ нужную карточку
-                grade_card = self.env['op.subject.grades'].search([
-                    ('student_id', '=', line.student_id.id),
-                    ('subject_id', '=', line.subject_id.id),
-                    ('batch_id', '=', line.batch_id.id)
-                ], limit=1)
-                
-                if grade_card:                    
-                    grade_card.action_force_recompute()
-        return res
-    def _trigger_immediate_recompute(self):
-        """ Вспомогательный метод для мгновенного обновления успеваемости """
-        # Находим всех затронутых студентов
-        student_ids = self.mapped('student_id').ids
-        if not student_ids:
-            return
+        if any(f in vals for f in trigger_fields):            
+            grades = self.env['op.subject.grades'].search([
+                ('student_id', 'in', self.student_id.ids),
+                ('subject_id', 'in', self.subject_id.ids)
+            ])
             
-        # Заставляем Odoo сбросить всё, что он запомнил, в базу данных (SQL)
-        self.env.flush_all()
-        
-        # Находим карточки успеваемости этих студентов
-        grades = self.env['op.subject.grades'].search([('student_id', 'in', student_ids)])
-        
-        if grades:
-            # Сбрасываем кэш, чтобы расчет увидел свежие данные из SQL
-            grades.invalidate_recordset()
-            # ВЫЗЫВАЕМ РАСЧЕТ НАПРЯМУЮ (как это делает кнопка)
-            grades._compute_all_stats()
+            if grades:                
+                grades.modified(['q1_line_ids', 'q2_line_ids', 'q3_line_ids', 'q4_line_ids'])                
+                grades.action_force_recompute()
+                
+        return res    

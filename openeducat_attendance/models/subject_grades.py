@@ -143,8 +143,10 @@ class OpSubjectGrades(models.Model):
             r.textbook_image = media.x_image_128 if media else False
 
     def action_force_recompute(self):
-        self._compute_line_ids()
-        self._compute_all_stats()
+        for rec in self:
+            rec._compute_line_ids()   # Находим оценки
+            rec._compute_all_stats()  # Считаем среднее
+            rec._compute_visuals()    # СРАЗУ рисуем графики
         return True
 
     @api.depends('average_mark', 'attendance_rate', 'q1_line_ids', 'q2_line_ids', 'q3_line_ids', 'q4_line_ids')

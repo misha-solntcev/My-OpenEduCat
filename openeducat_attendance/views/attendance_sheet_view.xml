@@ -53,25 +53,27 @@
         <field name="priority" eval="8"/>
         <field name="arch" type="xml">
             <form string="Attendance Sheet">
-                <header>
-                    <!-- Кнопки с иконками и русскими названиями -->
-                    <button type="object" name="action_attendance_start" invisible="state != 'draft'" 
-                            string="Начать урок" class="oe_highlight" icon="fa-play"/>
-                    
-                    <button type="object" name="action_attendance_done" invisible="state != 'start'" 
-                            string="Завершить урок" class="oe_highlight" icon="fa-check-circle"/>
-                    
-                    <button type="object" name="action_attendance_draft" invisible="state != 'cancel'" 
-                            string="Восстановить" icon="fa-undo"/>
-                    
-                    <button type="object" name="action_attendance_cancel" invisible="state not in ('draft','start')" 
-                            string="Отменить урок" icon="fa-times"/>
-                    
-                    <button type="object" name="action_attendance_draft" string="Редактировать" 
-                            invisible="state != 'done'" class="oe_highlight" icon="fa-edit"/>
 
+                <header>
+                    <!-- 1. Начать урок (Синхронно переводит и Урок в 'start') -->
+                    <button name="action_attendance_start" type="object" string="Начать урок" 
+                            invisible="state != 'draft'" class="btn-primary" icon="fa-play"/>                            
+                    <!-- 2. Завершить урок (Синхронно переводит и Урок в 'done' + расчет оценок) -->
+                    <button name="action_attendance_done" type="object" string="Завершить урок" 
+                            invisible="state != 'start'" class="btn-primary" icon="fa-check-circle"/>
+                    <!-- 3. Редактировать (Возврат из Проведен в Идет урок для правок) -->
+                    <button name="action_attendance_edit" type="object" string="Редактировать" 
+                            invisible="state != 'done'" icon="fa-edit" class="btn-secondary"/>
+                    <!-- 4. Восстановить (из Отменен в Черновик) -->
+                    <button name="action_attendance_draft" type="object" string="Восстановить" 
+                            invisible="state != 'cancel'" icon="fa-undo"/>
+                    <!-- 5. Отменить (только если еще нет оценок - проверка в Python) -->
+                    <button name="action_attendance_cancel" type="object" string="Отменить" 
+                            invisible="state not in ('draft', 'start')" icon="fa-times"/>
+                    <!-- Статус-бар -->
                     <field name="state" widget="statusbar" statusbar_visible="draft,start,done"/>
                 </header>
+
                 <sheet>
                     <!-- Виджет со статистикой в углу (красивая раскраска) -->
                     <div class="oe_button_box" name="button_box">

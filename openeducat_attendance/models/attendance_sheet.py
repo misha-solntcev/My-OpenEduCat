@@ -65,7 +65,7 @@ class OpAttendanceSheet(models.Model):
     lesson_topic = fields.Char('Тема урока', size=256)
 
     state = fields.Selection([
-        ('draft', 'Запланирован'),
+        ('draft', 'Черновик'),
         ('start', 'Урок идет'),
         ('done', 'Проведен'),
         ('cancel', 'Отменен'),
@@ -110,48 +110,64 @@ class OpAttendanceSheet(models.Model):
                 record.term_id = term
 
     def action_attendance_start(self):
+        """Начать урок"""
         self.write({'state': 'start'})
+        if self.session_id:
+            self.session_id.lecture_start()
+
     def action_attendance_done(self):
-        # 1. Сначала выполняем стандартное действие (меняем статус на 'done')
+        """Завершить урок (с расчетом оценок)"""        
         res = self.write({'state': 'done'})
+        if self.session_id:
+            self.session_id.lecture_done()
         
-        # 2. Автоматизация для итоговых оценок (Subject Grades)
         GradeObj = self.env['op.subject.grades']
-        
         for sheet in self:
-            if not sheet.subject_id or not sheet.batch_id:
-                continue
-                
-            # Собираем ID всех учеников в этом журнале
+            if not sheet.subject_id or not sheet.batch_id: continue
             student_ids = sheet.attendance_line.mapped('student_id')
+            existing_cards = GradeObj.search([
+                ('student_id', 'in', student_ids.ids),
+                ('subject_id', '=', sheet.subject_id.id),
+                ('batch_id', '=', sheet.batch_id.id)
+            ])
+            existing_student_ids = existing_cards.mapped('student_id').ids
+            missing_students = student_ids.filtered(lambda s: s.id not in existing_student_ids)
             
-            for student in student_ids:
-                # Ищем, есть ли уже карточка итоговых оценок
-                grade_card = GradeObj.search([
-                    ('student_id', '=', student.id),
-                    ('subject_id', '=', sheet.subject_id.id),
-                    ('batch_id', '=', sheet.batch_id.id)
-                ], limit=1)
-                
-                # Если карточки нет — создаем её «на лету»
-                if not grade_card:
-                    grade_card = GradeObj.create({
-                        'student_id': student.id,
-                        'subject_id': sheet.subject_id.id,
-                        'batch_id': sheet.batch_id.id,
-                    })
-                
-                # Запускаем пересчет статистики в этой карточке
-                # (используем ваш существующий метод из subject_grades.py)
-                grade_card.action_force_recompute()
-                
+            if missing_students:
+                GradeObj.create([{
+                    'student_id': s.id, 'subject_id': sheet.subject_id.id, 'batch_id': sheet.batch_id.id,
+                } for s in missing_students])
+            
+            all_cards = GradeObj.search([
+                ('student_id', 'in', student_ids.ids),
+                ('subject_id', '=', sheet.subject_id.id),
+                ('batch_id', '=', sheet.batch_id.id)
+            ])
+            all_cards.action_force_recompute()
         return res
 
-    def action_attendance_draft(self):
-        self.write({'state': 'draft'})
+    def action_attendance_edit(self):
+        """Редактировать"""
+        self.write({'state': 'start'})
+        if self.session_id:
+            self.session_id.write({'state': 'start'})
 
     def action_attendance_cancel(self):
+        """Отменить"""        
+        marks = self.attendance_line.filtered(lambda l: l.grade_1 or l.grade_2 or l.grade_3)
+        if marks:
+            raise ValidationError(_("В журнале есть оценки. Удалите их перед отменой урока."))
+        
         self.write({'state': 'cancel'})
+        if self.session_id:
+            self.session_id.write({'state': 'cancel'})
+
+    def action_attendance_draft(self):
+        """Кнопка 'Восстановить': из Отменен -> в Черновик"""
+        self.write({'state': 'draft'})
+        if self.session_id:            
+            self.session_id.write({'state': 'confirm'})
+
 
 
 # --- СЧЕТЧИКИ ПОСЕЩАЕМОСТИ (store=True обязателен для поиска и Pivot) ---

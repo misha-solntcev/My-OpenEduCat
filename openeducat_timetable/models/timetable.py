@@ -27,7 +27,7 @@ class OpSession(models.Model):
     _name = "op.session"
     _inherit = ["mail.thread", "mail.activity.mixin"]
     _description = "Sessions"
-    _order = "start_datetime desc"
+    _order = "start_datetime asc, batch_id, id"
 
     name = fields.Char(compute='_compute_name', string='Name', store=True)
     timing = fields.Char(compute='_compute_timing', string='Session Timing')
@@ -44,19 +44,13 @@ class OpSession(models.Model):
     color = fields.Integer('Color Index')
     active = fields.Boolean(default=True)
     company_id = fields.Many2one('res.company', string='Company', default=lambda self: self.env.company)
-
-    # type = fields.Selection([
-    #     ('lecture', 'Лекция'),
-    #     ('seminar', 'Семинар'),
-    #     ('exam', 'Экзамен'),
-    #     ('other', 'Другое')
-    # ], string='Тип занятия', default='lecture', tracking=True)
     
     state = fields.Selection([
-        ('draft', 'Draft'), 
-        ('confirm', 'Confirmed'),
-        ('done', 'Done'), 
-        ('cancel', 'Canceled')],
+        ('draft', 'Черновик'), 
+        ('confirm', 'Утвержден'),
+        ('start', 'Идет урок'),
+        ('done', 'Проведен'), 
+        ('cancel', 'Отменен')],
         string='Status', default='draft', tracking=True)
 
     # Дни недели для Канбана и фильтрации
@@ -80,33 +74,25 @@ class OpSession(models.Model):
 
     @api.depends('start_datetime', 'end_datetime', 'faculty_id', 'subject_id')
     def _compute_name(self):
-        for session in self:
-            if not session.start_datetime or not session.end_datetime:
-                session.name = "Новое занятие..."
-                continue
-
-            # Название оставляем хранимым, но используем фиксированный пояс (МСК)
-            start_local = fields.Datetime.context_timestamp(session.with_context(tz='Europe/Moscow'), session.start_datetime)
-            end_local = fields.Datetime.context_timestamp(session.with_context(tz='Europe/Moscow'), session.end_datetime)
-            time_str = f"{start_local.strftime('%H:%M')} - {end_local.strftime('%H:%M')}"
-            
-            if session.subject_id and session.faculty_id:
-                session.name = f"{session.subject_id.name} ({session.faculty_id.name}): {time_str}"
+        tz = pytz.timezone('Europe/Moscow')
+        for rec in self:
+            if rec.start_datetime and rec.end_datetime:                
+                s = rec.start_datetime.astimezone(tz).strftime('%H:%M')
+                e = rec.end_datetime.astimezone(tz).strftime('%H:%M')
+                rec.name = f"{rec.subject_id.name} ({rec.faculty_id.name}) {s} - {e}"
             else:
-                session.name = time_str
+                rec.name = "Новое занятие..."
 
     @api.depends('start_datetime', 'end_datetime')
     def _compute_timing(self):
-        for session in self:
-            if not session.start_datetime or not session.end_datetime:
-                session.timing = ""
-                continue
-            
-            # Время вычисляется на лету для интерфейса
-            start_local = fields.Datetime.context_timestamp(session.with_context(tz='Europe/Moscow'), session.start_datetime)
-            end_local = fields.Datetime.context_timestamp(session.with_context(tz='Europe/Moscow'), session.end_datetime)
-            session.timing = f"{start_local.strftime('%H:%M')} - {end_local.strftime('%H:%M')}"
-
+        tz = pytz.timezone('Europe/Moscow')
+        for rec in self:
+            if rec.start_datetime and rec.end_datetime:
+                s = rec.start_datetime.astimezone(tz).strftime('%H:%M')
+                e = rec.end_datetime.astimezone(tz).strftime('%H:%M')
+                rec.timing = f"{s} - {e}"
+            else:
+                rec.timing = ""
     @api.depends('start_datetime')
     def _compute_day_info(self):
         # Строгое соответствие ключам в field.Selection
@@ -123,63 +109,91 @@ class OpSession(models.Model):
                 record.days = False
 
     @api.depends('batch_id', 'faculty_id')
-    def _compute_user_ids(self):
-        """Оптимизированный расчет пользователей для прав доступа"""
-        for session in self:
-            user_list = []
+    def _compute_user_ids(self):        
+        for session in self.sudo():
+            u_ids = []            
+            
             if session.faculty_id.user_id:
-                user_list.append(session.faculty_id.user_id.id)
+                u_ids.append(session.faculty_id.user_id.id)            
             
-            # Получаем всех студентов группы одним запросом
-            students = self.env['op.student'].search([
+            students = self.env['op.student'].sudo().search([
                 ('course_detail_ids.batch_id', '=', session.batch_id.id)
-            ])
-            student_user_ids = students.mapped('user_id').ids
-            user_list.extend(student_user_ids)
+            ])            
             
-            # Убираем дубли и пустые ID
-            session.user_ids = list(set(filter(None, user_list)))
+            student_user_ids = students.mapped('user_id').ids
+            u_ids.extend(student_user_ids)            
+            
+            session.user_ids = [(6, 0, list(set(filter(None, u_ids))))]
 
     def lecture_draft(self):
-        self.state = 'draft'
+        self.write({'state': 'draft'})
     
     def lecture_confirm(self):
         self.write({'state': 'confirm'})
         self._create_attendance_sheet()
+    
+    def lecture_start(self):       
+        self.write({'state': 'start'})
 
     def lecture_done(self):
-        self.state = 'done'
+        self.write({'state': 'done'})
 
     def lecture_cancel(self):
-        self.state = 'cancel'
+        for record in self:            
+            sheet = self.env['op.attendance.sheet'].search([('session_id', '=', record.id)], limit=1)
+            if sheet:                
+                marks = sheet.attendance_line.filtered(lambda l: l.grade_1 or l.grade_2 or l.grade_3)
+                if marks:
+                    raise ValidationError(_("Нельзя отменить урок, по которому уже выставлены оценки в журнале!"))
+                sheet.write({'state': 'cancel'})
+            record.write({'state': 'cancel'})
+
+    def lecture_draft(self):
+        """Кнопка 'Восстановить': из Отменен -> в Черновик"""
+        self.write({'state': 'draft'})        
+        sheets = self.env['op.attendance.sheet'].search([
+            ('session_id', 'in', self.ids),
+            ('state', '=', 'cancel')
+        ])
+        if sheets:
+            sheets.write({'state': 'draft'})
 
     def _create_attendance_sheet(self):
         AttendanceSheet = self.env['op.attendance.sheet']
+        AttendanceLine = self.env['op.attendance.line']
+        
         for record in self:
+            # 1. Проверяем, нет ли уже журнала
             if AttendanceSheet.search_count([('session_id', '=', record.id)]):
                 continue
             
-            # Используем mapped для скорости
+            # 2. Находим всех студентов ОДНИМ запросом
             students = self.env['op.student'].search([
                 ('course_detail_ids.course_id', '=', record.course_id.id),
-                ('course_detail_ids.batch_id', '=', record.batch_id.id)
+                ('course_detail_ids.batch_id', '=', record.batch_id.id),
+                ('active', '=', True)
             ])
             
-            present_type = self.env['op.attendance.type'].search([('present', '=', True)], limit=1)
+            # 3. Находим регистр
+            register = self.env['op.attendance.register'].search([
+                ('course_id', '=', record.course_id.id),
+                ('batch_id', '=', record.batch_id.id)
+            ], limit=1)
             
+            # 4. Находим статус "Присутствует" по умолчанию
+            present_type = self.env['op.attendance.type'].search([('present', '=', True)], limit=1)
+
+            # 5. СОЗДАЕМ ЖУРНАЛ И СТРОКИ ОДНИМ ПАКЕТОМ (через команду 0,0)
             AttendanceSheet.create({
                 'session_id': record.id,
                 'attendance_date': record.start_datetime.date(),
                 'faculty_id': record.faculty_id.id,
-                'register_id': self.env['op.attendance.register'].search([
-                    ('course_id', '=', record.course_id.id),
-                    ('batch_id', '=', record.batch_id.id)
-                ], limit=1).id,
+                'register_id': register.id if register else False,
+                'state': 'draft',
                 'attendance_line': [(0, 0, {
                     'student_id': s.id,
                     'attendance_type_id': present_type.id if present_type else False,
-                }) for s in students],
-                'state': 'draft',
+                }) for s in students]
             })
 
     @api.constrains('start_datetime', 'end_datetime')
