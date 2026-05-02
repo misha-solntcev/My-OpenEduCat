@@ -65,11 +65,27 @@ class OpAttendanceSheet(models.Model):
     lesson_topic = fields.Char('Тема урока', size=256)
 
     state = fields.Selection([
-        ('draft', 'Черновик'),
+        ('confirm', 'Утвержден'),
         ('start', 'Урок идет'),
         ('done', 'Проведен'),
         ('cancel', 'Отменен'),
-    ], string='Статус', default='draft', tracking=True)
+    ], string='Статус', default='confirm', tracking=True)
+
+    days = fields.Selection(related='session_id.days', store=True)
+    @api.model
+    def _expand_groups(self, days, domain, order=None):
+        # Этот список задает ЖЕСТКИЙ порядок колонок в Канбане
+        return ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
+
+    days = fields.Selection([
+        ('monday', 'Понедельник'),
+        ('tuesday', 'Вторник'),
+        ('wednesday', 'Среда'),
+        ('thursday', 'Четверг'),
+        ('friday', 'Пятница'),
+        ('saturday', 'Суббота'),
+        ('sunday', 'Воскресенье')
+    ], related='session_id.days', store=True, readonly=True, group_expand='_expand_groups')
 
     # --- ЛОГИКА ОТОБРАЖЕНИЯ ИМЕНИ ---
     @api.depends('session_id', 'register_id', 'attendance_date')
@@ -112,14 +128,14 @@ class OpAttendanceSheet(models.Model):
     def action_attendance_start(self):
         """Начать урок"""
         self.write({'state': 'start'})
-        if self.session_id:
-            self.session_id.lecture_start()
+        if self.session_id and self.session_id.state != 'start':
+            self.session_id.write({'state': 'start'})
 
     def action_attendance_done(self):
-        """Завершить урок (с расчетом оценок)"""        
+        """Завершить урок (Синхронно с расписанием + расчет итогов)"""
         res = self.write({'state': 'done'})
-        if self.session_id:
-            self.session_id.lecture_done()
+        if self.session_id and self.session_id.state != 'done':
+            self.session_id.write({'state': 'done'})        
         
         GradeObj = self.env['op.subject.grades']
         for sheet in self:
@@ -136,7 +152,7 @@ class OpAttendanceSheet(models.Model):
             if missing_students:
                 GradeObj.create([{
                     'student_id': s.id, 'subject_id': sheet.subject_id.id, 'batch_id': sheet.batch_id.id,
-                } for s in missing_students])
+                } for s in missing_students])            
             
             all_cards = GradeObj.search([
                 ('student_id', 'in', student_ids.ids),
@@ -147,27 +163,25 @@ class OpAttendanceSheet(models.Model):
         return res
 
     def action_attendance_edit(self):
-        """Редактировать"""
+        """Редактировать: возврат в 'Идет урок' для правок"""
         self.write({'state': 'start'})
         if self.session_id:
             self.session_id.write({'state': 'start'})
 
-    def action_attendance_cancel(self):
-        """Отменить"""        
-        marks = self.attendance_line.filtered(lambda l: l.grade_1 or l.grade_2 or l.grade_3)
-        if marks:
-            raise ValidationError(_("В журнале есть оценки. Удалите их перед отменой урока."))
-        
-        self.write({'state': 'cancel'})
+    def action_attendance_confirm(self):
+        """Восстановить: из Отменен -> в Утвержден"""
+        self.write({'state': 'confirm'})
         if self.session_id:
-            self.session_id.write({'state': 'cancel'})
-
-    def action_attendance_draft(self):
-        """Кнопка 'Восстановить': из Отменен -> в Черновик"""
-        self.write({'state': 'draft'})
-        if self.session_id:            
             self.session_id.write({'state': 'confirm'})
 
+    def action_attendance_cancel(self):
+        """Отмена из журнала с проверкой на оценки"""
+        marks = self.attendance_line.filtered(lambda l: l.grade_1 or l.grade_2 or l.grade_3)
+        if marks:
+            raise ValidationError(_("В журнале есть оценки. Удалите их перед отменой."))
+        self.write({'state': 'cancel'})
+        if self.session_id:
+            self.session_id.write({'state': 'cancel'})    
 
 
 # --- СЧЕТЧИКИ ПОСЕЩАЕМОСТИ (store=True обязателен для поиска и Pivot) ---
@@ -208,5 +222,28 @@ class OpAttendanceSheet(models.Model):
                 ('batch_id', '=', self.session_id.batch_id.id)
             ], limit=1)
             if register:
-                self.register_id = register
+                self.register_id = register   
 
+
+    # Статистика по оценкам для Канбана (считает все 3 оценки вместе)
+
+    # Поля для Канбана (обязательно store=True)
+    count_5 = fields.Integer(compute='_compute_lesson_stats', store=True)
+    count_4 = fields.Integer(compute='_compute_lesson_stats', store=True)
+    count_3 = fields.Integer(compute='_compute_lesson_stats', store=True)
+    count_2 = fields.Integer(compute='_compute_lesson_stats', store=True)
+    average_grade_lesson = fields.Float(compute='_compute_lesson_stats', store=True, digits=(1, 2))
+
+    @api.depends('attendance_line.grade_1', 'attendance_line.grade_2', 'attendance_line.grade_3', 'attendance_line.attendance_type_id')
+    def _compute_lesson_stats(self):
+        for rec in self:
+            # Вызываем ваш метод, который уже умеет собирать все оценки 1, 2, 3 вместе
+            stats = self.env['op.attendance.line'].get_stats_from_lines(rec.attendance_line)
+            
+            rec.update({
+                'count_5': stats['counts'][5],
+                'count_4': stats['counts'][4],
+                'count_3': stats['counts'][3],
+                'count_2': stats['counts'][2],
+                'average_grade_lesson': stats['avg']
+            })

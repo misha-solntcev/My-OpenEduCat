@@ -124,9 +124,7 @@ class OpSession(models.Model):
             u_ids.extend(student_user_ids)            
             
             session.user_ids = [(6, 0, list(set(filter(None, u_ids))))]
-
-    def lecture_draft(self):
-        self.write({'state': 'draft'})
+    
     
     def lecture_confirm(self):
         self.write({'state': 'confirm'})
@@ -134,9 +132,15 @@ class OpSession(models.Model):
     
     def lecture_start(self):       
         self.write({'state': 'start'})
+        sheets = self.env['op.attendance.sheet'].search([('session_id', 'in', self.ids)])
+        sheets.write({'state': 'start'})
 
     def lecture_done(self):
         self.write({'state': 'done'})
+        sheets = self.env['op.attendance.sheet'].search([('session_id', 'in', self.ids)])
+        for sheet in sheets:
+            if sheet.state != 'done':
+                sheet.action_attendance_done()
 
     def lecture_cancel(self):
         for record in self:            
@@ -150,46 +154,43 @@ class OpSession(models.Model):
 
     def lecture_draft(self):
         """Кнопка 'Восстановить': из Отменен -> в Черновик"""
-        self.write({'state': 'draft'})        
-        sheets = self.env['op.attendance.sheet'].search([
-            ('session_id', 'in', self.ids),
-            ('state', '=', 'cancel')
-        ])
+        self.write({'state': 'draft'})
+        sheets = self.env['op.attendance.sheet'].search([('session_id', 'in', self.ids)])
         if sheets:
-            sheets.write({'state': 'draft'})
+            sheets.write({'state': 'confirm'})
+
+    def lecture_edit(self):
+        """Кнопка 'Редактировать': из Проведен -> назад в Идет урок.
+        Синхронно возвращает в работу и связанный журнал."""
+        self.write({'state': 'start'})
+        sheets = self.env['op.attendance.sheet'].search([('session_id', 'in', self.ids)])
+        if sheets:            
+            sheets.write({'state': 'start'})
 
     def _create_attendance_sheet(self):
+        """Оптимизированное создание журнала в статусе 'confirm'"""
         AttendanceSheet = self.env['op.attendance.sheet']
-        AttendanceLine = self.env['op.attendance.line']
-        
         for record in self:
-            # 1. Проверяем, нет ли уже журнала
             if AttendanceSheet.search_count([('session_id', '=', record.id)]):
                 continue
             
-            # 2. Находим всех студентов ОДНИМ запросом
             students = self.env['op.student'].search([
                 ('course_detail_ids.course_id', '=', record.course_id.id),
                 ('course_detail_ids.batch_id', '=', record.batch_id.id),
                 ('active', '=', True)
             ])
-            
-            # 3. Находим регистр
             register = self.env['op.attendance.register'].search([
                 ('course_id', '=', record.course_id.id),
                 ('batch_id', '=', record.batch_id.id)
             ], limit=1)
-            
-            # 4. Находим статус "Присутствует" по умолчанию
             present_type = self.env['op.attendance.type'].search([('present', '=', True)], limit=1)
 
-            # 5. СОЗДАЕМ ЖУРНАЛ И СТРОКИ ОДНИМ ПАКЕТОМ (через команду 0,0)
             AttendanceSheet.create({
                 'session_id': record.id,
                 'attendance_date': record.start_datetime.date(),
                 'faculty_id': record.faculty_id.id,
                 'register_id': register.id if register else False,
-                'state': 'draft',
+                'state': 'confirm', # Журнал сразу "Утвержден"
                 'attendance_line': [(0, 0, {
                     'student_id': s.id,
                     'attendance_type_id': present_type.id if present_type else False,

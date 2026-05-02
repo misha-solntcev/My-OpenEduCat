@@ -36,26 +36,29 @@
                 <header>
                     <!-- 1. Из Черновика в Утвержден (Завуч) -->
                     <button name="lecture_confirm" type="object" string="Утвердить" 
-                            invisible="state != 'draft'" class="btn-primary" icon="fa-check"
-                            groups="openeducat_timetable.group_op_timetable_user"/>
+                        invisible="state != 'draft'" class="btn-primary" icon="fa-check"
+                        groups="openeducat_timetable.group_op_timetable_user"/>
                     <!-- 2. Из Утвержден в Идет урок (Учитель/Завуч) -->
                     <button name="lecture_start" type="object" string="Начать урок" 
-                            invisible="state != 'confirm'" class="btn-primary" icon="fa-play"
-                            groups="openeducat_timetable.group_op_timetable_user"/>                            
+                        invisible="state != 'confirm'" class="btn-primary" icon="fa-play"
+                        groups="openeducat_timetable.group_op_timetable_user"/>                            
                     <!-- 3. Из Идет урок в Проведен (Учитель/Завуч) -->
                     <button name="lecture_done" type="object" string="Завершить" 
-                            invisible="state != 'start'" class="btn-primary" icon="fa-check-circle"
-                            groups="openeducat_timetable.group_op_timetable_user"/>
+                        invisible="state != 'start'" class="btn-primary" icon="fa-check-circle"
+                        groups="openeducat_timetable.group_op_timetable_user"/>
                     <!-- 4. Отмена (доступна, пока урок не завершен) -->
                     <button name="lecture_cancel" type="object" string="Отменить урок" 
-                            invisible="state not in ('confirm', 'start')" icon="fa-times"
-                            groups="openeducat_timetable.group_op_timetable_user"
-                            confirm="Вы уверены, что хотите отменить этот урок? Связанный журнал также будет отменен."/>
+                        invisible="state not in ('confirm', 'start')" icon="fa-times"
+                        groups="openeducat_timetable.group_op_timetable_user"
+                        confirm="Вы уверены, что хотите отменить этот урок? Связанный журнал также будет отменен."/>
                     <!-- 5. Восстановить (из Отменен в Черновик) -->
                     <button name="lecture_draft" type="object" string="Восстановить" 
-                            invisible="state != 'cancel'"
-                            groups="openeducat_timetable.group_op_timetable_user"
-                            icon="fa-undo"/>
+                        invisible="state != 'cancel'"
+                        groups="openeducat_timetable.group_op_timetable_user"
+                        icon="fa-undo"/>
+                    <button name="lecture_edit" type="object" string="Редактировать" 
+                        invisible="state != 'done'" icon="fa-edit"
+                        groups="openeducat_timetable.group_op_timetable_user"/>
 
                     <!-- Статус-бар -->
                     <field name="state" widget="statusbar" statusbar_visible="draft,confirm,start,done"/>
@@ -259,24 +262,18 @@
                 <searchpanel>
                     <!-- Фильтр по классам -->
                     <field name="batch_id" 
-                        string="Классы" 
-                        select="multi" 
+                        string="Класс" 
+                        select="one" 
                         icon="fa-users" 
                         enable_counters="1"/>
 
                     <!-- Фильтр по учителям -->
-                    <field name="faculty_id" 
+                    <field name="faculty_id"
+                        expand="0"
                         string="Учителя" 
-                        select="multi" 
+                        select="one" 
                         icon="fa-graduation-cap" 
-                        enable_counters="1"/>
-
-                    <!-- Фильтр по статусам (для полноты картины) -->
-                    <field name="state" 
-                        string="Статус" 
-                        select="multi" 
-                        icon="fa-filter" 
-                        enable_counters="1"/>
+                        enable_counters="1"/>                   
                 </searchpanel>
             </search>
         </field>
@@ -289,7 +286,7 @@
         <field name="search_view_id" ref="view_op_session_search" />
         <field name="help" type="html">
             <p class="o_view_nocontent_smiling_face">
-                На рабочую неделю уроков не запланировано.
+                На текущуую неделю уроков нет.
             </p>
         </field>
         <!-- <field name="context">{
