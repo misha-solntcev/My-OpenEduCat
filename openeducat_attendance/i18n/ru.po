@@ -467,7 +467,7 @@ msgstr "Оценка 2"
 #: model_terms:ir.ui.view,arch_db:openeducat_attendance.student_grades_by_subject_form_view
 #: model_terms:ir.ui.view,arch_db:openeducat_attendance.view_op_attendance_sheet_form
 msgid "Cancel"
-msgstr "Отмена"
+msgstr "Отменить"
 
 #. module: openeducat_attendance
 #: model:ir.model.fields.selection,name:openeducat_attendance.selection__op_attendance_sheet__state__cancel
@@ -633,7 +633,7 @@ msgstr "Отображаемое имя"
 #: model:ir.model.fields.selection,name:openeducat_attendance.selection__op_attendance_sheet__state__draft
 #: model_terms:ir.ui.view,arch_db:openeducat_attendance.view_op_attendance_sheet_form
 msgid "Draft"
-msgstr "Запланирован"
+msgstr "Черновик"
 
 #. module: openeducat_attendance
 #: model:ir.model.fields,field_description:openeducat_attendance.field_op_attendance_type__excused
