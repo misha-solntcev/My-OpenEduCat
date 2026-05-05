@@ -189,29 +189,29 @@
                                         string="Дистанционно"
                                         class="btn btn-outline-success flex-grow-1" icon="fa-laptop"
                                         context="{'set_name': 'Дистанционно'}"
-                                        invisible="state in ('done','cancel')" />
+                                        invisible="state in ('done','cancel')" />                                    
 
-                                    <!-- 3. Опоздал (Yellow) -->
-                                    <button name="action_mass_set_attendance" type="object"
-                                        string="Опоздали"
-                                        class="btn btn-outline-warning flex-grow-1"
-                                        icon="fa-clock-o"
-                                        context="{'set_name': 'Опоздал'}"
-                                        invisible="state in ('done','cancel')" />
-
-                                    <!-- 4. Болеет (Blue) -->
+                                    <!-- 3. Болеет (Blue) -->
                                     <button name="action_mass_set_attendance" type="object"
                                         string="Болеют" class="btn btn-outline-info flex-grow-1"
                                         icon="fa-medkit"
                                         context="{'set_name': 'Болеет'}"
                                         invisible="state in ('done','cancel')" />
 
-                                    <!-- 5. Уважительная (Blue) -->
+                                    <!-- 4. Уважительная (Blue) -->
                                     <button name="action_mass_set_attendance" type="object"
                                         string="Уважительная причина"
                                         class="btn btn-outline-info flex-grow-1"
                                         icon="fa-envelope-o"
                                         context="{'set_name': 'Уважительная причина'}"
+                                        invisible="state in ('done','cancel')" />
+
+                                    <!-- 5. Опоздал (Yellow) -->
+                                    <button name="action_mass_set_attendance" type="object"
+                                        string="Опоздали"
+                                        class="btn btn-outline-warning flex-grow-1"
+                                        icon="fa-clock-o"
+                                        context="{'set_name': 'Опоздал'}"
                                         invisible="state in ('done','cancel')" />
 
                                     <!-- 6. Прогул (Red) -->
