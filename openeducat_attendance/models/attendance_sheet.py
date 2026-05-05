@@ -71,22 +71,19 @@ class OpAttendanceSheet(models.Model):
         ('cancel', 'Отменен'),
     ], string='Статус', default='confirm', tracking=True)
 
-    days = fields.Selection(related='session_id.days', store=True)
+    days = fields.Selection(
+        related='session_id.days', 
+        store=True, 
+        readonly=True, 
+        group_expand='_expand_groups'
+    )
+
+    timing = fields.Char(related='session_id.timing', string='Время', store=True)
     @api.model
     def _expand_groups(self, days, domain, order=None):
         # Этот список задает ЖЕСТКИЙ порядок колонок в Канбане
         return ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
-
-    days = fields.Selection([
-        ('monday', 'Понедельник'),
-        ('tuesday', 'Вторник'),
-        ('wednesday', 'Среда'),
-        ('thursday', 'Четверг'),
-        ('friday', 'Пятница'),
-        ('saturday', 'Суббота'),
-        ('sunday', 'Воскресенье')
-    ], related='session_id.days', store=True, readonly=True, group_expand='_expand_groups')
-
+    
     # --- ЛОГИКА ОТОБРАЖЕНИЯ ИМЕНИ ---
     @api.depends('session_id', 'register_id', 'attendance_date')
     def _compute_display_title(self):
@@ -247,3 +244,21 @@ class OpAttendanceSheet(models.Model):
                 'count_2': stats['counts'][2],
                 'average_grade_lesson': stats['avg']
             })
+
+
+    # ---- МАССОВЫЕ ДЕЙСТВИЯ ----
+    def action_mass_set_attendance(self):
+        """Оптимизированная установка статуса"""
+        self.ensure_one()
+        if self.state in ('done', 'cancel'):
+            return
+
+        target_name = self.env.context.get('set_name')
+        if not target_name:
+            return
+
+        target_type = self.env['op.attendance.type'].search([('name', '=', target_name)], limit=1)
+        
+        if target_type:            
+            self.attendance_line.write({'attendance_type_id': target_type.id})           
+            

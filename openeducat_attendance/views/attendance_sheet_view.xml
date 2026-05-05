@@ -6,42 +6,42 @@
         <field name="model">op.attendance.sheet</field>
         <field name="arch" type="xml">
             <!-- Раскрашиваем всю строку в зависимости от статуса -->
-            <list string="Журналы уроков" 
-                decoration-info="state == 'confirm'" 
-                decoration-warning="state == 'start'" 
-                decoration-success="state == 'done'" 
+            <list string="Журналы уроков"
+                decoration-info="state == 'confirm'"
+                decoration-warning="state == 'start'"
+                decoration-success="state == 'done'"
                 decoration-muted="state == 'cancel'"
                 sample="1"
                 expand="1">
-                
-                <field name="attendance_date" string="Дата" 
-                    widget="date" readonly="1" optional="show"/>
+
+                <field name="attendance_date" string="Дата"
+                    widget="date" readonly="1" optional="show" />
                 <field name="faculty_id" string="Учитель"
-                    widget="many2one_avatar_user" optional="show"/>
-                <field name="batch_id" string="Класс" 
-                    decoration-bf="1" optional="show"/>
-                <field name="subject_id" string="Предмет" 
-                    decoration-bf="1" optional="show"/>
-                <field name="lesson_topic" string="Тема занятия" 
-                    optional="hide"/>
-                
-                
-                <field name="total_present" string="👥 Явка" 
+                    widget="many2one_avatar_user" optional="show" />
+                <field name="batch_id" string="Класс"
+                    decoration-bf="1" optional="show" />
+                <field name="subject_id" string="Предмет"
+                    decoration-bf="1" optional="show" />
+                <field name="lesson_topic" string="Тема занятия"
+                    optional="hide" />
+
+
+                <field name="total_present" string="👥 Явка"
                     decoration-success="total_present > 0"
                     decoration-bf="1" />
-                <field name="total_absent" string="❌ Неявка" 
+                <field name="total_absent" string="❌ Неявка"
                     decoration-danger="total_absent > 0"
                     decoration-bf="1" />
-                
+
                 <!-- Статус в виде цветного бейджа -->
-                <field name="state" widget="badge" 
-                    decoration-info="state == 'confirm'" 
-                    decoration-warning="state == 'start'" 
-                    decoration-success="state == 'done'" 
-                    decoration-danger="state == 'cancel'"/>
+                <field name="state" widget="badge"
+                    decoration-info="state == 'confirm'"
+                    decoration-warning="state == 'start'"
+                    decoration-success="state == 'done'"
+                    decoration-danger="state == 'cancel'" />
 
                 <!-- Техническое поле для техподдержки, скрыто -->
-                <field name="name" string="ID" optional="hide"/>
+                <field name="name" string="ID" optional="hide" />
             </list>
         </field>
     </record>
@@ -50,37 +50,38 @@
     <record id="view_op_attendance_sheet_form" model="ir.ui.view">
         <field name="name">op.attendance.sheet.form</field>
         <field name="model">op.attendance.sheet</field>
-        <field name="priority" eval="8"/>
+        <field name="priority" eval="8" />
         <field name="arch" type="xml">
             <form string="Attendance Sheet">
 
                 <header>
                     <!-- 1. Начать урок (Синхронно переводит и Урок в 'start') -->
-                    <button name="action_attendance_start" type="object" string="Начать урок" 
-                            invisible="state != 'confirm'" class="btn-primary" icon="fa-play"/>                            
+                    <button name="action_attendance_start" type="object" string="Начать урок"
+                        invisible="state != 'confirm'" class="btn-primary" icon="fa-play" />
                     <!-- 2. Завершить урок (Синхронно переводит и Урок в 'done' + расчет оценок) -->
-                    <button name="action_attendance_done" type="object" string="Завершить урок" 
-                            invisible="state != 'start'" class="btn-primary" icon="fa-check-circle"/>
+                    <button name="action_attendance_done" type="object" string="Завершить урок"
+                        invisible="state != 'start'" class="btn-primary" icon="fa-check-circle" />
                     <!-- 3. Редактировать (Возврат из Проведен в Идет урок для правок) -->
-                    <button name="action_attendance_edit" type="object" string="Редактировать" 
-                            invisible="state != 'done'" icon="fa-edit" class="btn-secondary"/>
+                    <button name="action_attendance_edit" type="object" string="Редактировать"
+                        invisible="state != 'done'" icon="fa-edit" class="btn-secondary" />
                     <!-- 4. Восстановить (из Отменен в Черновик) -->
-                    <button name="action_attendance_confirm" type="object" string="Восстановить" 
-                            invisible="state != 'cancel'" icon="fa-undo"/>
+                    <button name="action_attendance_confirm" type="object" string="Восстановить"
+                        invisible="state != 'cancel'" icon="fa-undo" />
                     <!-- 5. Отменить (только если еще нет оценок - проверка в Python) -->
-                    <button name="action_attendance_cancel" type="object" string="Отменить" 
-                            invisible="state not in ('draft', 'start')" icon="fa-times"/>
+                    <button name="action_attendance_cancel" type="object" string="Отменить"
+                        invisible="state not in ('draft', 'start')" icon="fa-times" />
                     <!-- Статус-бар -->
-                    <field name="state" widget="statusbar" statusbar_visible="confirm,start,done"/>
+                    <field name="state" widget="statusbar" statusbar_visible="confirm,start,done" />
                 </header>
 
                 <sheet>
                     <!-- Виджет со статистикой в углу (красивая раскраска) -->
                     <div class="oe_button_box" name="button_box">
-                        <button class="oe_stat_button" icon="fa-users" disabled="1">
+                        <button class="oe_stat_button" icon="fa-users" title="Присутствует"
+                            disabled="1">
                             <div class="o_field_widget o_stat_info">
                                 <span class="o_stat_value">
-                                    <field name="total_present"/> / <field name="total_students"/>
+                                    <field name="total_present" /> / <field name="total_students" />
                                 </span>
                                 <span class="o_stat_text">Присутствует</span>
                             </div>
@@ -88,82 +89,168 @@
                     </div>
 
                     <div class="oe_title">
-                        <h1><field name="display_title"/></h1>
+                        <h1>
+                            <field name="display_title" />
+                        </h1>
                     </div>
 
                     <group>
                         <group string="Связь с расписанием">
-                            <field name="session_id" string="Урок" 
-                                   required="1"
-                                   options="{'no_create': True, 'no_open': True}"
-                                   readonly="state in ('done','cancel')"/>
-                            
-                            <field name="register_id" string="Папка (Регистр)" 
-                                   readonly="1" force_save="1" 
-                                   groups="base.group_no_one"
-                                   options="{'no_open': True}"/>
-                                   
-                            <field name="course_id" invisible="1"/>
-                            <field name="batch_id" invisible="1"/>
+                            <field name="session_id" string="Урок"
+                                required="1"
+                                options="{'no_create': True, 'no_open': True}"
+                                readonly="1" />
+
+                            <field name="register_id" string="Папка (Регистр)"
+                                readonly="1" force_save="1"
+                                options="{'no_open': True}" />
+
+                            <field name="course_id" invisible="1" />
+                            <field name="batch_id" invisible="1" />
                         </group>
                         <group string="Детали">
-                            <field name="attendance_date" string="Дата занятия" readonly="1" />
-                            <field name="subject_id" string="Предмет" readonly="1" />
-                            <field name="faculty_id" string="Преподаватель" widget="many2one_avatar" readonly="state in ('done','cancel')"/>
-                            <field name="term_id" string="Четверть" readonly="1" />
+                            <field name="attendance_date"
+                                string="Дата занятия"
+                                readonly="1" />
+                            <field name="subject_id"
+                                string="Предмет"
+                                readonly="1"
+                                options="{'no_open': True}" />
+                            <field name="faculty_id"
+                                string="Преподаватель"
+                                widget="many2one_avatar"
+                                readonly="1" />
+                            <field name="term_id"
+                                string="Четверть"
+                                readonly="1"
+                                options="{'no_open': True}" />
                         </group>
                     </group>
-                    
+
                     <group string="Информация об уроке">
-                        <field name="lesson_topic" placeholder="Тема занятия..." readonly="state == 'done'"/>
+                        <field name="lesson_topic" placeholder="Тема занятия..."
+                            readonly="state == 'done'" />
                     </group>
 
                     <notebook>
                         <page string="Ученики и Оценки" name="marks">
-                            <field name="attendance_line" colspan="4" nolabel="1" readonly="state in ('done','cancel')">                                
-                                <list string="Attendance Line" editable="top" create="false">                                                                        
-                                    <field name="student_avatar" widget="image" options="{'size': [32, 32]}" class="rounded-circle" string="Аватар" optional="show"/>
-                                    <field name="student_id" readonly="1" decoration-bf="1" options="{'no_open': True}" optional="show"/>                                    
+
+
+                            <!-- ПАНЕЛЬ КНОПОК (в порядке sequence) -->
+                            <div class="d-flex align-items-center flex-wrap gap-2 mb-3 mt-1">
+
+                                <div class="btn-group-sm shadow-sm rounded-pill w-100">
+                                    <!-- 1. Присутствует (Green) -->
+                                    <button name="action_mass_set_attendance" type="object"
+                                        string="Присутствуют"
+                                        class="btn btn-outline-success rounded-start-pill flex-grow-1"
+                                        icon="fa-check"
+                                        context="{'set_name': 'Присутствует'}"
+                                        invisible="state in ('done','cancel')" />
+
+                                    <!-- 2. Дистанционно (Green-ish) -->
+                                    <button name="action_mass_set_attendance" type="object"
+                                        string="Дистанционно"
+                                        class="btn btn-outline-success flex-grow-1" icon="fa-laptop"
+                                        context="{'set_name': 'Дистанционно'}"
+                                        invisible="state in ('done','cancel')" />
+
+                                    <!-- 3. Опоздал (Yellow) -->
+                                    <button name="action_mass_set_attendance" type="object"
+                                        string="Опоздали"
+                                        class="btn btn-outline-warning flex-grow-1"
+                                        icon="fa-clock-o"
+                                        context="{'set_name': 'Опоздал'}"
+                                        invisible="state in ('done','cancel')" />
+
+                                    <!-- 4. Болеет (Blue) -->
+                                    <button name="action_mass_set_attendance" type="object"
+                                        string="Болеют" class="btn btn-outline-info flex-grow-1"
+                                        icon="fa-medkit"
+                                        context="{'set_name': 'Болеет'}"
+                                        invisible="state in ('done','cancel')" />
+
+                                    <!-- 5. Уважительная (Blue) -->
+                                    <button name="action_mass_set_attendance" type="object"
+                                        string="Уважительная причина"
+                                        class="btn btn-outline-info flex-grow-1"
+                                        icon="fa-envelope-o"
+                                        context="{'set_name': 'Уважительная причина'}"
+                                        invisible="state in ('done','cancel')" />
+
+                                    <!-- 6. Прогул (Red) -->
+                                    <button name="action_mass_set_attendance" type="object"
+                                        string="Прогуляли"
+                                        class="btn btn-outline-danger rounded-end-pill flex-grow-1"
+                                        icon="fa-times"
+                                        context="{'set_name': 'Прогул'}"
+                                        invisible="state in ('done','cancel')" />
+                                </div>
+                            </div>
+
+
+                            <field name="attendance_line" colspan="4" nolabel="1"
+                                readonly="state in ('done','cancel')">
+                                <list string="Attendance Line" editable="top" create="false">
+
+                                    <!-- 1. Аватар (можно скрыть) -->
+                                    <field name="student_avatar" widget="image"
+                                        options="{'size': [32, 32]}"
+                                        class="rounded-circle" string="Аватар" optional="show" />
+
+                                    <!-- 2. Ученик (Обычно всегда виден, но добавил опцию) -->
+                                    <field name="student_id" readonly="1" decoration-bf="1"
+                                        options="{'no_open': True}" optional="show" />
+
+                                    <!-- 3. Статус (Кнопки в строке + управление видимостью) -->
                                     <field name="attendance_type_id"
-                                        decoration-bf="1"
+                                        string="Статус"
                                         widget="selection_badge"
+                                        optional="show"
+                                        decoration-bf="1"
                                         decoration-success="present == True and late == False"
                                         decoration-warning="late == True"
-                                        decoration-danger="absent == True"
-                                        decoration-info="not present and not absent and not late" 
-                                        options="{'horizontal': true}"/>                                    
-                                    
-                                    <!-- 4. ОЦЕНКИ: Жирные, с логикой цвета успеваемости -->
-                                    <field name="grade_1" string="Оценка 1" decoration-bf="1" optional="show"
-                                        decoration-success="grade_1 &gt;= 4.5"
-                                        decoration-danger="grade_1 &lt; 2.5 and grade_1 &gt; 0"
-                                        decoration-warning="grade_1 &gt;= 2.5 and grade_1 &lt; 3.5"/>
-                                        
-                                    <field name="grade_2" string="Оценка 2" decoration-bf="1" optional="show"
-                                        decoration-success="grade_1 &gt;= 4.5"
-                                        decoration-danger="grade_1 &lt; 2.5 and grade_1 &gt; 0"
-                                        decoration-warning="grade_1 &gt;= 2.5 and grade_1 &lt; 3.5"/>
+                                        decoration-info="absent == True and excused == True"
+                                        decoration-danger="absent == True and excused == False"
+                                        options="{'horizontal': true}" />
 
-                                    <field name="grade_3" string="Оценка 3" decoration-bf="1" optional="hide"
-                                        decoration-success="grade_1 &gt;= 4.5"
-                                        decoration-danger="grade_1 &lt; 2.5 and grade_1 &gt; 0"
-                                        decoration-warning="grade_1 &gt;= 2.5 and grade_1 &lt; 3.5"/>
-                                                                        
-                                    <field name="remark" placeholder="Примечание..."/>
-                                    
-                                    <!-- Технические невидимые поля для работы условий -->
-                                    <field name="present" column_invisible="True"/>
-                                    <field name="absent" column_invisible="True"/>
-                                    <field name="late" column_invisible="True"/>
+                                    <!-- 4. Оценки (с управлением видимостью) -->
+                                    <field name="grade_1" string="Оценка 1" decoration-bf="1"
+                                        optional="show"
+                                        decoration-success="grade_1 >= 4.5"
+                                        decoration-danger="grade_1 &lt; 2.5 and grade_1 > 0"
+                                        decoration-warning="grade_1 >= 2.5 and grade_1 &lt; 3.5" />
+
+                                    <field name="grade_2" string="Оценка 2" decoration-bf="1"
+                                        optional="show"
+                                        decoration-success="grade_2 >= 4.5"
+                                        decoration-danger="grade_2 &lt; 2.5 and grade_2 > 0"
+                                        decoration-warning="grade_2 >= 2.5 and grade_2 &lt; 3.5" />
+
+                                    <field name="grade_3" string="Оценка 3" decoration-bf="1"
+                                        optional="hide"
+                                        decoration-success="grade_3 >= 4.5"
+                                        decoration-danger="grade_3 &lt; 2.5 and grade_3 > 0"
+                                        decoration-warning="grade_3 >= 2.5 and grade_3 &lt; 3.5" />
+
+                                    <!-- 5. Примечание (можно скрыть) -->
+                                    <field name="remark" placeholder="Примечание..." optional="show" />
+
+                                    <!-- 6. Технические невидимые поля (Необходимы для логики
+                                    декораций) -->
+                                    <field name="present" column_invisible="True" />
+                                    <field name="absent" column_invisible="True" />
+                                    <field name="late" column_invisible="True" />
+                                    <field name="excused" column_invisible="True" />
                                 </list>
                             </field>
                         </page>
                     </notebook>
                 </sheet>
-                <chatter/>
+                <chatter />
             </form>
         </field>
-    </record>    
+    </record>
 
     <!-- 3. PIVOT (СВОДНАЯ ТАБЛИЦА) -->
     <record id="view_op_attendance_sheet_pivot" model="ir.ui.view">
@@ -171,16 +258,16 @@
         <field name="model">op.attendance.sheet</field>
         <field name="arch" type="xml">
             <pivot string="Аналитика ведомостей" display_quantity="1">
-                <field name="batch_id" type="row"/>
-                <field name="subject_id" type="row"/>
-                <field name="faculty_id" type="row"/>
-                <field name="attendance_date" interval="month" type="col"/>
+                <field name="batch_id" type="row" />
+                <field name="subject_id" type="row" />
+                <field name="faculty_id" type="row" />
+                <field name="attendance_date" interval="month" type="col" />
 
                 <!-- МЕРЫ -->
-                <field name="attendance_rate" type="measure" string="Явка (%)"/>
-                <field name="total_present" type="measure" string="Явка (чел.)"/>  
-                <field name="total_absent" type="measure" string="Неявка (чел.)"/>
-                <field name="total_students" type="measure" string="Всего (чел.)"/> 
+                <field name="attendance_rate" type="measure" string="Явка (%)" />
+                <field name="total_present" type="measure" string="Явка (чел.)" />
+                <field name="total_absent" type="measure" string="Неявка (чел.)" />
+                <field name="total_students" type="measure" string="Всего (чел.)" />
             </pivot>
         </field>
     </record>
@@ -191,8 +278,8 @@
         <field name="model">op.attendance.sheet</field>
         <field name="arch" type="xml">
             <graph string="Посещаемость" type="line" sample="1">
-                <field name="attendance_date" interval="week" string="Неделя"/>
-                <field name="attendance_rate" type="measure" string="Явка (%)"/>
+                <field name="attendance_date" interval="week" string="Неделя" />
+                <field name="attendance_rate" type="measure" string="Явка (%)" />
             </graph>
         </field>
     </record>
@@ -203,105 +290,136 @@
         <field name="model">op.attendance.sheet</field>
         <field name="arch" type="xml">
             <kanban default_group_by="days" quick_create="false">
-                <field name="attendance_rate"/>
-                <field name="count_5"/><field name="count_4"/><field name="count_3"/><field name="count_2"/>
-                <field name="average_grade_lesson"/>
-                <field name="total_present"/><field name="total_students"/>
-                <field name="state"/>
-                <field name="lesson_topic"/>
+                <field name="attendance_rate" />
+                <field name="count_5" />
+                <field name="count_4" />
+                <field name="count_3" />
+                <field name="count_2" />
+                <field name="average_grade_lesson" />
+                <field name="total_present" />
+                <field name="total_students" />
+                <field name="state" />
+                <field name="lesson_topic" />
 
                 <templates>
-                    <t t-name="kanban-box">
-                        <div t-attf-class="oe_kanban_global_click shadow border-0 border-start border-4 mb-3 #{
+                    <t t-name="card">
+                        <!-- Добавляем p-0, чтобы контролировать отступы внутри вручную через
+                        внутренний div -->
+                        <div
+                            t-attf-class="shadow-sm border-0 border-start border-4 #{
                             record.state.raw_value == 'confirm' ? 'border-info' : 
                             record.state.raw_value == 'start' ? 'border-primary' : 
                             record.state.raw_value == 'done' ? 'border-success' : 
                             record.state.raw_value == 'cancel' ? 'border-danger' : 'border-secondary'}">
-                            
-                            <div class="oe_kanban_content">
-                                <!-- Заголовок -->
-                                <div class="o_kanban_record_top mb-1">
-                                    <strong class="o_kanban_record_title" style="font-size: 16px; color: #714B67;">
-                                        <field name="subject_id"/>
-                                    </strong>
-                                    <field name="faculty_id" widget="many2one_avatar_user"/>
+
+                            <!-- Основной контейнер с паддингом p-3 (16px) -->
+                            <div class="oe_kanban_content p-3">
+
+                                <!-- Заголовок: Предмет + Аватар -->
+                                <div class="d-flex align-items-start justify-content-between mb-2">
+                                    <div class="text-truncate">
+                                        <strong class="o_kanban_record_title d-block text-truncate"
+                                            style="font-size: 1.1rem; color: #714B67;">
+                                            <field name="subject_id" />
+                                        </strong>
+                                    </div>
+                                    <field name="faculty_id" widget="many2one_avatar_user" />
                                 </div>
 
-                                <div class="small text-muted mb-2">
-                                    <i class="fa fa-users me-1"/> <field name="batch_id"/> 
-                                    <span class="mx-1">|</span>
-                                    <i class="fa fa-calendar me-1"/> <field name="attendance_date"/>
+                                <!-- Мета-данные: Класс, Дата и Время -->
+                                <div
+                                    class="d-flex align-items-center flex-wrap text-muted small mb-3"
+                                    style="gap: 12px;">
+                                    <!-- Класс -->
+                                    <div class="d-flex align-items-center">
+                                        <i class="fa fa-users me-1" title="Класс"
+                                            style="opacity: 0.7; font-size: 0.8rem;" />
+                                        <field name="batch_id" class="fw-bold text-dark" />
+                                    </div>
+
+                                    <!-- Дата -->
+                                    <div class="d-flex align-items-center">
+                                        <i class="fa fa-calendar me-1" title="Дата"
+                                            style="opacity: 0.7; font-size: 0.8rem;" />
+                                        <field name="attendance_date" class="fw-bold text-dark" />
+                                    </div>
+
+                                    <!-- Время -->
+                                    <div class="d-flex align-items-center">
+                                        <i class="fa fa-clock-o me-1" title="Время"
+                                            style="opacity: 0.7; font-size: 0.8rem;" />
+                                        <field name="timing" class="fw-bold text-dark" />
+                                    </div>
                                 </div>
 
-                                <!-- ТЕМА УРОКА (Дизайн: Пунктир и предупреждение, если пусто) -->
-                                <div t-attf-class="p-2 mb-3 rounded border #{record.lesson_topic.value ? 'bg-light border-light' : 'bg-white border-danger'}" 
-                                    t-attf-style="#{record.lesson_topic.value ? '' : 'border-style: dashed !important; border-width: 1.5px !important; min-height: 45px;'}"
-                                    style="font-size: 13px;">
-                                    
-                                    <!-- Вариант 1: ТЕМА ЗАПОЛНЕНА -->
+                                <!-- Тема урока (Блок с пунктиром) -->
+                                <div
+                                    t-attf-class="p-2 mb-3 rounded border #{record.lesson_topic.value ? 'bg-light border-light' : 'bg-white border-danger'}"
+                                    t-attf-style="#{record.lesson_topic.value ? '' : 'border-style: dashed !important; border-width: 1.2px !important;'}">
+
                                     <t t-if="record.lesson_topic.value">
-                                        <div class="text-muted small mb-1" style="font-size: 10px; font-weight: bold; text-transform: uppercase; opacity: 0.8;">Тема урока:</div>
-                                        <div class="fw-bold text-dark">
-                                            <field name="lesson_topic"/>
+                                        <div class="text-dark small fw-bold">
+                                            <field name="lesson_topic" />
                                         </div>
                                     </t>
-
-                                    <!-- Вариант 2: ТЕМА ПУСТАЯ (Предупреждение) -->
                                     <t t-else="">
-                                        <div class="text-danger fw-bold d-flex align-items-center h-100" style="padding-top: 5px;">
-                                            <i class="fa fa-edit me-2" style="opacity: 0.8;"/> 
+                                        <div class="text-danger small d-flex align-items-center">
+                                            <i class="fa fa-edit me-2" title="Заполните тему" />
                                             <span>Тема не заполнена!</span>
                                         </div>
                                     </t>
                                 </div>
 
-                                <!-- Блок ОЦЕНОК (Жирная только оценка) -->
-                                <div class="d-flex gap-1 mb-3" t-if="record.count_5.raw_value or record.count_4.raw_value or record.count_3.raw_value or record.count_2.raw_value">
-                                    
-                                    <div t-if="record.count_5.raw_value" class="badge border bg-white text-dark fw-normal" style="border-color: #28a745 !important;">
-                                        <span class="text-success fw-bold">5</span>: <field name="count_5"/>
-                                    </div>
+                                <!-- Статистика оценок -->
+                                <div class="d-flex align-items-center gap-1 mb-3"
+                                    t-if="record.count_5.raw_value or record.count_4.raw_value or record.count_3.raw_value or record.count_2.raw_value">
+                                    <span t-if="record.count_5.raw_value"
+                                        class="badge border bg-white text-success border-success-subtle fw-medium">
+                                        5: <t t-out="record.count_5.raw_value" /></span>
+                                    <span t-if="record.count_4.raw_value"
+                                        class="badge border bg-white text-primary border-primary-subtle fw-medium">
+                                        4: <t t-out="record.count_4.raw_value" /></span>
+                                    <span t-if="record.count_3.raw_value"
+                                        class="badge border bg-white text-warning border-warning-subtle fw-medium">
+                                        3: <t t-out="record.count_3.raw_value" /></span>
+                                    <span t-if="record.count_2.raw_value"
+                                        class="badge border bg-white text-danger border-danger-subtle fw-medium">
+                                        2: <t t-out="record.count_2.raw_value" /></span>
 
-                                    <div t-if="record.count_4.raw_value" class="badge border bg-white text-dark fw-normal" style="border-color: #8bc34a !important;">
-                                        <span class="fw-bold" style="color: #8bc34a;">4</span>: <field name="count_4"/>
-                                    </div>
-
-                                    <div t-if="record.count_3.raw_value" class="badge border bg-white text-dark fw-normal" style="border-color: #ffc107 !important;">
-                                        <span class="text-warning fw-bold">3</span>: <field name="count_3"/>
-                                    </div>
-
-                                    <div t-if="record.count_2.raw_value" class="badge border bg-white text-dark fw-normal" style="border-color: #f44336 !important;">
-                                        <span class="text-danger fw-bold">2</span>: <field name="count_2"/>
-                                    </div>
-
-                                    <div class="ms-auto d-flex align-items-center text-muted" style="font-size: 13px;">
-                                        <i class="fa fa-star me-1 text-warning"/>
-                                        <b style="color: #714B67;"><t t-out="record.average_grade_lesson.value"/></b>
+                                    <div class="ms-auto d-flex align-items-center text-muted small"
+                                        title="Средний балл">
+                                        <i class="fa fa-line-chart me-1" style="color: #714B67;" />
+                                        <b style="color: #714B67;">
+                                            <field name="average_grade_lesson" />
+                                        </b>
                                     </div>
                                 </div>
 
-                                <!-- ФУТЕР (Посещаемость слева, Статус справа) -->
-                                <div class="o_kanban_record_bottom d-flex justify-content-between align-items-center border-top pt-2">
+                                <!-- Нижняя панель (Футер) -->
+                                <div
+                                    class="d-flex justify-content-between align-items-center border-top pt-3 mt-auto">
                                     <div class="d-flex align-items-center">
-                                        <i class="oi oi-group me-2 text-muted" style="font-size: 12px;"/>
-                                        <span class="me-2 text-dark" style="font-size: 12px;">
-                                            <t t-out="record.total_present.raw_value"/>/<t t-out="record.total_students.raw_value"/>
+                                        <i class="oi oi-group me-2 text-muted" title="Присутствие"
+                                            style="font-size: 0.8rem;" />
+                                        <span class="small fw-bold me-2">
+                                            <t t-out="record.total_present.raw_value" />/<t
+                                                t-out="record.total_students.raw_value" />
                                         </span>
-                                        <div class="progress" style="height: 4px; width: 30px; background-color: #eee;">
-                                            <div t-attf-class="progress-bar #{record.attendance_rate.raw_value >= 90 ? 'bg-success' : record.attendance_rate.raw_value >= 75 ? 'bg-warning' : 'bg-danger'}"
+                                        <!-- Прогресс-бар посещаемости -->
+                                        <div class="progress"
+                                            style="height: 6px; width: 40px; background-color: #f0f0f0;">
+                                            <div
+                                                t-attf-class="progress-bar #{record.attendance_rate.raw_value >= 90 ? 'bg-success' : record.attendance_rate.raw_value >= 70 ? 'bg-warning' : 'bg-danger'}"
                                                 t-attf-style="width: #{record.attendance_rate.raw_value}%"></div>
                                         </div>
                                     </div>
 
-                                    <div class="ms-auto">
-                                        <field name="state" widget="badge" 
-                                            decoration-info="state == 'confirm'" 
-                                            decoration-primary="state == 'start'" 
-                                            decoration-success="state == 'done'" 
-                                            decoration-danger="state == 'cancel'"/>
-                                    </div>
+                                    <field name="state" widget="badge"
+                                        decoration-info="state == 'confirm'"
+                                        decoration-primary="state == 'start'"
+                                        decoration-success="state == 'done'"
+                                        decoration-danger="state == 'cancel'" />
                                 </div>
-
                             </div>
                         </div>
                     </t>
@@ -316,58 +434,64 @@
         <field name="model">op.attendance.sheet</field>
         <field name="arch" type="xml">
             <search>
-                <field name="display_title" string="Название журнала"/>
-                <field name="batch_id" string="Класс"/>
-                <field name="subject_id" string="Предмет"/>
-                <field name="faculty_id" string="Учитель"/>
+                <field name="display_title" string="Название журнала" />
+                <field name="batch_id" string="Класс" />
+                <field name="subject_id" string="Предмет" />
+                <field name="faculty_id" string="Учитель" />
 
-                <!-- Группа 1: ПЕРИОДЫ -->                
+                <!-- Группа 1: ПЕРИОДЫ -->
                 <filter string="Текущая неделя" name="this_week"
-                        domain="[
+                    domain="[
                         ('attendance_date', '&gt;=', (context_today() + relativedelta(weeks=-1, days=1, weekday=0)).strftime('%Y-%m-%d')),
-                        ('attendance_date', '&lt;=', (context_today() + relativedelta(weekday=6)).strftime('%Y-%m-%d'))]"/>
+                        ('attendance_date', '&lt;=', (context_today() + relativedelta(weekday=6)).strftime('%Y-%m-%d'))]" />
 
-                <filter string="Сегодня" name="today" 
-                        domain="[('attendance_date', '=', context_today().strftime('%Y-%m-%d'))]"/>
-                
-                
-                <separator/>
-                
-                <filter string="👨‍🏫 Мои уроки" name="my_lessons" domain="[('faculty_id.user_id', '=', uid)]"/>
+                <filter string="Сегодня" name="today"
+                    domain="[('attendance_date', '=', context_today().strftime('%Y-%m-%d'))]" />
 
-                <separator/>
 
-                <!-- Группа 2: СОСТОЯНИЕ УРОКА -->                
+                <separator />
+
+                <filter string="👨‍🏫 Мои уроки" name="my_lessons"
+                    domain="[('faculty_id.user_id', '=', uid)]" />
+
+                <separator />
+
+                <!-- Группа 2: СОСТОЯНИЕ УРОКА -->
                 <filter string="🔵 Утвержден" name="confirm" domain="[('state', '=', 'confirm')]" />
                 <filter string="🟣 Идет урок" name="start" domain="[('state', '=', 'start')]" />
                 <filter string="🟢   Проведен" name="done" domain="[('state', '=', 'done')]" />
                 <filter string="🔴 Отменен" name="cancel" domain="[('state', '=', 'cancel')]" />
-                
-                <separator/>                
-                
+
+                <separator />
+
                 <!-- Группировки (Появятся вверху списка при нажатии на +) -->
                 <group expand="0" string="Группировать по...">
-                    <filter string="🏫 Класс" name="group_batch" context="{'group_by': 'batch_id'}"/>
-                    <filter string="📚 Предмет" name="group_subject" context="{'group_by': 'subject_id'}"/>
-                    <filter string="👨‍🏫 Учитель" name="group_faculty" context="{'group_by': 'faculty_id'}"/>
-                    <filter string="🕒 Статус" name="group_state" context="{'group_by': 'state'}"/>
-                    <filter string="🗓️ Дата урока" name="group_date" context="{'group_by': 'attendance_date'}"/>
+                    <filter string="🏫 Класс" name="group_batch" context="{'group_by': 'batch_id'}" />
+                    <filter string="📚 Предмет" name="group_subject"
+                        context="{'group_by': 'subject_id'}" />
+                    <filter string="👨‍🏫 Учитель" name="group_faculty"
+                        context="{'group_by': 'faculty_id'}" />
+                    <filter string="🕒 Статус" name="group_state" context="{'group_by': 'state'}" />
+                    <filter string="🗓️ Дата урока" name="group_date"
+                        context="{'group_by': 'attendance_date'}" />
                 </group>
                 <searchpanel>
                     <!-- Фильтр по классам -->
-                    <field name="batch_id" 
-                        string="Класс" 
-                        select="one" 
-                        icon="fa-users" 
-                        enable_counters="1"/>
+                    <field name="batch_id"
+                        string="Класс"
+                        select="one"
+                        icon="fa-users"
+                        title="Фильтр по классам"
+                        enable_counters="1" />
 
                     <!-- Фильтр по учителям -->
                     <field name="faculty_id"
-                        expand="0"                                                
-                        string="Учителя" 
-                        select="one" 
-                        icon="fa-graduation-cap" 
-                        enable_counters="1"/>                   
+                        expand="0"
+                        string="Учителя"
+                        select="one"
+                        icon="fa-graduation-cap"
+                        title="Фильтр по учителям"
+                        enable_counters="1" />
                 </searchpanel>
             </search>
         </field>
@@ -378,11 +502,11 @@
         <field name="name">Attendance Sheets</field>
         <field name="res_model">op.attendance.sheet</field>
         <field name="view_mode">kanban,list,pivot,form,graph</field>
-        <field name="search_view_id" ref="view_op_attendance_sheet_search"/>
+        <field name="search_view_id" ref="view_op_attendance_sheet_search" />
         <field name="context">{
             'search_default_this_week': 1,
             'search_default_group_day': 1
             'pivot_measures': ['attendance_rate'],
-        }</field>
+            }</field>
     </record>
 </odoo>

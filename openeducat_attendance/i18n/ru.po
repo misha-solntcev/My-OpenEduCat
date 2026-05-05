@@ -283,12 +283,12 @@ msgstr ""
 #: model:ir.model.fields,field_description:openeducat_attendance.field_op_attendance_type__absent
 #: model_terms:ir.ui.view,arch_db:openeducat_attendance.view_op_attendance_line_search
 msgid "Absent"
-msgstr "Отсутствует(прогул)"
+msgstr "Отсутствует"
 
 #. module: openeducat_attendance
 #: model:ir.model.fields,field_description:openeducat_attendance.field_op_attendance_line__excused
 msgid "Absent Excused"
-msgstr "Отсутствует по уважительной причине"
+msgstr "Уважительная причина"
 
 #. module: openeducat_attendance
 #: model:ir.model.fields,field_description:openeducat_attendance.field_op_attendance_line__absent
@@ -638,7 +638,7 @@ msgstr "Черновик"
 #. module: openeducat_attendance
 #: model:ir.model.fields,field_description:openeducat_attendance.field_op_attendance_type__excused
 msgid "Excused ?"
-msgstr "Отсутствует по уважительной причине"
+msgstr "Уважительная причина"
 
 #. module: openeducat_attendance
 #: model:ir.model.fields,field_description:openeducat_attendance.field_op_attendance_sheet__faculty_id
