@@ -6,13 +6,14 @@
         <field name="model">op.attendance.sheet</field>
         <field name="arch" type="xml">
             <!-- Раскрашиваем всю строку в зависимости от статуса -->
-            <list string="Журналы уроков"
+            <list string="Журналы уроков" 
+                default_order="start_datetime asc, batch_id"
+                sample="1"
+                expand="1"
                 decoration-info="state == 'confirm'"
                 decoration-warning="state == 'start'"
                 decoration-success="state == 'done'"
-                decoration-muted="state == 'cancel'"
-                sample="1"
-                expand="1">
+                decoration-muted="state == 'cancel'">
 
                 <field name="attendance_date" string="Дата"
                     widget="date" readonly="1" optional="show" />
@@ -324,7 +325,7 @@
         <field name="name">op.attendance.sheet.kanban</field>
         <field name="model">op.attendance.sheet</field>
         <field name="arch" type="xml">
-            <kanban default_group_by="days" quick_create="false">
+            <kanban default_group_by="days" default_order="start_datetime asc, batch_id" quick_create="false">
                 <field name="attendance_rate" />
                 <field name="count_5" />
                 <field name="count_4" />

@@ -24,7 +24,14 @@ class OpAttendanceSheet(models.Model):
     _name = "op.attendance.sheet"
     _inherit = ["mail.thread", "mail.activity.mixin"]
     _description = "Attendance Sheet"
-    _order = "attendance_date desc"
+    _order = "start_datetime asc, batch_id, id"
+
+    start_datetime = fields.Datetime(
+        related='session_id.start_datetime', 
+        string='Начало урока', 
+        store=True, 
+        index=True
+    )
 
     # Техническое поле (Старый код типа 11А4чAR-AS2358). Оставлен для целостности БД
     name = fields.Char('Name', readonly=True, size=32)
