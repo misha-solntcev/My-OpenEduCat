@@ -75,62 +75,97 @@
                 </header>
 
                 <sheet>
-                    <!-- Виджет со статистикой в углу (красивая раскраска) -->
+                    <!-- 1. ИНДИКАТОРЫ И СТАТИСТИКА (Верхний правый угол) -->
                     <div class="oe_button_box" name="button_box">
-                        <button class="oe_stat_button" icon="fa-users" title="Присутствует"
-                            disabled="1">
+                        <button class="oe_stat_button" icon="fa-users" title="Присутствие" disabled="1">
                             <div class="o_field_widget o_stat_info">
                                 <span class="o_stat_value">
-                                    <field name="total_present" /> / <field name="total_students" />
+                                    <field name="total_present"/> / <field name="total_students"/>
                                 </span>
                                 <span class="o_stat_text">Присутствует</span>
                             </div>
                         </button>
                     </div>
 
-                    <div class="oe_title">
-                        <h1>
-                            <field name="display_title" />
-                        </h1>
+                    <!-- Индикатор архивации/отмены -->
+                    <widget name="web_ribbon" title="Отменен" bg_color="text-bg-danger" invisible="active"/>
+
+                    <!-- 2. HERO HEADER (ГЛАВНАЯ ПАНЕЛЬ) -->
+                    <div class="d-flex flex-column flex-md-row align-items-stretch gap-3 mb-4 mt-2">
+                        
+                        <!-- ЛЕВАЯ КОЛОНКА: Обложка учебника -->
+                        <div class="d-flex align-items-center justify-content-center bg-white border rounded-3 shadow-sm p-2" 
+                            style="width: 110px; height: 145px; flex-shrink: 0; margin: 0 auto;">
+                            <field name="textbook_image" widget="image" class="w-100 h-100 object-fit-contain" options="{'zoom': true}"/>
+                        </div>
+
+                        <!-- ЦЕНТРАЛЬНАЯ КОЛОНКА: Основные данные -->
+                        <div class="flex-grow-1 d-flex flex-column justify-content-center text-center text-md-start">
+                            <!-- Верхняя строка: Класс и Дата -->
+                            <div class="d-flex align-items-center justify-content-center justify-content-md-start gap-2 mb-2">
+                                <span class="badge rounded-pill fw-bold px-3 py-1" style="background: #eef2ff; color: #4f46e5; border: 1px solid #e0e7ff;">
+                                    <field name="batch_id" readonly="1"/>
+                                </span>
+                                <span class="text-muted small fw-medium">
+                                    <i class="fa fa-calendar-o me-1"/> <field name="attendance_date" readonly="1"/>
+                                </span>
+                            </div>
+
+                            <!-- Название предмета (Крупно) -->
+                            <h1 class="fw-bolder mb-3" style="letter-spacing: -0.5px; color: #1e293b; font-size: 2.2rem;">
+                                <field name="subject_id" readonly="1"/>
+                            </h1>
+
+                            <!-- Детали урока: Время, Кабинет, Четверть -->
+                            <div class="d-flex flex-wrap justify-content-center justify-content-md-start gap-3 text-muted small">
+                                <div class="d-flex align-items-center bg-white px-2 py-1 rounded border shadow-sm">
+                                    <i class="fa fa-clock-o me-2 text-primary"/>
+                                    <field name="timing" class="fw-bold text-dark"/>
+                                </div>
+                                <div class="d-flex align-items-center bg-white px-2 py-1 rounded border shadow-sm">
+                                    <i class="fa fa-map-marker me-2 text-danger"/>
+                                    <field name="classroom_id" class="fw-bold text-dark" options="{'no_open': True}"/>
+                                </div>
+                                <div class="d-flex align-items-center bg-white px-2 py-1 rounded border shadow-sm">
+                                    <i class="fa fa-graduation-cap me-2 text-success"/>
+                                    <field name="term_id" readonly="1" options="{'no_open': True}" class="fw-bold text-dark"/>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- ПРАВАЯ КОЛОНКА: Квадратная карточка учителя -->                                                
+                        <div class="ms-md-auto d-flex align-items-center p-3 border rounded bg-white shadow-sm" style="min-height: 65px;">
+                            <field name="faculty_id" 
+                                widget="many2one_avatar" 
+                                readonly="1" 
+                                options="{'no_open': True}" 
+                                class="fs-1 fw-bold text-dark"/>
+                        </div>
                     </div>
 
-                    <group>
-                        <group string="Связь с расписанием">
-                            <field name="session_id" string="Урок"
-                                required="1"
-                                options="{'no_create': True, 'no_open': True}"
-                                readonly="1" />
+                    <!-- 3. АКЦЕНТНЫЙ БЛОК: ТЕМА ЗАНЯТИЯ -->
+                    <div class="p-4 mb-4 rounded-3 border-start border-4 border-primary bg-white shadow-sm position-relative overflow-hidden" style="background: linear-gradient(to right, #ffffff, #f8fafc);">
+                        <!-- Фоновая иконка для красоты -->
+                        <i class="fa fa-pencil-square-o position-absolute" style="right: -10px; bottom: -10px; font-size: 100px; opacity: 0.03; transform: rotate(-15deg);"/>
+                        
+                        <label for="lesson_topic" class="fw-bold text-uppercase mb-2 text-muted" style="font-size: 0.75rem; letter-spacing: 1px;">
+                            <i class="fa fa-edit me-1 text-primary"/> Тема текущего занятия
+                        </label>
+                        <div class="h2 mb-0">
+                            <field name="lesson_topic" 
+                                placeholder="Например: Решение квадратных уравнений через дискриминант..." 
+                                class="w-100 border-0 p-0 fw-bold shadow-none text-dark" 
+                                style="background: transparent; outline: none;"
+                                readonly="state == 'done'"/>
+                        </div>
+                    </div>
 
-                            <field name="register_id" string="Папка (Регистр)"
-                                readonly="1" force_save="1"
-                                options="{'no_open': True}" />
-
-                            <field name="course_id" invisible="1" />
-                            <field name="batch_id" invisible="1" />
-                        </group>
-                        <group string="Детали">
-                            <field name="attendance_date"
-                                string="Дата занятия"
-                                readonly="1" />
-                            <field name="subject_id"
-                                string="Предмет"
-                                readonly="1"
-                                options="{'no_open': True}" />
-                            <field name="faculty_id"
-                                string="Преподаватель"
-                                widget="many2one_avatar"
-                                readonly="1" />
-                            <field name="term_id"
-                                string="Четверть"
-                                readonly="1"
-                                options="{'no_open': True}" />
-                        </group>
-                    </group>
-
-                    <group string="Информация об уроке">
-                        <field name="lesson_topic" placeholder="Тема занятия..."
-                            readonly="state == 'done'" />
-                    </group>
+                    <!-- Скрытые поля для системной логики -->
+                    <div invisible="1">
+                        <field name="session_id" readonly="1" force_save="1"/>
+                        <field name="register_id" readonly="1" force_save="1"/>
+                        <field name="display_title"/>
+                    </div>
 
                     <notebook>
                         <page string="Ученики и Оценки" name="marks">

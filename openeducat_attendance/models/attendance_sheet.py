@@ -79,6 +79,21 @@ class OpAttendanceSheet(models.Model):
     )
 
     timing = fields.Char(related='session_id.timing', string='Время', store=True)
+    classroom_id = fields.Many2one(related='session_id.classroom_id', string='Кабинет', store=True)    
+    textbook_image = fields.Image('Учебник', compute='_compute_textbook_image', store=True)    
+
+    @api.depends('subject_id', 'course_id')    
+    def _compute_textbook_image(self):
+        for r in self:
+            if not r.subject_id or not r.course_id:
+                r.textbook_image = False
+                continue
+            # Ищем учебник в библиотеке по Предмету и Курсу (Параллели)
+            domain = [('subject_ids', 'in', r.subject_id.ids), ('x_image_128', '!=', False)]
+            media = self.env['op.media'].sudo().search(domain + [('course_ids', 'in', r.course_id.ids)], limit=1)
+            if not media:
+                media = self.env['op.media'].sudo().search(domain, limit=1)
+            r.textbook_image = media.x_image_128 if media else False
     @api.model
     def _expand_groups(self, days, domain, order=None):
         # Этот список задает ЖЕСТКИЙ порядок колонок в Канбане
