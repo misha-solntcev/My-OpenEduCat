@@ -9,7 +9,7 @@
             <list string="Журналы уроков" 
                 default_order="start_datetime asc, batch_id"
                 sample="1"
-                expand="1"
+                expand="0"
                 decoration-info="state == 'confirm'"
                 decoration-warning="state == 'start'"
                 decoration-success="state == 'done'"
@@ -494,8 +494,8 @@
 
                 <!-- Группа 2: СОСТОЯНИЕ УРОКА -->
                 <filter string="🔵 Утвержден" name="confirm" domain="[('state', '=', 'confirm')]" />
-                <filter string="🟣 Идет урок" name="start" domain="[('state', '=', 'start')]" />
-                <filter string="🟢   Проведен" name="done" domain="[('state', '=', 'done')]" />
+                <filter string="🟣   Идет урок" name="start" domain="[('state', '=', 'start')]" />
+                <filter string="🟢 Проведен" name="done" domain="[('state', '=', 'done')]" />
                 <filter string="🔴 Отменен" name="cancel" domain="[('state', '=', 'cancel')]" />
 
                 <separator />

@@ -809,6 +809,20 @@
                     <filter string="🎓 Курс (Параллель)" name="group_by_course"
                         context="{'group_by': 'course_id'}" />
                 </group>
+                <searchpanel>
+                    <!-- 1. По классу -->
+                    <field name="batch_id" 
+                        string="Класс" 
+                        select="one" 
+                        icon="fa-users" 
+                        enable_counters="1"/>
+
+                    <!-- 2. По предмету -->
+                    <field name="subject_id"
+                        string="Предмет"
+                        select="one" 
+                        icon="fa-book"/>
+                </searchpanel>
             </search>
         </field>
     </record>
