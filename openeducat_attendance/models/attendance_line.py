@@ -92,6 +92,35 @@ class OpAttendanceLine(models.Model):
     grade_2 = fields.Float('Оценка 2', aggregator="avg", default=False)
     grade_3 = fields.Float('Оценка 3', aggregator="avg", default=False)
 
+    # Виртуальные поля для кнопок (Selection)
+    grade_1_ui = fields.Selection([('2', '2'), ('3', '3'), ('4', '4'), ('5', '5')], 
+                                  string='О1', compute='_compute_grade_ui', inverse='_set_grade_1_ui', store=False)
+    grade_2_ui = fields.Selection([('2', '2'), ('3', '3'), ('4', '4'), ('5', '5')], 
+                                  string='О2', compute='_compute_grade_ui', inverse='_set_grade_2_ui', store=False)
+    grade_3_ui = fields.Selection([('2', '2'), ('3', '3'), ('4', '4'), ('5', '5')], 
+                                  string='О3', compute='_compute_grade_ui', inverse='_set_grade_3_ui', store=False)
+
+    @api.depends('grade_1', 'grade_2', 'grade_3')
+    def _compute_grade_ui(self):
+        for rec in self:
+            # Превращаем число 5.0 в строку '5' для кнопок. 
+            # Используем int() чтобы не было "5.0"
+            rec.grade_1_ui = str(int(rec.grade_1)) if rec.grade_1 > 0 else False
+            rec.grade_2_ui = str(int(rec.grade_2)) if rec.grade_2 > 0 else False
+            rec.grade_3_ui = str(int(rec.grade_3)) if rec.grade_3 > 0 else False
+
+    def _set_grade_1_ui(self):
+        for rec in self:
+            rec.grade_1 = float(rec.grade_1_ui) if rec.grade_1_ui else 0.0
+
+    def _set_grade_2_ui(self):
+        for rec in self:
+            rec.grade_2 = float(rec.grade_2_ui) if rec.grade_2_ui else 0.0
+
+    def _set_grade_3_ui(self):
+        for rec in self:
+            rec.grade_3 = float(rec.grade_3_ui) if rec.grade_3_ui else 0.0
+
     # Вычисляемый средний балл строки
     grade_avg = fields.Float(
         string='Средний балл', 

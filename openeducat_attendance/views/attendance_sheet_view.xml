@@ -241,7 +241,7 @@
                                     <!-- 3. Статус (Кнопки в строке + управление видимостью) -->
                                     <field name="attendance_type_id"
                                         string="Статус"
-                                        widget="selection_badge"
+                                        widget="selection_badge" width="335px"
                                         optional="show"
                                         decoration-bf="1"
                                         decoration-success="present == True and late == False"
@@ -251,20 +251,23 @@
                                         options="{'horizontal': true}" />
 
                                     <!-- 4. Оценки (с управлением видимостью) -->
-                                    <field name="grade_1" string="Оценка 1" decoration-bf="1"
-                                        optional="show"
+                                    <field name="grade_1_ui" string="Оценка 1" decoration-bf="1"
+                                        widget="selection_badge" options="{'horizontal': true}"
+                                        width="65px" optional="show"
                                         decoration-success="grade_1 >= 4.5"
                                         decoration-danger="grade_1 &lt; 2.5 and grade_1 > 0"
                                         decoration-warning="grade_1 >= 2.5 and grade_1 &lt; 3.5" />
 
-                                    <field name="grade_2" string="Оценка 2" decoration-bf="1"
-                                        optional="show"
+                                    <field name="grade_2_ui" string="Оценка 2" decoration-bf="1"
+                                        widget="selection_badge" options="{'horizontal': true}"
+                                        width="65px" optional="show"
                                         decoration-success="grade_2 >= 4.5"
                                         decoration-danger="grade_2 &lt; 2.5 and grade_2 > 0"
                                         decoration-warning="grade_2 >= 2.5 and grade_2 &lt; 3.5" />
 
-                                    <field name="grade_3" string="Оценка 3" decoration-bf="1"
-                                        optional="hide"
+                                    <field name="grade_3_ui" string="Оценка 3" decoration-bf="1"
+                                        widget="selection_badge" options="{'horizontal': true}"
+                                        width="65px" optional="hide"
                                         decoration-success="grade_3 >= 4.5"
                                         decoration-danger="grade_3 &lt; 2.5 and grade_3 > 0"
                                         decoration-warning="grade_3 >= 2.5 and grade_3 &lt; 3.5" />

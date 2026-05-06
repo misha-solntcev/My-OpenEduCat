@@ -5,38 +5,46 @@
         <field name="name">op.attendance.line.list</field>
         <field name="model">op.attendance.line</field>
         <field name="arch" type="xml">
-            <list string="Журнал оценок" editable="bottom" create="0" delete="0" expand="0" sample="1">
-                <field name="attendance_date" optional="show" readonly="1"/>
-                <field name="term_id" optional="hide" readonly="1"/>
-                <field name="student_id" optional="show" readonly="1" options="{'no_open': True}"/>
-                <field name="batch_id" string="Класс" optional="show" readonly="1" options="{'no_open': True}"/>
-                <field name="subject_id" optional="show" readonly="1" options="{'no_open': True}"/>
-                
-                <field name="grade_1" string="Оценка 1" optional="show"
-                       decoration-success="grade_1 &gt;= 4.5"
-                       decoration-info="grade_1 &gt;= 3.5 and grade_1 &lt; 4.5"
-                       decoration-warning="grade_1 &gt;= 2.5 and grade_1 &lt; 3.5"
-                       decoration-danger="grade_1 &lt; 2.5 and grade_1 &gt; 0"/>
+            <list string="Журнал оценок" editable="bottom" create="0" delete="0" expand="0"
+                sample="1">
+                <!-- <field name="grade_1" optional="hide" avg="Среднее О1"/>
+                <field name="grade_2" optional="hide" avg="Среднее О2"/>
+                <field name="grade_3" optional="hide" avg="Среднее О3"/> -->
+                <field name="attendance_date" optional="show" readonly="1" />
+                <field name="term_id" optional="hide" readonly="1" />
+                <field name="student_id" optional="show" readonly="1" options="{'no_open': True}" />
+                <field name="batch_id" string="Класс" optional="show" readonly="1"
+                    options="{'no_open': True}" />
+                <field name="subject_id" optional="show" readonly="1" options="{'no_open': True}" />
 
-                <field name="grade_2" string="Оценка 2" optional="show"
-                       decoration-success="grade_2 &gt;= 4.5"
-                       decoration-info="grade_2 &gt;= 3.5 and grade_2 &lt; 4.5"
-                       decoration-warning="grade_2 &gt;= 2.5 and grade_2 &lt; 3.5"
-                       decoration-danger="grade_2 &lt; 2.5 and grade_2 &gt; 0"/>
+                <field name="grade_1_ui" string="Оценка 1" optional="show"
+                    widget="selection_badge" options="{'horizontal': true}"
+                    decoration-success="grade_1 &gt;= 4.5"
+                    decoration-info="grade_1 &gt;= 3.5 and grade_1 &lt; 4.5"
+                    decoration-warning="grade_1 &gt;= 2.5 and grade_1 &lt; 3.5"
+                    decoration-danger="grade_1 &lt; 2.5 and grade_1 &gt; 0" />
 
-                <field name="grade_3" string="Оценка 3" optional="hide"
-                       decoration-success="grade_3 &gt;= 4.5"
-                       decoration-info="grade_3 &gt;= 3.5 and grade_3 &lt; 4.5"
-                       decoration-warning="grade_3 &gt;= 2.5 and grade_3 &lt; 3.5"
-                       decoration-danger="grade_3 &lt; 2.5 and grade_3 &gt; 0"/>
+                <field name="grade_2_ui" string="Оценка 2" optional="show"
+                    widget="selection_badge" options="{'horizontal': true}"
+                    decoration-success="grade_2 &gt;= 4.5"
+                    decoration-info="grade_2 &gt;= 3.5 and grade_2 &lt; 4.5"
+                    decoration-warning="grade_2 &gt;= 2.5 and grade_2 &lt; 3.5"
+                    decoration-danger="grade_2 &lt; 2.5 and grade_2 &gt; 0" />
+
+                <field name="grade_3_ui" string="Оценка 3" optional="hide"
+                    widget="selection_badge" options="{'horizontal': true}"
+                    decoration-success="grade_3 &gt;= 4.5"
+                    decoration-info="grade_3 &gt;= 3.5 and grade_3 &lt; 4.5"
+                    decoration-warning="grade_3 &gt;= 2.5 and grade_3 &lt; 3.5"
+                    decoration-danger="grade_3 &lt; 2.5 and grade_3 &gt; 0" />
 
                 <field name="grade_avg" string="Средняя" widget="badge" optional="show"
-                       decoration-success="grade_avg &gt;= 4.5"
-                       decoration-info="grade_avg &gt;= 3.5 and grade_avg &lt; 4.5"
-                       decoration-warning="grade_avg &gt;= 2.5 and grade_avg &lt; 3.5"
-                       decoration-danger="grade_avg &lt; 2.5 and grade_avg &gt; 0"/>
-                
-                <field name="remark" optional="show"/>                
+                    decoration-success="grade_avg &gt;= 4.5"
+                    decoration-info="grade_avg &gt;= 3.5 and grade_avg &lt; 4.5"
+                    decoration-warning="grade_avg &gt;= 2.5 and grade_avg &lt; 3.5"
+                    decoration-danger="grade_avg &lt; 2.5 and grade_avg &gt; 0" />
+
+                <field name="remark" optional="show" />
             </list>
         </field>
     </record>
@@ -49,18 +57,20 @@
                 <sheet>
                     <group>
                         <group string="Информация о уроке">
-                            <field name="attendance_date" readonly="1"/>
-                            <field name="lesson_topic" string="Тема урока" placeholder="Тема урока..."/>
+                            <field name="attendance_date" readonly="1" />
+                            <field name="lesson_topic" string="Тема урока"
+                                placeholder="Тема урока..." />
                         </group>
                         <group string="Оценки">
-                            <field name="grade_1"/>
-                            <field name="grade_2"/>
-                            <field name="grade_3"/>
-                            <field name="attendance_type_id" string="Посещаемость" options="{'no_open': True, 'no_create': True}"/>
+                            <field name="grade_1_ui" widget="selection_badge" string="Оценка 1"/>
+                            <field name="grade_2_ui" widget="selection_badge" string="Оценка 2"/>
+                            <field name="grade_3_ui" widget="selection_badge" string="Оценка 3"/>
+                            <field name="attendance_type_id" string="Посещаемость"
+                                options="{'no_open': True, 'no_create': True}" />
                         </group>
                     </group>
                     <group string="Дополнительно">
-                        <field name="remark" placeholder="Ваше примечание..."/>
+                        <field name="remark" placeholder="Ваше примечание..." />
                     </group>
                 </sheet>
             </form>
@@ -72,22 +82,22 @@
         <field name="name">op.attendance.line.pivot</field>
         <field name="model">op.attendance.line</field>
         <field name="arch" type="xml">
-            <pivot string="Электронный дневник" display_quantity="0" >
+            <pivot string="Электронный дневник" display_quantity="0">
                 <!-- Описываем структуру дерева в строках -->
-                <field name="academic_year_id" type="row"/>
-                <field name="parent_term_id" type="row"/>
-                <field name="term_id" type="row"/>
-                <field name="batch_id" type="row"/>
-                <field name="student_id" type="row"/>
+                <field name="academic_year_id" type="row" />
+                <field name="parent_term_id" type="row" />
+                <field name="term_id" type="row" />
+                <field name="batch_id" type="row" />
+                <field name="student_id" type="row" />
 
                 <!-- Колонки (группировка сверху) -->
-                <field name="subject_id" type="col"/>
+                <field name="subject_id" type="col" />
 
                 <!-- Значение: Средний балл -->
-                <field name="grade_avg" type="measure"/>
-                <field name="grade_1" type="measure"/>
-                <field name="grade_2" type="measure"/>
-                <field name="grade_3" type="measure"/>
+                <field name="grade_avg" type="measure" />
+                <field name="grade_1" type="measure" />
+                <field name="grade_2" type="measure" />
+                <field name="grade_3" type="measure" />
             </pivot>
         </field>
     </record>
@@ -98,72 +108,78 @@
         <field name="model">op.attendance.line</field>
         <field name="arch" type="xml">
             <search>
-                <field name="student_id" string="Ученик"/>
-                <field name="batch_id" string="Класс"/>
-                <field name="subject_id" string="Предмет"/>
-                <field name="faculty_id" string="Учитель"/>
+                <field name="student_id" string="Ученик" />
+                <field name="batch_id" string="Класс" />
+                <field name="subject_id" string="Предмет" />
+                <field name="faculty_id" string="Учитель" />
 
-                <field name="attendance_date" string="Дата уроков"/>
-                
-                <separator/>
-                
+                <field name="attendance_date" string="Дата уроков" />
+
+                <separator />
+
                 <filter string="📅 Текущий год" name="curr_year"
-                        domain="[('academic_year_id.start_date', '&lt;=', context_today().strftime('%Y-%m-%d')),
-                                ('academic_year_id.end_date', '&gt;=', context_today().strftime('%Y-%m-%d'))]"/>
-                
-                <filter string="🔔 Текущая четверть" name="curr_term"
-                        domain="[('term_id.term_start_date', '&lt;=', context_today().strftime('%Y-%m-%d')),
-                                ('term_id.term_end_date', '&gt;=', context_today().strftime('%Y-%m-%d'))]"/>
-                
-                <separator/>
+                    domain="[('academic_year_id.start_date', '&lt;=', context_today().strftime('%Y-%m-%d')),
+                                ('academic_year_id.end_date', '&gt;=', context_today().strftime('%Y-%m-%d'))]" />
 
-                <filter string="👨‍🏫 Мои уроки" name="my_lessons" domain="[('faculty_id.user_id', '=', uid)]"/>
-                
-                <separator/>
-                
+                <filter string="🔔 Текущая четверть" name="curr_term"
+                    domain="[('term_id.term_start_date', '&lt;=', context_today().strftime('%Y-%m-%d')),
+                                ('term_id.term_end_date', '&gt;=', context_today().strftime('%Y-%m-%d'))]" />
+
+                <separator />
+
+                <filter string="👨‍🏫 Мои уроки" name="my_lessons"
+                    domain="[('faculty_id.user_id', '=', uid)]" />
+
+                <separator />
+
                 <!-- Фильтры по оценкам с иконками -->
-                <filter string="🟢 Пятерки (4.5-5.0)" name="grade_5" 
-                        domain="[('grade_avg', '&gt;=', 4.5)]"/>                
-                <filter string="🔵 Четверки (3.5-4.5)" name="grade_4" 
-                        domain="[('grade_avg', '&gt;=', 3.5), ('grade_avg', '&lt;', 4.5)]"/>                
-                <filter string="🟡 Тройки (2.5-3.5)" name="grade_3" 
-                        domain="[('grade_avg', '&gt;=', 2.5), ('grade_avg', '&lt;', 3.5)]"/>                
-                <filter string="🔴 Двойки (1.0-2.5)" name="grade_2" 
-                        domain="[('grade_avg', '&gt;=', 1.0), ('grade_avg', '&lt;', 2.5)]"/>
-                               
-                                
+                <filter string="🟢 Пятерки (4.5-5.0)" name="grade_5"
+                    domain="[('grade_avg', '&gt;=', 4.5)]" />
+                <filter string="🔵 Четверки (3.5-4.5)" name="grade_4"
+                    domain="[('grade_avg', '&gt;=', 3.5), ('grade_avg', '&lt;', 4.5)]" />
+                <filter string="🟡 Тройки (2.5-3.5)" name="grade_3"
+                    domain="[('grade_avg', '&gt;=', 2.5), ('grade_avg', '&lt;', 3.5)]" />
+                <filter string="🔴 Двойки (1.0-2.5)" name="grade_2"
+                    domain="[('grade_avg', '&gt;=', 1.0), ('grade_avg', '&lt;', 2.5)]" />
+
+
                 <group expand="0" string="Группировать по...">
-                    <filter string="🏫 Класс" name="group_class" context="{'group_by':'batch_id'}"/>
-                    <filter string="👤 Ученик" name="group_student" context="{'group_by':'student_id'}"/>
-                    <filter string="📚 Предмет" name="group_subject" context="{'group_by':'subject_id'}"/>
-                    <filter string="🕒 Четверть" name="group_term" context="{'group_by':'term_id'}"/>                    
-                    <filter string="🗓️ Период" name="group_date" context="{'group_by':'attendance_date'}"/>
+                    <filter string="🏫 Класс" name="group_class" context="{'group_by':'batch_id'}" />
+                    <filter string="👤 Ученик" name="group_student"
+                        context="{'group_by':'student_id'}" />
+                    <filter string="📚 Предмет" name="group_subject"
+                        context="{'group_by':'subject_id'}" />
+                    <filter string="🕒 Четверть" name="group_term" context="{'group_by':'term_id'}" />
+                    <filter string="🗓️ Период" name="group_date"
+                        context="{'group_by':'attendance_date'}" />
                 </group>
                 <searchpanel>
-                    <field name="batch_id" string="Класс" icon="fa-users" select="one" enable_counters="1"/>                    
-                    <field name="subject_id" string="Предмет" icon="fa-book" select="one" enable_counters="1"/>                    
+                    <field name="batch_id" string="Класс" icon="fa-users" select="one"
+                        enable_counters="1" />
+                    <field name="subject_id" string="Предмет" icon="fa-book" select="one"
+                        enable_counters="1" />
                 </searchpanel>
             </search>
         </field>
     </record>
- 
+
 
     <!-- 4. ДЕЙСТВИЕ (Автоматическая сборка отчета) -->
     <record model="ir.actions.act_window" id="act_open_op_attendance_line_view">
         <field name="name">Электронный дневник</field>
         <field name="res_model">op.attendance.line</field>
         <field name="view_mode">pivot,list</field>
-        <field name="search_view_id" ref="view_op_attendance_line_search"/>
+        <field name="search_view_id" ref="view_op_attendance_line_search" />
         <field name="domain">[
-            ('term_id', '!=', False), 
-            ('subject_id', '!=', False), 
+            ('term_id', '!=', False),
+            ('subject_id', '!=', False),
             '|', '|', ('grade_1', '>', 0), ('grade_2', '>', 0), ('grade_3', '>', 0)
             ]</field>
         <field name="context">{
             'search_default_curr_year': 1,
             'pivot_row_groupby': ['academic_year_id', 'term_id', 'batch_id'],
             'pivot_col_groupby': ['subject_id'],
-            'pivot_measures': ['grade_avg'], 
-        }</field>
-        </record>
-    </odoo>
+            'pivot_measures': ['grade_avg'],
+            }</field>
+    </record>
+</odoo>
