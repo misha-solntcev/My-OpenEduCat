@@ -44,6 +44,9 @@
         'demo/attendance_type_demo.xml',
     ],
     'assets': {
+        'web.assets_backend': [
+            'openeducat_attendance/static/src/css/style.css',
+        ],
     },
     'images': [
         'static/description/openeducat-attendance_banner.jpg',

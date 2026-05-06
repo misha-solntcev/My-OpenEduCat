@@ -274,3 +274,16 @@ class OpAttendanceLine(models.Model):
         ('check_grade_2', 'CHECK(grade_2 = 0 OR (grade_2 >= 2 AND grade_2 <= 5))', 'Оценка 2 должна быть от 2 до 5'),
         ('check_grade_3', 'CHECK(grade_3 = 0 OR (grade_3 >= 2 AND grade_3 <= 5))', 'Оценка 3 должна быть от 2 до 5'),
     ]
+
+
+
+
+    def action_clear_line_data(self):
+        """Очистка всех данных в строке (статус + оценки)"""
+        self.write({
+            'attendance_type_id': False,
+            'grade_1_ui': False,
+            'grade_2_ui': False,
+            'grade_3_ui': False,
+            'remark': False,
+        })

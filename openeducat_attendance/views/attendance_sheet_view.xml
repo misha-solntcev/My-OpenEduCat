@@ -221,7 +221,16 @@
                                         icon="fa-times"
                                         context="{'set_name': 'Прогул'}"
                                         invisible="state in ('done','cancel')" />
-                                </div>
+
+                                    <!-- Кнопка СБРОС (ms-auto прижмет её к правому краю) -->
+                                    <button name="action_reset_attendance_sheet" type="object"
+                                        string="Сбросить"
+                                        class="btn btn-sm btn-outline-secondary rounded-pill ms-auto shadow-sm"
+                                        icon="fa-refresh"
+                                        confirm="Вы уверены, что хотите очистить все оценки и статусы в этом журнале?"
+                                        invisible="state in ('done','cancel')" />
+
+                                </div>                                
                             </div>
 
 
@@ -241,7 +250,7 @@
                                     <!-- 3. Статус (Кнопки в строке + управление видимостью) -->
                                     <field name="attendance_type_id"
                                         string="Статус"
-                                        widget="selection_badge" width="335px"
+                                        widget="selection_badge" width="350px"
                                         optional="show"
                                         decoration-bf="1"
                                         decoration-success="present == True and late == False"
@@ -251,36 +260,57 @@
                                         options="{'horizontal': true}" />
 
                                     <!-- 4. Оценки (с управлением видимостью) -->
-                                    <field name="grade_1_ui" string="Оценка 1" decoration-bf="1"
-                                        widget="selection_badge" options="{'horizontal': true}"
-                                        width="65px" optional="show"
-                                        decoration-success="grade_1 >= 4.5"
-                                        decoration-danger="grade_1 &lt; 2.5 and grade_1 > 0"
-                                        decoration-warning="grade_1 >= 2.5 and grade_1 &lt; 3.5" />
+                                    <field name="grade_1_ui" string="Оценка 1" 
+                                        widget="selection_badge" 
+                                        width="70px" optional="show"
+                                        decoration-bf="1"
+                                        decoration-success="grade_1_ui == '5'"
+                                        decoration-info="grade_1_ui == '4'"
+                                        decoration-warning="grade_1_ui == '3'"
+                                        decoration-danger="grade_1_ui == '2'" />
 
-                                    <field name="grade_2_ui" string="Оценка 2" decoration-bf="1"
-                                        widget="selection_badge" options="{'horizontal': true}"
-                                        width="65px" optional="show"
-                                        decoration-success="grade_2 >= 4.5"
-                                        decoration-danger="grade_2 &lt; 2.5 and grade_2 > 0"
-                                        decoration-warning="grade_2 >= 2.5 and grade_2 &lt; 3.5" />
 
-                                    <field name="grade_3_ui" string="Оценка 3" decoration-bf="1"
-                                        widget="selection_badge" options="{'horizontal': true}"
-                                        width="65px" optional="hide"
-                                        decoration-success="grade_3 >= 4.5"
-                                        decoration-danger="grade_3 &lt; 2.5 and grade_3 > 0"
-                                        decoration-warning="grade_3 >= 2.5 and grade_3 &lt; 3.5" />
+                                    <field name="grade_2_ui" string="Оценка 2" 
+                                        widget="selection_badge"
+                                        width="70px" optional="show"
+                                        decoration-bf="1"
+                                        decoration-success="grade_2_ui == '5'"
+                                        decoration-info="grade_2_ui == '4'"
+                                        decoration-warning="grade_2_ui == '3'"
+                                        decoration-danger="grade_2_ui == '2'" />
+
+                                    <field name="grade_3_ui" string="Оценка 3" 
+                                        widget="selection_badge"
+                                        width="70px" optional="hide"
+                                        decoration-bf="1"
+                                        decoration-success="grade_3_ui == '5'"
+                                        decoration-info="grade_3_ui == '4'"
+                                        decoration-warning="grade_3_ui == '3'"
+                                        decoration-danger="grade_3_ui == '2'" />
 
                                     <!-- 5. Примечание (можно скрыть) -->
                                     <field name="remark" placeholder="Примечание..." optional="show" />
 
+
+                                    <!-- КНОПКА ОЧИСТКИ СТРОКИ -->
+                                    <button name="action_clear_line_data"
+                                            width="30px" 
+                                            type="object" 
+                                            icon="fa-eraser" 
+                                            title="Очистить" 
+                                            class="text-danger"
+                                            invisible="parent.state in ('done','cancel')"/>
+
                                     <!-- 6. Технические невидимые поля (Необходимы для логики
-                                    декораций) -->
+                                    декораций) -->                                    
                                     <field name="present" column_invisible="True" />
                                     <field name="absent" column_invisible="True" />
                                     <field name="late" column_invisible="True" />
                                     <field name="excused" column_invisible="True" />
+                                    <field name="grade_1" column_invisible="True" />
+                                    <field name="grade_2" column_invisible="True" />
+                                    <field name="grade_3" column_invisible="True" />
+                                    
                                 </list>
                             </field>
                         </page>

@@ -284,3 +284,9 @@ class OpAttendanceSheet(models.Model):
         if target_type:            
             self.attendance_line.write({'attendance_type_id': target_type.id})           
             
+
+
+
+    def action_reset_attendance_sheet(self):
+        """Полный сброс всего журнала"""
+        self.attendance_line.action_clear_line_data()

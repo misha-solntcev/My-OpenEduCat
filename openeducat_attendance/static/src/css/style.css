@@ -1,0 +1,81 @@
+/* --- 1. ОЦЕНКИ (ПРОПИСЫВАЕМ ТОЛЬКО ДЛЯ НИХ) --- */
+
+/* В закрытой строке */
+.o_data_row:not(.o_selected_row) .o_data_cell[name$="_ui"] span {
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    width: 32px !important;
+    height: 32px !important;
+    background-color: #f1f1f1 !important;
+    font-size: 16px !important;
+    font-weight: 600 !important;
+    border-radius: 6px !important;
+    color: inherit !important;
+    opacity: 1 !important;
+}
+
+/* В открытой строке (только для полей оценок) */
+.o_selected_row .o_field_widget[name$="_ui"] .o_selection_badge_item {
+    font-size: 16px !important;
+    font-weight: 600 !important;
+    min-width: 32px !important;
+}
+
+
+/* --- 2. СТАТУСЫ (ТОЛЬКО ДЛЯ ЗАКРЫТОЙ СТРОКИ) --- */
+
+/* В закрытой строке рисуем серый прямоугольник */
+.o_data_row:not(.o_selected_row) .o_data_cell[name="attendance_type_id"] span {
+    display: inline-block !important;
+    padding: 4px 12px !important;
+    background-color: #f1f1f1 !important;
+    border-radius: 6px !important;
+    font-weight: 600 !important;
+    color: inherit !important;
+}
+
+/* ВНИМАНИЕ: Для открытой строки (режим редактирования) 
+   мы НИЧЕГО не пишем для [name="attendance_type_id"]. 
+   Odoo будет использовать свои стандартные компактные размеры. */
+
+
+/* --- 3. ЦВЕТА ТЕКСТА (РАБОТАЕТ ДЛЯ ВСЕХ) --- */
+.o_data_cell.text-success span { color: #28a745 !important; }
+.o_data_cell.text-info span, .o_data_cell.text-primary span { color: #00A09D !important; }
+.o_data_cell.text-warning span { color: #E9C46A !important; }
+.o_data_cell.text-danger span  { color: #dc3545 !important; }
+
+/* Цвет нажатой кнопки (любой) */
+.o_selected_row .o_selection_badge_item.active {
+    background-color: #714B67 !important;
+    color: white !important;
+    border-color: #714B67 !important;
+}
+
+/* Центрируем содержимое ячеек оценок */
+.o_data_row .o_data_cell[name$="_ui"] {
+    text-align: center !important;
+}
+
+/* ОЦЕНКИ (Закрытая строка) */
+.o_data_row:not(.o_selected_row) .o_data_cell[name$="_ui"] span {
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    width: 32px !important;
+    height: 32px !important;
+    background-color: #f1f1f1 !important;
+    font-size: 16px !important;
+    font-weight: 600 !important;
+    border-radius: 6px !important;
+    color: inherit !important;
+    opacity: 1 !important;
+    /* Убираем возможные смещения */
+    margin: 0 auto !important; 
+}
+
+/* Центрируем кнопки и в режиме редактирования */
+.o_selected_row .o_field_widget[name$="_ui"] .o_selection_badge {
+    justify-content: center !important;
+}
