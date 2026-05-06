@@ -20,6 +20,7 @@
 
 from odoo import api, fields, models
 from odoo.tools import SQL
+from odoo.exceptions import ValidationError
 
 
 class OpAttendanceLine(models.Model):
@@ -120,13 +121,7 @@ class OpAttendanceLine(models.Model):
         target_fields = ('grade_1', 'grade_2', 'grade_3', 'grade_avg')        
         if fname in target_fields:            
             return SQL("NULLIF(%s, 0)", sql_expression)            
-        return sql_expression
-
-    _sql_constraints = [
-        ('unique_student',
-         'unique(student_id,attendance_id,attendance_date)',
-         'Student must be unique per Attendance.'),
-    ]
+        return sql_expression   
 
     @api.model
     def get_aggregated_stats(self, domain):
@@ -225,4 +220,28 @@ class OpAttendanceLine(models.Model):
                 grades.modified(['q1_line_ids', 'q2_line_ids', 'q3_line_ids', 'q4_line_ids'])                
                 grades.action_force_recompute()
                 
-        return res    
+        return res
+
+
+    @api.constrains('grade_1', 'grade_2', 'grade_3')
+    def _check_grades_range(self):
+        for rec in self:
+            for grade_val in [rec.grade_1, rec.grade_2, rec.grade_3]:
+                # Проверяем только если оценка введена (больше 0)
+                if grade_val and grade_val > 0:
+                    if grade_val < 2.0 or grade_val > 5.0:
+                        raise ValidationError(
+                            f"Ошибка у ученика {rec.student_id.display_name}!\n"
+                            f"Оценка должна быть от 2 до 5. Вы ввели: {grade_val}"
+                        )
+
+    _sql_constraints = [
+        ('unique_student',
+         'unique(student_id,attendance_id,attendance_date)',
+         'Student must be unique per Attendance.'),
+
+        # Защита от оценок вне диапазона (0 допускается как "пусто")
+        ('check_grade_1', 'CHECK(grade_1 = 0 OR (grade_1 >= 2 AND grade_1 <= 5))', 'Оценка 1 должна быть от 2 до 5'),
+        ('check_grade_2', 'CHECK(grade_2 = 0 OR (grade_2 >= 2 AND grade_2 <= 5))', 'Оценка 2 должна быть от 2 до 5'),
+        ('check_grade_3', 'CHECK(grade_3 = 0 OR (grade_3 >= 2 AND grade_3 <= 5))', 'Оценка 3 должна быть от 2 до 5'),
+    ]
