@@ -239,27 +239,16 @@
                                 <list string="Attendance Line" editable="top" create="false">
 
                                     <!-- 1. Аватар (можно скрыть) -->
-                                    <field name="student_avatar" widget="image"
+                                    <field name="student_avatar" widget="image"                                    
                                         options="{'size': [32, 32]}"
-                                        class="rounded-circle" string="Аватар" optional="show" />
+                                        width="35px"
+                                        class="rounded-circle" string="" optional="show" />
 
                                     <!-- 2. Ученик (Обычно всегда виден, но добавил опцию) -->
                                     <field name="student_id" readonly="1" decoration-bf="1"
                                         options="{'no_open': True}" optional="show" />
-
-                                    <!-- 3. Статус (Кнопки в строке + управление видимостью) -->
-                                    <field name="attendance_type_id"
-                                        string="Статус"
-                                        widget="selection_badge" width="350px"
-                                        optional="show"
-                                        decoration-bf="1"
-                                        decoration-success="present == True and late == False"
-                                        decoration-warning="late == True"
-                                        decoration-info="absent == True and excused == True"
-                                        decoration-danger="absent == True and excused == False"
-                                        options="{'horizontal': true}" />
-
-                                    <!-- 4. Оценки (с управлением видимостью) -->
+                                    
+                                    <!-- 3. Оценки -->
                                     <field name="grade_1_ui" string="Оценка 1" 
                                         widget="selection_badge" 
                                         width="70px" optional="show"
@@ -287,6 +276,19 @@
                                         decoration-info="grade_3_ui == '4'"
                                         decoration-warning="grade_3_ui == '3'"
                                         decoration-danger="grade_3_ui == '2'" />
+
+                                    <!-- 4. Посещаемость -->
+                                    <field name="attendance_type_id"
+                                        string="Статус"
+                                        widget="selection_badge" width="350px"
+                                        optional="show"
+                                        decoration-bf="1"
+                                        decoration-success="present == True and late == False"
+                                        decoration-warning="late == True"
+                                        decoration-info="absent == True and excused == True"
+                                        decoration-danger="absent == True and excused == False"
+                                        options="{'horizontal': true}" />
+
 
                                     <!-- 5. Примечание (можно скрыть) -->
                                     <field name="remark" placeholder="Примечание..." optional="show" />
@@ -542,7 +544,7 @@
                         context="{'group_by': 'faculty_id'}" />
                     <filter string="🕒 Статус" name="group_state" context="{'group_by': 'state'}" />
                     <filter string="🗓️ Дата урока" name="group_date"
-                        context="{'group_by': 'attendance_date'}" />
+                        context="{'group_by': 'attendance_date'}" />07.05.2026 21:27
                 </group>
                 <searchpanel>
                     <!-- Фильтр по классам -->
