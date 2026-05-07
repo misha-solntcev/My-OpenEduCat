@@ -201,7 +201,7 @@
         <field name="priority" eval="8" />
         <field name="arch" type="xml">
             <pivot string="Session Analysis">
-                <field name="name" />|09
+                <field name="name" />
                 <field name="faculty_id" type="col" />
                 <field name="course_id" />
                 <field name="batch_id" />
