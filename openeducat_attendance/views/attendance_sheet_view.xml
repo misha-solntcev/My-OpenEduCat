@@ -544,7 +544,7 @@
                         context="{'group_by': 'faculty_id'}" />
                     <filter string="🕒 Статус" name="group_state" context="{'group_by': 'state'}" />
                     <filter string="🗓️ Дата урока" name="group_date"
-                        context="{'group_by': 'attendance_date'}" />07.05.2026 21:27
+                        context="{'group_by': 'attendance_date'}" />
                 </group>
                 <searchpanel>
                     <!-- Фильтр по классам -->
