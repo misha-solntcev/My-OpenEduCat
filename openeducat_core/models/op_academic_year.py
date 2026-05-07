@@ -1,16 +1,5 @@
-# Part of OpenEduCat. See LICENSE file for full copyright & licensing details.
-
-##############################################################################
-#
-#    OpenEduCat Inc
-#    Copyright (C) 2009-TODAY OpenEduCat Inc(<https://www.openeducat.org>).
-#
-##############################################################################
-
 from datetime import timedelta
-
-from odoo import fields, models
-
+from odoo import fields, models, api, _
 
 class OpAcademicYear(models.Model):
     _name = 'op.academic.year'
@@ -19,299 +8,81 @@ class OpAcademicYear(models.Model):
     name = fields.Char('Name', required=True)
     start_date = fields.Date('Start Date', required=True)
     end_date = fields.Date('End Date', required=True)
+    create_boolean = fields.Boolean('Terms Created', default=False)
+    company_id = fields.Many2one('res.company', string='Company', default=lambda self: self.env.company)
 
-    term_structure = fields.Selection([('two_sem', 'Two Semesters'),
-                                       ('two_sem_qua', 'Two Semesters '
-                                                       'subdivided by Quarters'),
-                                       ('two_sem_final', 'Two Semesters subdivided'
-                                                         ' by Quarters and '
-                                                         'Final Exams'),
-                                       ('three_sem', 'Three Trimesters'),
-                                       ('four_Quarter', 'Four Quarters'),
-                                       ('final_year', 'Final Year Grades'
-                                                      ' subdivided by Quarters'),
-                                       ('others', 'Other(overlapping terms,'
-                                                  ' custom schedules)')],
-                                      string='Term Structure', default='two_sem',
-                                      required=True)
-    academic_term_ids = fields.One2many('op.academic.term', 'academic_year_id',
-                                        string='Academic Terms')
-    create_boolean = fields.Boolean()
-    company_id = fields.Many2one(
-        'res.company', string='Company',
-        default=lambda self: self.env.user.company_id)
+    term_structure = fields.Selection([
+        ('two_sem', 'Two Semesters'),
+        ('two_sem_qua', 'Two Semesters divided by Quarters'),
+        ('three_sem', 'Three Trimesters'),
+        ('four_Quarter', 'Four Quarters'),
+        ('final_year', 'Full Year divided by Quarters'),
+        ('others', 'Other (Manual)')
+    ], string='Term Structure', default='two_sem', required=True)
+
+    academic_term_ids = fields.One2many('op.academic.term', 'academic_year_id', string='Academic Terms')
+
+    def _get_split_dates(self, start, end, parts):
+        """Вспомогательный метод: делит период на N равных частей"""
+        delta = (end - start).days + 1
+        avg_days = delta // parts
+        res = []
+        curr_start = start
+        for i in range(parts):
+            # Последняя часть забирает остаток дней (чтобы не терять секунды/дни)
+            if i == parts - 1:
+                curr_end = end
+            else:
+                curr_end = curr_start + timedelta(days=avg_days - 1)
+            res.append((curr_start, curr_end))
+            curr_start = curr_end + timedelta(days=1)
+        return res
 
     def term_create(self):
-        num = 0
-        final = 1
-        academic_terms = self.env['op.academic.term'].search([])
+        self.ensure_one()
+        if self.create_boolean or self.term_structure == 'others':
+            return False
+
+        term_obj = self.env['op.academic.term']
+        
+        # Конфигурация структур: (Кол-во семестров, Кол-во под-периодов в каждом)
+        structures = {
+            'two_sem': (2, 0),
+            'three_sem': (3, 0),
+            'four_Quarter': (4, 0),
+            'two_sem_qua': (2, 2),  # 2 семестра по 2 четверти
+            'final_year': (1, 4),   # 1 год по 4 четверти
+        }
+
+        sem_count, sub_count = structures.get(self.term_structure, (0, 0))
+        if not sem_count:
+            return False
+
+        # 1. Генерируем основные периоды (Семестры)
+        sem_dates = self._get_split_dates(self.start_date, self.end_date, sem_count)
+        
+        quarter_idx = 1
+        for idx, (s_date, e_date) in enumerate(sem_dates, 1):
+            sem_name = f"Semester {idx}" if self.term_structure != 'final_year' else "Full Year"
+            parent_term = term_obj.create({
+                'name': sem_name,
+                'term_start_date': s_date,
+                'term_end_date': e_date,
+                'academic_year_id': self.id,
+            })
+
+            # 2. Если нужно, делим семестры на под-периоды (Четверти)
+            if sub_count > 0:
+                sub_dates = self._get_split_dates(s_date, e_date, sub_count)
+                for (sub_s, sub_e) in sub_dates:
+                    term_obj.create({
+                        'name': f"Quarter {quarter_idx}",
+                        'term_start_date': sub_s,
+                        'term_end_date': sub_e,
+                        'academic_year_id': self.id,
+                        'parent_term': parent_term.id,
+                    })
+                    quarter_idx += 1
+
         self.create_boolean = True
-        if self.term_structure == 'two_sem':
-            for record in self:
-                if not record.academic_term_ids:
-                    from_d = self.start_date
-                    to_d = self.end_date
-                    delta = to_d - from_d
-                    res = []
-                    day = (delta.days + 1) / 2
-                    vals = {'name': 'Semester 1',
-                            'from_date': from_d,
-                            'to_date': (from_d + timedelta(days=day))}
-                    res.append(vals)
-                    vals = {'name': 'Semester 2',
-                            'from_date': (from_d + timedelta(days=day + 1)),
-                            'to_date': to_d}
-                    res.append(vals)
-                    for term in res:
-                        academic_terms.create({
-                            'name': term['name'],
-                            'term_start_date': term['from_date'],
-                            'term_end_date': term['to_date'],
-                            'academic_year_id': self.id
-                        })
-
-        elif self.term_structure == 'two_sem_qua':
-            for record in self:
-                if not record.academic_term_ids:
-                    from_d = self.start_date
-                    to_d = self.end_date
-                    delta = to_d - from_d
-                    res = []
-                    day = (delta.days + 1) / 2
-                    vals = {'name': 'Semester 1',
-                            'from_date': from_d,
-                            'to_date': (from_d + timedelta(days=day))}
-                    res.append(vals)
-                    vals = {'name': 'Semester 2',
-                            'from_date': (from_d + timedelta(days=day + 1)),
-                            'to_date': to_d}
-                    res.append(vals)
-                    for term in res:
-                        academic_terms.create({
-                            'name': term['name'],
-                            'term_start_date': term['from_date'],
-                            'term_end_date': term['to_date'],
-                            'academic_year_id': self.id
-                        })
-                        for sub_term in self.academic_term_ids:
-                            sub_from_d = sub_term.term_start_date
-                            sub_to_d = sub_term.term_end_date
-                            delta = sub_to_d - sub_from_d
-                            result = []
-                            day = (delta.days + 1) / 2
-                            vals = {'name': 'Quarter' + ' ' + str(num+1),
-                                    'from_date': sub_from_d,
-                                    'to_date': (sub_from_d + timedelta(days=day))}
-                            result.append(vals)
-                            vals = {'name': 'Quarter' + ' ' + str(num+2),
-                                    'from_date': (sub_from_d + timedelta(
-                                        days=day + 1)),
-                                    'to_date': sub_to_d}
-                            result.append(vals)
-                        num = num + 2
-
-                        for in_terms in result:
-                            academic_terms.create({
-                                'name': in_terms['name'],
-                                'term_start_date': in_terms['from_date'],
-                                'term_end_date': in_terms['to_date'],
-                                'academic_year_id': self.id,
-                                'parent_term': sub_term.id
-                            })
-
-        elif self.term_structure == 'two_sem_final':
-            for record in self:
-                if not record.academic_term_ids:
-                    from_d = self.start_date
-                    to_d = self.end_date
-                    delta = to_d - from_d
-                    res = []
-                    day = (delta.days + 1) / 2
-                    vals = {'name': 'Semester 1',
-                            'from_date': from_d,
-                            'to_date': (from_d + timedelta(days=day))}
-                    res.append(vals)
-                    vals = {'name': 'Semester 2',
-                            'from_date': (from_d + timedelta(days=day + 1)),
-                            'to_date': to_d}
-                    res.append(vals)
-
-                    for term in res:
-                        academic_terms.create({
-                            'name': term['name'],
-                            'term_start_date': term['from_date'],
-                            'term_end_date': term['to_date'],
-                            'academic_year_id': self.id
-                        })
-
-                        for sub_term in self.academic_term_ids:
-                            sub_from_d = sub_term.term_start_date
-                            sub_to_d = sub_term.term_end_date
-                            delta = sub_to_d - sub_from_d
-                            result = []
-
-                            day = (delta.days + 1) / 2
-                            vals = {'name': 'Quarter' + ' ' + str(num+1),
-                                    'from_date': sub_from_d,
-                                    'to_date': (sub_from_d + timedelta(days=day))}
-                            result.append(vals)
-                            vals = {'name': 'Quarter' + ' ' + str(num + 2),
-                                    'from_date': (sub_from_d + timedelta(
-                                        days=day + 1)),
-                                    'to_date': (sub_from_d + timedelta(
-                                        days=delta.days - 1))}
-                            result.append(vals)
-                            vals = {'name': 'Final Exam' + ' ' + str(final),
-                                    'from_date': sub_to_d,
-                                    'to_date': sub_to_d}
-                            result.append(vals)
-                        num = num + 2
-                        final = final + 1
-
-                        for in_terms in result:
-                            academic_terms.create({
-                                'name': in_terms['name'],
-                                'term_start_date': in_terms['from_date'],
-                                'term_end_date': in_terms['to_date'],
-                                'academic_year_id': self.id,
-                                'parent_term': sub_term.id
-                            })
-
-        elif self.term_structure == 'three_sem':
-            for record in self:
-                if not record.academic_term_ids:
-                    from_d = self.start_date
-                    to_d = self.end_date
-                    delta = to_d - from_d
-                    res = []
-                    day = (delta.days + 1) / 3
-                    to_date1 = (from_d + timedelta(days=day))
-                    from_date1 = (from_d + timedelta(days=day + 1))
-                    to_date2 = (from_date1 + timedelta(days=day))
-                    from_date2 = (from_date1 + timedelta(days=day + 1))
-
-                    vals = {'name': 'Semester 1',
-                            'from_date': from_d,
-                            'to_date': to_date1}
-                    res.append(vals)
-
-                    vals = {'name': 'Semester 2',
-                            'from_date': from_date1,
-                            'to_date': to_date2}
-                    res.append(vals)
-
-                    vals = {'name': 'Semester 3',
-                            'from_date': from_date2,
-                            'to_date': to_d}
-                    res.append(vals)
-                    for term in res:
-                        academic_terms.create({
-                            'name': term['name'],
-                            'term_start_date': term['from_date'],
-                            'term_end_date': term['to_date'],
-                            'academic_year_id': self.id
-                        })
-
-        elif self.term_structure == 'four_Quarter':
-            for record in self:
-                if not record.academic_term_ids:
-                    from_d = self.start_date
-                    to_d = self.end_date
-                    delta = to_d - from_d
-                    res = []
-                    day = (delta.days + 1) / 4
-
-                    to_date1 = (from_d + timedelta(days=day))
-                    from_date1 = (from_d + timedelta(days=day + 1))
-                    to_date2 = (from_date1 + timedelta(days=day))
-                    from_date2 = (from_date1 + timedelta(days=day + 1))
-                    to_date3 = (from_date2 + timedelta(days=day))
-                    from_date3 = (from_date2 + timedelta(days=day + 1))
-
-                    vals = {'name': 'Semester 1',
-                            'from_date': from_d,
-                            'to_date': to_date1}
-                    res.append(vals)
-
-                    vals = {'name': 'Semester 2',
-                            'from_date': from_date1,
-                            'to_date': to_date2}
-                    res.append(vals)
-
-                    vals = {'name': 'Semester 3',
-                            'from_date': from_date2,
-                            'to_date': to_date3}
-                    res.append(vals)
-
-                    vals = {'name': 'Semester 4',
-                            'from_date': from_date3,
-                            'to_date': to_d}
-                    res.append(vals)
-
-                    for term in res:
-                        academic_terms.create({
-                            'name': term['name'],
-                            'term_start_date': term['from_date'],
-                            'term_end_date': term['to_date'],
-                            'academic_year_id': self.id
-                        })
-
-        elif self.term_structure == 'final_year':
-            for record in self:
-                if not record.academic_term_ids:
-                    from_d = self.start_date
-                    to_d = self.end_date
-                    res = []
-                    res.append({'name': 'Semester 1',
-                                'from_date': from_d,
-                                'to_date': to_d})
-
-                    for term in res:
-                        academic_terms.create({
-                            'name': term['name'],
-                            'term_start_date': term['from_date'],
-                            'term_end_date': term['to_date'],
-                            'academic_year_id': self.id
-                        })
-                    for sub_term in self.academic_term_ids:
-                        sub_from_d = sub_term.term_start_date
-                        sub_to_d = sub_term.term_end_date
-                        delta = sub_to_d - sub_from_d
-                        result = []
-                        day = (delta.days + 1) / 4
-
-                        to_date1 = (from_d + timedelta(days=day))
-                        from_date1 = (from_d + timedelta(days=day + 1))
-                        to_date2 = (from_date1 + timedelta(days=day))
-                        from_date2 = (from_date1 + timedelta(days=day + 1))
-                        to_date3 = (from_date2 + timedelta(days=day))
-                        from_date3 = (from_date2 + timedelta(days=day + 1))
-
-                        vals = {'name': 'Quarter 1',
-                                'from_date': from_d,
-                                'to_date': to_date1}
-                        result.append(vals)
-
-                        vals = {'name': 'Quarter 2',
-                                'from_date': from_date1,
-                                'to_date': to_date2}
-                        result.append(vals)
-
-                        vals = {'name': 'Quarter 3',
-                                'from_date': from_date2,
-                                'to_date': to_date3}
-                        result.append(vals)
-
-                        vals = {'name': 'Quarter 4',
-                                'from_date': from_date3,
-                                'to_date': to_d}
-                        result.append(vals)
-
-                        for in_terms in result:
-                            academic_terms.create({
-                                'name': in_terms['name'],
-                                'term_start_date': in_terms['from_date'],
-                                'term_end_date': in_terms['to_date'],
-                                'academic_year_id': self.id,
-                                'parent_term': sub_term.id
-                            })
+        return True

@@ -44,7 +44,8 @@ class OpStudent(models.Model):
     _description = "Student"
     _inherit = ['mail.thread', 'mail.activity.mixin', 'op.person.base']
     _inherits = {"res.partner": "partner_id"}
-    _order = "name"    
+    _order = "name"
+    _parent_name = False
     
     partner_id = fields.Many2one('res.partner', 'Partner', required=True, ondelete="cascade")
     user_id = fields.Many2one('res.users', 'User', ondelete="cascade")
