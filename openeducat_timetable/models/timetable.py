@@ -65,51 +65,24 @@ class OpSession(models.Model):
             else:
                 rec.timing = ""
 
-    # --- СИНХРОНИЗАЦИЯ (Timetable -> Attendance) ---
-    def _sync_sheet_state(self, new_state):
-        """Вспомогательный метод для обновления связанного журнала"""
-        AttendanceSheet = self.env['op.attendance.sheet'].sudo()
-        for session in self:
-            sheet = AttendanceSheet.search([('session_id', '=', session.id)], limit=1)
-            if sheet and sheet.state != new_state:
-                # Если переводим в 'done', вызываем метод завершения журнала с расчетами
-                if new_state == 'done':
-                    sheet.action_attendance_done()
-                else:
-                    sheet.write({'state': new_state})
 
     def lecture_confirm(self):
         self.write({'state': 'confirm'})
-        # Метод создания журнала из модуля attendance
-        if hasattr(self, '_create_attendance_sheet'):
-            self._create_attendance_sheet()
 
     def lecture_start(self):
         self.write({'state': 'start'})
-        self._sync_sheet_state('start')
 
     def lecture_done(self):
         self.write({'state': 'done'})
-        self._sync_sheet_state('done')
 
     def lecture_cancel(self):
-        # Проверка на оценки будет внутри синхронизации или здесь
-        for rec in self:
-            sheet = self.env['op.attendance.sheet'].sudo().search([('session_id', '=', rec.id)], limit=1)
-            if sheet:
-                marks = sheet.attendance_line.filtered(lambda l: l.grade_1 or l.grade_2 or l.grade_3)
-                if marks:
-                    raise ValidationError(_("Нельзя отменить урок [%s], так как в журнале уже есть оценки!") % rec.name)
-                sheet.write({'state': 'cancel'})
-            rec.write({'state': 'cancel'})
+        self.write({'state': 'cancel'})
 
     def lecture_draft(self):
         self.write({'state': 'draft'})
-        self._sync_sheet_state('confirm') # Возврат к подтвержденному статусу журнала
 
     def lecture_edit(self):
         self.write({'state': 'start'})
-        self._sync_sheet_state('start')
 
     # --- ВСПОМОГАТЕЛЬНОЕ ---
     @api.model
@@ -155,6 +128,22 @@ class OpSession(models.Model):
     def _onchange_start_datetime(self):
         if self.start_datetime:
             self.end_datetime = self.start_datetime + timedelta(minutes=40)
+
+
+
+    # # --- СИНХРОНИЗАЦИЯ (Timetable -> Attendance) ---
+    # def _sync_sheet_state(self, new_state):
+    #     """Вспомогательный метод для обновления связанного журнала"""
+    #     AttendanceSheet = self.env['op.attendance.sheet'].sudo()
+    #     for session in self:
+    #         sheet = AttendanceSheet.search([('session_id', '=', session.id)], limit=1)
+    #         if sheet and sheet.state != new_state:
+    #             # Если переводим в 'done', вызываем метод завершения журнала с расчетами
+    #             if new_state == 'done':
+    #                 sheet.action_attendance_done()
+    #             else:
+    #                 sheet.write({'state': new_state})
+
 
     # @api.onchange('course_id')
     # def _onchange_course_id(self):
