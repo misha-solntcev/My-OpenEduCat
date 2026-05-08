@@ -39,31 +39,35 @@ class OpAttendanceSheet(models.Model):
     
     # Визуальные поля
     days = fields.Selection(related='session_id.days', store=True, readonly=True, group_expand='_expand_groups')
-    timing = fields.Char(related='session_id.timing', string='Время', store=True)
+    timing = fields.Char(related='session_id.timing', string='Время', store=False)
     classroom_id = fields.Many2one(related='session_id.classroom_id', string='Кабинет', store=True)    
     textbook_image = fields.Image('Учебник', compute='_compute_textbook_image', store=True)    
 
     # --- ЛОГИКА СОЗДАНИЯ ЖУРНАЛА (Вызывается из OpSession) ---
     @api.model
     def create_sheet_for_session(self, session):
-        """Метод автоматического создания журнала при утверждении урока"""
-        if self.search_count([('session_id', '=', session.id)]):
-            return False
+        """Метод создания ИЛИ восстановления журнала"""
+        # 1. Ищем, есть ли уже журнал (включая отмененные)
+        sheet = self.search([('session_id', '=', session.id)], limit=1)
+        
+        if sheet:
+            # Если журнал найден и он отменен — возвращаем его в строй
+            if sheet.state == 'cancel':
+                sheet.write({'state': 'confirm'})
+            return sheet
 
-        # Ищем регистр для этого курса и группы
+        # 2. Если журнала нет совсем — создаем новый (старая логика)
         register = self.env['op.attendance.register'].sudo().search([
             ('course_id', '=', session.course_id.id),
             ('batch_id', '=', session.batch_id.id)
         ], limit=1)
 
-        # Ищем всех активных студентов в этой группе
         students = self.env['op.student'].sudo().search([
             ('course_detail_ids.course_id', '=', session.course_id.id),
             ('course_detail_ids.batch_id', '=', session.batch_id.id),
             ('active', '=', True)
         ])
 
-        # Тип посещаемости по умолчанию (Присутствует)
         present_type = self.env['op.attendance.type'].sudo().search([('present', '=', True)], limit=1)
 
         return self.create({
@@ -86,35 +90,59 @@ class OpAttendanceSheet(models.Model):
             self.session_id.write({'state': 'start'})
 
     def action_attendance_done(self):
-        """Нажать 'Завершить' в Журнале (с логикой оценок)"""
+        """ОПТИМИЗАЦИЯ: Массовое создание карточек успеваемости и закрытие урока"""
+        # 1. Сначала меняем статус самого журнала и сессии
         self.write({'state': 'done'})
-        if self.session_id and self.session_id.state != 'done':
-            self.session_id.write({'state': 'done'})
-        
-        # --- Твоя логика расчета оценок ---
-        GradeObj = self.env['op.subject.grades']
         for sheet in self:
-            if not sheet.subject_id or not sheet.batch_id: continue
-            student_ids = sheet.attendance_line.mapped('student_id')
-            existing_cards = GradeObj.search([
-                ('student_id', 'in', student_ids.ids),
+            if sheet.session_id and sheet.session_id.state != 'done':
+                sheet.session_id.write({'state': 'done'})
+
+            if not sheet.subject_id or not sheet.batch_id:
+                continue
+
+            # 2. Собираем ID всех студентов из этого журнала
+            student_ids = sheet.attendance_line.mapped('student_id').ids
+            if not student_ids:
+                continue
+
+            GradeObj = self.env['op.subject.grades']
+
+            # 3. ОПТИМИЗАЦИЯ: Находим все уже существующие карточки для этих студентов по этому предмету
+            # Это делается ОДНИМ запросом к базе вместо 20-30.
+            existing_grades = GradeObj.search([
+                ('student_id', 'in', student_ids),
                 ('subject_id', '=', sheet.subject_id.id),
                 ('batch_id', '=', sheet.batch_id.id)
             ])
-            existing_student_ids = existing_cards.mapped('student_id').ids
-            missing_students = student_ids.filtered(lambda s: s.id not in existing_student_ids)
             
-            if missing_students:
-                GradeObj.create([{
-                    'student_id': s.id, 'subject_id': sheet.subject_id.id, 'batch_id': sheet.batch_id.id,
-                } for s in missing_students])            
+            existing_student_ids = existing_grades.mapped('student_id').ids
             
-            all_cards = GradeObj.search([
-                ('student_id', 'in', student_ids.ids),
-                ('subject_id', '=', sheet.subject_id.id),
-                ('batch_id', '=', sheet.batch_id.id)
-            ])
-            all_cards.action_force_recompute()
+            # 4. Определяем, для кого карточек еще нет
+            missing_student_ids = [sid for s in student_ids if s not in existing_student_ids]
+            
+            if missing_student_ids:
+                # Подготавливаем список словарей для массового создания
+                vals_to_create = []
+                for s_id in missing_student_ids:
+                    vals_to_create.append({
+                        'student_id': s_id,
+                        'subject_id': sheet.subject_id.id,
+                        'batch_id': sheet.batch_id.id,
+                    })
+                # Создаем всё одним махом
+                GradeObj.create(vals_to_create)
+                
+                # Обновляем список всех карточек (включая новые) для пересчета
+                existing_grades = GradeObj.search([
+                    ('student_id', 'in', student_ids),
+                    ('subject_id', '=', sheet.subject_id.id),
+                    ('batch_id', '=', sheet.batch_id.id)
+                ])
+
+            # 5. Запускаем пересчет графиков и средних баллов            
+            existing_grades.action_force_recompute()
+        
+        return True
 
     def action_attendance_cancel(self):
         """Нажать 'Отменить' в Журнале"""
@@ -163,53 +191,72 @@ class OpAttendanceSheet(models.Model):
                 record.term_id = term
 
     @api.depends('subject_id', 'course_id')    
-    def _compute_textbook_image(self):
+    def _compute_textbook_image(self):        
+        image_cache = {}        
         for r in self:
             if not r.subject_id or not r.course_id:
                 r.textbook_image = False
+                continue            
+            cache_key = (r.subject_id.id, r.course_id.id)            
+            if cache_key in image_cache:
+                r.textbook_image = image_cache[cache_key]
                 continue
-            domain = [('subject_ids', 'in', r.subject_id.ids), ('x_image_128', '!=', False)]
-            media = self.env['op.media'].sudo().search(domain + [('course_ids', 'in', r.course_id.ids)], limit=1)
-            if not media:
-                media = self.env['op.media'].sudo().search(domain, limit=1)
-            r.textbook_image = media.x_image_128 if media else False
+            domain = [('subject_ids', 'in', r.subject_id.ids), ('x_image_128', '!=', False)]            
+            media = self.env['op.media'].sudo().search(domain + [('course_ids', 'in', r.course_id.ids)], limit=1)            
+            if not media:                
+                media = self.env['op.media'].sudo().search(domain, limit=1)            
+            res_image = media.x_image_128 if media else False                        
+            image_cache[cache_key] = res_image
+            r.textbook_image = res_image
 
     @api.model
     def _expand_groups(self, days, domain, order=None):
         return ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
 
+
     # --- СТАТИСТИКА ПОСЕЩАЕМОСТИ ---
-    total_students = fields.Integer(compute='_compute_attendance_stats', store=True)
-    total_present = fields.Integer(compute='_compute_attendance_stats', store=True)
-    total_absent = fields.Integer(compute='_compute_attendance_stats', store=True)
-    attendance_rate = fields.Float(compute='_compute_attendance_stats', store=True)
+    # Посещаемость
+    total_students = fields.Integer(compute='_compute_all_stats', store=True)
+    total_present = fields.Integer(compute='_compute_all_stats', store=True)
+    total_absent = fields.Integer(compute='_compute_all_stats', store=True)
+    attendance_rate = fields.Float(compute='_compute_all_stats', store=True)
+    # Оценки
+    count_5 = fields.Integer(compute='_compute_all_stats', store=True)
+    count_4 = fields.Integer(compute='_compute_all_stats', store=True)
+    count_3 = fields.Integer(compute='_compute_all_stats', store=True)
+    count_2 = fields.Integer(compute='_compute_all_stats', store=True)
+    average_grade_lesson = fields.Float(compute='_compute_all_stats', store=True)
 
-    @api.depends('attendance_line', 'attendance_line.attendance_type_id')
-    def _compute_attendance_stats(self):
+    @api.depends('attendance_line', 'attendance_line.attendance_type_id', 
+        'attendance_line.grade_1', 'attendance_line.grade_2', 'attendance_line.grade_3')
+    def _compute_all_stats(self):        
         for rec in self:
-            stats = self.env['op.attendance.line'].get_stats_from_lines(rec.attendance_line)
-            rec.total_students = stats['total']
-            rec.total_present = stats['present']
-            rec.total_absent = stats['absent']
-            rec.attendance_rate = stats['rate']
+            total = len(rec.attendance_line)
+            present = 0
+            absent = 0            
+            counts = {5: 0, 4: 0, 3: 0, 2: 0}
+            all_marks = []
 
-    # --- СТАТИСТИКА ОЦЕНОК ---
-    count_5 = fields.Integer(compute='_compute_lesson_stats', store=True)
-    count_4 = fields.Integer(compute='_compute_lesson_stats', store=True)
-    count_3 = fields.Integer(compute='_compute_lesson_stats', store=True)
-    count_2 = fields.Integer(compute='_compute_lesson_stats', store=True)
-    average_grade_lesson = fields.Float(compute='_compute_lesson_stats', store=True)
-
-    @api.depends('attendance_line.grade_1', 'attendance_line.grade_2', 'attendance_line.grade_3')
-    def _compute_lesson_stats(self):
-        for rec in self:
-            stats = self.env['op.attendance.line'].get_stats_from_lines(rec.attendance_line)
+            for line in rec.attendance_line:                
+                if line.present: 
+                    present += 1
+                elif line.absent: 
+                    absent += 1                
+                for val in [line.grade_1, line.grade_2, line.grade_3]:
+                    if val and 2 <= val <= 5:
+                        counts[int(val)] += 1
+                        all_marks.append(val)
+            
             rec.update({
-                'count_5': stats['counts'][5],
-                'count_4': stats['counts'][4],
-                'count_3': stats['counts'][3],
-                'count_2': stats['counts'][2],
-                'average_grade_lesson': stats['avg']
+                'total_students': total,
+                'total_present': present,
+                'total_absent': absent,
+                'attendance_rate': (present / total * 100) if total > 0 else 0.0,
+                'count_5': counts[5],
+                'count_4': counts[4],
+                'count_3': counts[3],
+                'count_2': counts[2],
+                'average_grade_lesson': sum(all_marks) / len(all_marks) if all_marks else 0.0
             })
 
     # --- МАССОВЫЕ ДЕЙСТВИЯ ---

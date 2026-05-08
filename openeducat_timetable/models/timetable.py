@@ -23,8 +23,8 @@ class OpSession(models.Model):
     course_id = fields.Many2one('op.course', 'Course', required=True, index=True)
     classroom_id = fields.Many2one('op.classroom', 'Classroom', index=True, tracking=True)
 
-    name = fields.Char(compute='_compute_name', string='Name', store=True)
-    timing = fields.Char(compute='_compute_timing', string='Session Timing', store=True)
+    name = fields.Char(compute='_compute_name', string='Name', store=False)
+    timing = fields.Char(compute='_compute_timing', string='Session Timing', store=False)
     state = fields.Selection([
         ('draft', 'Черновик'), 
         ('confirm', 'Утвержден'),

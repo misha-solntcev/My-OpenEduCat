@@ -235,7 +235,7 @@
 
 
                             <field name="attendance_line" colspan="4" nolabel="1"
-                                readonly="state in ('done','cancel')">
+                                readonly="state != 'start'">
                                 <list string="Attendance Line" editable="top" create="false">
 
                                     <!-- 1. Аватар (можно скрыть) -->
