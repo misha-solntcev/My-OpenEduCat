@@ -112,8 +112,8 @@
         <field name="arch" type="xml">
             <form>
                 <header>                    
-                    <button name="action_force_recompute" type="object"
-                        string="ПЕРЕСЧИТАТЬ СТАТИСТИКУ" class="btn-primary fw-bold" />
+                    <!-- <button name="action_force_recompute" type="object"
+                        string="ПЕРЕСЧИТАТЬ СТАТИСТИКУ" class="btn-primary fw-bold" /> -->
                 </header>
 
                 <sheet>

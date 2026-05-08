@@ -223,7 +223,7 @@ class OpSubjectGrades(models.Model):
             # r=15.915 делает длину окружности ровно 100
             segments.append(f"""
                 <circle class="donut-seg" cx="21" cy="21" r="15.915" fill="none" 
-                        stroke="{color}" stroke-width="31.8" 
+                        stroke="{color}" stroke-width="8" 
                         stroke-dasharray="{pct} {100-pct}" 
                         stroke-dashoffset="-{offset}"/>
             """)
