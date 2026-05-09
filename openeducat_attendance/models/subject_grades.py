@@ -482,6 +482,33 @@ class OpSubjectGrades(models.Model):
 
 
 
+   # Поле для переключения вкладок (не хранится в БД)
+    view_quarter = fields.Selection([
+        ('1', '1 четверть'),
+        ('2', '2 четверть'),
+        ('3', '3 четверть'),
+        ('4', '4 четверть')
+    ], string="Период", default=lambda self: self._get_current_q_code(), store=False)
+
+    def _get_current_q_code(self):
+        """Определяет номер текущей четверти на основе даты"""
+        today = fields.Date.today()
+        # Ищем четверть, в которую попадает 'сегодня'
+        term = self.env['op.academic.term'].sudo().search([
+            ('term_start_date', '<=', today),
+            ('term_end_date', '>=', today),
+            ('parent_term', '!=', False)
+        ], limit=1)
+        
+        if term:
+            # Вытягиваем цифру из названия четверти
+            digit = "".join(filter(str.isdigit, term.name))
+            if digit in ['1', '2', '3', '4']:
+                return digit
+        return '1' # По умолчанию первая
+
+
+
 
     # ЭКСПЕРИМЕНТАЛЬНЫЕ ПЛИТКИ
 
