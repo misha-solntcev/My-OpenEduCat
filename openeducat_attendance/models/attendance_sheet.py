@@ -66,9 +66,7 @@ class OpAttendanceSheet(models.Model):
             ('course_detail_ids.course_id', '=', session.course_id.id),
             ('course_detail_ids.batch_id', '=', session.batch_id.id),
             ('active', '=', True)
-        ])
-
-        present_type = self.env['op.attendance.type'].sudo().search([('present', '=', True)], limit=1)
+        ])        
 
         return self.create({
             'session_id': session.id,
@@ -78,7 +76,7 @@ class OpAttendanceSheet(models.Model):
             'state': 'confirm',
             'attendance_line': [(0, 0, {
                 'student_id': s.id,
-                'attendance_type_id': present_type.id if present_type else False,
+                'attendance_type_id': False,
             }) for s in students]
         })
 
@@ -118,7 +116,7 @@ class OpAttendanceSheet(models.Model):
             existing_student_ids = existing_grades.mapped('student_id').ids
             
             # 4. Определяем, для кого карточек еще нет
-            missing_student_ids = [sid for s in student_ids if s not in existing_student_ids]
+            missing_student_ids = [s_id for s in student_ids if s not in existing_student_ids]
             
             if missing_student_ids:
                 # Подготавливаем список словарей для массового создания

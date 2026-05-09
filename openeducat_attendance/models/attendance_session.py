@@ -11,28 +11,34 @@ class OpSession(models.Model):
     def get_attendance(self):
         """Метод для кнопки 'Attendance Sheet' (Stat-button)"""
         self.ensure_one()
+        if self.state == 'cancel':
+            raise ValidationError(_("Нельзя открыть журнал для отмененного урока."))
         sheet = self._get_linked_sheet()
-        if sheet:
-            return {
-                'type': 'ir.actions.act_window',
-                'res_model': 'op.attendance.sheet',
-                'view_mode': 'form',
-                'res_id': sheet.id,
-                'target': 'current',
-            }
-        else:
-            raise ValidationError(_("Журнал для этого занятия еще не создан. Сначала нажмите 'Утвердить'."))
+        if not sheet:
+            # Создаем только если урок хотя бы утвержден
+            if self.state == 'draft':
+                raise ValidationError(_("Сначала утвердите урок, чтобы создать журнал."))
+            
+            sheet = self.env['op.attendance.sheet'].create_sheet_for_session(self)
 
+        return {
+            'type': 'ir.actions.act_window',
+            'res_model': 'op.attendance.sheet',
+            'view_mode': 'form',
+            'res_id': sheet.id,
+            'target': 'current',
+        }
     def lecture_confirm(self):
-        """Утверждение урока -> Создание журнала"""
-        super().lecture_confirm()
-        # Вызываем метод создания из модели Sheet
-        self.env['op.attendance.sheet'].create_sheet_for_session(self)
+        """Утверждение урока"""
+        return super().lecture_confirm()
 
     def lecture_start(self):
-        """Начало урока -> Синхронизация статуса в журнале"""
+        """Создаем журнал в момент фактического начала урока (кнопкой или кроном)"""
         super().lecture_start()
         sheet = self._get_linked_sheet()
+        if not sheet:            
+            sheet = self.env['op.attendance.sheet'].create_sheet_for_session(self)
+        
         if sheet and sheet.state != 'start':
             sheet.write({'state': 'start'})
 
