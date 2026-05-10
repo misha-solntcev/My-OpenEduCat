@@ -603,6 +603,13 @@
                         select="one" 
                         icon="fa-users" 
                         enable_counters="1"/>
+                        
+                    <!-- Фильтр по ученикам (будет показывать список учеников выбранного класса) -->
+                    <field name="student_id" 
+                        string="Ученик" 
+                        select="one" 
+                        icon="fa-user" 
+                        enable_counters="1"/>
 
                     <!-- 2. По предмету -->
                     <field name="subject_id"

@@ -546,9 +546,10 @@
                     <filter string="🗓️ Дата урока" name="group_date"
                         context="{'group_by': 'attendance_date'}" />
                 </group>
-                <searchpanel>
+                <searchpanel>                    
                     <!-- Фильтр по классам -->
                     <field name="batch_id"
+                        expand="0"
                         string="Класс"
                         select="one"
                         icon="fa-users"
