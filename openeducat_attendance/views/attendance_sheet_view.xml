@@ -108,7 +108,7 @@
                                     <field name="batch_id" readonly="1"/>
                                 </span>
                                 <span class="text-muted small fw-medium">
-                                    <i class="fa fa-calendar-o me-1"/> <field name="attendance_date" readonly="1"/>
+                                    <i class="fa fa-calendar-o me-1" title="Дата"/> <field name="attendance_date" readonly="1"/>
                                 </span>
                             </div>
 
@@ -120,15 +120,15 @@
                             <!-- Детали урока: Время, Кабинет, Четверть -->
                             <div class="d-flex flex-wrap justify-content-center justify-content-md-start gap-3 text-muted small">
                                 <div class="d-flex align-items-center bg-white px-2 py-1 rounded border shadow-sm">
-                                    <i class="fa fa-clock-o me-2 text-primary"/>
+                                    <i class="fa fa-clock-o me-2 text-primary" title="Время"/>
                                     <field name="timing" class="fw-bold text-dark"/>
                                 </div>
                                 <div class="d-flex align-items-center bg-white px-2 py-1 rounded border shadow-sm">
-                                    <i class="fa fa-map-marker me-2 text-danger"/>
+                                    <i class="fa fa-map-marker me-2 text-danger" title="Кабинет"/>
                                     <field name="classroom_id" class="fw-bold text-dark" options="{'no_open': True}"/>
                                 </div>
                                 <div class="d-flex align-items-center bg-white px-2 py-1 rounded border shadow-sm">
-                                    <i class="fa fa-graduation-cap me-2 text-success"/>
+                                    <i class="fa fa-graduation-cap me-2 text-success" title="Четверть"/>
                                     <field name="term_id" readonly="1" options="{'no_open': True}" class="fw-bold text-dark"/>
                                 </div>
                             </div>
@@ -147,10 +147,10 @@
                     <!-- 3. АКЦЕНТНЫЙ БЛОК: ТЕМА ЗАНЯТИЯ -->
                     <div class="p-4 mb-4 rounded-3 border-start border-4 border-primary bg-white shadow-sm position-relative overflow-hidden" style="background: linear-gradient(to right, #ffffff, #f8fafc);">
                         <!-- Фоновая иконка для красоты -->
-                        <i class="fa fa-pencil-square-o position-absolute" style="right: -10px; bottom: -10px; font-size: 100px; opacity: 0.03; transform: rotate(-15deg);"/>
+                        <i class="fa fa-pencil-square-o position-absolute" title="Тема занятия" style="right: -10px; bottom: -10px; font-size: 100px; opacity: 0.03; transform: rotate(-15deg);"/>
                         
                         <label for="lesson_topic" class="fw-bold text-uppercase mb-2 text-muted" style="font-size: 0.75rem; letter-spacing: 1px;">
-                            <i class="fa fa-edit me-1 text-primary"/> Тема текущего занятия
+                            <i class="fa fa-edit me-1 text-primary" title="Тема занятия"/> Тема текущего занятия
                         </label>
                         <div class="h2 mb-0">
                             <field name="lesson_topic" 
@@ -210,7 +210,7 @@
                                     <button name="action_mass_set_attendance" type="object"
                                         string="Опоздали"
                                         class="btn btn-outline-warning flex-grow-1"
-                                        icon="fa-clock-o"
+                                        icon="fa-clock-o" title="Опоздал"
                                         context="{'set_name': 'Опоздал'}"
                                         invisible="state in ('done','cancel')" />
 

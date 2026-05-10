@@ -628,3 +628,8 @@ class OpSubjectGrades(models.Model):
 
 
     
+    _sql_constraints = [
+            ('unique_student_subject_batch', 
+            'unique(student_id, subject_id, batch_id)', 
+            'Карточка успеваемости для этого ученика по этому предмету в данном классе уже существует!')
+        ]

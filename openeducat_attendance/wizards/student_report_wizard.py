@@ -4,14 +4,14 @@ class StudentReportWizard(models.TransientModel):
     _name = 'student.report.wizard'
     _description = 'Визард итогового отчета'
 
-    batch_id = fields.Many2one('op.batch', string='Класс')
+    batch_ids = fields.Many2many('op.batch', string='Классы')
     academic_year_id = fields.Many2one('op.academic.year', 
         string='Учебный год', required=True, 
         default=lambda self: self._get_default_academic_year())
     student_ids = fields.Many2many('op.student', string='Ученики')
 
-    @api.onchange('batch_id')
-    def _onchange_batch_id(self):
+    @api.onchange('batch_ids')
+    def _onchange_batch_ids(self):
         """Очищаем список выбранных учеников при смене класса"""
         self.student_ids = [(5, 0, 0)]
 

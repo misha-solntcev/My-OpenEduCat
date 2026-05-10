@@ -318,7 +318,7 @@
                                     <div class="border rounded bg-white p-2 h-100 shadow-sm d-flex flex-column">
                                         <div class="text-uppercase small fw-bold text-muted mb-2" style="font-size: 0.7rem;">Последний отзыв</div>
                                         <div class="flex-grow-1 italic text-muted text-start small">
-                                            <i class="fa fa-quote-left opacity-25 me-1"/>
+                                            <i class="fa fa-quote-left opacity-25 me-1" title="Отзыв" />
                                             <field name="q1_last_remark" />
                                         </div>
                                     </div>
@@ -345,7 +345,7 @@
                                     <field name="grade_1" />
                                     <field name="grade_2" />
                                     <field name="remark" optional="show" />
-                                    <button name="action_open_sheet" type="object" icon="fa-external-link"/>
+                                    <button name="action_open_sheet" type="object" icon="fa-external-link" title="Открыть журнал"/>
                                 </list>
                             </field>
                         </div>
@@ -369,7 +369,7 @@
                                     <div class="border rounded bg-white p-2 h-100 shadow-sm d-flex flex-column">
                                         <div class="text-uppercase small fw-bold text-muted mb-2" style="font-size: 0.7rem;">Последний отзыв</div>
                                         <div class="flex-grow-1 italic text-muted text-start small">
-                                            <i class="fa fa-quote-left opacity-25 me-1"/>
+                                            <i class="fa fa-quote-left opacity-25 me-1" title="Отзыв" />
                                             <field name="q2_last_remark" />
                                         </div>
                                     </div>
@@ -396,7 +396,7 @@
                                     <field name="grade_1" />
                                     <field name="grade_2" />
                                     <field name="remark" optional="show" />
-                                    <button name="action_open_sheet" type="object" icon="fa-external-link"/>
+                                    <button name="action_open_sheet" type="object" icon="fa-external-link" title="Открыть журнал"/>
                                 </list>
                             </field>
                         </div>
@@ -420,7 +420,7 @@
                                     <div class="border rounded bg-white p-2 h-100 shadow-sm d-flex flex-column">
                                         <div class="text-uppercase small fw-bold text-muted mb-2" style="font-size: 0.7rem;">Последний отзыв</div>
                                         <div class="flex-grow-1 italic text-muted text-start small">
-                                            <i class="fa fa-quote-left opacity-25 me-1"/>
+                                            <i class="fa fa-quote-left opacity-25 me-1" title="Отзыв" />
                                             <field name="q3_last_remark" />
                                         </div>
                                     </div>
@@ -447,7 +447,7 @@
                                     <field name="grade_1" />
                                     <field name="grade_2" />
                                     <field name="remark" optional="show" />
-                                    <button name="action_open_sheet" type="object" icon="fa-external-link"/>
+                                    <button name="action_open_sheet" type="object" icon="fa-external-link" title="Открыть журнал"/>
                                 </list>
                             </field>
                         </div>
@@ -471,7 +471,7 @@
                                     <div class="border rounded bg-white p-2 h-100 shadow-sm d-flex flex-column">
                                         <div class="text-uppercase small fw-bold text-muted mb-2" style="font-size: 0.7rem;">Последний отзыв</div>
                                         <div class="flex-grow-1 italic text-muted text-start small">
-                                            <i class="fa fa-quote-left opacity-25 me-1"/>
+                                            <i class="fa fa-quote-left opacity-25 me-1" title="Отзыв" />
                                             <field name="q4_last_remark" />
                                         </div>
                                     </div>
@@ -498,7 +498,7 @@
                                     <field name="grade_1" />
                                     <field name="grade_2" />
                                     <field name="remark" optional="show" />
-                                    <button name="action_open_sheet" type="object" icon="fa-external-link"/>
+                                    <button name="action_open_sheet" type="object" icon="fa-external-link" title="Открыть журнал"/>
                                 </list>
                             </field>
                         </div>

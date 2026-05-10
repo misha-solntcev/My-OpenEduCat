@@ -45,7 +45,7 @@
                     decoration-danger="grade_avg &lt; 2.5 and grade_avg &gt; 0" />
 
                 <field name="remark" optional="show" />
-                <button name="action_open_sheet" type="object" icon="fa-external-link"/>
+                <button name="action_open_sheet" type="object" icon="fa-external-link" title="Открыть журнал" />
             </list>
         </field>
     </record>

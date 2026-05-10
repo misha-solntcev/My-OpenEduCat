@@ -6,15 +6,17 @@
             <form string="Итоговые оценки">
                 <group>                    
                     <field name="academic_year_id" options="{'no_create': True, 'no_open': True}"/>
-                    <field name="batch_id" 
+                    <!-- Поле переименовано, добавлен виджет тегов -->
+                    <field name="batch_ids" 
+                        widget="many2many_tags"
                         options="{'no_create': True, 'no_open': True}"
-                        placeholder="Вся школа"/>
+                        placeholder="Все классы школы"/>
+                    <!-- В domain заменено batch_id на batch_ids и '=' на 'in' -->
                     <field name="student_ids" 
                         widget="many2many_tags" 
                         options="{'no_create': True}"
-                        domain="batch_id and [('course_detail_ids.batch_id', '=', batch_id)] or []"
+                        domain="batch_ids and [('course_detail_ids.batch_id', 'in', batch_ids)] or []"
                         placeholder="Весь класс"/>
-                    
                 </group>
                 <footer>
                     <button name="action_print_report" string="Сформировать PDF" type="object" class="btn-primary"/>
