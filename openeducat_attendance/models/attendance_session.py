@@ -1,24 +1,29 @@
+# -*- coding: utf-8 -*-
 from odoo import models, fields, api, _
 from odoo.exceptions import ValidationError  
 
 class OpSession(models.Model):
     _inherit = "op.session"
 
+    # --- ВСПОМОГАТЕЛЬНЫЕ МЕТОДЫ ---
+
     def _get_linked_sheet(self):
-        """Вспомогательный метод для поиска связанного журнала"""
+        """Поиск связанного журнала"""
         return self.env['op.attendance.sheet'].sudo().search([('session_id', '=', self.id)], limit=1)
 
     def get_attendance(self):
-        """Метод для кнопки 'Attendance Sheet' (Stat-button)"""
+        """Метод для кнопки 'Журнал урока' (Stat-button)"""
         self.ensure_one()
         if self.state == 'cancel':
             raise ValidationError(_("Нельзя открыть журнал для отмененного урока."))
+        
         sheet = self._get_linked_sheet()
+        
+        # ЛОГИКА "ПО ТРЕБОВАНИЮ": если завуч утвердил урок, но журнал почему-то не создался
         if not sheet:
-            # Создаем только если урок хотя бы утвержден
             if self.state == 'draft':
                 raise ValidationError(_("Сначала утвердите урок, чтобы создать журнал."))
-            
+            # Создаем "на лету"
             sheet = self.env['op.attendance.sheet'].create_sheet_for_session(self)
 
         return {
@@ -28,45 +33,55 @@ class OpSession(models.Model):
             'res_id': sheet.id,
             'target': 'current',
         }
+
+    # --- КАСКАДНАЯ ЛОГИКА СТАТУСОВ (СИНХРОНИЗАЦИЯ) ---
+
     def lecture_confirm(self):
-        """Утверждение урока"""
-        return super().lecture_confirm()
+        """Этап 1: Утверждение. Создаем только 'шапку' журнала."""
+        super().lecture_confirm()
+        # Метод в Sheet сам проверит, есть ли он, или восстановит из cancel
+        self.env['op.attendance.sheet'].create_sheet_for_session(self)
 
     def lecture_start(self):
-        """Создаем журнал в момент фактического начала урока (кнопкой или кроном)"""
+        """Этап 2: Старт. Если прыгнули из черновика — сначала Утверждаем."""
+        if self.state == 'draft':
+            self.lecture_confirm()
+            
         super().lecture_start()
         sheet = self._get_linked_sheet()
-        if not sheet:            
-            sheet = self.env['op.attendance.sheet'].create_sheet_for_session(self)
-        
-        if sheet and sheet.state != 'start':
-            sheet.write({'state': 'start'})
+        if sheet:
+            # action_attendance_start в модели Sheet сменит статус и СОЗДАСТ список детей
+            sheet.action_attendance_start()
 
     def lecture_done(self):
-        """Завершение урока -> Закрытие журнала с расчетами"""
+        """Этап 3: Завершение. Если прыгнули через этапы — проходим их все."""
+        if self.state in ['draft', 'confirm']:
+            self.lecture_start()
+            
         super().lecture_done()
         sheet = self._get_linked_sheet()
-        if sheet and sheet.state != 'done':
-            # Вызываем именно action_attendance_done, чтобы сработал пересчет оценок в Subject Grades
+        if sheet:
+            # action_attendance_done закроет журнал и перенесет оценки в статистику
             sheet.action_attendance_done()
 
     def lecture_cancel(self):
-        """Отмена урока -> Проверка и отмена журнала"""
+        """Отмена: Проверка оценок и отмена журнала."""
         sheet = self._get_linked_sheet()
         if sheet:
-            # Проверка на оценки находится внутри метода action_attendance_cancel
+            # Вызываем метод в Sheet, так как в нем встроена проверка на наличие оценок
             sheet.action_attendance_cancel()
         super().lecture_cancel()
 
     def lecture_edit(self):
-        """Редактирование урока -> Возврат журнала в статус 'Урок идет'"""
+        """Редактирование: Возврат в 'Урок идет'."""
         super().lecture_edit()
         sheet = self._get_linked_sheet()
         if sheet:
             sheet.write({'state': 'start'})
 
     def lecture_draft(self):
-        """Восстановление урока в Черновик"""
+        """Сброс в черновик: Журнал уходит в Отмену (архив)."""
         super().lecture_draft()
-        # Журнал при этом остается в статусе 'cancel' (как архив), 
-        # при повторном нажатии 'Утвердить' создастся новый или обновится старый.
+        sheet = self._get_linked_sheet()
+        if sheet:
+            sheet.write({'state': 'cancel'})

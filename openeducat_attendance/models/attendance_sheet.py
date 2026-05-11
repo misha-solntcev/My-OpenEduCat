@@ -43,104 +43,67 @@ class OpAttendanceSheet(models.Model):
     classroom_id = fields.Many2one(related='session_id.classroom_id', string='Кабинет', store=True)    
     textbook_image = fields.Image('Учебник', compute='_compute_textbook_image', store=True)    
 
-    # --- ЛОГИКА СОЗДАНИЯ ЖУРНАЛА (Вызывается из OpSession) ---
+    # --- ЛОГИКА СОЗДАНИЯ (ТОЛЬКО ШАПКА) ---
     @api.model
     def create_sheet_for_session(self, session):
-        """Метод создания ИЛИ восстановления журнала"""
-        # 1. Ищем, есть ли уже журнал (включая отмененные)
         sheet = self.search([('session_id', '=', session.id)], limit=1)
-        
         if sheet:
-            # Если журнал найден и он отменен — возвращаем его в строй
-            if sheet.state == 'cancel':
-                sheet.write({'state': 'confirm'})
+            if sheet.state == 'cancel': sheet.write({'state': 'confirm'})
             return sheet
 
-        # 2. Если журнала нет совсем — создаем новый (старая логика)
         register = self.env['op.attendance.register'].sudo().search([
             ('course_id', '=', session.course_id.id),
             ('batch_id', '=', session.batch_id.id)
         ], limit=1)
 
-        students = self.env['op.student'].sudo().search([
-            ('course_detail_ids.course_id', '=', session.course_id.id),
-            ('course_detail_ids.batch_id', '=', session.batch_id.id),
-            ('active', '=', True)
-        ])        
-
         return self.create({
             'session_id': session.id,
             'attendance_date': session.start_datetime.date(),
-            'faculty_id': session.faculty_id.id,
             'register_id': register.id if register else False,
             'state': 'confirm',
-            'attendance_line': [(0, 0, {
-                'student_id': s.id,
-                'attendance_type_id': False,
-            }) for s in students]
+            'attendance_line': [] # ПУСТО при создании
         })
 
-    # --- СИНХРОНИЗАЦИЯ (Журнал -> Урок) ---
+    # --- ГЕНЕРАЦИЯ СПИСКА ДЕТЕЙ ---
+    def action_generate_lines(self):
+        """Создает строки учеников, если их еще нет"""
+        for rec in self:
+            if not rec.attendance_line:
+                students = self.env['op.student'].sudo().search([
+                    ('course_detail_ids.course_id', '=', rec.session_id.course_id.id),
+                    ('course_detail_ids.batch_id', '=', rec.batch_id.id),
+                    ('active', '=', True)
+                ])
+                lines = [(0, 0, {'student_id': s.id, 'attendance_type_id': False}) for s in students]
+                rec.write({'attendance_line': lines})
+
+    # Заполнение статистики по оценкам в Subject Grades после завершения урока
+    def _transfer_grades_to_stats(self):
+        GradeObj = self.env['op.subject.grades']
+        for sheet in self:
+            if not sheet.subject_id: continue
+            student_ids = sheet.attendance_line.mapped('student_id').ids
+            existing = GradeObj.search([('student_id', 'in', student_ids), ('subject_id', '=', sheet.subject_id.id)])
+            existing_sids = existing.mapped('student_id').ids
+            to_create = [s for s in student_ids if s not in existing_sids]
+            if to_create:
+                GradeObj.create([{'student_id': s, 'subject_id': sheet.subject_id.id, 'batch_id': sheet.batch_id.id} for s in to_create])
+            GradeObj.search([('student_id', 'in', student_ids), ('subject_id', '=', sheet.subject_id.id)]).action_force_recompute()
+
+    # --- СИНХРОНИЗАЦИЯ СТАТУСОВ (Журнал -> Урок) ---
     def action_attendance_start(self):
         """Нажать 'Начать' в Журнале"""
+        self.action_generate_lines() # Генерируем детей при старте
         self.write({'state': 'start'})
         if self.session_id and self.session_id.state != 'start':
             self.session_id.write({'state': 'start'})
 
     def action_attendance_done(self):
-        """ОПТИМИЗАЦИЯ: Массовое создание карточек успеваемости и закрытие урока"""
-        # 1. Сначала меняем статус самого журнала и сессии
         self.write({'state': 'done'})
-        for sheet in self:
-            if sheet.session_id and sheet.session_id.state != 'done':
-                sheet.session_id.write({'state': 'done'})
-
-            if not sheet.subject_id or not sheet.batch_id:
-                continue
-
-            # 2. Собираем ID всех студентов из этого журнала
-            student_ids = sheet.attendance_line.mapped('student_id').ids
-            if not student_ids:
-                continue
-
-            GradeObj = self.env['op.subject.grades']
-
-            # 3. ОПТИМИЗАЦИЯ: Находим все уже существующие карточки для этих студентов по этому предмету
-            # Это делается ОДНИМ запросом к базе вместо 20-30.
-            existing_grades = GradeObj.search([
-                ('student_id', 'in', student_ids),
-                ('subject_id', '=', sheet.subject_id.id),
-                ('batch_id', '=', sheet.batch_id.id)
-            ])
-            
-            existing_student_ids = existing_grades.mapped('student_id').ids
-            
-            # 4. Определяем, для кого карточек еще нет
-            missing_student_ids = [s_id for s in student_ids if s not in existing_student_ids]
-            
-            if missing_student_ids:
-                # Подготавливаем список словарей для массового создания
-                vals_to_create = []
-                for s_id in missing_student_ids:
-                    vals_to_create.append({
-                        'student_id': s_id,
-                        'subject_id': sheet.subject_id.id,
-                        'batch_id': sheet.batch_id.id,
-                    })
-                # Создаем всё одним махом
-                GradeObj.create(vals_to_create)
-                
-                # Обновляем список всех карточек (включая новые) для пересчета
-                existing_grades = GradeObj.search([
-                    ('student_id', 'in', student_ids),
-                    ('subject_id', '=', sheet.subject_id.id),
-                    ('batch_id', '=', sheet.batch_id.id)
-                ])
-
-            # 5. Запускаем пересчет графиков и средних баллов            
-            existing_grades.action_force_recompute()
-        
-        return True
+        if self.session_id and self.session_id.state != 'done':
+            self.session_id.write({'state': 'done'})
+        # Вызов миграции оценок в Subject Grades (твой код из Шага 4)
+        self._transfer_grades_to_stats()
 
     def action_attendance_cancel(self):
         """Нажать 'Отменить' в Журнале"""

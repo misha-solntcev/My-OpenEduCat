@@ -58,10 +58,10 @@
                 <header>
                     <!-- 1. Начать урок (Синхронно переводит и Урок в 'start') -->
                     <button name="action_attendance_start" type="object" string="Начать урок"
-                        invisible="state != 'confirm'" class="btn-primary" icon="fa-play" />
+                        invisible="state != 'confirm'" class="btn-primary o_attendance_start_btn" icon="fa-play" />
                     <!-- 2. Завершить урок (Синхронно переводит и Урок в 'done' + расчет оценок) -->
                     <button name="action_attendance_done" type="object" string="Завершить урок"
-                        invisible="state != 'start'" class="btn-primary" icon="fa-check-circle" />
+                        invisible="state != 'start'" class="btn-primary o_attendance_done_btn" icon="fa-check-circle" />
                     <!-- 3. Редактировать (Возврат из Проведен в Идет урок для правок) -->
                     <button name="action_attendance_edit" type="object" string="Редактировать"
                         invisible="state != 'done'" icon="fa-edit" class="btn-secondary" />
@@ -76,6 +76,20 @@
                 </header>
 
                 <sheet>
+                    
+
+                    <!-- КОНТЕКСТНАЯ СПРАВКА -->
+                    <div class="alert alert-info text-center" role="alert" invisible="state != 'confirm'">
+                        <i class="fa fa-info-circle me-2"/>
+                        Урок запланирован. Список учеников будет создан автоматически при нажатии <strong>"Начать урок"</strong>.
+                    </div>
+                    <div class="alert alert-warning text-center" role="alert" invisible="state != 'start' or total_present > 0">
+                        <i class="fa fa-exclamation-triangle me-2"/>
+                        Пожалуйста, отметьте посещаемость (кнопка <strong>"Присутствуют"</strong>), иначе в статистике останутся пустые области.
+                    </div>
+
+
+
                     <!-- 1. ИНДИКАТОРЫ И СТАТИСТИКА (Верхний правый угол) -->
                     <div class="oe_button_box" name="button_box">
                         <button class="oe_stat_button" icon="fa-users" title="Присутствие" disabled="1">

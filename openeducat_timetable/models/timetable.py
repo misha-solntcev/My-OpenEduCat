@@ -28,7 +28,7 @@ class OpSession(models.Model):
     state = fields.Selection([
         ('draft', 'Черновик'), 
         ('confirm', 'Утвержден'),
-        ('start', 'Идет урок'),
+        ('start', 'Урок идет'),
         ('done', 'Проведен'), 
         ('cancel', 'Отменен')],
         string='Status', default='draft', tracking=True, index=True)
