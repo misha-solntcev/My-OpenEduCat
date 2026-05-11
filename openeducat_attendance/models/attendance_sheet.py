@@ -28,11 +28,12 @@ class OpAttendanceSheet(models.Model):
     
     lesson_topic = fields.Char('Тема урока', size=256)
     state = fields.Selection([
+        ('draft', 'Черновик'),
         ('confirm', 'Утвержден'),
         ('start', 'Урок идет'),
-        ('done', 'Проведен'),
+        ('done', 'Завершен'),
         ('cancel', 'Отменен'),
-    ], string='Статус', default='confirm', tracking=True)
+    ], string='Статус', default='draft', tracking=True)
 
     active = fields.Boolean(default=True)
     attendance_line = fields.One2many('op.attendance.line', 'attendance_id', 'Attendance Line')
@@ -48,7 +49,8 @@ class OpAttendanceSheet(models.Model):
     def create_sheet_for_session(self, session):
         sheet = self.search([('session_id', '=', session.id)], limit=1)
         if sheet:
-            if sheet.state == 'cancel': sheet.write({'state': 'confirm'})
+            if sheet.state != session.state:
+                sheet.write({'state': session.state})
             return sheet
 
         register = self.env['op.attendance.register'].sudo().search([
@@ -60,8 +62,8 @@ class OpAttendanceSheet(models.Model):
             'session_id': session.id,
             'attendance_date': session.start_datetime.date(),
             'register_id': register.id if register else False,
-            'state': 'confirm',
-            'attendance_line': [] # ПУСТО при создании
+            'state': session.state,
+            'attendance_line': []
         })
 
     # --- ГЕНЕРАЦИЯ СПИСКА ДЕТЕЙ ---
@@ -90,30 +92,40 @@ class OpAttendanceSheet(models.Model):
                 GradeObj.create([{'student_id': s, 'subject_id': sheet.subject_id.id, 'batch_id': sheet.batch_id.id} for s in to_create])
             GradeObj.search([('student_id', 'in', student_ids), ('subject_id', '=', sheet.subject_id.id)]).action_force_recompute()
 
+    def action_attendance_draft(self):
+        self.write({'state': 'draft'})
+
+    def action_attendance_confirm(self):
+        self.write({'state': 'confirm'})
+
     # --- СИНХРОНИЗАЦИЯ СТАТУСОВ (Журнал -> Урок) ---
     def action_attendance_start(self):
-        """Нажать 'Начать' в Журнале"""
-        self.action_generate_lines() # Генерируем детей при старте
-        self.write({'state': 'start'})
-        if self.session_id and self.session_id.state != 'start':
-            self.session_id.write({'state': 'start'})
+        """Генерация списка учеников при фактическом начале"""
+        for rec in self:
+            if not rec.attendance_line:
+                students = self.env['op.student'].sudo().search([
+                    ('course_detail_ids.course_id', '=', rec.session_id.course_id.id),
+                    ('course_detail_ids.batch_id', '=', rec.batch_id.id),
+                    ('active', '=', True)
+                ])
+                lines = [(0, 0, {'student_id': s.id, 'attendance_type_id': False}) for s in students]
+                rec.write({'attendance_line': lines})
+            rec.write({'state': 'start'})
 
-    def action_attendance_done(self):
-        self.write({'state': 'done'})
-        if self.session_id and self.session_id.state != 'done':
-            self.session_id.write({'state': 'done'})
-        # Вызов миграции оценок в Subject Grades (твой код из Шага 4)
-        self._transfer_grades_to_stats()
+    def action_attendance_done(self):        
+        self.write({'state': 'done'})                
+        for sheet in self:
+            if sheet.session_id and sheet.session_id.state != 'done':
+                sheet.session_id.write({'state': 'done'})        
+        self._transfer_grades_to_stats() 
+        return True
 
     def action_attendance_cancel(self):
-        """Нажать 'Отменить' в Журнале"""
         for rec in self:
             marks = rec.attendance_line.filtered(lambda l: l.grade_1 or l.grade_2 or l.grade_3)
             if marks:
-                raise ValidationError(_("Нельзя отменить журнал [%s], так как в нем есть оценки!") % rec.display_title)
+                raise ValidationError(_("В журнале [%s] есть оценки. Удалите их перед отменой.") % rec.display_title)
             rec.write({'state': 'cancel'})
-            if rec.session_id and rec.session_id.state != 'cancel':
-                rec.session_id.write({'state': 'cancel'})
 
     def action_attendance_edit(self):
         """Кнопка 'Редактировать' в Журнале"""
@@ -121,11 +133,11 @@ class OpAttendanceSheet(models.Model):
         if self.session_id and self.session_id.state != 'start':
             self.session_id.write({'state': 'start'})
 
-    def action_attendance_confirm(self):
-        """Восстановление журнала"""
-        self.write({'state': 'confirm'})
-        if self.session_id and self.session_id.state != 'confirm':
-            self.session_id.write({'state': 'confirm'})
+    # def action_attendance_confirm(self):
+    #     """Восстановление журнала"""
+    #     self.write({'state': 'confirm'})
+    #     if self.session_id and self.session_id.state != 'confirm':
+    #         self.session_id.write({'state': 'confirm'})
 
     # --- ВЫЧИСЛЯЕМЫЕ МЕТОДЫ ---
     @api.depends('session_id', 'register_id', 'attendance_date')

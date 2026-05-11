@@ -381,7 +381,8 @@ msgstr "Утвердить"
 #. module: openeducat_timetable
 #: model:ir.actions.act_window,name:openeducat_timetable.session_confirmation_form_view_act
 msgid "Confirmation"
-msgstr "Подтверждение"
+msgstr "Утвердить"
+# msgstr "Подтверждение"
 
 #. module: openeducat_timetable
 #: model:ir.model.fields.selection,name:openeducat_timetable.selection__op_session__state__confirm
@@ -451,7 +452,8 @@ msgstr "Отображаемое имя"
 #: model:ir.model.fields.selection,name:openeducat_timetable.selection__op_session__state__done
 #: model_terms:ir.ui.view,arch_db:openeducat_timetable.view_op_session_form
 msgid "Done"
-msgstr "Проведен"
+msgstr "Завершен"
+# msgstr "Проведен"
 
 #. module: openeducat_timetable
 #: model:ir.model.fields.selection,name:openeducat_timetable.selection__op_session__state__draft

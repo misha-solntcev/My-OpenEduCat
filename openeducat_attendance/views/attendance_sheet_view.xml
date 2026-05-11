@@ -186,65 +186,41 @@
                         <page string="Ученики и Оценки" name="marks">
 
 
-                            <!-- ПАНЕЛЬ КНОПОК (в порядке sequence) -->
-                            <div class="d-flex align-items-center flex-wrap gap-2 mb-3 mt-1">
+                            <!-- ПАНЕЛЬ КНОПОК (в статусе "Урок идет") -->
+                            <div class="d-flex flex-wrap align-items-center gap-1 w-100 mb-3 mt-2" invisible="state != 'start'">
+                                
+                                <!-- Группа кнопок присутствия (Зеленые) -->
+                                <button name="action_mass_set_attendance" type="object" string="Присутствуют"
+                                        class="btn btn-outline-success btn-sm o_attendance_present_all_btn" 
+                                        context="{'set_name': 'Присутствуют'}" icon="fa-check" title="Отметить всех присутствующими"/>
 
-                                <div class="btn-group-sm shadow-sm rounded-pill w-100">
-                                    <!-- 1. Присутствует (Green) -->
-                                    <button name="action_mass_set_attendance" type="object"
-                                        string="Присутствуют"
-                                        class="btn btn-outline-success rounded-start-pill flex-grow-1"
-                                        icon="fa-check"
-                                        context="{'set_name': 'Присутствует'}"
-                                        invisible="state in ('done','cancel')" />
+                                <button name="action_mass_set_attendance" type="object" string="Дистанционно"
+                                        class="btn btn-outline-success btn-sm" 
+                                        context="{'set_name': 'Дистанционно'}" icon="fa-laptop" title="Отметить всех дистанционно"/>
 
-                                    <!-- 2. Дистанционно (Green-ish) -->
-                                    <button name="action_mass_set_attendance" type="object"
-                                        string="Дистанционно"
-                                        class="btn btn-outline-success flex-grow-1" icon="fa-laptop"
-                                        context="{'set_name': 'Дистанционно'}"
-                                        invisible="state in ('done','cancel')" />                                    
+                                <!-- Группа кнопок отсутствия по причине (Синие/Голубые) -->
+                                <button name="action_mass_set_attendance" type="object" string="Болеют" 
+                                        class="btn btn-outline-info btn-sm"
+                                        context="{'set_name': 'Болеют'}" icon="fa-medkit" title="Отметить всех заболевшими"/>
 
-                                    <!-- 3. Болеет (Blue) -->
-                                    <button name="action_mass_set_attendance" type="object"
-                                        string="Болеют" class="btn btn-outline-info flex-grow-1"
-                                        icon="fa-medkit"
-                                        context="{'set_name': 'Болеет'}"
-                                        invisible="state in ('done','cancel')" />
+                                <button name="action_mass_set_attendance" type="object" string="Уважительная"
+                                        class="btn btn-outline-info btn-sm"
+                                        context="{'set_name': 'Уважительная причина'}" icon="fa-envelope-o" title="Отметить всех по уважительной причине"/>
 
-                                    <!-- 4. Уважительная (Blue) -->
-                                    <button name="action_mass_set_attendance" type="object"
-                                        string="Уважительная причина"
-                                        class="btn btn-outline-info flex-grow-1"
-                                        icon="fa-envelope-o"
-                                        context="{'set_name': 'Уважительная причина'}"
-                                        invisible="state in ('done','cancel')" />
+                                <!-- Кнопки опоздания и прогула (Желтый/Красный) -->
+                                <button name="action_mass_set_attendance" type="object" string="Опоздали"
+                                        class="btn btn-outline-warning btn-sm"
+                                        context="{'set_name': 'Опоздали'}" icon="fa-clock-o" title="Отметить всех опоздавшими"/>
 
-                                    <!-- 5. Опоздал (Yellow) -->
-                                    <button name="action_mass_set_attendance" type="object"
-                                        string="Опоздали"
-                                        class="btn btn-outline-warning flex-grow-1"
-                                        icon="fa-clock-o" title="Опоздал"
-                                        context="{'set_name': 'Опоздал'}"
-                                        invisible="state in ('done','cancel')" />
+                                <button name="action_mass_set_attendance" type="object" string="Прогуляли"
+                                        class="btn btn-outline-danger btn-sm"
+                                        context="{'set_name': 'Прогуляли'}" icon="fa-times" title="Отметить всех прогулявшими"/>
 
-                                    <!-- 6. Прогул (Red) -->
-                                    <button name="action_mass_set_attendance" type="object"
-                                        string="Прогуляли"
-                                        class="btn btn-outline-danger rounded-end-pill flex-grow-1"
-                                        icon="fa-times"
-                                        context="{'set_name': 'Прогул'}"
-                                        invisible="state in ('done','cancel')" />
-
-                                    <!-- Кнопка СБРОС (ms-auto прижмет её к правому краю) -->
-                                    <button name="action_reset_attendance_sheet" type="object"
-                                        string="Сбросить"
-                                        class="btn btn-sm btn-outline-secondary rounded-pill ms-auto shadow-sm"
-                                        icon="fa-refresh"
-                                        confirm="Вы уверены, что хотите очистить все оценки и статусы в этом журнале?"
-                                        invisible="state in ('done','cancel')" />
-
-                                </div>                                
+                                <!-- Кнопка СБРОС (Прижата вправо через ms-auto) -->
+                                <button name="action_reset_attendance_sheet" type="object" string="Сбросить журнал"
+                                        class="btn btn-link btn-sm text-danger ms-auto"
+                                        icon="fa-refresh" title="Очистить все оценки и статусы"
+                                        confirm="Вы уверены, что хотите полностью очистить этот журнал?"/>
                             </div>
 
 

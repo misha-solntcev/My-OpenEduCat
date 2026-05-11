@@ -5,16 +5,16 @@
         <field name="name">op.session.list</field>
         <field name="model">op.session</field>
         <field name="arch" type="xml">
-            <list string="Sessions" sample="1"
+            <list string="Sessions" default_order="start_datetime asc, batch_id, id" sample="1"
                 decoration-muted="state == 'draft'"
                 decoration-info="state == 'confirm'"
                 decoration-primary="state == 'start'"
                 decoration-success="state == 'done'"
                 decoration-danger="state == 'cancel'">
-                <field name="start_datetime" />
-                <field name="end_datetime" optional="show" />
                 <field name="faculty_id" widget="many2one_avatar_user" />
                 <field name="subject_id" />
+                <field name="start_datetime" />
+                <field name="end_datetime" optional="show" />
                 <field name="course_id" optional="show" />
                 <field name="batch_id" optional="hide" />
                 <field name="classroom_id" />

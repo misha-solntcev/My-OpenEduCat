@@ -6,7 +6,7 @@ class OpSession(models.Model):
     _name = "op.session"
     _inherit = ["mail.thread", "mail.activity.mixin"]
     _description = "Sessions"
-    _order = "start_datetime desc"
+    _order = "start_datetime desc, batch_id, id"
 
     # --- ПОЛЯ ---
     start_datetime = fields.Datetime(
@@ -29,7 +29,7 @@ class OpSession(models.Model):
         ('draft', 'Черновик'), 
         ('confirm', 'Утвержден'),
         ('start', 'Урок идет'),
-        ('done', 'Проведен'), 
+        ('done', 'Завершен'), 
         ('cancel', 'Отменен')],
         string='Status', default='draft', tracking=True, index=True)
 
@@ -65,6 +65,8 @@ class OpSession(models.Model):
             else:
                 rec.timing = ""
 
+    def lecture_draft(self):
+        self.write({'state': 'draft'})
 
     def lecture_confirm(self):
         self.write({'state': 'confirm'})
@@ -77,9 +79,6 @@ class OpSession(models.Model):
 
     def lecture_cancel(self):
         self.write({'state': 'cancel'})
-
-    def lecture_draft(self):
-        self.write({'state': 'draft'})
 
     def lecture_edit(self):
         self.write({'state': 'start'})

@@ -6,25 +6,15 @@
             <field name="arch" type="xml">
                 <form string="Массовые действия">
                     <field name="action_type" invisible="1"/>
-                    
-                    <h2 invisible="action_type != 'draft'">Вернуть выбранные уроки в черновик?</h2>
+                    <h2 invisible="action_type != 'draft'">Сбросить выбранные уроки в черновик?</h2>
                     <h2 invisible="action_type != 'confirm'">Утвердить выбранные уроки?</h2>
                     <h2 invisible="action_type != 'done'">Завершить выбранные уроки?</h2>
-                    <h2 invisible="action_type != 'cancel'">Отменить выбранные уроки?</h2>                    
-
+                    <h2 invisible="action_type != 'cancel'">Отменить выбранные уроки?</h2>
                     <footer>
-                        <button string="Вернуть в черновики" type="object" name="state_draft" 
-                                class="btn-secondary" invisible="action_type != 'draft'"/>
-
-                        <button string="Утвердить уроки" type="object" name="state_confirmation" 
-                                class="oe_highlight" invisible="action_type != 'confirm'"/>
-                        
-                        <button string="Завершить уроки" type="object" name="state_done" 
-                                class="oe_highlight" invisible="action_type != 'done'"/>  
-                        
-                        <button string="Отменить уроки" type="object" name="state_cancel" 
-                                class="btn-danger" invisible="action_type != 'cancel'"/>                      
-
+                        <button string="Сбросить в черновик" type="object" name="state_draft" class="btn-secondary" invisible="action_type != 'draft'"/>
+                        <button string="Утвердить" type="object" name="state_confirmation" class="oe_highlight" invisible="action_type != 'confirm'"/>
+                        <button string="Завершить" type="object" name="state_done" class="oe_highlight" invisible="action_type != 'done'"/>
+                        <button string="Отменить" type="object" name="state_cancel" class="btn-danger" invisible="action_type != 'cancel'"/>
                         <button special="cancel" string="Отмена" class="btn-secondary"/>
                     </footer>
                 </form>
@@ -43,7 +33,7 @@
 
         <!-- 2. Действие ПОДТВЕРЖДЕНИЕ -->
         <record id="session_confirmation_form_view_act" model="ir.actions.act_window">
-            <field name="name">Подтвердить уроки</field>
+            <field name="name">Утвердить уроки</field>
             <field name="res_model">session.confirmation</field>
             <field name="view_mode">form</field>
             <field name="target">new</field>
