@@ -11,10 +11,14 @@
                 decoration-primary="state == 'start'"
                 decoration-success="state == 'done'"
                 decoration-danger="state == 'cancel'">
-                <field name="faculty_id" widget="many2one_avatar_user" />
-                <field name="subject_id" />
-                <field name="start_datetime" />
-                <field name="end_datetime" optional="show" />
+                <field name="faculty_id" widget="many2one_avatar_user" optional="show"/>
+                <field name="subject_id" optional="show"/>
+                <field name="start_datetime" optional="show"
+                    options="{'related_start_date': 'start_datetime', 
+                    'show_seconds': False}"/>
+                <field name="end_datetime" optional="show"
+                    options="{'related_start_date': 'end_datetime', 
+                    'show_seconds': False}" />                
                 <field name="course_id" optional="show" />
                 <field name="batch_id" optional="hide" />
                 <field name="classroom_id" />
@@ -23,7 +27,8 @@
                     decoration-info="state == 'confirm'"
                     decoration-primary="state == 'start'"
                     decoration-success="state == 'done'"
-                    decoration-danger="state == 'cancel'" />
+                    decoration-danger="state == 'cancel'" 
+                    optional="show"/>
             </list>
         </field>
     </record>
@@ -94,15 +99,15 @@
                             <label for="start_datetime" string="Schedule" />
                             <div class="o_row">
                                 <field name="start_datetime" widget="daterange"
-                                    options="{
-                                    'related_end_date': 'end_datetime', 
+                                    options="{'related_start_date': 'start_datetime',
                                     'show_seconds': False, 'rounding': 10}"
                                     required="1" />
                                 <span class="fa fa-long-arrow-right mx-2" title="Arrow" />
                                 <field name="end_datetime" widget="daterange"
-                                    options="{'related_start_date': 'start_datetime',
+                                options="{
+                                    'related_end_date': 'end_datetime', 
                                     'show_seconds': False, 'rounding': 10}"
-                                    required="1" />
+                                    required="1" />                                    
                             </div>
                             <field name="classroom_id" options="{'no_create_edit': True}" />
 
