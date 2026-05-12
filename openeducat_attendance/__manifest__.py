@@ -33,8 +33,7 @@
     ],
     'assets': {
         'web.assets_backend': [
-            'openeducat_attendance/static/src/css/style.css',
-            'openeducat_attendance/static/src/js/tours/attendance_tour.js',            
+            'openeducat_attendance/static/src/css/style.css',            
         ],
     },
     'images': [
