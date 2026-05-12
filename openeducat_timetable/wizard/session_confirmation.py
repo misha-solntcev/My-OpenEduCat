@@ -1,33 +1,23 @@
-###############################################################################
-#
-#    OpenEduCat Inc
-#    Copyright (C) 2009-TODAY OpenEduCat Inc(<https://www.openeducat.org>).
-#
-#    This program is free software: you can redistribute it and/or modify
-#    it under the terms of the GNU Lesser General Public License as
-#    published by the Free Software Foundation, either version 3 of the
-#    License, or (at your option) any later version.
-#
-#    This program is distributed in the hope that it will be useful,
-#    but WITHOUT ANY WARRANTY; without even the implied warranty of
-#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#    GNU Lesser General Public License for more details.
-#
-#    You should have received a copy of the GNU Lesser General Public License
-#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#
-###############################################################################
-
-from odoo import models
-
+from odoo import models, api, fields
 
 class SessionConfirmation(models.TransientModel):
     _name = "session.confirmation"
-    _description = "Wizard for Multiple Session Confirmation"
+    _description = "Массовые действия с уроками"
 
-    def state_confirmation(self):
-        active_ids = self.env.context['active_ids']
-        lines = self.env['op.session'].search([('id', 'in', active_ids),
-                                               ('state', '=', 'draft')])
-        for line in lines:
-            line.lecture_confirm()
+    action_type = fields.Selection([
+        ('draft', 'В черновик'), 
+        ('confirm', 'Утвердить'),
+        ('done', 'Завершить'), 
+        ('cancel', 'Отменить')
+    ], string="Тип действия")
+
+    def _process(self, method_name):
+        active_ids = self.env.context.get('active_ids', [])
+        sessions = self.env['op.session'].browse(active_ids)
+        if sessions:
+            getattr(sessions, method_name)()
+
+    def state_draft(self): self._process('lecture_draft')
+    def state_confirmation(self): self._process('lecture_confirm')
+    def state_done(self): self._process('lecture_done')
+    def state_cancel(self): self._process('lecture_cancel')

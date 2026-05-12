@@ -8,34 +8,22 @@
     'complexity': "easy",
     'author': 'OpenEduCat Inc',
     'website': 'https://www.openeducat.org',
-    'depends': ['base', 'web', 'openeducat_core', 'openeducat_timetable', 'base_automation'],
+    'depends': ['base', 'web', 'openeducat_core', 'openeducat_timetable', 'base_automation', 'web_tour'],
     'data': [
         'security/op_security.xml',
         'security/ir.model.access.csv',
         'data/attendance_sheet_sequence.xml',
-        'data/automation_cron.xml', 
-        'wizards/student_attendance_wizard_view.xml',
-        'wizards/student_grades_by_subject_wizard_view.xml',
-        'wizards/class_grades_summary_wizard_view.xml',
-        'wizards/class_grades_quarterly_wizard_view.xml',
-        'wizards/student_grades_by_date_wizard_view.xml',        
+        'data/automation_cron.xml',
         'views/attendance_register_view.xml',
         'views/attendance_sheet_view.xml',
         'views/attendance_line_view.xml',
         'views/subject_grades_view.xml',
         'views/attendance_type_view.xml',
         'views/attendance_session_view.xml',
-        'views/student_view.xml',        
-        'report/student_attendance_report.xml',
-        'report/student_attendance_detailed_report.xml',
-        'report/student_grades_by_subject_report.xml',
-        'report/class_grades_summary_report.xml',
-        'report/class_grades_quarterly_report.xml',
-        'report/student_grades_by_date_report.xml',
-        'report/report_menu.xml',
-        'menus/op_menu.xml',        
-        'wizards/student_report_wizard_view.xml',  # Окно и Экшн окна
-        'report/student_report_template.xml',     # Экшн отчета и Дизайн
+        'views/student_view.xml',
+        'menus/op_menu.xml',
+        'wizards/student_report_wizard_view.xml', # Визард "Итоговые оценки"
+        'report/student_report_template.xml',    # Шаблон печати "Итоговые оценки"
     ],
     'demo': [
         'demo/attendance_register_demo.xml',
@@ -46,6 +34,7 @@
     'assets': {
         'web.assets_backend': [
             'openeducat_attendance/static/src/css/style.css',
+            'openeducat_attendance/static/src/js/tours/attendance_tour.js',            
         ],
     },
     'images': [

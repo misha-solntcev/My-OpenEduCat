@@ -5,8 +5,8 @@
         <field name="name">op.attendance.line.list</field>
         <field name="model">op.attendance.line</field>
         <field name="arch" type="xml">
-            <list string="Журнал оценок" editable="bottom" create="0" delete="0" expand="0"
-                sample="1">
+            <list string="Журнал оценок" 
+                create="0" edit="0" delete="0" expand="0" sample="1">
                 <field name="grade_1" optional="hide" avg="Среднее О1"/>
                 <field name="grade_2" optional="hide" avg="Среднее О2"/>
                 <field name="grade_3" optional="hide" avg="Среднее О3"/>
@@ -45,37 +45,10 @@
                     decoration-danger="grade_avg &lt; 2.5 and grade_avg &gt; 0" />
 
                 <field name="remark" optional="show" />
+                <button name="action_open_sheet" type="object" icon="fa-external-link" title="Открыть журнал" />
             </list>
         </field>
-    </record>
-
-    <record id="view_op_attendance_line_compact_form" model="ir.ui.view">
-        <field name="name">op.attendance.line.compact.form</field>
-        <field name="model">op.attendance.line</field>
-        <field name="arch" type="xml">
-            <form string="Детали посещаемости и оценки">
-                <sheet>
-                    <group>
-                        <group string="Информация о уроке">
-                            <field name="attendance_date" readonly="1" />
-                            <field name="lesson_topic" string="Тема урока"
-                                placeholder="Тема урока..." />
-                        </group>
-                        <group string="Оценки">
-                            <field name="grade_1_ui" widget="selection_badge" string="Оценка 1"/>
-                            <field name="grade_2_ui" widget="selection_badge" string="Оценка 2"/>
-                            <field name="grade_3_ui" widget="selection_badge" string="Оценка 3"/>
-                            <field name="attendance_type_id" string="Посещаемость"
-                                options="{'no_open': True, 'no_create': True}" />
-                        </group>
-                    </group>
-                    <group string="Дополнительно">
-                        <field name="remark" placeholder="Ваше примечание..." />
-                    </group>
-                </sheet>
-            </form>
-        </field>
-    </record>
+    </record>    
 
     <!-- 2. Электронный дневник-->
     <record id="view_op_attendance_line_pivot" model="ir.ui.view">

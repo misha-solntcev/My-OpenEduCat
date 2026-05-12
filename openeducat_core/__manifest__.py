@@ -57,7 +57,6 @@
         'views/op_academic_term_view.xml',
         'views/program_view.xml',
         'views/program_level.xml',
-        'data/ir_cron_data.xml',
         'data/res_partner_data.xml',
         'menu/openeducat_core_menu.xml',
         'menu/student_menu.xml',
@@ -93,8 +92,7 @@
     ],
     'installable': True,
     'auto_install': False,
-    'application': True,
-    'post_init_hook': '_openeducat_post_init',
+    'application': True,    
     'assets': {
         'website.assets_frontend': [
             '/openeducat_core/static/src/scss/main.scss',

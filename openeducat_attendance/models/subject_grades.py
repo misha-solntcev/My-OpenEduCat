@@ -223,7 +223,7 @@ class OpSubjectGrades(models.Model):
             # r=15.915 делает длину окружности ровно 100
             segments.append(f"""
                 <circle class="donut-seg" cx="21" cy="21" r="15.915" fill="none" 
-                        stroke="{color}" stroke-width="31.8" 
+                        stroke="{color}" stroke-width="8" 
                         stroke-dasharray="{pct} {100-pct}" 
                         stroke-dashoffset="-{offset}"/>
             """)
@@ -482,6 +482,33 @@ class OpSubjectGrades(models.Model):
 
 
 
+   # Поле для переключения вкладок (не хранится в БД)
+    view_quarter = fields.Selection([
+        ('1', '1 четверть'),
+        ('2', '2 четверть'),
+        ('3', '3 четверть'),
+        ('4', '4 четверть')
+    ], string="Период", default=lambda self: self._get_current_q_code(), store=False)
+
+    def _get_current_q_code(self):
+        """Определяет номер текущей четверти на основе даты"""
+        today = fields.Date.today()
+        # Ищем четверть, в которую попадает 'сегодня'
+        term = self.env['op.academic.term'].sudo().search([
+            ('term_start_date', '<=', today),
+            ('term_end_date', '>=', today),
+            ('parent_term', '!=', False)
+        ], limit=1)
+        
+        if term:
+            # Вытягиваем цифру из названия четверти
+            digit = "".join(filter(str.isdigit, term.name))
+            if digit in ['1', '2', '3', '4']:
+                return digit
+        return '1' # По умолчанию первая
+
+
+
 
     # ЭКСПЕРИМЕНТАЛЬНЫЕ ПЛИТКИ
 
@@ -601,3 +628,8 @@ class OpSubjectGrades(models.Model):
 
 
     
+    _sql_constraints = [
+            ('unique_student_subject_batch', 
+            'unique(student_id, subject_id, batch_id)', 
+            'Карточка успеваемости для этого ученика по этому предмету в данном классе уже существует!')
+        ]

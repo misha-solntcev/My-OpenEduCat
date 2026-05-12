@@ -1,24 +1,5 @@
-##############################################################################
-#
-#    OpenEduCat Inc
-#    Copyright (C) 2009-TODAY OpenEduCat Inc(<https://www.openeducat.org>).
-#
-#    This program is free software: you can redistribute it and/or modify
-#    it under the terms of the GNU Lesser General Public License as
-#    published by the Free Software Foundation, either version 3 of the
-#    License, or (at your option) any later version.
-#
-#    This program is distributed in the hope that it will be useful,
-#    but WITHOUT ANY WARRANTY; without even the implied warranty of
-#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#    GNU Lesser General Public License for more details.
-#
-#    You should have received a copy of the GNU Lesser General Public License
-#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#
-###############################################################################
-
-from odoo import api, fields, models
+from odoo import api, fields, models, _
+from odoo.exceptions import ValidationError
 
 class OpAttendanceSheet(models.Model):
     _name = "op.attendance.sheet"
@@ -26,87 +7,139 @@ class OpAttendanceSheet(models.Model):
     _description = "Attendance Sheet"
     _order = "start_datetime asc, batch_id, id"
 
-    start_datetime = fields.Datetime(
-        related='session_id.start_datetime', 
-        string='Начало урока', 
-        store=True, 
-        index=True
-    )
-
-    # Техническое поле (Старый код типа 11А4чAR-AS2358). Оставлен для целостности БД
+    # --- ПОЛЯ ---
     name = fields.Char('Name', readonly=True, size=32)
-
-    # 2. Красивый заголовок (Для учителей)
-    display_title = fields.Char(
-        string='Журнал урока', 
-        compute='_compute_display_title', 
-        store=True)
-
-    register_id = fields.Many2one(
-        'op.attendance.register', 'Register', required=True,
-        tracking=True)
-    course_id = fields.Many2one(
-        'op.course', related='register_id.course_id', store=True,
-        readonly=True)
-    batch_id = fields.Many2one(
-        'op.batch', 'Batch', related='register_id.batch_id', store=True,
-        readonly=True)
-    session_id = fields.Many2one('op.session', 'Session')
-    attendance_date = fields.Date(
-        'Date', required=True, default=fields.Date.context_today,
-        tracking=True)
-    attendance_line = fields.One2many(
-        'op.attendance.line', 'attendance_id', 'Attendance Line')
-    active = fields.Boolean(default=True)
+    display_title = fields.Char(string='Журнал урока', compute='_compute_display_title', store=True)
     
-    faculty_id = fields.Many2one(
-        'op.faculty', 'Faculty', 
-        compute='_compute_faculty_id', store=True, readonly=False)
-
-    subject_id = fields.Many2one(
-        'op.subject', string='Предмет', compute='_compute_subject_id', store=True)
+    register_id = fields.Many2one('op.attendance.register', 'Register', required=True, tracking=True)
+    course_id = fields.Many2one('op.course', related='register_id.course_id', store=True, readonly=True)
+    batch_id = fields.Many2one('op.batch', 'Batch', related='register_id.batch_id', store=True, readonly=True)
+    session_id = fields.Many2one('op.session', 'Session', ondelete='cascade')
     
-    term_id = fields.Many2one(
-        'op.academic.term', string='Четверть', compute='_compute_term', store=True)
-
+    start_datetime = fields.Datetime(related='session_id.start_datetime', string='Начало урока', store=True, index=True)
+    attendance_date = fields.Date('Date', required=True, default=fields.Date.context_today, tracking=True)
+    
+    faculty_id = fields.Many2one('op.faculty', related='session_id.faculty_id', 
+        string='Faculty', store=True, readonly=True, index=True)
+    subject_id = fields.Many2one('op.subject', related='session_id.subject_id', 
+        string='Предмет', store=True, readonly=True, index=True)
+    term_id = fields.Many2one('op.academic.term', string='Четверть', 
+        compute='_compute_term', store=True)
+    
     lesson_topic = fields.Char('Тема урока', size=256)
-
     state = fields.Selection([
+        ('draft', 'Черновик'),
         ('confirm', 'Утвержден'),
         ('start', 'Урок идет'),
-        ('done', 'Проведен'),
+        ('done', 'Завершен'),
         ('cancel', 'Отменен'),
-    ], string='Статус', default='confirm', tracking=True)
+    ], string='Статус', default='draft', tracking=True)
 
-    days = fields.Selection(
-        related='session_id.days', 
-        store=True, 
-        readonly=True, 
-        group_expand='_expand_groups'
-    )
-
-    timing = fields.Char(related='session_id.timing', string='Время', store=True)
+    active = fields.Boolean(default=True)
+    attendance_line = fields.One2many('op.attendance.line', 'attendance_id', 'Attendance Line')
+    
+    # Визуальные поля
+    days = fields.Selection(related='session_id.days', store=True, readonly=True, group_expand='_expand_groups')
+    timing = fields.Char(related='session_id.timing', string='Время', store=False)
     classroom_id = fields.Many2one(related='session_id.classroom_id', string='Кабинет', store=True)    
     textbook_image = fields.Image('Учебник', compute='_compute_textbook_image', store=True)    
 
-    @api.depends('subject_id', 'course_id')    
-    def _compute_textbook_image(self):
-        for r in self:
-            if not r.subject_id or not r.course_id:
-                r.textbook_image = False
-                continue
-            # Ищем учебник в библиотеке по Предмету и Курсу (Параллели)
-            domain = [('subject_ids', 'in', r.subject_id.ids), ('x_image_128', '!=', False)]
-            media = self.env['op.media'].sudo().search(domain + [('course_ids', 'in', r.course_id.ids)], limit=1)
-            if not media:
-                media = self.env['op.media'].sudo().search(domain, limit=1)
-            r.textbook_image = media.x_image_128 if media else False
+    # --- ЛОГИКА СОЗДАНИЯ (ТОЛЬКО ШАПКА) ---
     @api.model
-    def _expand_groups(self, days, domain, order=None):
-        # Этот список задает ЖЕСТКИЙ порядок колонок в Канбане
-        return ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
-    
-    # --- ЛОГИКА ОТОБРАЖЕНИЯ ИМЕНИ ---
+    def create_sheet_for_session(self, session):
+        sheet = self.search([('session_id', '=', session.id)], limit=1)
+        if sheet:
+            if sheet.state != session.state:
+                sheet.write({'state': session.state})
+            return sheet
+
+        register = self.env['op.attendance.register'].sudo().search([
+            ('course_id', '=', session.course_id.id),
+            ('batch_id', '=', session.batch_id.id)
+        ], limit=1)
+
+        return self.create({
+            'session_id': session.id,
+            'attendance_date': session.start_datetime.date(),
+            'register_id': register.id if register else False,
+            'state': session.state,
+            'attendance_line': []
+        })
+
+    # --- ГЕНЕРАЦИЯ СПИСКА ДЕТЕЙ ---
+    def action_generate_lines(self):
+        """Создает строки учеников, если их еще нет"""
+        for rec in self:
+            if not rec.attendance_line:
+                students = self.env['op.student'].sudo().search([
+                    ('course_detail_ids.course_id', '=', rec.session_id.course_id.id),
+                    ('course_detail_ids.batch_id', '=', rec.batch_id.id),
+                    ('active', '=', True)
+                ])
+                lines = [(0, 0, {'student_id': s.id, 'attendance_type_id': False}) for s in students]
+                rec.write({'attendance_line': lines})
+
+    # Заполнение статистики по оценкам в Subject Grades после завершения урока
+    def _transfer_grades_to_stats(self):
+        GradeObj = self.env['op.subject.grades']
+        for sheet in self:
+            if not sheet.subject_id: continue
+            student_ids = sheet.attendance_line.mapped('student_id').ids
+            existing = GradeObj.search([('student_id', 'in', student_ids), ('subject_id', '=', sheet.subject_id.id)])
+            existing_sids = existing.mapped('student_id').ids
+            to_create = [s for s in student_ids if s not in existing_sids]
+            if to_create:
+                GradeObj.create([{'student_id': s, 'subject_id': sheet.subject_id.id, 'batch_id': sheet.batch_id.id} for s in to_create])
+            GradeObj.search([('student_id', 'in', student_ids), ('subject_id', '=', sheet.subject_id.id)]).action_force_recompute()
+
+    def action_attendance_draft(self):
+        self.write({'state': 'draft'})
+
+    def action_attendance_confirm(self):
+        self.write({'state': 'confirm'})
+
+    # --- СИНХРОНИЗАЦИЯ СТАТУСОВ (Журнал -> Урок) ---
+    def action_attendance_start(self):
+        """Генерация списка учеников при фактическом начале"""
+        for rec in self:
+            if not rec.attendance_line:
+                students = self.env['op.student'].sudo().search([
+                    ('course_detail_ids.course_id', '=', rec.session_id.course_id.id),
+                    ('course_detail_ids.batch_id', '=', rec.batch_id.id),
+                    ('active', '=', True)
+                ])
+                lines = [(0, 0, {'student_id': s.id, 'attendance_type_id': False}) for s in students]
+                rec.write({'attendance_line': lines})
+            rec.write({'state': 'start'})
+
+    def action_attendance_done(self):        
+        self.write({'state': 'done'})                
+        for sheet in self:
+            if sheet.session_id and sheet.session_id.state != 'done':
+                sheet.session_id.write({'state': 'done'})        
+        self._transfer_grades_to_stats() 
+        return True
+
+    def action_attendance_cancel(self):
+        for rec in self:
+            marks = rec.attendance_line.filtered(lambda l: l.grade_1 or l.grade_2 or l.grade_3)
+            if marks:
+                raise ValidationError(_("В журнале [%s] есть оценки. Удалите их перед отменой.") % rec.display_title)
+            rec.write({'state': 'cancel'})
+
+    def action_attendance_edit(self):
+        """Кнопка 'Редактировать' в Журнале"""
+        self.write({'state': 'start'})
+        if self.session_id and self.session_id.state != 'start':
+            self.session_id.write({'state': 'start'})
+
+    # def action_attendance_confirm(self):
+    #     """Восстановление журнала"""
+    #     self.write({'state': 'confirm'})
+    #     if self.session_id and self.session_id.state != 'confirm':
+    #         self.session_id.write({'state': 'confirm'})
+
+    # --- ВЫЧИСЛЯЕМЫЕ МЕТОДЫ ---
     @api.depends('session_id', 'register_id', 'attendance_date')
     def _compute_display_title(self):
         for rec in self:
@@ -116,22 +149,8 @@ class OpAttendanceSheet(models.Model):
             rec.display_title = f"{subj} ({batch}) — {date_str}"
 
     def _compute_display_name(self):
-        """Переопределяем, что Odoo показывает в ссылках и заголовках"""
         for rec in self:
             rec.display_name = rec.display_title or rec.name
-
-    @api.depends('session_id.faculty_id', 'register_id')
-    def _compute_faculty_id(self):
-        for rec in self:
-            if rec.session_id.faculty_id:
-                rec.faculty_id = rec.session_id.faculty_id
-            elif not rec.faculty_id:
-                rec.faculty_id = False
-
-    @api.depends('session_id.subject_id', 'register_id.subject_id')
-    def _compute_subject_id(self):
-        for rec in self:
-            rec.subject_id = rec.session_id.subject_id or rec.register_id.subject_id
 
     @api.depends('attendance_date')
     def _compute_term(self):
@@ -144,149 +163,91 @@ class OpAttendanceSheet(models.Model):
                 ], limit=1)
                 record.term_id = term
 
-    def action_attendance_start(self):
-        """Начать урок"""
-        self.write({'state': 'start'})
-        if self.session_id and self.session_id.state != 'start':
-            self.session_id.write({'state': 'start'})
+    @api.depends('subject_id', 'course_id')    
+    def _compute_textbook_image(self):        
+        image_cache = {}        
+        for r in self:
+            if not r.subject_id or not r.course_id:
+                r.textbook_image = False
+                continue            
+            cache_key = (r.subject_id.id, r.course_id.id)            
+            if cache_key in image_cache:
+                r.textbook_image = image_cache[cache_key]
+                continue
+            domain = [('subject_ids', 'in', r.subject_id.ids), ('x_image_128', '!=', False)]            
+            media = self.env['op.media'].sudo().search(domain + [('course_ids', 'in', r.course_id.ids)], limit=1)            
+            if not media:                
+                media = self.env['op.media'].sudo().search(domain, limit=1)            
+            res_image = media.x_image_128 if media else False                        
+            image_cache[cache_key] = res_image
+            r.textbook_image = res_image
 
-    def action_attendance_done(self):
-        """Завершить урок (Синхронно с расписанием + расчет итогов)"""
-        res = self.write({'state': 'done'})
-        if self.session_id and self.session_id.state != 'done':
-            self.session_id.write({'state': 'done'})        
-        
-        GradeObj = self.env['op.subject.grades']
-        for sheet in self:
-            if not sheet.subject_id or not sheet.batch_id: continue
-            student_ids = sheet.attendance_line.mapped('student_id')
-            existing_cards = GradeObj.search([
-                ('student_id', 'in', student_ids.ids),
-                ('subject_id', '=', sheet.subject_id.id),
-                ('batch_id', '=', sheet.batch_id.id)
-            ])
-            existing_student_ids = existing_cards.mapped('student_id').ids
-            missing_students = student_ids.filtered(lambda s: s.id not in existing_student_ids)
-            
-            if missing_students:
-                GradeObj.create([{
-                    'student_id': s.id, 'subject_id': sheet.subject_id.id, 'batch_id': sheet.batch_id.id,
-                } for s in missing_students])            
-            
-            all_cards = GradeObj.search([
-                ('student_id', 'in', student_ids.ids),
-                ('subject_id', '=', sheet.subject_id.id),
-                ('batch_id', '=', sheet.batch_id.id)
-            ])
-            all_cards.action_force_recompute()
-        return res
-
-    def action_attendance_edit(self):
-        """Редактировать: возврат в 'Идет урок' для правок"""
-        self.write({'state': 'start'})
-        if self.session_id:
-            self.session_id.write({'state': 'start'})
-
-    def action_attendance_confirm(self):
-        """Восстановить: из Отменен -> в Утвержден"""
-        self.write({'state': 'confirm'})
-        if self.session_id:
-            self.session_id.write({'state': 'confirm'})
-
-    def action_attendance_cancel(self):
-        """Отмена из журнала с проверкой на оценки"""
-        marks = self.attendance_line.filtered(lambda l: l.grade_1 or l.grade_2 or l.grade_3)
-        if marks:
-            raise ValidationError(_("В журнале есть оценки. Удалите их перед отменой."))
-        self.write({'state': 'cancel'})
-        if self.session_id:
-            self.session_id.write({'state': 'cancel'})    
+    @api.model
+    def _expand_groups(self, days, domain, order=None):
+        return ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
 
 
-# --- СЧЕТЧИКИ ПОСЕЩАЕМОСТИ (store=True обязателен для поиска и Pivot) ---
-    total_students = fields.Integer(compute='_compute_attendance_stats', 
-        store=True, aggregator="sum")
-    total_present = fields.Integer(compute='_compute_attendance_stats', 
-        store=True, aggregator="sum")
-    total_absent = fields.Integer(compute='_compute_attendance_stats', 
-        store=True, aggregator="sum")
-    attendance_rate = fields.Float(compute='_compute_attendance_stats', 
-        store=True, aggregator="avg")
+    # --- СТАТИСТИКА ПОСЕЩАЕМОСТИ ---
+    # Посещаемость
+    total_students = fields.Integer(compute='_compute_all_stats', store=True)
+    total_present = fields.Integer(compute='_compute_all_stats', store=True)
+    total_absent = fields.Integer(compute='_compute_all_stats', store=True)
+    attendance_rate = fields.Float(compute='_compute_all_stats', store=True)
+    # Оценки
+    count_5 = fields.Integer(compute='_compute_all_stats', store=True)
+    count_4 = fields.Integer(compute='_compute_all_stats', store=True)
+    count_3 = fields.Integer(compute='_compute_all_stats', store=True)
+    count_2 = fields.Integer(compute='_compute_all_stats', store=True)
+    average_grade_lesson = fields.Float(compute='_compute_all_stats', store=True)
 
-    @api.depends('attendance_line', 'attendance_line.attendance_type_id')
-    def _compute_attendance_stats(self):
+    @api.depends('attendance_line', 'attendance_line.attendance_type_id', 
+        'attendance_line.grade_1', 'attendance_line.grade_2', 'attendance_line.grade_3')
+    def _compute_all_stats(self):        
         for rec in self:
-            stats = self.env['op.attendance.line'].get_stats_from_lines(rec.attendance_line)
-            rec.total_students = stats['total']
-            rec.total_present = stats['present']
-            rec.total_absent = stats['absent']
-            rec.attendance_rate = stats['rate']
+            total = len(rec.attendance_line)
+            present = 0
+            absent = 0            
+            counts = {5: 0, 4: 0, 3: 0, 2: 0}
+            all_marks = []
 
+            for line in rec.attendance_line:                
+                if line.present: 
+                    present += 1
+                elif line.absent: 
+                    absent += 1                
+                for val in [line.grade_1, line.grade_2, line.grade_3]:
+                    if val and 2 <= val <= 5:
+                        counts[int(val)] += 1
+                        all_marks.append(val)
+            
+            rec.update({
+                'total_students': total,
+                'total_present': present,
+                'total_absent': absent,
+                'attendance_rate': (present / total * 100) if total > 0 else 0.0,
+                'count_5': counts[5],
+                'count_4': counts[4],
+                'count_3': counts[3],
+                'count_2': counts[2],
+                'average_grade_lesson': sum(all_marks) / len(all_marks) if all_marks else 0.0
+            })
+
+    # --- МАССОВЫЕ ДЕЙСТВИЯ ---
     @api.model_create_multi
     def create(self, vals_list):
         for vals in vals_list:
-            # name теперь будет просто порядковым номером из последовательности
             if not vals.get('name'):
                 vals['name'] = self.env['ir.sequence'].next_by_code('op.attendance.sheet') or '/'
         return super(OpAttendanceSheet, self).create(vals_list)
 
-    # Авто-заполнение данных при выборе урока вручную (если зашли не из расписания)
-    @api.onchange('session_id')
-    def onchange_session_id(self):
-        if self.session_id:
-            self.attendance_date = self.session_id.start_datetime.date()
-            self.faculty_id = self.session_id.faculty_id            
-            register = self.env['op.attendance.register'].search([
-                ('course_id', '=', self.session_id.course_id.id),
-                ('batch_id', '=', self.session_id.batch_id.id)
-            ], limit=1)
-            if register:
-                self.register_id = register   
-
-
-    # Статистика по оценкам для Канбана (считает все 3 оценки вместе)
-
-    # Поля для Канбана (обязательно store=True)
-    count_5 = fields.Integer(compute='_compute_lesson_stats', store=True)
-    count_4 = fields.Integer(compute='_compute_lesson_stats', store=True)
-    count_3 = fields.Integer(compute='_compute_lesson_stats', store=True)
-    count_2 = fields.Integer(compute='_compute_lesson_stats', store=True)
-    average_grade_lesson = fields.Float(compute='_compute_lesson_stats', store=True, digits=(1, 2))
-
-    @api.depends('attendance_line.grade_1', 'attendance_line.grade_2', 'attendance_line.grade_3', 'attendance_line.attendance_type_id')
-    def _compute_lesson_stats(self):
-        for rec in self:
-            # Вызываем ваш метод, который уже умеет собирать все оценки 1, 2, 3 вместе
-            stats = self.env['op.attendance.line'].get_stats_from_lines(rec.attendance_line)
-            
-            rec.update({
-                'count_5': stats['counts'][5],
-                'count_4': stats['counts'][4],
-                'count_3': stats['counts'][3],
-                'count_2': stats['counts'][2],
-                'average_grade_lesson': stats['avg']
-            })
-
-
-    # ---- МАССОВЫЕ ДЕЙСТВИЯ ----
     def action_mass_set_attendance(self):
-        """Оптимизированная установка статуса"""
         self.ensure_one()
-        if self.state in ('done', 'cancel'):
-            return
-
+        if self.state in ('done', 'cancel'): return
         target_name = self.env.context.get('set_name')
-        if not target_name:
-            return
-
+        if not target_name: return
         target_type = self.env['op.attendance.type'].search([('name', '=', target_name)], limit=1)
-        
         if target_type:            
             self.attendance_line.write({'attendance_type_id': target_type.id})           
-            
-
-
 
     def action_reset_attendance_sheet(self):
-        """Полный сброс всего журнала"""
         self.attendance_line.action_clear_line_data()

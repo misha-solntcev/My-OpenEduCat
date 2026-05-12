@@ -1,30 +1,64 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <odoo>
-
         <record id="view_session_confirmation_form" model="ir.ui.view">
             <field name="name">session.confirmation.form</field>
             <field name="model">session.confirmation</field>
             <field name="arch" type="xml">
-                <form string="Session Confirmation" version="7.0">
-                    <h2>Are you sure you want to confirm selected sessions ?</h2>
+                <form string="Массовые действия">
+                    <field name="action_type" invisible="1"/>
+                    <h2 invisible="action_type != 'draft'">Сбросить выбранные уроки в черновик?</h2>
+                    <h2 invisible="action_type != 'confirm'">Утвердить выбранные уроки?</h2>
+                    <h2 invisible="action_type != 'done'">Завершить выбранные уроки?</h2>
+                    <h2 invisible="action_type != 'cancel'">Отменить выбранные уроки?</h2>
                     <footer>
-                        <span groups="base.group_user">
-                            <button string="Yes" type="object" name="state_confirmation" class="oe_highlight"/>
-                            or
-                            <button special="cancel" string="No" type="object"/>
-                        </span>
+                        <button string="Сбросить в черновик" type="object" name="state_draft" class="btn-secondary" invisible="action_type != 'draft'"/>
+                        <button string="Утвердить" type="object" name="state_confirmation" class="oe_highlight" invisible="action_type != 'confirm'"/>
+                        <button string="Завершить" type="object" name="state_done" class="oe_highlight" invisible="action_type != 'done'"/>
+                        <button string="Отменить" type="object" name="state_cancel" class="btn-danger" invisible="action_type != 'cancel'"/>
+                        <button special="cancel" string="Отмена" class="btn-secondary"/>
                     </footer>
                 </form>
             </field>
         </record>
 
+        <!-- 1. Действие Сделать черновиком -->
+        <record id="action_session_draft_wizard" model="ir.actions.act_window">
+            <field name="name">Вернуть в черновик</field>
+            <field name="res_model">session.confirmation</field>
+            <field name="view_mode" >form</field>
+            <field name="target">new</field>
+            <field name="binding_model_id" ref="model_op_session"/>
+            <field name="context">{'default_action_type': 'draft'}</field>
+        </record>
+
+        <!-- 2. Действие ПОДТВЕРЖДЕНИЕ -->
         <record id="session_confirmation_form_view_act" model="ir.actions.act_window">
-            <field name="name">Confirmation</field>
+            <field name="name">Утвердить уроки</field>
             <field name="res_model">session.confirmation</field>
             <field name="view_mode">form</field>
             <field name="target">new</field>
-            <field name="path">session-confirmation</field>
             <field name="binding_model_id" ref="model_op_session"/>
+            <field name="context">{'default_action_type': 'confirm'}</field> 
+        </record>
+
+        <!-- 3. Действие ОТМЕНА -->
+        <record id="action_session_cancel_wizard" model="ir.actions.act_window">
+            <field name="name">Отменить уроки</field>
+            <field name="res_model">session.confirmation</field>
+            <field name="view_mode">form</field>
+            <field name="target">new</field>
+            <field name="binding_model_id" ref="model_op_session"/>
+            <field name="context">{'default_action_type': 'cancel'}</field>
+        </record>
+
+        <!-- 4. Действие ЗАВЕРШЕНИЕ -->
+        <record id="action_session_done_wizard" model="ir.actions.act_window">
+            <field name="name">Завершить уроки</field>
+            <field name="res_model">session.confirmation</field>
+            <field name="view_mode">form</field>
+            <field name="target">new</field>
+            <field name="binding_model_id" ref="model_op_session"/>
+            <field name="context">{'default_action_type': 'done'}</field>
         </record>
 
 </odoo>

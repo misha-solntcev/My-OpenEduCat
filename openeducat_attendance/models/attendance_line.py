@@ -1,289 +1,178 @@
-###############################################################################
-#
-#    OpenEduCat Inc
-#    Copyright (C) 2009-TODAY OpenEduCat Inc(<https://www.openeducat.org>).
-#
-#    This program is free software: you can redistribute it and/or modify
-#    it under the terms of the GNU Lesser General Public License as
-#    published by the Free Software Foundation, either version 3 of the
-#    License, or (at your option) any later version.
-#
-#    This program is distributed in the hope that it will be useful,
-#    but WITHOUT ANY WARRANTY; without even the implied warranty of
-#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#    GNU Lesser General Public License for more details.
-#
-#    You should have received a copy of the GNU Lesser General Public License
-#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#
-###############################################################################
-
-from odoo import api, fields, models
-from odoo.tools import SQL
+from odoo import api, fields, models, _, fields
 from odoo.exceptions import ValidationError
-
 
 class OpAttendanceLine(models.Model):
     _name = "op.attendance.line"
     _inherit = ["mail.thread"]
-    _rec_name = "attendance_id"
     _description = "Attendance Lines"
-    _order = "attendance_date desc"
+    _order = "attendance_date desc, student_id"
 
-    attendance_id = fields.Many2one(
-        'op.attendance.sheet', 'Attendance Sheet', required=True,
-        tracking=True, ondelete="cascade")
-    student_id = fields.Many2one(
-        'op.student', 'Student', required=True, tracking=True)
-    register_id = fields.Many2one(
-        related='attendance_id.register_id', store=True, readonly=True)
+    # --- БАЗОВЫЕ ПОЛЯ ---
+    attendance_id = fields.Many2one('op.attendance.sheet', 'Attendance Sheet', 
+        required=True, ondelete="cascade", index=True)
+    student_id = fields.Many2one('op.student', 'Student', required=True, index=True)
     
-    attendance_date = fields.Date(
-        'Date', related='attendance_id.attendance_date', store=True,
-        readonly=True, tracking=True)
+    # --- RELATED ПОЛЯ (Для поиска, группировки и Pivot) ---
+    attendance_date = fields.Date(related='attendance_id.attendance_date', 
+        store=True, readonly=True, index=True, string='Дата занятия')
+    subject_id = fields.Many2one('op.subject', related='attendance_id.subject_id', 
+        store=True, readonly=True, index=True, string='Предмет')
+    batch_id = fields.Many2one('op.batch', related='attendance_id.batch_id', 
+        store=True, readonly=True, index=True, string='Класс')    
+    faculty_id = fields.Many2one('op.faculty', related='attendance_id.faculty_id', 
+        store=True, readonly=True, index=True, string='Учитель')
     
-    subject_id = fields.Many2one(
-        'op.subject', string='Предмет', 
-        related='attendance_id.subject_id', store=True, readonly=True)
+    # Периоды для Pivot-таблицы
+    term_id = fields.Many2one('op.academic.term', related='attendance_id.term_id', store=True, readonly=True, index=True, string='Четверть')
+    academic_year_id = fields.Many2one('op.academic.year', related='term_id.academic_year_id', 
+        store=True, readonly=True, index=True, string='Учебный год')
+    parent_term_id = fields.Many2one('op.academic.term', related='term_id.parent_term', 
+        store=True, readonly=True, index=True, string='Полугодие')
 
-    term_id = fields.Many2one(
-        'op.academic.term', string='Четверть', 
-        related='attendance_id.term_id', store=True, readonly=True)
+    lesson_topic = fields.Char(related='attendance_id.lesson_topic', store=True, readonly=True)
+
+    # --- СТАТУСЫ ---
+    attendance_type_id = fields.Many2one('op.attendance.type', string='Status', tracking=True)
+    present = fields.Boolean(related='attendance_type_id.present', store=True)
+    absent = fields.Boolean(related='attendance_type_id.absent', store=True)
+    late = fields.Boolean(related='attendance_type_id.late', store=True)
+    excused = fields.Boolean(related='attendance_type_id.excused', store=True)
+
+    # --- ОЦЕНКИ ---
+    grade_1 = fields.Float('Оценка 1', default=0.0, tracking=True, aggregator="avg")
+    grade_2 = fields.Float('Оценка 2', default=0.0, tracking=True, aggregator="avg")
+    grade_3 = fields.Float('Оценка 3', default=0.0, tracking=True, aggregator="avg")
     
-    academic_year_id = fields.Many2one(
-        'op.academic.year', string='Учебный год', 
-        related='term_id.academic_year_id', store=True, readonly=True)
+    grade_1_ui = fields.Selection([('2','2'),('3','3'),('4','4'),('5','5')], string='О1', 
+        compute='_compute_grade_ui', inverse='_set_grade_1_ui')
+    grade_2_ui = fields.Selection([('2','2'),('3','3'),('4','4'),('5','5')], string='О2', 
+        compute='_compute_grade_ui', inverse='_set_grade_2_ui')
+    grade_3_ui = fields.Selection([('2','2'),('3','3'),('4','4'),('5','5')], string='О3', 
+        compute='_compute_grade_ui', inverse='_set_grade_3_ui')
 
-    parent_term_id = fields.Many2one(
-        'op.academic.term', string='Полугодие', 
-        related='term_id.parent_term', store=True, readonly=True)
+    grade_avg = fields.Float('Средний балл', compute='_compute_grade_avg', store=True, aggregator="avg")
+    remark = fields.Char('Remark', size=256)
+    color = fields.Integer(related='attendance_type_id.color')
+    student_avatar = fields.Image(related='student_id.image_128', string="Фото")
 
-    course_id = fields.Many2one(
-        'op.course', 'Course',
-        related='attendance_id.register_id.course_id', store=True, readonly=True)
-    
-    batch_id = fields.Many2one(
-        'op.batch', 'Batch',
-        related='attendance_id.register_id.batch_id', store=True, readonly=True)
-
-    faculty_id = fields.Many2one(
-        'op.faculty', 'Faculty', 
-        related='attendance_id.faculty_id', store=True, readonly=True)
-
-    lesson_topic = fields.Char(
-        'Lesson Topic', related='attendance_id.lesson_topic', store=True, readonly=False)
-
-    remark = fields.Char('Remark', size=256, tracking=True)
-    active = fields.Boolean(default=True)
-
-    student_avatar = fields.Image(related='student_id.image_128', string="Фото", readonly=True)
-
-    attendance_type_id = fields.Many2one(
-        'op.attendance.type', string='Status', required=False, tracking=True)
-    color = fields.Integer(related='attendance_type_id.color', store=True, string="Цвет")
-
-    # --- СВЯЗАННЫЕ ПОЛЯ ---
-    present = fields.Boolean('Present', related='attendance_type_id.present', store=True, readonly=True)
-    excused = fields.Boolean('Absent Excused', related='attendance_type_id.excused', store=True, readonly=True)
-    absent = fields.Boolean('Absent Unexcused', related='attendance_type_id.absent', store=True, readonly=True)
-    late = fields.Boolean('Late', related='attendance_type_id.late', store=True, readonly=True)
-
-    grade_1 = fields.Float('Оценка 1', aggregator="avg", default=False)
-    grade_2 = fields.Float('Оценка 2', aggregator="avg", default=False)
-    grade_3 = fields.Float('Оценка 3', aggregator="avg", default=False)
-
-    # Виртуальные поля для кнопок (Selection)
-    grade_1_ui = fields.Selection([('2', '2'), ('3', '3'), ('4', '4'), ('5', '5')], 
-                                  string='О1', compute='_compute_grade_ui', inverse='_set_grade_1_ui', store=False)
-    grade_2_ui = fields.Selection([('2', '2'), ('3', '3'), ('4', '4'), ('5', '5')], 
-                                  string='О2', compute='_compute_grade_ui', inverse='_set_grade_2_ui', store=False)
-    grade_3_ui = fields.Selection([('2', '2'), ('3', '3'), ('4', '4'), ('5', '5')], 
-                                  string='О3', compute='_compute_grade_ui', inverse='_set_grade_3_ui', store=False)
-
+    # --- ЛОГИКА ОЦЕНОК ---
     @api.depends('grade_1', 'grade_2', 'grade_3')
     def _compute_grade_ui(self):
         for rec in self:
-            # Превращаем число 5.0 в строку '5' для кнопок. 
-            # Используем int() чтобы не было "5.0"
             rec.grade_1_ui = str(int(rec.grade_1)) if rec.grade_1 > 0 else False
             rec.grade_2_ui = str(int(rec.grade_2)) if rec.grade_2 > 0 else False
             rec.grade_3_ui = str(int(rec.grade_3)) if rec.grade_3 > 0 else False
 
     def _set_grade_1_ui(self):
-        for rec in self:
-            rec.grade_1 = float(rec.grade_1_ui) if rec.grade_1_ui else 0.0
-
+        for rec in self: rec.grade_1 = float(rec.grade_1_ui) if rec.grade_1_ui else 0.0
     def _set_grade_2_ui(self):
-        for rec in self:
-            rec.grade_2 = float(rec.grade_2_ui) if rec.grade_2_ui else 0.0
-
+        for rec in self: rec.grade_2 = float(rec.grade_2_ui) if rec.grade_2_ui else 0.0
     def _set_grade_3_ui(self):
-        for rec in self:
-            rec.grade_3 = float(rec.grade_3_ui) if rec.grade_3_ui else 0.0
-
-    # Вычисляемый средний балл строки
-    grade_avg = fields.Float(
-        string='Средний балл', 
-        compute='_compute_grade_avg', 
-        store=True, 
-        aggregator="avg"
-    )
+        for rec in self: rec.grade_3 = float(rec.grade_3_ui) if rec.grade_3_ui else 0.0
 
     @api.depends('grade_1', 'grade_2', 'grade_3')
     def _compute_grade_avg(self):
         for rec in self:
-            marks = [m for m in [rec.grade_1, rec.grade_2, rec.grade_3] if m and m > 0]            
-            rec.grade_avg = sum(marks) / len(marks) if marks else False
+            marks = [m for m in [rec.grade_1, rec.grade_2, rec.grade_3] if m > 0]
+            rec.grade_avg = sum(marks) / len(marks) if marks else 0.0
+
+    # --- АВТОМАТИЗАЦИЯ ---
+    @api.onchange('grade_1_ui', 'grade_2_ui', 'grade_3_ui')
+    def _onchange_grades_auto_present(self):
+        if any([self.grade_1_ui, self.grade_2_ui, self.grade_3_ui]):
+            if not self.attendance_type_id or not self.present:
+                p_type = self.env['op.attendance.type'].search([('present', '=', True)], limit=1)
+                if p_type:
+                    self.attendance_type_id = p_type
 
     @api.onchange('attendance_type_id')
-    def onchange_attendance_type(self):
-        if self.attendance_type_id:
-            self.present = self.attendance_type_id.present
-            self.excused = self.attendance_type_id.excused
-            self.absent = self.attendance_type_id.absent
-            self.late = self.attendance_type_id.late
+    def _onchange_attendance_type(self):
+        if self.attendance_type_id and not self.attendance_type_id.present:
+            if not self.attendance_type_id.late:
+                self.grade_1_ui = False
+                self.grade_2_ui = False
+                self.grade_3_ui = False
 
-    # Перехватываем генерацию SQL для полей оценок.   
-    @api.model
-    def _field_to_sql(self, alias, fname, query=None, **kwargs):             
-        sql_expression = super()._field_to_sql(alias, fname, query, **kwargs)        
-        target_fields = ('grade_1', 'grade_2', 'grade_3', 'grade_avg')        
-        if fname in target_fields:            
-            return SQL("NULLIF(%s, 0)", sql_expression)            
-        return sql_expression   
-
-    @api.model
-    def get_aggregated_stats(self, domain):
-        """ Универсальный метод агрегации Odoo (как в Пивоте) """
-        # Считаем средние и суммы прямо в SQL
-        # В Odoo 18 для 'grade_avg:avg' нужно, чтобы у поля был aggregator="avg"
-        res = self.read_group(domain, 
-            ['grade_avg:avg', 'present:sum', 'absent:sum', 'late:sum', 'excused:sum', 'id:count'], 
-            []
-        )
-        if not res or not res[0]:
-            return {'avg': 0.0, 'present': 0, 'absent': 0, 'late': 0, 'excused': 0, 'total': 0}
-        
-        data = res[0]
-        return {
-            'avg': round(data.get('grade_avg', 0.0) or 0.0, 2),
-            'present': int(data.get('present', 0)),
-            'absent': int(data.get('absent', 0)),
-            'late': int(data.get('late', 0)),
-            'excused': int(data.get('excused', 0)),
-            'total': int(data.get('id_count', 0)),
-        }
+    # --- ПРОВЕРКИ ---
+    @api.constrains('grade_1', 'grade_2', 'grade_3')
+    def _check_grades_range(self):
+        for rec in self:
+            for g in [rec.grade_1, rec.grade_2, rec.grade_3]:
+                if g > 0 and (g < 2 or g > 5):
+                    raise ValidationError(_("Оценка должна быть от 2 до 5!"))
 
     @api.model
     def get_stats_from_lines(self, lines):
-        """ Универсальный движок расчета: принимает RecordSet строк, возвращает словарь """
+        """Метод-движок: рассчитывает всю математику для графиков и статистики"""
         res = {
-            'avg': 0.0, 'total': len(lines),
+            'avg': 0.0, 
+            'total': len(lines),
             'present': 0, 'absent': 0, 'late': 0, 'excused': 0,
             'counts': {5: 0, 4: 0, 3: 0, 2: 0},
-            'last_remark': "—", 'last_date': False,
-            'html_summary': "",
+            'last_remark': "—", 
+            'rate': 0.0,
             'types_detailed': {}, 
-            'rate': 0.0,  # ДОБАВИЛИ ЭТОТ КЛЮЧ
         }
-        if not lines: return res
+        if not lines: 
+            return res
 
-        sorted_l = lines.sorted('attendance_date', reverse=True)
-        res['last_date'] = sorted_l[0].attendance_date
-        
         marks = []
         type_counts = {}
 
+        # Сортируем линии от новых к старым (чтобы взять актуальный отзыв)
+        sorted_l = lines.sorted('attendance_date', reverse=True)
+
         for l in sorted_l:
+            # 1. Посещаемость
             if l.present: res['present'] += 1
             if l.absent: res['absent'] += 1
             if l.late: res['late'] += 1
             if l.excused: res['excused'] += 1
 
+            # 2. Детализация для "бублика"
             if l.attendance_type_id:
                 name = l.attendance_type_id.name
                 type_counts[name] = type_counts.get(name, 0) + 1
 
+            # 3. Сбор оценок (из всех трех колонок)
             for v in [l.grade_1, l.grade_2, l.grade_3]:
                 if v and 2 <= v <= 5:
                     marks.append(v)
                     res['counts'][int(v)] += 1
             
+            # 4. Берем самое последнее примечание
             if l.remark and res['last_remark'] == "—":
                 res['last_remark'] = l.remark
 
-        # Математика
-        res['avg'] = round(sum(marks) / len(marks), 2) if marks else 0.0
-        # РАСЧЕТ ПРОЦЕНТА (теперь записывается в словарь)
-        res['rate'] = round(res['present'] / res['total'] * 100, 2) if res['total'] > 0 else 0.0
+        # Финальные расчеты
+        if marks:
+            res['avg'] = round(sum(marks) / len(marks), 2)
+        
+        if res['total'] > 0:
+            # Считаем процент посещаемости (явка / общее кол-во уроков)
+            res['rate'] = round(res['present'] / res['total'] * 100, 2)
         
         res['types_detailed'] = type_counts 
 
-        # Генерация HTML
-        html = []
-        p_count = type_counts.get('Присутствует', 0)
-        if p_count:
-            html.append(f'<span class="badge rounded-pill me-2" style="background:#e8f5e9; color:#1b5e20; border:1px solid #c8e6c9; padding:4px 8px;">✅ Присутствовал: {p_count}</span>')
-        for name, count in type_counts.items():
-            color = "background:#fff3e0; color:#e65100;" if name in ['Прогул', 'Опоздал'] else "background:#f5f5f5; color:#666;"
-            html.append(f'<span class="badge rounded-pill me-1" style="padding:4px 8px; border:1px solid #ddd; {color}">{name}: {count}</span>')
-        res['html_summary'] = "".join(html)
-
         return res
 
-    @api.model_create_multi
-    def create(self, vals_list):        
-        return super(OpAttendanceLine, self).create(vals_list)
-
-    def write(self, vals):
-        res = super(OpAttendanceLine, self).write(vals)
-        trigger_fields = ['grade_1', 'grade_2', 'grade_3', 'attendance_type_id', 'remark']
-        
-        if any(f in vals for f in trigger_fields):            
-            grades = self.env['op.subject.grades'].search([
-                ('student_id', 'in', self.student_id.ids),
-                ('subject_id', 'in', self.subject_id.ids)
-            ])
-            
-            if grades:                
-                grades.modified(['q1_line_ids', 'q2_line_ids', 'q3_line_ids', 'q4_line_ids'])                
-                grades.action_force_recompute()
-                
-        return res
-
-
-    @api.constrains('grade_1', 'grade_2', 'grade_3')
-    def _check_grades_range(self):
-        for rec in self:
-            for grade_val in [rec.grade_1, rec.grade_2, rec.grade_3]:
-                # Проверяем только если оценка введена (больше 0)
-                if grade_val and grade_val > 0:
-                    if grade_val < 2.0 or grade_val > 5.0:
-                        raise ValidationError(
-                            f"Ошибка у ученика {rec.student_id.display_name}!\n"
-                            f"Оценка должна быть от 2 до 5. Вы ввели: {grade_val}"
-                        )
-
-    _sql_constraints = [
-        ('unique_student',
-         'unique(student_id,attendance_id,attendance_date)',
-         'Student must be unique per Attendance.'),
-
-        # Защита от оценок вне диапазона (0 допускается как "пусто")
-        ('check_grade_1', 'CHECK(grade_1 = 0 OR (grade_1 >= 2 AND grade_1 <= 5))', 'Оценка 1 должна быть от 2 до 5'),
-        ('check_grade_2', 'CHECK(grade_2 = 0 OR (grade_2 >= 2 AND grade_2 <= 5))', 'Оценка 2 должна быть от 2 до 5'),
-        ('check_grade_3', 'CHECK(grade_3 = 0 OR (grade_3 >= 2 AND grade_3 <= 5))', 'Оценка 3 должна быть от 2 до 5'),
-    ]
-
-
-
+    # --- ДЕЙСТВИЯ ---
+    def action_open_sheet(self):
+        self.ensure_one()
+        return {
+            'type': 'ir.actions.act_window',
+            'name': _('Журнал урока'),
+            'res_model': 'op.attendance.sheet',
+            'view_mode': 'form',
+            'res_id': self.attendance_id.id,
+            'target': 'current',
+        }
 
     def action_clear_line_data(self):
-        """Очистка всех данных в строке (статус + оценки)"""
         self.write({
             'attendance_type_id': False,
-            'grade_1_ui': False,
-            'grade_2_ui': False,
-            'grade_3_ui': False,
+            'grade_1': 0.0,
+            'grade_2': 0.0,
+            'grade_3': 0.0,
             'remark': False,
         })
