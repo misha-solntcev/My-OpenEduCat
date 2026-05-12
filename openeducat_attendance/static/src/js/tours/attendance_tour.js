@@ -19,7 +19,7 @@ registry.category("web_tour.tours").add("attendance_teacher_tour", {
             content: _t("Откройте журналы."),
             tooltipPosition: "right",
             run: "click",
-        },
+        },C
         {
             id: "select_first_row",
             trigger: ".o_list_renderer .o_data_row:first-child",
