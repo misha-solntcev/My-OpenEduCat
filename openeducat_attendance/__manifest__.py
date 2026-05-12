@@ -8,7 +8,7 @@
     'complexity': "easy",
     'author': 'OpenEduCat Inc',
     'website': 'https://www.openeducat.org',
-    'depends': ['base', 'web', 'openeducat_core', 'openeducat_timetable', 'base_automation'],
+    'depends': ['base', 'web', 'openeducat_core', 'openeducat_timetable', 'base_automation', 'web_tour'],
     'data': [
         'security/op_security.xml',
         'security/ir.model.access.csv',
@@ -34,6 +34,7 @@
     'assets': {
         'web.assets_backend': [
             'openeducat_attendance/static/src/css/style.css',
+            'openeducat_attendance/static/src/js/tours/attendance_tour.js',            
         ],
     },
     'images': [
