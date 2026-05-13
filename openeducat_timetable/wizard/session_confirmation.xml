@@ -29,7 +29,7 @@
             <field name="target">new</field>
             <field name="binding_model_id" ref="model_op_session"/>
             <field name="context">{'default_action_type': 'confirm'}</field>
-            <field name="sequence" eval="1"/>
+            <field name="sequence" eval="10"/>
         </record>        
 
         <!-- 2. Действие ЗАВЕРШИТЬ УРОКИ-->
@@ -40,7 +40,7 @@
             <field name="target">new</field>
             <field name="binding_model_id" ref="model_op_session"/>
             <field name="context">{'default_action_type': 'done'}</field>
-            <field name="sequence" eval="2"/>
+            <field name="sequence" eval="20"/>
         </record>
 
         <!-- 3. Действие ОТМЕНИТЬ УРОКИ-->
@@ -51,7 +51,7 @@
             <field name="target">new</field>
             <field name="binding_model_id" ref="model_op_session"/>
             <field name="context">{'default_action_type': 'cancel'}</field>
-            <field name="sequence" eval="3"/>
+            <field name="sequence" eval="30"/>
         </record>
 
         <!-- 4. Действие ВЕРНУТЬ В ЧЕРНОВИКИ -->
@@ -62,7 +62,7 @@
             <field name="target">new</field>
             <field name="binding_model_id" ref="model_op_session"/>
             <field name="context">{'default_action_type': 'draft'}</field>
-            <field name="sequence" eval="4"/>
+            <field name="sequence" eval="40"/>
         </record>
 
 </odoo>
