@@ -23,7 +23,7 @@
 
         <!-- 1. Действие УТВЕРДИТЬ УРОКИ -->
         <record id="session_confirmation_form_view_act" model="ir.actions.act_window">
-            <field name="name">1. Утвердить уроки</field>
+            <field name="name">Утвердить уроки</field>
             <field name="res_model">session.confirmation</field>
             <field name="view_mode">form</field>
             <field name="target">new</field>
@@ -33,7 +33,7 @@
 
         <!-- 2. Действие ЗАВЕРШИТЬ УРОКИ-->
         <record id="action_session_done_wizard" model="ir.actions.act_window">
-            <field name="name">2. Завершить уроки</field>
+            <field name="name">Завершить уроки</field>
             <field name="res_model">session.confirmation</field>
             <field name="view_mode">form</field>
             <field name="target">new</field>
@@ -43,7 +43,7 @@
 
         <!-- 3. Действие ОТМЕНИТЬ УРОКИ-->
         <record id="action_session_cancel_wizard" model="ir.actions.act_window">
-            <field name="name">3. Отменить уроки</field>
+            <field name="name">Отменить уроки</field>
             <field name="res_model">session.confirmation</field>
             <field name="view_mode">form</field>
             <field name="target">new</field>
@@ -53,7 +53,7 @@
 
         <!-- 4. Действие ВЕРНУТЬ В ЧЕРНОВИКИ -->
         <record id="action_session_draft_wizard" model="ir.actions.act_window">
-            <field name="name">4. Вернуть в черновики</field>
+            <field name="name">Вернуть в черновики</field>
             <field name="res_model">session.confirmation</field>
             <field name="view_mode" >form</field>
             <field name="target">new</field>
