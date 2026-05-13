@@ -300,10 +300,10 @@
                 На текущуую неделю уроков нет.
             </p>
         </field>
-        <!-- <field name="context">{
+        <field name="context">{
             'search_default_this_week': 1,
             'search_default_group_day': 1
-            }</field> -->
+            }</field>
     </record>
 
 </odoo>
