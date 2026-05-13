@@ -39,7 +39,23 @@ class OpAttendanceSheet(models.Model):
     attendance_line = fields.One2many('op.attendance.line', 'attendance_id', 'Attendance Line')
     
     # Визуальные поля
-    days = fields.Selection(related='session_id.days', store=True, readonly=True, group_expand='_expand_groups')
+    days_id = fields.Many2one('op.day', related='session_id.days_id', store=True, 
+        readonly=True, group_expand='_read_group_days')
+
+    @api.model
+    def _read_group_days(self, days, domain):
+        all_days = self.env['op.day'].search([])
+        # Ищем по журналам с учетом фильтров
+        sheets = self.env['op.attendance.sheet'].search(domain)
+        active_day_ids = sheets.mapped('days_id').ids
+        
+        for day in all_days:
+            day.fold = (day.id not in active_day_ids)
+            
+        return all_days
+
+    # days = fields.Selection(related='session_id.days', store=True, readonly=True, group_expand=True)
+    
     timing = fields.Char(related='session_id.timing', string='Время', store=False)
     classroom_id = fields.Many2one(related='session_id.classroom_id', string='Кабинет', store=True)    
     textbook_image = fields.Image('Учебник', compute='_compute_textbook_image', store=True)    

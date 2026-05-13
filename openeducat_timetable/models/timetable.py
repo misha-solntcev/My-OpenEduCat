@@ -8,7 +8,24 @@ class OpSession(models.Model):
     _description = "Sessions"
     _order = "start_datetime desc, batch_id, id"
 
-    # --- ПОЛЯ ---
+    days_id = fields.Many2one('op.day', string='День недели', 
+        compute='_compute_day_info', store=True, group_expand='_read_group_days')
+
+    @api.model
+    def _read_group_days(self, days, domain):
+        all_days = self.env['op.day'].search([])        
+        sessions = self.env['op.session'].search(domain)
+        
+        # 2. Собираем ID дней, в которых есть хотя бы один урок
+        active_day_ids = sessions.mapped('days_id').ids
+        
+        # 3. Для каждого дня устанавливаем флаг fold
+        for day in all_days:
+            # Если дня нет в списке активных — помечаем его как свернутый
+            day.fold = (day.id not in active_day_ids)
+            
+        return all_days
+    
     start_datetime = fields.Datetime(
         'Start Time', required=True, index=True, tracking=True,
         default=fields.Datetime.now)
@@ -36,11 +53,11 @@ class OpSession(models.Model):
     active = fields.Boolean(default=True)
     color = fields.Integer('Color Index', default=0)
     user_ids = fields.Many2many('res.users', string='Allowed Users', compute='_compute_user_ids', store=True)
-    days = fields.Selection([
-        ('monday', 'Понедельник'), ('tuesday', 'Вторник'), ('wednesday', 'Среда'),
-        ('thursday', 'Четверг'), ('friday', 'Пятница'), ('saturday', 'Суббота'),
-        ('sunday', 'Воскресенье')],
-        string='Day of Week', compute='_compute_day_info', store=True)
+    # days = fields.Selection([
+    #     ('monday', 'Понедельник'), ('tuesday', 'Вторник'), ('wednesday', 'Среда'),
+    #     ('thursday', 'Четверг'), ('friday', 'Пятница'), ('saturday', 'Суббота'),
+    #     ('sunday', 'Воскресенье')],
+    #     string='Day of Week', compute='_compute_day_info', store=True, group_expand=True)
 
     # --- ФОРМАТИРОВАНИЕ БЕЗ СЕКУНД ---
     @api.depends('start_datetime', 'end_datetime', 'faculty_id', 'subject_id')
@@ -83,16 +100,29 @@ class OpSession(models.Model):
         self.write({'state': 'start'})
 
     # --- ВСПОМОГАТЕЛЬНОЕ ---
+
     # @api.model
     # def _expand_groups(self, _days, _domain, _order=None):
-    #     return ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
+    #     target_order = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']        
+        
+    #     groups = self.env['op.session'].sudo().read_group(_domain, ['days'], ['days'])
+    #     present_days = [g['days'] for g in groups if g['days']]        
+        
+    #     return [d for d in target_order if d in present_days]
 
     @api.depends('start_datetime')
     def _compute_day_info(self):
-        days_map = {0: 'monday', 1: 'tuesday', 2: 'wednesday', 3: 'thursday', 4: 'friday', 5: 'saturday', 6: 'sunday'}
+        # Карта соответствия номеров дней из Python кодам из нашей базы
+        day_map = {0: 'monday', 1: 'tuesday', 2: 'wednesday', 3: 'thursday', 4: 'friday', 5: 'saturday', 6: 'sunday'}
         for record in self:
-            record.days = days_map.get(record.start_datetime.weekday()) if record.start_datetime else False
-
+            if record.start_datetime:
+                day_code = day_map.get(record.start_datetime.weekday())
+                # Ищем запись дня в нашей новой модели
+                day_rec = self.env['op.day'].search([('code', '=', day_code)], limit=1)
+                record.days_id = day_rec
+            else:
+                record.days_id = False
+                
     @api.depends('batch_id', 'faculty_id')
     def _compute_user_ids(self):        
         for session in self:

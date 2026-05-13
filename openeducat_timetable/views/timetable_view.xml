@@ -142,11 +142,11 @@
         <field name="name">session.kanban</field>
         <field name="model">op.session</field>
         <field name="arch" type="xml">
-            <kanban default_group_by="days" class="o_kanban_small_column" sample="1"
+            <kanban default_group_by="days_id" class="o_kanban_small_column" sample="1"
                 quick_create="false" default_order="start_datetime asc, batch_id, id">
                 <field name="color" />
                 <field name="state" />
-                <field name="days" />
+                <field name="days_id" />
                 <field name="start_datetime" />
                 <field name="subject_id" />
                 <field name="faculty_id" />
@@ -238,13 +238,13 @@
 
                 <filter string="Текущая неделя" name="this_week"
                     domain="[
-                    ('start_datetime', '&gt;=', (context_today() + relativedelta(weeks=-1, days=1, weekday=0)).strftime('%Y-%m-%d')),
+                    ('start_datetime', '&gt;=', (context_today() + relativedelta(weeks=-1, days_id=1, weekday=0)).strftime('%Y-%m-%d')),
                     ('start_datetime', '&lt;=', (context_today() + relativedelta(weekday=6)).strftime('%Y-%m-%d'))]" />
 
                 <filter string="Сегодня" name="today"
                     domain="[
                         ('start_datetime', '&gt;=', context_today().strftime('%Y-%m-%d')), 
-                        ('start_datetime', '&lt;', (context_today() + relativedelta(days=1)).strftime('%Y-%m-%d'))]" />
+                        ('start_datetime', '&lt;', (context_today() + relativedelta(days_id=1)).strftime('%Y-%m-%d'))]" />
 
                 <separator />
 
@@ -262,7 +262,7 @@
                 <separator />
 
                 <group expand="0" string="Группировать по...">
-                    <filter string="📅 По дням" name="group_day" context="{'group_by': 'days'}" />
+                    <filter string="📅 По дням" name="group_day" context="{'group_by': 'days_id'}" />
                     <filter string="👨‍🏫 По учителю" name="group_faculty"
                         context="{'group_by': 'faculty_id'}" />
                     <filter string="📚 По предмету" name="group_subject"
