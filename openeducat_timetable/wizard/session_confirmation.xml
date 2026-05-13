@@ -19,39 +19,20 @@
                     </footer>
                 </form>
             </field>
-        </record>
+        </record>        
 
-        <!-- 1. Действие Сделать черновиком -->
-        <record id="action_session_draft_wizard" model="ir.actions.act_window">
-            <field name="name">Вернуть в черновик</field>
-            <field name="res_model">session.confirmation</field>
-            <field name="view_mode" >form</field>
-            <field name="target">new</field>
-            <field name="binding_model_id" ref="model_op_session"/>
-            <field name="context">{'default_action_type': 'draft'}</field>
-        </record>
-
-        <!-- 2. Действие ПОДТВЕРЖДЕНИЕ -->
+        <!-- 1. Действие УТВЕРДИТЬ УРОКИ -->
         <record id="session_confirmation_form_view_act" model="ir.actions.act_window">
             <field name="name">Утвердить уроки</field>
             <field name="res_model">session.confirmation</field>
             <field name="view_mode">form</field>
             <field name="target">new</field>
             <field name="binding_model_id" ref="model_op_session"/>
-            <field name="context">{'default_action_type': 'confirm'}</field> 
-        </record>
+            <field name="context">{'default_action_type': 'confirm'}</field>
+            <field name="sequence" eval="1"/>
+        </record>        
 
-        <!-- 3. Действие ОТМЕНА -->
-        <record id="action_session_cancel_wizard" model="ir.actions.act_window">
-            <field name="name">Отменить уроки</field>
-            <field name="res_model">session.confirmation</field>
-            <field name="view_mode">form</field>
-            <field name="target">new</field>
-            <field name="binding_model_id" ref="model_op_session"/>
-            <field name="context">{'default_action_type': 'cancel'}</field>
-        </record>
-
-        <!-- 4. Действие ЗАВЕРШЕНИЕ -->
+        <!-- 2. Действие ЗАВЕРШИТЬ УРОКИ-->
         <record id="action_session_done_wizard" model="ir.actions.act_window">
             <field name="name">Завершить уроки</field>
             <field name="res_model">session.confirmation</field>
@@ -59,6 +40,29 @@
             <field name="target">new</field>
             <field name="binding_model_id" ref="model_op_session"/>
             <field name="context">{'default_action_type': 'done'}</field>
+            <field name="sequence" eval="2"/>
+        </record>
+
+        <!-- 3. Действие ОТМЕНИТЬ УРОКИ-->
+        <record id="action_session_cancel_wizard" model="ir.actions.act_window">
+            <field name="name">Отменить уроки</field>
+            <field name="res_model">session.confirmation</field>
+            <field name="view_mode">form</field>
+            <field name="target">new</field>
+            <field name="binding_model_id" ref="model_op_session"/>
+            <field name="context">{'default_action_type': 'cancel'}</field>
+            <field name="sequence" eval="3"/>
+        </record>
+
+        <!-- 4. Действие ВЕРНУТЬ В ЧЕРНОВИКИ -->
+        <record id="action_session_draft_wizard" model="ir.actions.act_window">
+            <field name="name">Вернуть в черновики</field>
+            <field name="res_model">session.confirmation</field>
+            <field name="view_mode" >form</field>
+            <field name="target">new</field>
+            <field name="binding_model_id" ref="model_op_session"/>
+            <field name="context">{'default_action_type': 'draft'}</field>
+            <field name="sequence" eval="4"/>
         </record>
 
 </odoo>
