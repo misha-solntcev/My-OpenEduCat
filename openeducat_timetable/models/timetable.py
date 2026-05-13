@@ -40,8 +40,7 @@ class OpSession(models.Model):
         ('monday', 'Понедельник'), ('tuesday', 'Вторник'), ('wednesday', 'Среда'),
         ('thursday', 'Четверг'), ('friday', 'Пятница'), ('saturday', 'Суббота'),
         ('sunday', 'Воскресенье')],
-        string='Day of Week', compute='_compute_day_info', store=True, group_expand='_expand_groups'
-    )
+        string='Day of Week', compute='_compute_day_info', store=True)
 
     # --- ФОРМАТИРОВАНИЕ БЕЗ СЕКУНД ---
     @api.depends('start_datetime', 'end_datetime', 'faculty_id', 'subject_id')
@@ -84,9 +83,9 @@ class OpSession(models.Model):
         self.write({'state': 'start'})
 
     # --- ВСПОМОГАТЕЛЬНОЕ ---
-    @api.model
-    def _expand_groups(self, _days, _domain, _order=None):
-        return ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
+    # @api.model
+    # def _expand_groups(self, _days, _domain, _order=None):
+    #     return ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
 
     @api.depends('start_datetime')
     def _compute_day_info(self):
