@@ -9,8 +9,8 @@
         <field name="print_report_name">
             'Итоговые оценки %s %s%s' % (
                 object.academic_year_id.name, 
-                object.batch_id.name if object.batch_id else 'вся школа',
-                ' ' + object.student_ids[0].name.split()[0] if object.student_ids else ''
+                (object.batch_ids[0].name if len(object.batch_ids) == 1 else (str(len(object.batch_ids)) + ' классов' if object.batch_ids else 'вся школа')),
+                (' ' + object.student_ids[0].name.split()[0] if len(object.student_ids) == 1 else '')
             )
         </field>
     </record>
@@ -155,7 +155,7 @@
                                         <t t-foreach="res['subjects']" t-as="sub">
                                             <tr>
                                                 <td class="text-center"><t t-out="idx" /></td>
-                                                <td><t t-out="sub['name']" /></td>
+                                                <td><t t-out="subatchb['name']" /></td>
                                                 <t t-foreach="sub['grades']" t-as="grade">
                                                     <td class="text-center"><t t-out="grade" /></td>
                                                 </t>

@@ -192,7 +192,7 @@
                                 <!-- Группа кнопок присутствия (Зеленые) -->
                                 <button name="action_mass_set_attendance" type="object" string="Присутствуют"
                                         class="btn btn-outline-success btn-sm o_attendance_present_all_btn" 
-                                        context="{'set_name': 'Присутствуют'}" icon="fa-check" title="Отметить всех присутствующими"/>
+                                        context="{'set_name': 'Присутствует'}" icon="fa-check" title="Отметить всех присутствующими"/>
 
                                 <button name="action_mass_set_attendance" type="object" string="Дистанционно"
                                         class="btn btn-outline-success btn-sm" 
@@ -201,7 +201,7 @@
                                 <!-- Группа кнопок отсутствия по причине (Синие/Голубые) -->
                                 <button name="action_mass_set_attendance" type="object" string="Болеют" 
                                         class="btn btn-outline-info btn-sm"
-                                        context="{'set_name': 'Болеют'}" icon="fa-medkit" title="Отметить всех заболевшими"/>
+                                        context="{'set_name': 'Болеет'}" icon="fa-medkit" title="Отметить всех заболевшими"/>
 
                                 <button name="action_mass_set_attendance" type="object" string="Уважительная"
                                         class="btn btn-outline-info btn-sm"
@@ -210,11 +210,11 @@
                                 <!-- Кнопки опоздания и прогула (Желтый/Красный) -->
                                 <button name="action_mass_set_attendance" type="object" string="Опоздали"
                                         class="btn btn-outline-warning btn-sm"
-                                        context="{'set_name': 'Опоздали'}" icon="fa-clock-o" title="Отметить всех опоздавшими"/>
+                                        context="{'set_name': 'Опоздал'}" icon="fa-clock-o" title="Отметить всех опоздавшими"/>
 
                                 <button name="action_mass_set_attendance" type="object" string="Прогуляли"
                                         class="btn btn-outline-danger btn-sm"
-                                        context="{'set_name': 'Прогуляли'}" icon="fa-times" title="Отметить всех прогулявшими"/>
+                                        context="{'set_name': 'Прогул'}" icon="fa-times" title="Отметить всех прогулявшими"/>
 
                                 <!-- Кнопка СБРОС (Прижата вправо через ms-auto) -->
                                 <button name="action_reset_attendance_sheet" type="object" string="Сбросить журнал"

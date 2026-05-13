@@ -49,7 +49,7 @@
             <field name="target">new</field>
             <field name="binding_model_id" ref="model_op_session"/>
             <field name="context">{'default_action_type': 'cancel'}</field>            
-        </record>
+        </record>wizard
 
         <!-- 4. Действие ВЕРНУТЬ В ЧЕРНОВИКИ -->
         <record id="action_session_draft_wizard" model="ir.actions.act_window">
