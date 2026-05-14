@@ -85,15 +85,21 @@ class ReportStudentSummary(models.AbstractModel):
                 for term in terms:
                     t_lines = all_attendance_lines.filtered(
                         lambda l: l.student_id.id == student.id and l.term_id.id == term.id
-                    )
-                    m = len(t_lines.filtered(lambda l: l.absent))
-                    s = len(t_lines.filtered(lambda l: l.excused))
-                    l = len(t_lines.filtered(lambda l: l.late))
+                    )                   
                     
-                    att_summary.append({'total_missed': m + s, 'sick': s, 'late': l})
-                    y_total['missed'] += (m + s)
-                    y_total['sick'] += s
-                    y_total['late'] += l
+                    m_count = len(t_lines.filtered(lambda l: l.absent or l.excused))                    
+                    s_count = len(t_lines.filtered(lambda l: l.excused))
+                    l_count = len(t_lines.filtered(lambda l: l.late))
+                    
+                    att_summary.append({
+                        'total_missed': m_count, 
+                        'sick': s_count, 
+                        'late': l_count
+                    })                    
+                    
+                    y_total['missed'] += m_count
+                    y_total['sick'] += s_count
+                    y_total['late'] += l_count
 
                 student_list.append({
                     'student': student.name,

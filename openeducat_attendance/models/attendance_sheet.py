@@ -44,13 +44,14 @@ class OpAttendanceSheet(models.Model):
 
     @api.model
     def _read_group_days(self, days, domain):
-        all_days = self.env['op.day'].search([])
-        # Ищем по журналам с учетом фильтров
+        all_days = self.env['op.day'].sudo().search([])
         sheets = self.env['op.attendance.sheet'].search(domain)
         active_day_ids = sheets.mapped('days_id').ids
         
         for day in all_days:
-            day.fold = (day.id not in active_day_ids)
+            new_fold_state = (day.id not in active_day_ids)
+            if day.fold != new_fold_state:
+                day.sudo().fold = new_fold_state # Пишем через sudo
             
         return all_days
 
@@ -263,7 +264,76 @@ class OpAttendanceSheet(models.Model):
         if not target_name: return
         target_type = self.env['op.attendance.type'].search([('name', '=', target_name)], limit=1)
         if target_type:            
-            self.attendance_line.write({'attendance_type_id': target_type.id})           
+            self.attendance_line.write({'attendance_type_id': target_type.id})
+
+    def action_mass_set_grade(self):
+        self.ensure_one()
+        if self.state != 'start': 
+            return
+        
+        grade_val = self.env.context.get('set_grade')
+        if not grade_val: 
+            return
+
+        if not self.attendance_line:
+            self.action_generate_lines()
+            
+        # Проставляем оценку всем ученикам
+        self.attendance_line.write({'grade_1': float(grade_val)})
+        
+        # Логика: если поставили оценку, значит ученик "Присутствует" (если статус не был выбран ранее)
+        present_type = self.env['op.attendance.type'].sudo().search([('present', '=', True)], limit=1)
+        if present_type:
+            self.attendance_line.filtered(lambda l: not l.attendance_type_id).write({
+                'attendance_type_id': present_type.id
+            })
+
+    # Техническое поле для выбора колонки (не хранится в БД)
+    mass_target_1 = fields.Boolean('О1', default=True)
+    mass_target_2 = fields.Boolean('О2')
+    mass_target_3 = fields.Boolean('О3')
+
+    def action_mass_set_grade(self):
+        self.ensure_one()
+        if self.state != 'start' or not self.attendance_line:
+            return
+        
+        grade_val = self.env.context.get('set_grade')
+        if not grade_val:
+            return
+
+        # Собираем список выбранных колонок
+        vals = {}
+        if self.mass_target_1: vals['grade_1'] = float(grade_val)
+        if self.mass_target_2: vals['grade_2'] = float(grade_val)
+        if self.mass_target_3: vals['grade_3'] = float(grade_val)
+
+        # Если ни одна колонка не выбрана, ничего не делаем или выбираем О1 по умолчанию
+        if not vals:
+            return
+
+        self.attendance_line.write(vals)
+        
+        # Проставляем "Присутствует" автоматом
+        present_type = self.env['op.attendance.type'].sudo().search([('present', '=', True)], limit=1)
+        if present_type:
+            self.attendance_line.filtered(lambda l: not l.attendance_type_id).write({
+                'attendance_type_id': present_type.id
+            })
+
+    def action_mass_clear_grades(self):
+        """Очистка только оценок в выбранных тумблерами колонках"""
+        self.ensure_one()
+        if not self.attendance_line:
+            return
+        
+        vals = {}
+        if self.mass_target_1: vals['grade_1'] = 0.0
+        if self.mass_target_2: vals['grade_2'] = 0.0
+        if self.mass_target_3: vals['grade_3'] = 0.0
+        
+        if vals:
+            self.attendance_line.write(vals)
 
     def action_reset_attendance_sheet(self):
         self.attendance_line.action_clear_line_data()

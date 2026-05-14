@@ -24,16 +24,17 @@ class OpSession(models.Model):
 
     @api.model
     def _read_group_days(self, days, domain):
-        all_days = self.env['op.day'].search([])        
+        # Ищем дни через sudo, чтобы избежать проблем с правами
+        all_days = self.env['op.day'].sudo().search([])        
         sessions = self.env['op.session'].search(domain)
         
-        # 2. Собираем ID дней, в которых есть хотя бы один урок
         active_day_ids = sessions.mapped('days_id').ids
         
-        # 3. Для каждого дня устанавливаем флаг fold
         for day in all_days:
-            # Если дня нет в списке активных — помечаем его как свернутый
-            day.fold = (day.id not in active_day_ids)
+            # Сравниваем текущее значение, чтобы не дергать базу лишний раз
+            new_fold_state = (day.id not in active_day_ids)
+            if day.fold != new_fold_state:
+                day.sudo().fold = new_fold_state # Пишем через sudo
             
         return all_days
     

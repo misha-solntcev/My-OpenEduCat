@@ -14,4 +14,4 @@ access_op_session_faculty,op_session_faculty,model_op_session,__custom__.group_o
 access_op_day_user,op_day_user,model_op_day,openeducat_timetable.group_op_timetable_user,1,0,0,0
 access_op_day_manager,op_day_manager,model_op_day,openeducat_timetable.group_op_timetable_manager,1,1,1,1
 access_op_day_student,op_day_student,model_op_day,__custom__.group_op_students,1,0,0,0
-access_op_day_faculty,op_day_faculty,model_op_day,__custom__.group_op_faculty,1,0,0,0
+access_op_day_faculty,op_day_faculty,model_op_day,__custom__.group_op_faculty,1,1,1,0

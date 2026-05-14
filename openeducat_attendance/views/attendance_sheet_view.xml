@@ -6,7 +6,7 @@
         <field name="model">op.attendance.sheet</field>
         <field name="arch" type="xml">
             <!-- Раскрашиваем всю строку в зависимости от статуса -->
-            <list string="Журналы уроков" 
+            <list string="Журналы уроков"
                 default_order="start_datetime asc, batch_id"
                 sample="1"
                 expand="0"
@@ -58,10 +58,12 @@
                 <header>
                     <!-- 1. Начать урок (Синхронно переводит и Урок в 'start') -->
                     <button name="action_attendance_start" type="object" string="Начать урок"
-                        invisible="state != 'confirm'" class="btn-primary o_attendance_start_btn" icon="fa-play" />
+                        invisible="state != 'confirm'" class="btn-primary o_attendance_start_btn"
+                        icon="fa-play" />
                     <!-- 2. Завершить урок (Синхронно переводит и Урок в 'done' + расчет оценок) -->
                     <button name="action_attendance_done" type="object" string="Завершить урок"
-                        invisible="state != 'start'" class="btn-primary o_attendance_done_btn" icon="fa-check-circle" />
+                        invisible="state != 'start'" class="btn-primary o_attendance_done_btn"
+                        icon="fa-check-circle" />
                     <!-- 3. Редактировать (Возврат из Проведен в Идет урок для правок) -->
                     <button name="action_attendance_edit" type="object" string="Редактировать"
                         invisible="state != 'done'" icon="fa-edit" class="btn-secondary" />
@@ -76,26 +78,27 @@
                 </header>
 
                 <sheet>
-                    
+
 
                     <!-- КОНТЕКСТНАЯ СПРАВКА -->
-                    <div class="alert alert-info text-center" role="alert" invisible="state != 'confirm'">
-                        <i class="fa fa-info-circle me-2"/>
-                        Урок запланирован. Список учеников будет создан автоматически при нажатии <strong>"Начать урок"</strong>.
-                    </div>
-                    <div class="alert alert-warning text-center" role="alert" invisible="state != 'start' or total_present > 0">
-                        <i class="fa fa-exclamation-triangle me-2"/>
-                        Пожалуйста, отметьте посещаемость (кнопка <strong>"Присутствуют"</strong>), иначе в статистике останутся пустые области.
-                    </div>
-
+                    <div class="alert alert-info text-center" role="alert"
+                        invisible="state != 'confirm'">
+                        <i class="fa fa-info-circle me-2" /> Урок запланирован. Список учеников
+                        будет создан автоматически при нажатии <strong>"Начать урок"</strong>. </div>
+                    <div class="alert alert-warning text-center" role="alert"
+                        invisible="state != 'start' or total_present > 0">
+                        <i class="fa fa-exclamation-triangle me-2" /> Пожалуйста, отметьте
+                        посещаемость (кнопка <strong>"Присутствуют"</strong>), иначе в статистике
+                        останутся пустые области. </div>
 
 
                     <!-- 1. ИНДИКАТОРЫ И СТАТИСТИКА (Верхний правый угол) -->
                     <div class="oe_button_box" name="button_box">
-                        <button class="oe_stat_button" icon="fa-users" title="Присутствие" disabled="1">
+                        <button class="oe_stat_button" icon="fa-users" title="Присутствие"
+                            disabled="1">
                             <div class="o_field_widget o_stat_info">
                                 <span class="o_stat_value">
-                                    <field name="total_present"/> / <field name="total_students"/>
+                                    <field name="total_present" /> / <field name="total_students" />
                                 </span>
                                 <span class="o_stat_text">Присутствует</span>
                             </div>
@@ -103,133 +106,213 @@
                     </div>
 
                     <!-- Индикатор архивации/отмены -->
-                    <widget name="web_ribbon" title="Отменен" bg_color="text-bg-danger" invisible="active"/>
+                    <widget name="web_ribbon" title="Отменен" bg_color="text-bg-danger"
+                        invisible="active" />
 
                     <!-- 2. HERO HEADER (ГЛАВНАЯ ПАНЕЛЬ) -->
                     <div class="d-flex flex-column flex-md-row align-items-stretch gap-3 mb-4 mt-2">
-                        
+
                         <!-- ЛЕВАЯ КОЛОНКА: Обложка учебника -->
-                        <div class="d-flex align-items-center justify-content-center bg-white border rounded-3 shadow-sm p-2" 
+                        <div
+                            class="d-flex align-items-center justify-content-center bg-white border rounded-3 shadow-sm p-2"
                             style="width: 110px; height: 145px; flex-shrink: 0; margin: 0 auto;">
-                            <field name="textbook_image" widget="image" class="w-100 h-100 object-fit-contain" options="{'zoom': true}"/>
+                            <field name="textbook_image" widget="image"
+                                class="w-100 h-100 object-fit-contain" options="{'zoom': true}" />
                         </div>
 
                         <!-- ЦЕНТРАЛЬНАЯ КОЛОНКА: Основные данные -->
-                        <div class="flex-grow-1 d-flex flex-column justify-content-center text-center text-md-start">
+                        <div
+                            class="flex-grow-1 d-flex flex-column justify-content-center text-center text-md-start">
                             <!-- Верхняя строка: Класс и Дата -->
-                            <div class="d-flex align-items-center justify-content-center justify-content-md-start gap-2 mb-2">
-                                <span class="badge rounded-pill fw-bold px-3 py-1" style="background: #eef2ff; color: #4f46e5; border: 1px solid #e0e7ff;">
-                                    <field name="batch_id" readonly="1"/>
+                            <div
+                                class="d-flex align-items-center justify-content-center justify-content-md-start gap-2 mb-2">
+                                <span class="badge rounded-pill fw-bold px-3 py-1"
+                                    style="background: #eef2ff; color: #4f46e5; border: 1px solid #e0e7ff;">
+                                    <field name="batch_id" readonly="1" />
                                 </span>
                                 <span class="text-muted small fw-medium">
-                                    <i class="fa fa-calendar-o me-1" title="Дата"/> <field name="attendance_date" readonly="1"/>
+                                    <i class="fa fa-calendar-o me-1" title="Дата" />
+                                    <field name="attendance_date" readonly="1" />
                                 </span>
                             </div>
 
                             <!-- Название предмета (Крупно) -->
-                            <h1 class="fw-bolder mb-3" style="letter-spacing: -0.5px; color: #1e293b; font-size: 2.2rem;">
-                                <field name="subject_id" readonly="1"/>
+                            <h1 class="fw-bolder mb-3"
+                                style="letter-spacing: -0.5px; color: #1e293b; font-size: 2.2rem;">
+                                <field name="subject_id" readonly="1" />
                             </h1>
 
                             <!-- Детали урока: Время, Кабинет, Четверть -->
-                            <div class="d-flex flex-wrap justify-content-center justify-content-md-start gap-3 text-muted small">
-                                <div class="d-flex align-items-center bg-white px-2 py-1 rounded border shadow-sm">
-                                    <i class="fa fa-clock-o me-2 text-primary" title="Время"/>
-                                    <field name="timing" class="fw-bold text-dark"/>
+                            <div
+                                class="d-flex flex-wrap justify-content-center justify-content-md-start gap-3 text-muted small">
+                                <div
+                                    class="d-flex align-items-center bg-white px-2 py-1 rounded border shadow-sm">
+                                    <i class="fa fa-clock-o me-2 text-primary" title="Время" />
+                                    <field name="timing" class="fw-bold text-dark" />
                                 </div>
-                                <div class="d-flex align-items-center bg-white px-2 py-1 rounded border shadow-sm">
-                                    <i class="fa fa-map-marker me-2 text-danger" title="Кабинет"/>
-                                    <field name="classroom_id" class="fw-bold text-dark" options="{'no_open': True}"/>
+                                <div
+                                    class="d-flex align-items-center bg-white px-2 py-1 rounded border shadow-sm">
+                                    <i class="fa fa-map-marker me-2 text-danger" title="Кабинет" />
+                                    <field name="classroom_id" class="fw-bold text-dark"
+                                        options="{'no_open': True}" />
                                 </div>
-                                <div class="d-flex align-items-center bg-white px-2 py-1 rounded border shadow-sm">
-                                    <i class="fa fa-graduation-cap me-2 text-success" title="Четверть"/>
-                                    <field name="term_id" readonly="1" options="{'no_open': True}" class="fw-bold text-dark"/>
+                                <div
+                                    class="d-flex align-items-center bg-white px-2 py-1 rounded border shadow-sm">
+                                    <i class="fa fa-graduation-cap me-2 text-success"
+                                        title="Четверть" />
+                                    <field name="term_id" readonly="1" options="{'no_open': True}"
+                                        class="fw-bold text-dark" />
                                 </div>
                             </div>
                         </div>
-                        
-                        <!-- ПРАВАЯ КОЛОНКА: Квадратная карточка учителя -->                                                
-                        <div class="ms-md-auto d-flex align-items-center p-3 border rounded bg-white shadow-sm" style="min-height: 65px;">
-                            <field name="faculty_id" 
-                                widget="many2one_avatar" 
-                                readonly="1" 
-                                options="{'no_open': True}" 
-                                class="fs-1 fw-bold text-dark"/>
+
+                        <!-- ПРАВАЯ КОЛОНКА: Квадратная карточка учителя -->
+                        <div
+                            class="ms-md-auto d-flex align-items-center p-3 border rounded bg-white shadow-sm"
+                            style="min-height: 65px;">
+                            <field name="faculty_id"
+                                widget="many2one_avatar"
+                                readonly="1"
+                                options="{'no_open': True}"
+                                class="fs-1 fw-bold text-dark" />
                         </div>
                     </div>
 
                     <!-- 3. АКЦЕНТНЫЙ БЛОК: ТЕМА ЗАНЯТИЯ -->
-                    <div class="p-4 mb-4 rounded-3 border-start border-4 border-primary bg-white shadow-sm position-relative overflow-hidden" style="background: linear-gradient(to right, #ffffff, #f8fafc);">
+                    <div
+                        class="p-4 mb-4 rounded-3 border-start border-4 border-primary bg-white shadow-sm position-relative overflow-hidden"
+                        style="background: linear-gradient(to right, #ffffff, #f8fafc);">
                         <!-- Фоновая иконка для красоты -->
-                        <i class="fa fa-pencil-square-o position-absolute" title="Тема занятия" style="right: -10px; bottom: -10px; font-size: 100px; opacity: 0.03; transform: rotate(-15deg);"/>
-                        
-                        <label for="lesson_topic" class="fw-bold text-uppercase mb-2 text-muted" style="font-size: 0.75rem; letter-spacing: 1px;">
-                            <i class="fa fa-edit me-1 text-primary" title="Тема занятия"/> Тема текущего занятия
-                        </label>
+                        <i class="fa fa-pencil-square-o position-absolute" title="Тема занятия"
+                            style="right: -10px; bottom: -10px; font-size: 100px; opacity: 0.03; transform: rotate(-15deg);" />
+
+                        <label for="lesson_topic" class="fw-bold text-uppercase mb-2 text-muted"
+                            style="font-size: 0.75rem; letter-spacing: 1px;">
+                            <i class="fa fa-edit me-1 text-primary" title="Тема занятия" /> Тема
+                            текущего занятия </label>
                         <div class="h2 mb-0">
-                            <field name="lesson_topic" 
-                                placeholder="Например: Решение квадратных уравнений через дискриминант..." 
-                                class="w-100 border-0 p-0 fw-bold shadow-none text-dark" 
+                            <field name="lesson_topic"
+                                placeholder="Например: Решение квадратных уравнений через дискриминант..."
+                                class="w-100 border-0 p-0 fw-bold shadow-none text-dark"
                                 style="background: transparent; outline: none;"
-                                readonly="state == 'done'"/>
+                                readonly="state == 'done'" />
                         </div>
                     </div>
 
                     <!-- Скрытые поля для системной логики -->
                     <div invisible="1">
-                        <field name="session_id" readonly="1" force_save="1"/>
-                        <field name="register_id" readonly="1" force_save="1"/>
-                        <field name="display_title"/>
+                        <field name="session_id" readonly="1" force_save="1" />
+                        <field name="register_id" readonly="1" force_save="1" />
+                        <field name="display_title" />
                     </div>
 
                     <notebook>
                         <page string="Ученики и Оценки" name="marks">
 
+                            <!-- ОБНОВЛЕННЫЙ ПУЛЬТ: ПОРЯДОК И ЛОГИКА -->
+                            <div class="p-3 bg-white border rounded shadow-sm mb-4 mt-2"
+                                invisible="state != 'start'">
+                                <div class="d-flex align-items-center gap-3 w-100">
 
-                            <!-- ПАНЕЛЬ КНОПОК (в статусе "Урок идет") -->
-                            <div class="d-flex flex-wrap align-items-center gap-1 w-100 mb-3 mt-2" invisible="state != 'start'">
-                                
-                                <!-- Группа кнопок присутствия (Зеленые) -->
-                                <button name="action_mass_set_attendance" type="object" string="Присутствуют"
-                                        class="btn btn-outline-success btn-sm o_attendance_present_all_btn" 
-                                        context="{'set_name': 'Присутствует'}" icon="fa-check" title="Отметить всех присутствующими"/>
+                                    <!-- 1. ВЫБОР КОЛОНОК (Переключатели) -->
+                                    <div
+                                        class="d-flex align-items-center gap-1 bg-light p-1 rounded-3 border-dashed"
+                                        style="border: 1px dashed #ccc;">
+                                        <field name="mass_target_1" widget="boolean_toggle"
+                                            class="m-0" title="Оценка 1" />
+                                        <field name="mass_target_2" widget="boolean_toggle"
+                                            class="m-0" title="Оценка 2" />
+                                        <field name="mass_target_3" widget="boolean_toggle"
+                                            class="m-0" title="Оценка 3" />
+                                    </div>
 
-                                <button name="action_mass_set_attendance" type="object" string="Дистанционно"
-                                        class="btn btn-outline-success btn-sm" 
-                                        context="{'set_name': 'Дистанционно'}" icon="fa-laptop" title="Отметить всех дистанционно"/>
+                                    <div class="vr" style="height: 35px; opacity: 0.1;" />
 
-                                <!-- Группа кнопок отсутствия по причине (Синие/Голубые) -->
-                                <button name="action_mass_set_attendance" type="object" string="Болеют" 
-                                        class="btn btn-outline-info btn-sm"
-                                        context="{'set_name': 'Болеет'}" icon="fa-medkit" title="Отметить всех заболевшими"/>
+                                    <!-- 2. ГРУППА ОЦЕНОК + ЛАСТИК -->
+                                    <div class="d-flex align-items-center gap-1">
+                                        <div class="btn-group shadow-sm" role="group">
+                                            <button name="action_mass_set_grade" type="object"
+                                                string="5"
+                                                class="btn btn-outline-success fw-bold"
+                                                style="width: 50px; height: 40px; border-width: 1px;"
+                                                context="{'set_grade': '5'}" />
+                                            <button name="action_mass_set_grade" type="object"
+                                                string="4"
+                                                class="btn btn-outline-info fw-bold"
+                                                style="width: 50px; height: 40px; border-width: 1px;"
+                                                context="{'set_grade': '4'}" />
+                                            <button name="action_mass_set_grade" type="object"
+                                                string="3"
+                                                class="btn btn-outline-warning fw-bold"
+                                                style="width: 50px; height: 40px; border-width: 1px;"
+                                                context="{'set_grade': '3'}" />
+                                            <button name="action_mass_set_grade" type="object"
+                                                string="2"
+                                                class="btn btn-outline-danger fw-bold"
+                                                style="width: 50px; height: 40px; border-width: 1px;"
+                                                context="{'set_grade': '2'}" />
+                                        </div>
+                                        <!-- Кнопка ластика (очистить только оценки в выбранных
+                                        тумблерах) -->
+                                        <button name="action_mass_clear_grades" type="object"
+                                            class="btn btn-outline-secondary shadow-sm"
+                                            style="height: 40px; border-width: 1px; width: 40px;"
+                                            icon="fa-eraser"
+                                            title="Очистить оценки в выбранных колонках" />
+                                    </div>
 
-                                <button name="action_mass_set_attendance" type="object" string="Уважительная"
-                                        class="btn btn-outline-info btn-sm"
-                                        context="{'set_name': 'Уважительная причина'}" icon="fa-envelope-o" title="Отметить всех по уважительной причине"/>
+                                    <div class="vr" style="height: 35px; opacity: 0.1;" />
 
-                                <!-- Кнопки опоздания и прогула (Желтый/Красный) -->
-                                <button name="action_mass_set_attendance" type="object" string="Опоздали"
-                                        class="btn btn-outline-warning btn-sm"
-                                        context="{'set_name': 'Опоздал'}" icon="fa-clock-o" title="Отметить всех опоздавшими"/>
+                                    <!-- 3. ГРУППА ПОСЕЩАЕМОСТИ -->
+                                    <div class="btn-group shadow-sm" role="group">
+                                        <button name="action_mass_set_attendance" type="object"
+                                            class="btn btn-outline-success"
+                                            style="padding: 8px 12px; border-width: 1px;"
+                                            context="{'set_name': 'Присутствует'}" icon="fa-check"
+                                            title="Присутствует" />
+                                        <button name="action_mass_set_attendance" type="object"
+                                            class="btn btn-outline-success"
+                                            style="padding: 8px 12px; border-width: 1px;"
+                                            context="{'set_name': 'Дистанционно'}" icon="fa-laptop"
+                                            title="Дистанционно" />
+                                        <button name="action_mass_set_attendance" type="object"
+                                            class="btn btn-outline-info"
+                                            style="padding: 8px 12px; border-width: 1px;"
+                                            context="{'set_name': 'Болеет'}" icon="fa-medkit"
+                                            title="Болеет" />
+                                        <button name="action_mass_set_attendance" type="object"
+                                            class="btn btn-outline-info"
+                                            style="padding: 8px 12px; border-width: 1px;"
+                                            context="{'set_name': 'Уважительная причина'}"
+                                            icon="fa-envelope-o" title="Уважительная причина" />
+                                        <button name="action_mass_set_attendance" type="object"
+                                            class="btn btn-outline-warning"
+                                            style="padding: 8px 12px; border-width: 1px;"
+                                            context="{'set_name': 'Опоздал'}" icon="fa-clock-o"
+                                            title="Опоздал" />
+                                        <button name="action_mass_set_attendance" type="object"
+                                            class="btn btn-outline-danger"
+                                            style="padding: 8px 12px; border-width: 1px;"
+                                            context="{'set_name': 'Прогул'}" icon="fa-times"
+                                            title="Прогул" />
+                                    </div>
 
-                                <button name="action_mass_set_attendance" type="object" string="Прогуляли"
-                                        class="btn btn-outline-danger btn-sm"
-                                        context="{'set_name': 'Прогул'}" icon="fa-times" title="Отметить всех прогулявшими"/>
-
-                                <!-- Кнопка СБРОС (Прижата вправо через ms-auto) -->
-                                <button name="action_reset_attendance_sheet" type="object" string="Сбросить журнал"
-                                        class="btn btn-link btn-sm text-danger ms-auto"
-                                        icon="fa-refresh" title="Очистить все оценки и статусы"
-                                        confirm="Вы уверены, что хотите полностью очистить этот журнал?"/>
+                                    <!-- 4. СБРОС ВСЕГО (Крайнее правое положение) -->
+                                    <button name="action_reset_attendance_sheet" type="object"
+                                        class="btn btn-outline-secondary ms-auto shadow-sm"
+                                        style="padding: 8px 15px; border-width: 1px;"
+                                        icon="fa-refresh"
+                                        string="Сбросить всё"
+                                        confirm="Внимание! Это удалит ВСЕ оценки и ВСЕ статусы посещаемости. Продолжить?" />
+                                </div>
                             </div>
-
 
                             <field name="attendance_line" colspan="4" nolabel="1"
                                 readonly="state != 'start'">
                                 <list string="Attendance Line" editable="top" create="false">
 
                                     <!-- 1. Аватар (можно скрыть) -->
-                                    <field name="student_avatar" widget="image"                                    
+                                    <field name="student_avatar" widget="image"
                                         options="{'size': [32, 32]}"
                                         width="35px"
                                         class="rounded-circle" string="" optional="show" />
@@ -237,10 +320,10 @@
                                     <!-- 2. Ученик (Обычно всегда виден, но добавил опцию) -->
                                     <field name="student_id" readonly="1" decoration-bf="1"
                                         options="{'no_open': True}" optional="show" />
-                                    
+
                                     <!-- 3. Оценки -->
-                                    <field name="grade_1_ui" string="Оценка 1" 
-                                        widget="selection_badge" 
+                                    <field name="grade_1_ui" string="Оценка 1"
+                                        widget="selection_badge"
                                         width="70px" optional="show"
                                         decoration-bf="1"
                                         decoration-success="grade_1_ui == '5'"
@@ -249,7 +332,7 @@
                                         decoration-danger="grade_1_ui == '2'" />
 
 
-                                    <field name="grade_2_ui" string="Оценка 2" 
+                                    <field name="grade_2_ui" string="Оценка 2"
                                         widget="selection_badge"
                                         width="70px" optional="show"
                                         decoration-bf="1"
@@ -258,7 +341,7 @@
                                         decoration-warning="grade_2_ui == '3'"
                                         decoration-danger="grade_2_ui == '2'" />
 
-                                    <field name="grade_3_ui" string="Оценка 3" 
+                                    <field name="grade_3_ui" string="Оценка 3"
                                         widget="selection_badge"
                                         width="70px" optional="hide"
                                         decoration-bf="1"
@@ -286,15 +369,15 @@
 
                                     <!-- КНОПКА ОЧИСТКИ СТРОКИ -->
                                     <button name="action_clear_line_data"
-                                            width="30px" 
-                                            type="object" 
-                                            icon="fa-eraser" 
-                                            title="Очистить" 
-                                            class="text-danger"
-                                            invisible="parent.state in ('done','cancel')"/>
+                                        width="30px"
+                                        type="object"
+                                        icon="fa-eraser"
+                                        title="Очистить"
+                                        class="text-danger"
+                                        invisible="parent.state in ('done','cancel')" />
 
                                     <!-- 6. Технические невидимые поля (Необходимы для логики
-                                    декораций) -->                                    
+                                    декораций) -->
                                     <field name="present" column_invisible="True" />
                                     <field name="absent" column_invisible="True" />
                                     <field name="late" column_invisible="True" />
@@ -302,7 +385,7 @@
                                     <field name="grade_1" column_invisible="True" />
                                     <field name="grade_2" column_invisible="True" />
                                     <field name="grade_3" column_invisible="True" />
-                                    
+
                                 </list>
                             </field>
                         </page>
@@ -350,7 +433,8 @@
         <field name="name">op.attendance.sheet.kanban</field>
         <field name="model">op.attendance.sheet</field>
         <field name="arch" type="xml">
-            <kanban default_group_by="days_id" default_order="start_datetime asc, batch_id" quick_create="false">
+            <kanban default_group_by="days_id" default_order="start_datetime asc, batch_id"
+                quick_create="false">
                 <field name="attendance_rate" />
                 <field name="count_5" />
                 <field name="count_4" />
@@ -536,7 +620,7 @@
                     <filter string="🗓️ Дата урока" name="group_date"
                         context="{'group_by': 'attendance_date'}" />
                 </group>
-                <searchpanel>                    
+                <searchpanel>
                     <!-- Фильтр по классам -->
                     <field name="batch_id"
                         expand="0"
