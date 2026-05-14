@@ -150,16 +150,19 @@
                                             <th class="col-year">За год</th>
                                         </tr>
                                     </thead>
-                                    <tbody>
-                                        <t t-set="idx" t-value="1" />
-                                        <t t-foreach="res['subjects']" t-as="sub">
+                                    <tbody t-set="idx" t-value="1" />
+                                        <t t-foreach="res.get('subjects', [])" t-as="subj_line"> <!-- Используем .get() и новое имя subj_line -->
                                             <tr>
                                                 <td class="text-center"><t t-out="idx" /></td>
-                                                <td><t t-out="subatchb['name']" /></td>
-                                                <t t-foreach="sub['grades']" t-as="grade">
-                                                    <td class="text-center"><t t-out="grade" /></td>
+                                                <!-- Используем subj_line.get('name') - это НЕ упадет с ошибкой, если данных нет -->
+                                                <td><t t-out="subj_line.get('name', '—')" /></td>
+                                                
+                                                <t t-foreach="subj_line.get('grades', ['', '', '', ''])" t-as="grade_val">
+                                                    <td class="text-center"><t t-out="grade_val" /></td>
                                                 </t>
-                                                <td class="text-center col-year-cell"><t t-out="sub['year_grade']" /></td>
+                                                <td class="text-center col-year-cell">
+                                                    <t t-out="subj_line.get('year_grade', '')" />
+                                                </td>
                                             </tr>
                                             <t t-set="idx" t-value="idx + 1" />
                                         </t>

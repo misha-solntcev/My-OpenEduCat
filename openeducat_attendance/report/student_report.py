@@ -55,22 +55,28 @@ class ReportStudentSummary(models.AbstractModel):
             student_list = []
             for student in students_in_batch:
                 
-                # Собираем оценки (фильтруем из скачанного в память набора)
-                subject_lines = []
-                for subject in batch.course_id.subject_ids:
+                # Собираем оценки
+                subject_data_list = [] # Переименовали для ясности
+                # Добавим проверку, есть ли вообще предметы у курса
+                subjects = batch.course_id.subject_ids or []
+                
+                for subject in subjects:
                     grade_rec = all_grades.filtered(
                         lambda g: g.student_id.id == student.id and g.subject_id.id == subject.id
                     )
 
-                    subject_lines.append({
-                        'name': subject.name,
+                    # Берем первую запись, если их несколько (защита от дублей)
+                    g = grade_rec[0] if grade_rec else False
+
+                    subject_data_list.append({
+                        'name': subject.name or 'Без названия',
                         'grades': [
-                            (grade_rec.q1_final_grade or '') if grade_rec else '',
-                            (grade_rec.q2_final_grade or '') if grade_rec else '',
-                            (grade_rec.q3_final_grade or '') if grade_rec else '',
-                            (grade_rec.q4_final_grade or '') if grade_rec else ''
+                            (g.q1_final_grade or '') if g else '',
+                            (g.q2_final_grade or '') if g else '',
+                            (g.q3_final_grade or '') if g else '',
+                            (g.q4_final_grade or '') if g else ''
                         ],
-                        'year_grade': (grade_rec.final_quarter_grade or '') if grade_rec else ''
+                        'year_grade': (g.final_quarter_grade or '') if g else ''
                     })
 
                 # Собираем посещаемость (также фильтруем из памяти)
@@ -91,7 +97,7 @@ class ReportStudentSummary(models.AbstractModel):
 
                 student_list.append({
                     'student': student.name,
-                    'subjects': subject_lines,
+                    'subjects': subject_data_list,
                     'attendance': att_summary,
                     'year_total': y_total,
                 })

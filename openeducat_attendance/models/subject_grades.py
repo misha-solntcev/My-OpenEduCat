@@ -17,9 +17,8 @@ class OpSubjectGrades(models.Model):
     course_id = fields.Many2one('op.course', related='batch_id.course_id', store=True, readonly=True)
     faculty_id = fields.Many2one('op.faculty', 'Faculty', compute='_compute_faculty_id', store=True)
 
-    is_teacher = fields.Boolean(compute='_compute_is_teacher')
+    is_teacher = fields.Boolean(compute='_compute_is_teacher')    
     
-    table_entries = fields.Text('Table Entries')
     student_avatar = fields.Image(related='student_id.image_128', string="Фото ученика")
     faculty_avatar = fields.Image(related='faculty_id.image_128', string="Фото учителя")
     textbook_image = fields.Image('Учебник', compute='_compute_textbook_image', store=True)
