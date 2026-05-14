@@ -150,19 +150,17 @@
                                             <th class="col-year">За год</th>
                                         </tr>
                                     </thead>
-                                    <tbody t-set="idx" t-value="1" />
-                                        <t t-foreach="res.get('subjects', [])" t-as="subj_line"> <!-- Используем .get() и новое имя subj_line -->
+                                    <tbody>
+                                        <t t-set="idx" t-value="1" />
+                                        <!-- Защита .get() для предотвращения NoneType ошибки -->
+                                        <t t-foreach="res.get('subjects', [])" t-as="sub">
                                             <tr>
                                                 <td class="text-center"><t t-out="idx" /></td>
-                                                <!-- Используем subj_line.get('name') - это НЕ упадет с ошибкой, если данных нет -->
-                                                <td><t t-out="subj_line.get('name', '—')" /></td>
-                                                
-                                                <t t-foreach="subj_line.get('grades', ['', '', '', ''])" t-as="grade_val">
-                                                    <td class="text-center"><t t-out="grade_val" /></td>
+                                                <td><t t-out="sub.get('name', '—')" /></td>
+                                                <t t-foreach="sub.get('grades', ['', '', '', ''])" t-as="grade">
+                                                    <td class="text-center"><t t-out="grade" /></td>
                                                 </t>
-                                                <td class="text-center col-year-cell">
-                                                    <t t-out="subj_line.get('year_grade', '')" />
-                                                </td>
+                                                <td class="text-center col-year-cell"><t t-out="sub.get('year_grade', '')" /></td>
                                             </tr>
                                             <t t-set="idx" t-value="idx + 1" />
                                         </t>
@@ -171,31 +169,31 @@
                                         <tr class="attendance-row" style="border-top: 1pt solid black !important;">
                                             <td class="att-icon-cell"><i class="fa fa-calendar-times-o" /></td>
                                             <td class="att-label">Пропущено уроков всего</td>
-                                            <t t-foreach="res['attendance']" t-as="att">
-                                                <td class="text-center"><t t-out="att['total_missed']" /></td>
+                                            <t t-foreach="res.get('attendance', [])" t-as="att">
+                                                <td class="text-center"><t t-out="att.get('total_missed', 0)" /></td>
                                             </t>
-                                            <td class="text-center col-year-cell"><t t-out="res['year_total']['missed']" /></td>
+                                            <td class="text-center col-year-cell"><t t-out="res.get('year_total', {}).get('missed', 0)" /></td>
                                         </tr>
 
                                         <tr class="attendance-row">
                                             <td class="att-icon-cell"><i class="fa fa-medkit" /></td>
                                             <td class="att-label">В т.ч. по болезни</td>
-                                            <t t-foreach="res['attendance']" t-as="att">
-                                                <td class="text-center"><t t-out="att['sick']" /></td>
+                                            <t t-foreach="res.get('attendance', [])" t-as="att">
+                                                <td class="text-center"><t t-out="att.get('sick', 0)" /></td>
                                             </t>
-                                            <td class="text-center col-year-cell"><t t-out="res['year_total']['sick']" /></td>
+                                            <td class="text-center col-year-cell"><t t-out="res.get('year_total', {}).get('sick', 0)" /></td>
                                         </tr>
 
                                         <tr class="attendance-row">
                                             <td class="att-icon-cell"><i class="fa fa-clock-o" /></td>
                                             <td class="att-label">Опозданий</td>
-                                            <t t-foreach="res['attendance']" t-as="att">
-                                                <td class="text-center"><t t-out="att['late']" /></td>
+                                            <t t-foreach="res.get('attendance', [])" t-as="att">
+                                                <td class="text-center"><t t-out="att.get('late', 0)" /></td>
                                             </t>
-                                            <td class="text-center col-year-cell"><t t-out="res['year_total']['late']" /></td>
+                                            <td class="text-center col-year-cell"><t t-out="res.get('year_total', {}).get('late', 0)" /></td>
                                         </tr>
-                                    </tbody>
-                                </table>
+                                    </tbody> <!-- Сначала закрываем тело -->
+                                </table> <!-- Потом закрываем таблицу -->
 
                                 <!-- Линия отреза  -->
                                 <t >
