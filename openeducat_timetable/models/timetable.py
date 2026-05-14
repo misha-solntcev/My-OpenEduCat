@@ -8,8 +8,19 @@ class OpSession(models.Model):
     _description = "Sessions"
     _order = "start_datetime desc, batch_id, id"
 
+    timetable_date = fields.Date(string='Дата урока', 
+        compute='_compute_timetable_date', store=True, index=True)
+
     days_id = fields.Many2one('op.day', string='День недели', 
         compute='_compute_day_info', store=True, group_expand='_read_group_days')
+
+    @api.depends('start_datetime')
+    def _compute_timetable_date(self):
+        for rec in self:
+            if rec.start_datetime:
+                rec.timetable_date = rec.start_datetime.date()
+            else:
+                rec.timetable_date = False
 
     @api.model
     def _read_group_days(self, days, domain):

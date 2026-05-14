@@ -233,6 +233,7 @@
                 <field name="faculty_id" string="Учитель" />
                 <field name="subject_id" string="Предмет" />
                 <field name="batch_id" string="Класс" />
+                <field name="timetable_date" string="Дата урока" />
 
                 <separator />
 
@@ -262,13 +263,14 @@
                 <separator />
 
                 <group expand="0" string="Группировать по...">
-                    <filter string="📅 По дням" name="group_day" context="{'group_by': 'days_id'}" />
+                    <filter string="📅 По дням недели" name="group_day" context="{'group_by': 'days_id'}" />
                     <filter string="👨‍🏫 По учителю" name="group_faculty"
                         context="{'group_by': 'faculty_id'}" />
                     <filter string="📚 По предмету" name="group_subject"
                         context="{'group_by': 'subject_id'}" />
                     <filter string="🏫 По классу" name="group_batch"
                         context="{'group_by': 'batch_id'}" />
+                    <filter string="🗓️ Дата урока" name="group_date" context="{'group_by': 'timetable_date'}" />            
                 </group>
                 <searchpanel>
                     <!-- Фильтр по классам -->
