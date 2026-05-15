@@ -88,15 +88,3 @@
         display: none !important;
     }
 }
-
-@media (max-width: 767.98px) {
-    /* Фиксируем ширину ячеек оценок и заставляем кнопки встать в 2 колонки */
-    .o_list_table td[name*="grade_"] {
-        min-width: 90px !important; 
-    }
-    .o_list_table td[name*="grade_"] .o_selection_badge_widget {
-        display: grid !important;
-        grid-template-columns: repeat(2, 1fr);
-        gap: 2px;
-    }
-}
