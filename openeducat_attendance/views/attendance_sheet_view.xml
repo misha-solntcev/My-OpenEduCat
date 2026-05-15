@@ -207,103 +207,55 @@
                     </div>
 
                     <notebook>
-                        <page string="Ученики и Оценки" name="marks">
+                        <page string="Ученики и Оценки" name="marks">                            
 
-                            <!-- ОБНОВЛЕННЫЙ ПУЛЬТ: ПОРЯДОК И ЛОГИКА -->
-                            <div class="p-3 bg-white border rounded shadow-sm mb-4 mt-2"
-                                invisible="state != 'start'">
-                                <div class="d-flex align-items-center gap-3 w-100">
 
-                                    <!-- 1. ВЫБОР КОЛОНОК (Переключатели) -->
-                                    <div
-                                        class="d-flex align-items-center gap-1 bg-light p-1 rounded-3 border-dashed"
-                                        style="border: 1px dashed #ccc;">
-                                        <field name="mass_target_1" widget="boolean_toggle"
-                                            class="m-0" title="Оценка 1" />
-                                        <field name="mass_target_2" widget="boolean_toggle"
-                                            class="m-0" title="Оценка 2" />
-                                        <field name="mass_target_3" widget="boolean_toggle"
-                                            class="m-0" title="Оценка 3" />
+                            <!-- АДАПТИВНЫЙ ПУЛЬТ УПРАВЛЕНИЯ -->
+                            <div class="p-3 bg-white border rounded shadow-sm mb-4 mt-2" invisible="state != 'start'">
+                                <!-- flex-column для мобильных, flex-md-row для десктопа -->
+                                <div class="d-flex flex-column flex-md-row align-items-center gap-3 w-100">
+                                    
+                                    <!-- 1. ТУМБЛЕРЫ (ВЫБОР КОЛОНОК) -->
+                                    <div class="d-flex align-items-center gap-1 bg-light p-1 rounded-3 border-dashed" style="border: 1px dashed #ccc;">
+                                        <field name="mass_target_1" widget="boolean_toggle" class="m-0" title="Оценка 1"/>
+                                        <field name="mass_target_2" widget="boolean_toggle" class="m-0" title="Оценка 2"/>
+                                        <field name="mass_target_3" widget="boolean_toggle" class="m-0" title="Оценка 3"/>
                                     </div>
 
-                                    <div class="vr" style="height: 35px; opacity: 0.1;" />
+                                    <!-- Разделитель: скрыт на мобильных (d-none), виден на десктопе (d-md-block) -->
+                                    <div class="vr d-none d-md-block" style="height: 35px; opacity: 0.1;"/>
 
-                                    <!-- 2. ГРУППА ОЦЕНОК + ЛАСТИК -->
+                                    <!-- 2. ОЦЕНКИ + ЛАСТИК -->
                                     <div class="d-flex align-items-center gap-1">
                                         <div class="btn-group shadow-sm" role="group">
-                                            <button name="action_mass_set_grade" type="object"
-                                                string="5"
-                                                class="btn btn-outline-success fw-bold"
-                                                style="width: 50px; height: 40px; border-width: 1px;"
-                                                context="{'set_grade': '5'}" />
-                                            <button name="action_mass_set_grade" type="object"
-                                                string="4"
-                                                class="btn btn-outline-info fw-bold"
-                                                style="width: 50px; height: 40px; border-width: 1px;"
-                                                context="{'set_grade': '4'}" />
-                                            <button name="action_mass_set_grade" type="object"
-                                                string="3"
-                                                class="btn btn-outline-warning fw-bold"
-                                                style="width: 50px; height: 40px; border-width: 1px;"
-                                                context="{'set_grade': '3'}" />
-                                            <button name="action_mass_set_grade" type="object"
-                                                string="2"
-                                                class="btn btn-outline-danger fw-bold"
-                                                style="width: 50px; height: 40px; border-width: 1px;"
-                                                context="{'set_grade': '2'}" />
+                                            <button name="action_mass_set_grade" type="object" string="5" class="btn btn-outline-success fw-bold" style="width: 45px; height: 40px;" context="{'set_grade': '5'}"/>
+                                            <button name="action_mass_set_grade" type="object" string="4" class="btn btn-outline-info fw-bold" style="width: 45px; height: 40px;" context="{'set_grade': '4'}"/>
+                                            <button name="action_mass_set_grade" type="object" string="3" class="btn btn-outline-warning fw-bold" style="width: 45px; height: 40px;" context="{'set_grade': '3'}"/>
+                                            <button name="action_mass_set_grade" type="object" string="2" class="btn btn-outline-danger fw-bold" style="width: 45px; height: 40px;" context="{'set_grade': '2'}"/>
                                         </div>
-                                        <!-- Кнопка ластика (очистить только оценки в выбранных
-                                        тумблерах) -->
-                                        <button name="action_mass_clear_grades" type="object"
-                                            class="btn btn-outline-secondary shadow-sm"
-                                            style="height: 40px; border-width: 1px; width: 40px;"
-                                            icon="fa-eraser"
-                                            title="Очистить оценки в выбранных колонках" />
+                                        <!-- Унифицированный ластик -->
+                                        <button name="action_mass_clear_grades" type="object" class="btn btn-outline-secondary shadow-sm" style="height: 40px; width: 40px;" icon="fa-eraser" title="Очистить оценки"/>
                                     </div>
 
-                                    <div class="vr" style="height: 35px; opacity: 0.1;" />
+                                    <div class="vr d-none d-md-block" style="height: 35px; opacity: 0.1;"/>
 
-                                    <!-- 3. ГРУППА ПОСЕЩАЕМОСТИ -->
-                                    <div class="btn-group shadow-sm" role="group">
-                                        <button name="action_mass_set_attendance" type="object"
-                                            class="btn btn-outline-success"
-                                            style="padding: 8px 12px; border-width: 1px;"
-                                            context="{'set_name': 'Присутствует'}" icon="fa-check"
-                                            title="Присутствует" />
-                                        <button name="action_mass_set_attendance" type="object"
-                                            class="btn btn-outline-success"
-                                            style="padding: 8px 12px; border-width: 1px;"
-                                            context="{'set_name': 'Дистанционно'}" icon="fa-laptop"
-                                            title="Дистанционно" />
-                                        <button name="action_mass_set_attendance" type="object"
-                                            class="btn btn-outline-info"
-                                            style="padding: 8px 12px; border-width: 1px;"
-                                            context="{'set_name': 'Болеет'}" icon="fa-medkit"
-                                            title="Болеет" />
-                                        <button name="action_mass_set_attendance" type="object"
-                                            class="btn btn-outline-info"
-                                            style="padding: 8px 12px; border-width: 1px;"
-                                            context="{'set_name': 'Уважительная причина'}"
-                                            icon="fa-envelope-o" title="Уважительная причина" />
-                                        <button name="action_mass_set_attendance" type="object"
-                                            class="btn btn-outline-warning"
-                                            style="padding: 8px 12px; border-width: 1px;"
-                                            context="{'set_name': 'Опоздал'}" icon="fa-clock-o"
-                                            title="Опоздал" />
-                                        <button name="action_mass_set_attendance" type="object"
-                                            class="btn btn-outline-danger"
-                                            style="padding: 8px 12px; border-width: 1px;"
-                                            context="{'set_name': 'Прогул'}" icon="fa-times"
-                                            title="Прогул" />
+                                    <!-- 3. ПОСЕЩАЕМОСТЬ + ЛАСТИК (Все кнопки) -->
+                                    <div class="d-flex align-items-center gap-1">
+                                        <div class="btn-group shadow-sm" role="group">
+                                            <button name="action_mass_set_attendance" type="object" class="btn btn-outline-success" style="padding: 8px 12px;" context="{'set_name': 'Присутствует'}" icon="fa-check-square-o" title="Присутствуют"/>
+                                            <button name="action_mass_set_attendance" type="object" class="btn btn-outline-success" style="padding: 8px 12px;" context="{'set_name': 'Дистанционно'}" icon="fa-laptop" title="Дистанционно"/>
+                                            <button name="action_mass_set_attendance" type="object" class="btn btn-outline-info" style="padding: 8px 12px;" context="{'set_name': 'Болеет'}" icon="fa-medkit" title="Болеют"/>
+                                            <button name="action_mass_set_attendance" type="object" class="btn btn-outline-info" style="padding: 8px 12px;" context="{'set_name': 'Уважительная причина'}" icon="fa-envelope-o" title="Уважительная причина"/>
+                                            <button name="action_mass_set_attendance" type="object" class="btn btn-outline-warning" style="padding: 8px 12px;" context="{'set_name': 'Опоздал'}" icon="fa-clock-o" title="Опоздали"/>
+                                            <!-- Новая иконка для прогула: fa-times-circle (отличается от ластика) -->
+                                            <button name="action_mass_set_attendance" type="object" class="btn btn-outline-danger" style="padding: 8px 12px;" context="{'set_name': 'Прогул'}" icon="fa-user-times" title="Прогуляли"/>
+                                        </div>
+                                        <!-- Такой же ластик для статусов -->
+                                        <button name="action_mass_clear_attendance" type="object" class="btn btn-outline-secondary shadow-sm" style="height: 40px; width: 40px;" icon="fa-eraser" title="Сбросить посещаемость"/>
                                     </div>
 
-                                    <!-- 4. СБРОС ВСЕГО (Крайнее правое положение) -->
-                                    <button name="action_reset_attendance_sheet" type="object"
-                                        class="btn btn-outline-secondary ms-auto shadow-sm"
-                                        style="padding: 8px 15px; border-width: 1px;"
-                                        icon="fa-refresh"
-                                        string="Сбросить всё"
-                                        confirm="Внимание! Это удалит ВСЕ оценки и ВСЕ статусы посещаемости. Продолжить?" />
+                                    <!-- 4. СБРОС ВСЕГО (ms-md-auto прижимает вправо только на десктопе) -->
+                                    <button name="action_reset_attendance_sheet" type="object" class="btn btn-outline-secondary ms-md-auto shadow-sm" style="padding: 8px 15px; height: 40px;" icon="fa-refresh" string="Сбросить всё" confirm="Это полностью очистит журнал. Продолжить?"/>
                                 </div>
                             </div>
 
@@ -364,17 +316,18 @@
 
 
                                     <!-- 5. Примечание (можно скрыть) -->
-                                    <field name="remark" placeholder="Примечание..." optional="show" />
+                                    <field name="remark" placeholder="Примечание..." optional="show" 
+                                        class="d-none d-md-table-cell"/>
 
 
                                     <!-- КНОПКА ОЧИСТКИ СТРОКИ -->
-                                    <button name="action_clear_line_data"
-                                        width="30px"
-                                        type="object"
-                                        icon="fa-eraser"
-                                        title="Очистить"
-                                        class="text-danger"
-                                        invisible="parent.state in ('done','cancel')" />
+                                    <button name="action_clear_line_data" 
+                                        type="object" 
+                                        icon="fa-eraser" 
+                                        title="Очистить строку" 
+                                        class="btn btn-outline-secondary shadow-sm" 
+                                        
+                                        invisible="parent.state in ('done','cancel')"/>
 
                                     <!-- 6. Технические невидимые поля (Необходимы для логики
                                     декораций) -->

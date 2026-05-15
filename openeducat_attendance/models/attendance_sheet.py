@@ -334,6 +334,12 @@ class OpAttendanceSheet(models.Model):
         
         if vals:
             self.attendance_line.write(vals)
+    
+    def action_mass_clear_attendance(self):
+        """Очистка только статусов посещаемости для всех учеников"""
+        self.ensure_one()
+        if self.attendance_line:
+            self.attendance_line.write({'attendance_type_id': False})
 
     def action_reset_attendance_sheet(self):
         self.attendance_line.action_clear_line_data()
