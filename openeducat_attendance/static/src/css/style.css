@@ -88,3 +88,17 @@
         display: none !important;
     }
 }
+
+/* Фикс для мобильного канбана (Odoo 18) */
+@media (max-width: 767.98px) {
+    /* 1. Скрываем саму группу (колонку), если JS установил ей состояние folded */
+    .o_kanban_renderer.o_kanban_mobile .o_kanban_group.o_column_folded {
+        display: none !important;
+    }
+
+    /* 2. Фикс для навигационной панели (если используется переключатель групп сверху) */
+    /* Скрываем кнопки пустых дней в мобильном селекторе групп */
+    .o_kanban_mobile_tabs .o_kanban_mobile_tab.o_column_folded {
+        display: none !important;
+    }
+}
