@@ -6,3 +6,4 @@ access_op_attendance_sheet_manager,Attendance Sheet Manager,model_op_attendance_
 access_op_attendance_line_user,Attendance Line User,model_op_attendance_line,openeducat_attendance.group_op_attendance_user,1,1,1,0
 access_op_attendance_line_manager,Attendance Line Manager,model_op_attendance_line,openeducat_attendance.group_op_attendance_manager,1,1,1,1
 access_student_report_wizard,student.report.wizard,model_student_report_wizard,base.group_user,1,1,1,1
+access_current_grades_report_wizard,current.grades.report.wizard,model_current_grades_report_wizard,base.group_user,1,1,1,1

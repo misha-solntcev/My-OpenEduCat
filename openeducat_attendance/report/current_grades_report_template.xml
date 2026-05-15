@@ -1,0 +1,158 @@
+<odoo>
+    <record id="action_report_current_grades" model="ir.actions.report">
+        <field name="name">Текущие оценки (PDF)</field>
+        <field name="model">current.grades.report.wizard</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">openeducat_attendance.current_grades_temp</field>
+        <field name="report_file">openeducat_attendance.current_grades_temp</field>
+        <field name="print_report_name">
+            'Текущие оценки %s %s %s%s' % (
+                object.academic_year_id.name,
+                ('_'.join(object.batch_ids.mapped('name')) if object.batch_ids else 'вся школа'),
+                ('_'.join(object.term_ids.mapped('name')) if object.term_ids else 'весь год'),
+                (' ' + '_'.join([s.name.split()[0] for s in object.student_ids]) if object.student_ids else '')
+            )
+        </field>
+    </record>
+
+    <template id="current_grades_temp">
+        <t t-call="web.html_container">
+            <t t-call="web.basic_layout">
+                <style>
+                    /* Общие настройки как в Итоговых оценках */
+                    .page, h2, h3, h4, table, div, span {
+                        font-family: "Times New Roman", Times, serif !important;
+                        color: black !important;
+                    }                    
+                    
+
+                    .report-title {
+                        text-align: center;                        
+                        font-weight: bold !important;
+                        margin-bottom: 10pt !important;
+                        margin-top: 0 !important;
+                    }
+
+                    .batch-header {
+                        border-bottom: 2pt solid black;
+                        margin-bottom: 10pt;
+                        padding-bottom: 3pt;
+                    }
+
+                    .student-block {
+                        page-break-inside: avoid !important; 
+                        display: block;
+                        width: 100%;
+                        margin-bottom: 15pt !important;
+                    }
+                    
+                    .student-info {
+                        font-size: 13pt !important;
+                        font-weight: bold !important;
+                        margin-bottom: 5pt !important;
+                    }
+
+                    .grades-table {
+                        width: 100%;
+                        border-collapse: collapse !important;
+                        table-layout: fixed;
+                    }
+
+                    .grades-table th, .grades-table td {
+                        border: 0.5pt solid black !important;
+                        padding: 3pt 5pt !important;
+                        vertical-align: middle !important;
+                        font-size: 11pt !important;
+                    }
+
+                    /* Чередование строк: каждая четная строка будет с серым фоном */
+                    .grades-table tbody tr:nth-child(even) {
+                        background-color: #f9f9f9 !important;
+                    }
+
+                    .grades-table thead th {
+                        background-color: #f2f2f2 !important;
+                        text-align: center !important;
+                        font-weight: bold !important;
+                    }
+
+                    .grades-table thead th {
+                        background-color: #f2f2f2 !important;
+                        text-align: center !important;
+                        font-weight: bold !important;
+                    }
+
+                    .col-subj { width: 30%; text-align: left; }
+                    .col-marks { width: auto; }
+                    .col-avg { width: 45pt; text-align: center; 
+                        font-weight: bold !important; background: transparent !important; }
+
+                    .date-mark-box {
+                        display: inline-block;
+                        margin-right: 6pt;
+                        white-space: nowrap;
+                    }
+                    .m-date { color: #666; font-size: 9pt; }
+                    .m-val { font-weight: bold; margin-left: 2pt; }
+
+                    .cut-line {
+                        width: 100%;
+                        border-top: 1pt dashed #ccc !important;
+                        margin-top: 10pt !important;
+                        margin-bottom: 10pt !important;
+                    }
+                </style>
+
+                <div class="page">
+                    <h2 class="report-title">Текущие оценки за <t t-out="year_name" /> уч.год</h2>
+
+                    <t t-foreach="grouped_data" t-as="group">
+                        <!-- Разрыв страницы перед каждым классом, кроме первого -->
+                        <t t-if="not group_first">
+                            <p style="page-break-before: always;"></p>
+                        </t>
+                        
+                        <div class="batch-header">
+                            <h3 style="margin: 0; font-weight: bold;">Класс: <t t-out="group['batch']"/></h3>
+                        </div>
+
+                        <t t-foreach="group['students']" t-as="res">
+                            <div class="student-block">
+                                <h4 class="student-info">
+                                    <t t-out="res['name']" />
+                                </h4>
+
+                                <table class="grades-table">
+                                    <thead>
+                                        <tr>
+                                            <th class="col-subj">Предмет</th>
+                                            <th class="col-marks">Текущие оценки (Дата: Оценка)</th>
+                                            <th class="col-avg">Ср. балл</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <t t-foreach="res['subjects']" t-as="sub">
+                                            <tr>
+                                                <td><t t-out="sub['name']" /></td>
+                                                <td>
+                                                    <t t-foreach="sub['marks']" t-as="m">
+                                                        <span class="date-mark-box">
+                                                            <span class="m-date"><t t-out="m['date']"/>:</span>
+                                                            <span class="m-val"><t t-out="m['val']"/></span>
+                                                        </span>
+                                                    </t>
+                                                </td>
+                                                <td class="col-avg"><t t-out="sub['avg']" /></td>
+                                            </tr>
+                                        </t>
+                                    </tbody>
+                                </table>
+                                <div class="cut-line"></div>
+                            </div>                            
+                        </t>
+                    </t>
+                </div>
+            </t>
+        </t>
+    </template>
+</odoo>

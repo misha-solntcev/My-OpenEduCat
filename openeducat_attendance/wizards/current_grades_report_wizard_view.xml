@@ -1,0 +1,41 @@
+<odoo>
+    <record id="view_current_grades_wizard_form" model="ir.ui.view">
+        <field name="name">current.grades.report.wizard.form</field>
+        <field name="model">current.grades.report.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Выписка текущих оценок">
+                <group>
+                    <group>
+                        <field name="academic_year_id" options="{'no_create': True}"/>
+                        <field name="term_ids" widget="many2many_tags" options="{'no_create': True}"/>
+                    </group>
+                    <group>
+                        <field name="batch_ids" widget="many2many_tags" options="{'no_create': True}"/>
+                        <field name="subject_ids" widget="many2many_tags" options="{'no_create': True}"/>
+                    </group>
+                </group>
+                <group>
+                    <field name="student_ids" widget="many2many_tags" 
+                           domain="batch_ids and [('course_detail_ids.batch_id', 'in', batch_ids)] or []"/>
+                </group>
+                <footer>
+                    <button name="action_print_report" string="Печать PDF" type="object" class="btn-primary"/>
+                    <button string="Отмена" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_current_grades_wizard" model="ir.actions.act_window">
+        <field name="name">Текущие оценки</field>
+        <field name="res_model">current.grades.report.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+
+    <menuitem id="menu_current_grades_report"
+              name="Текущие оценки"
+              parent="openeducat_attendance.menu_op_attendance_reports"
+              action="action_current_grades_wizard"
+              sequence="15"/>
+</odoo>
