@@ -276,7 +276,7 @@
                                     <!-- 3. Оценки -->
                                     <field name="grade_1_ui" string="Оценка 1"
                                         widget="selection_badge"
-                                        width="80px" optional="show"
+                                        width="75px" optional="show"
                                         decoration-bf="1"
                                         decoration-success="grade_1_ui == '5'"
                                         decoration-info="grade_1_ui == '4'"
@@ -286,7 +286,7 @@
 
                                     <field name="grade_2_ui" string="Оценка 2"
                                         widget="selection_badge"
-                                        width="80px" optional="show"
+                                        width="75px" optional="show"
                                         decoration-bf="1"
                                         decoration-success="grade_2_ui == '5'"
                                         decoration-info="grade_2_ui == '4'"
@@ -295,7 +295,7 @@
 
                                     <field name="grade_3_ui" string="Оценка 3"
                                         widget="selection_badge"
-                                        width="80px" optional="hide"
+                                        width="75px" optional="hide"
                                         decoration-bf="1"
                                         decoration-success="grade_3_ui == '5'"
                                         decoration-info="grade_3_ui == '4'"
