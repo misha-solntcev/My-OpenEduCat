@@ -7,14 +7,14 @@ class CurrentGradesReportWizard(models.TransientModel):
     academic_year_id = fields.Many2one('op.academic.year', string='Учебный год', required=True,
         default=lambda self: self._get_default_year())
     
-    term_ids = fields.Many2many('op.academic.term', string='Четверти',
+    term_ids = fields.Many2many('op.academic.term', string='Четверть',
         domain="[('academic_year_id', '=', academic_year_id), ('parent_term', '!=', False)]")
     
-    batch_ids = fields.Many2many('op.batch', string='Классы')
+    batch_ids = fields.Many2many('op.batch', string='Класс')
     
-    student_ids = fields.Many2many('op.student', string='Ученики')
+    student_ids = fields.Many2many('op.student', string='Ученик')
     
-    subject_ids = fields.Many2many('op.subject', string='Предметы')
+    subject_ids = fields.Many2many('op.subject', string='Предмет')
 
     def _get_default_year(self):
         return self.env['op.academic.year'].search([

@@ -237,15 +237,24 @@
 
                 <separator />
 
-                <filter string="Текущая неделя" name="this_week"
+                <!-- Группа 1: ПЕРИОДЫ -->
+                <filter string="🗓️ Предыдущая неделя" name="previous_week"
                     domain="[
-                    ('start_datetime', '&gt;=', (context_today() + relativedelta(weeks=-1, days_id=1, weekday=0)).strftime('%Y-%m-%d')),
-                    ('start_datetime', '&lt;=', (context_today() + relativedelta(weekday=6)).strftime('%Y-%m-%d'))]" />
+                        ('timetable_date', '&gt;=', (context_today() + relativedelta(weeks=-2, weekday=0)).strftime('%Y-%m-%d')),
+                        ('timetable_date', '&lt;=', (context_today() + relativedelta(weeks=-1, weekday=6)).strftime('%Y-%m-%d'))]" />
 
-                <filter string="Сегодня" name="today"
+                <filter string="📅 Текущая неделя" name="this_week"
                     domain="[
-                        ('start_datetime', '&gt;=', context_today().strftime('%Y-%m-%d')), 
-                        ('start_datetime', '&lt;', (context_today() + relativedelta(days_id=1)).strftime('%Y-%m-%d'))]" />
+                        ('timetable_date', '&gt;=', (context_today() + relativedelta(weeks=-1, weekday=0)).strftime('%Y-%m-%d')),
+                        ('timetable_date', '&lt;=', (context_today() + relativedelta(weekday=6)).strftime('%Y-%m-%d'))]" />
+                
+                <filter string="📆 Следующая неделя" name="next_week" 
+                    domain="[
+                        ('timetable_date', '&gt;=', (context_today() + relativedelta(weeks=1, weekday=0)).strftime('%Y-%m-%d')),
+                        ('timetable_date', '&lt;=', (context_today() + relativedelta(weeks=1, weekday=6)).strftime('%Y-%m-%d'))]" />
+
+                <filter string="📍Сегодня" name="today"
+                    domain="[('timetable_date', '=', context_today().strftime('%Y-%m-%d'))]" />
 
                 <separator />
 
@@ -299,7 +308,7 @@
         <field name="search_view_id" ref="view_op_session_search" />
         <field name="help" type="html">
             <p class="o_view_nocontent_smiling_face">
-                На текущуую неделю уроков нет.
+                На выбранную неделю уроков нет.
             </p>
         </field>
         <field name="context">{

@@ -7,16 +7,21 @@
                 <group>
                     <group>
                         <field name="academic_year_id" options="{'no_create': True}"/>
-                        <field name="term_ids" widget="many2many_tags" options="{'no_create': True}"/>
+                        <field name="term_ids" widget="many2many_tags" 
+                            options="{'no_create': True}" placeholder="Все четверти"/>
                     </group>
                     <group>
-                        <field name="batch_ids" widget="many2many_tags" options="{'no_create': True}"/>
-                        <field name="subject_ids" widget="many2many_tags" options="{'no_create': True}"/>
+                        <field name="batch_ids" widget="many2many_tags" 
+                            options="{'no_create': True}" placeholder="Все классы"/>
+                        <field name="subject_ids" widget="many2many_tags" 
+                            options="{'no_create': True}" placeholder="Все предметы"/>
                     </group>
                 </group>
                 <group>
                     <field name="student_ids" widget="many2many_tags" 
-                           domain="batch_ids and [('course_detail_ids.batch_id', 'in', batch_ids)] or []"/>
+                           options="{'no_create': True}" 
+                           domain="batch_ids and [('course_detail_ids.batch_id', 'in', batch_ids)] or []" 
+                           placeholder="Все ученики"/>
                 </group>
                 <footer>
                     <button name="action_print_report" string="Печать PDF" type="object" class="btn-primary"/>

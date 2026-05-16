@@ -82,7 +82,7 @@
                         font-weight: bold !important;
                     }
 
-                    .col-subj { width: 30%; text-align: left; }
+                    .col-subj { width: 25%; text-align: center; }
                     .col-marks { width: auto; }
                     .col-avg { width: 45pt; text-align: center; 
                         font-weight: bold !important; background: transparent !important; }
@@ -104,7 +104,7 @@
                 </style>
 
                 <div class="page">
-                    <h2 class="report-title">Текущие оценки за <t t-out="year_name" /> уч.год</h2>
+                    <h2 class="report-title">Текущие оценки за <t t-out="year_name" /> уч.год</h2>                    
 
                     <t t-foreach="grouped_data" t-as="group">
                         <!-- Разрыв страницы перед каждым классом, кроме первого -->
