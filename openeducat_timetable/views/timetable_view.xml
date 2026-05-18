@@ -266,7 +266,7 @@
                 <filter string="⚪ Черновик" name="draft" domain="[('state', '=', 'draft')]" />
                 <filter string="🔵 Утвержден" name="confirm" domain="[('state', '=', 'confirm')]" />
                 <filter string="🟣 Идет урок" name="start" domain="[('state', '=', 'start')]" />
-                <filter string="🟢 Проведен" name="done" domain="[('state', '=', 'done')]" />
+                <filter string="🟢 Завершен" name="done" domain="[('state', '=', 'done')]" />
                 <filter string="🔴 Отменен" name="cancel" domain="[('state', '=', 'cancel')]" />
 
                 <separator />
