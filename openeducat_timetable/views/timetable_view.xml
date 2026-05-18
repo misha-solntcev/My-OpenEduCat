@@ -304,7 +304,7 @@
     <record model="ir.actions.act_window" id="act_open_op_session_view">
         <field name="name">Расписание</field>
         <field name="res_model">op.session</field>
-        <field name="view_mode">kanban,list,calendar,pivot,form</field>
+        <field name="view_mode">calendar,kanban,list,pivot,form</field>
         <field name="search_view_id" ref="view_op_session_search" />
         <field name="help" type="html">
             <p class="o_view_nocontent_smiling_face">
