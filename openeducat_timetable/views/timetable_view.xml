@@ -283,6 +283,7 @@
                         context="{'group_by': 'subject_id'}" />
                     <filter string="🏫 По классу" name="group_batch"
                         context="{'group_by': 'batch_id'}" />
+                    <filter string="🕒 Статус" name="group_state" context="{'group_by': 'state'}" />
                     <filter string="🗓️ Дата урока" name="group_date" context="{'group_by': 'timetable_date'}" />            
                 </group>
                 <searchpanel>
