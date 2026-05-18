@@ -538,24 +538,6 @@
                 <field name="faculty_id" string="Учитель" />
                 <field name="attendance_date" string="Дата журнала" />
 
-                <!-- Группа 1: ПЕРИОДЫ -->
-                <!-- <filter string="🗓️ Предыдущая неделя" name="previous_week"
-                    domain="[
-                        ('attendance_date', '&gt;=', (context_today() + relativedelta(weeks=-1, weekday=0)).strftime('%Y-%m-%d')),
-                        ('attendance_date', '&lt;=', (context_today() + relativedelta(weeks=-1, weekday=6)).strftime('%Y-%m-%d'))]" />
-
-                <filter string="📅 Текущая неделя" name="this_week"
-                    domain="[
-                        ('attendance_date', '&gt;=', (context_today() + relativedelta(weeks=0, weekday=0)).strftime('%Y-%m-%d')),
-                        ('attendance_date', '&lt;=', (context_today() + relativedelta(weeks=0, weekday=6)).strftime('%Y-%m-%d'))]" />
-                
-                <filter string="📆 Следующая неделя" name="next_week" 
-                    domain="[
-                        ('attendance_date', '&gt;=', (context_today() + relativedelta(weeks=1, weekday=0)).strftime('%Y-%m-%d')),
-                        ('attendance_date', '&lt;=', (context_today() + relativedelta(weeks=1, weekday=6)).strftime('%Y-%m-%d'))]" />
-
-                <filter string="📍Сегодня" name="today"
-                    domain="[('attendance_date', '=', context_today().strftime('%Y-%m-%d'))]" /> -->
 
                 <!-- Группа 1: ПЕРИОДЫ (Исправлено для Odoo 18 / Owl) -->
 
