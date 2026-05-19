@@ -1,101 +1,151 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <odoo>
+    <!-- 1. ДЕЙСТВИЕ (Action), которое открывает визард -->
+    <record id="action_session_modify_wizard" model="ir.actions.act_window">
+        <field name="name">Мастер корректировки расписания</field>
+        <field name="res_model">session.modify.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field> <!-- Открывать как всплывающее окно -->
+    </record>
+
+    <!-- 2. ФОРМА ВИЗАРДА -->
     <record id="view_session_modify_wizard_form" model="ir.ui.view">
         <field name="name">session.modify.wizard.form</field>
         <field name="model">session.modify.wizard</field>
         <field name="arch" type="xml">
-            <form string="Мастер правок расписания">
+            <form string="Управление расписанием">
                 <sheet>
-                    <group string="1. Поиск уроков">
-                        <group>
-                            <label for="date_from" string="Период поиска" />
-                            <div class="o_row">
-                                <field name="date_from" widget="date" /> - <field name="date_to"
-                                    widget="date" />
+                    <!-- Секция 1: Поиск -->
+                    <div class="o_horizontal_separator text-primary fw-bolder mb-3" style="font-size: 1.1rem;">
+                        <i class="fa fa-search me-2" title="Поиск"/> 1. ОБЛАСТЬ ПОИСКА
+                    </div> 
+
+
+<div class="d-flex gap-2 mb-4">
+    <!-- Плитка 1: КОГДА (Уже центрирована) -->
+    <div class="flex-fill border rounded bg-white p-2 shadow">
+        <div class="text-center small fw-bolder text-primary text-uppercase mb-1">
+            ПЕРИОД
+        </div>
+        <div class="d-flex justify-content-center align-items-center">
+            <field name="date_from" nolabel="1" class="oe_inline text-center" style="width: 95px !important;"/>
+            <span class="mx-2 text-muted">—</span>
+            <field name="date_to" nolabel="1" class="oe_inline text-center" style="width: 95px !important;"/>
+        </div>
+    </div>
+
+    <!-- Плитка 2: КЛАСС -->
+    <div class="flex-fill border rounded bg-white p-2 shadow">
+        <div class="text-center small fw-bolder text-primary text-uppercase mb-1">
+            КЛАСС
+        </div>
+        <!-- Обертка для центрирования содержимого -->
+        <div class="d-flex justify-content-center">
+            <field name="batch_ids" widget="many2many_tags" nolabel="1" 
+                   class="text-center w-100"
+                   options="{'no_create': True}" placeholder="Все классы..."/>
+        </div>
+    </div>
+
+    <!-- Плитка 3: КТО -->
+    <div class="flex-fill border rounded bg-white p-2 shadow">
+        <div class="text-center small fw-bolder text-primary text-uppercase mb-1">
+            УЧИТЕЛЬ
+        </div>
+        <field name="faculty_domain" invisible="1"/>
+        <!-- Обертка для центрирования содержимого -->
+        <div class="d-flex justify-content-center">
+            <field name="filter_faculty_id" nolabel="1" 
+                   class="text-center w-100"
+                   options="{'no_create': True, 'no_open': True}" 
+                   domain="faculty_domain" placeholder="Все учителя..."/>
+        </div>
+    </div>
+</div>
+
+                    <!-- Секция 2: Выбор действия -->
+                    <div class="o_horizontal_separator text-primary fw-bolder mb-3" style="font-size: 1.1rem;">
+                        <i class="fa fa-magic me-2" title="Действие"/> 2. ЧТО НУЖНО СДЕЛАТЬ?
+                    </div>
+
+                    <div class="mb-4">
+                        <field name="action_mode" widget="radio" options="{'horizontal': true}"/>
+                    </div>
+
+                    <!-- Панель параметров -->
+                    <div class="row g-3 p-3 border rounded shadow-sm mb-4" 
+                         invisible="action_mode == 'swap'" 
+                         style="background-color: #f8f9fa;">
+                        
+                        <div class="col-md-8">
+                            <div class="row g-2">
+                                <div class="col-md-6" invisible="action_mode != 'replace'">
+                                    <label for="new_faculty_id" class="small text-uppercase fw-bold text-muted"/>
+                                    <field name="new_faculty_id" options="{'no_create': True}" placeholder="Укажите замену..."/>
+                                </div>
+                                <div class="col-md-6" invisible="action_mode != 'replace'">
+                                    <label for="new_classroom_id" class="small text-uppercase fw-bold text-muted"/>
+                                    <field name="new_classroom_id" options="{'no_create': True}" placeholder="Укажите кабинет..."/>
+                                </div>
+                                <div class="col-md-12" invisible="action_mode != 'shift'">
+                                    <label for="target_date" class="small text-uppercase fw-bold text-muted"/>
+                                    <field name="target_date" placeholder="Выберите новую дату для всех уроков..."/>
+                                </div>
                             </div>
-                            <field name="batch_ids" widget="many2many_tags"
-                                options="{'no_create': True}" placeholder="Все классы" />
-                        </group>
-                        <group>
-                            <field name="faculty_domain" invisible="1" />
-                            <field name="filter_faculty_id" options="{'no_create': True}"
-                                placeholder="Любой учитель" domain="faculty_domain" />
-                            <field name="action_mode" widget="radio" options="{'horizontal': true}" />
-                        </group>
-                    </group>
+                        </div>
+                        <div class="col-md-4 d-flex align-items-end justify-content-end">
+                            <button name="action_search_sessions" 
+                                    string="НАЙТИ И ПРОВЕРИТЬ" 
+                                    type="object" 
+                                    class="btn-primary w-100 py-2" 
+                                    icon="fa-refresh"/>
+                        </div>
+                    </div>
 
-                    <group string="2. Новые параметры" invisible="action_mode == 'swap'">
-                        <group>
-                            <field name="new_faculty_id" invisible="action_mode != 'replace'"
-                                options="{'no_create': True}" />
-                            <field name="new_classroom_id" invisible="action_mode != 'replace'"
-                                options="{'no_create': True}" />
-                            <field name="target_date" invisible="action_mode != 'shift'"
-                                required="action_mode == 'shift'" />
-                        </group>
-                        <group>
-                            <button name="action_search_sessions" string="НАЙТИ И ПРОВЕРИТЬ"
-                                type="object" class="btn-warning" icon="fa-search" />
-                        </group>
-                    </group>
+                    <!-- Блок для рокировки -->
+                    <div class="row p-3 border rounded shadow-sm mb-4 bg-light" invisible="action_mode != 'swap'">
+                        <field name="date_to_end" invisible="1"/>
+                        <field name="swap_domain" invisible="1"/>
+                        <div class="col-md-6">
+                            <label for="swap_session_a_id" string="Первый урок" class="fw-bold text-primary"/>
+                            <field name="swap_session_a_id" options="{'no_create': True}" domain="swap_domain"/>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="swap_session_b_id" string="Второй урок" class="fw-bold text-primary"/>
+                            <field name="swap_session_b_id" options="{'no_create': True}" domain="swap_domain"/>
+                        </div>
+                    </div>
 
-                    <group string="2. Обмен местами" invisible="action_mode != 'swap'">
-                        <field name="date_to_end" invisible="1" />
-                        <field name="swap_domain" invisible="1" />
-                        <field name="swap_session_a_id" options="{'no_create': True}"
-                            required="action_mode == 'swap'" domain="swap_domain" />
-                        <field name="swap_session_b_id" options="{'no_create': True}"
-                            required="action_mode == 'swap'" domain="swap_domain" />
-                    </group>
-
-                    <notebook invisible="action_mode == 'swap' or not line_ids">
-                        <page string="Уроки для изменения">
-                            <div
-                                class="alert alert-secondary shadow-sm mb-3 d-flex align-items-center"
-                                role="status">
-                                <i class="fa fa-info-circle me-3" style="font-size: 1.5rem;"
-                                    title="Справка" />
-                                <field name="free_window_info" nolabel="1" class="flex-grow-1"
-                                    style="font-size: 0.9rem;" />
-                            </div>
-
-                            <field name="line_ids" nolabel="1">
-                                <list editable="bottom" create="0"
-                                    decoration-danger="conflict_status != 'ОК'"
-                                    decoration-success="conflict_status == 'ОК'"
-                                    decoration-muted="not is_selected">
-                                    <field name="is_selected" widget="boolean_toggle" string="" 
-                                        width="30px"/>
-                                    <field name="session_id" />
-                                    <field name="faculty_id" width="180px" 
-                                        options="{'no_create': True, 'no_open': True}" />
-                                    <field name="classroom_id" width="60px"
-                                        options="{'no_create': True, 'no_open': True}" />
-                                    <field name="start_datetime" string="Начало" 
-                                        options="{'show_seconds': False}" width="115px"/>
-                                    <field name="end_datetime" string="Конец" 
-                                        options="{'show_seconds': False}" width="115px"/>
-                                    <field name="conflict_status" decoration-bf="1" 
-                                        width="50px" />
-                                </list>
-                            </field>
-
-                        </page>
-                    </notebook>
+                    <!-- Таблица результатов -->
+                    <div invisible="action_mode == 'swap' or not line_ids">
+                        <div class="alert alert-info d-flex align-items-center mb-2 py-2" role="status">
+                            <i class="fa fa-info-circle me-3" style="font-size: 1.2rem;" title="Справка"/>
+                            <field name="free_window_info" nolabel="1"/>
+                        </div>
+                        
+                        <field name="line_ids" nolabel="1">
+                            <list editable="bottom" create="0" 
+                                  decoration-danger="conflict_status != 'ОК'" 
+                                  decoration-success="conflict_status == 'ОК'"
+                                  decoration-muted="not is_selected">
+                                <field name="is_selected" string="" width="30px" widget="boolean_toggle" />
+                                <field name="session_id" width="200px" options="{'no_open': True}"/>
+                                <field name="faculty_id" string="Преподаватель" options="{'no_create': True, 'no_open': True}"/>
+                                <field name="classroom_id" string="Каб." options="{'no_create': True, 'no_open': True}" width="70px"/>
+                                <field name="start_datetime" string="Начало" options="{'show_seconds': False}"/>
+                                <field name="end_datetime" string="Конец" options="{'show_seconds': False}" optional="hide"/>
+                                <field name="conflict_status" string="Проверка" decoration-bf="1"/>
+                                <button name="unlink" type="object" icon="fa-trash-o" title="Убрать"/>
+                            </list>
+                        </field>
+                    </div>
                 </sheet>
                 <footer>
-                    <button name="action_apply" string="ПРИМЕНИТЬ" type="object" class="btn-primary"
-                        confirm="Внимание! Выбранные уроки будут изменены. Продолжить?" />
-                    <button string="Отмена" class="btn-secondary" special="cancel" />
+                    <button name="action_apply" string="ВНЕСТИ ИЗМЕНЕНИЯ" type="object" class="btn-success" 
+                            confirm="Вы подтверждаете массовое изменение расписания?"/>
+                    <button string="ОТМЕНА" class="btn-secondary" special="cancel"/>
                 </footer>
             </form>
         </field>
-    </record>
-
-    <record id="action_session_modify_wizard" model="ir.actions.act_window">
-        <field name="name">Массовые правки расписания</field>
-        <field name="res_model">session.modify.wizard</field>
-        <field name="view_mode">form</field>
-        <field name="target">new</field>
     </record>
 </odoo>

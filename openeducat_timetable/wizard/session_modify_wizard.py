@@ -11,7 +11,7 @@ class SessionModifyLine(models.TransientModel):
     _description = 'Строка мастера правок'
 
     wizard_id = fields.Many2one('session.modify.wizard', string='Мастер')
-    is_selected = fields.Boolean('Выбрать', default=True)
+    is_selected = fields.Boolean('Выбрать', default=False)
     session_id = fields.Many2one('op.session', 'Урок', readonly=True)
     
     # Поля для редактирования
@@ -64,8 +64,8 @@ class SessionModifyWizard(models.TransientModel):
     # --- ФИЛЬТРЫ ---
     date_from = fields.Date('С даты', required=True, default=fields.Date.today)
     date_to = fields.Date('По дату', required=True, default=fields.Date.today)
-    batch_ids = fields.Many2many('op.batch', string='Классы')
-    filter_faculty_id = fields.Many2one('op.faculty', string='Текущий учитель')
+    batch_ids = fields.Many2many('op.batch', string='Класс')
+    filter_faculty_id = fields.Many2one('op.faculty', string='Учитель')
 
     # --- ТЕХНИЧЕСКИЕ ПОЛЯ ДЛЯ ДОМЕНОВ ---
     date_to_end = fields.Datetime(compute='_compute_date_to_end')
@@ -74,15 +74,15 @@ class SessionModifyWizard(models.TransientModel):
 
     # --- РЕЖИМЫ ---
     action_mode = fields.Selection([
-        ('replace', 'Массовая замена (Учитель/Кабинет)'),
-        ('shift', 'Перенос на другую дату (Сдвиг)'),
-        ('swap', 'Обмен местами (Два урока)')
-    ], string='Режим работы', default='replace', required=True)
+        ('replace', 'Заменить (Учитель/Кабинет)'),
+        ('shift', 'Перенести'),
+        ('swap', 'Поменять')
+    ], string='Тип изменений', default='replace', required=True)
 
     # Параметры замены
-    new_faculty_id = fields.Many2one('op.faculty', string='Назначить учителя')
-    new_classroom_id = fields.Many2one('op.classroom', string='Назначить кабинет')
-    target_date = fields.Date('Целевая дата')
+    new_faculty_id = fields.Many2one('op.faculty', string='Новый учитель')
+    new_classroom_id = fields.Many2one('op.classroom', string='Новый кабинет')
+    target_date = fields.Date('Новая дата')
 
     # Параметры обмена
     swap_session_a_id = fields.Many2one('op.session', string='Урок А')
