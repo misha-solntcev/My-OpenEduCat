@@ -22,3 +22,4 @@
 from . import generate_timetable
 from . import session_confirmation
 from . import time_table_report
+from . import session_modify_wizard

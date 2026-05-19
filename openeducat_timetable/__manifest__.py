@@ -23,6 +23,7 @@
         'wizard/generate_timetable_view.xml',
         'wizard/time_table_report.xml',
         'wizard/session_confirmation.xml',
+        'wizard/session_modify_wizard_view.xml',
         'views/timetable_templates.xml',
         'menus/op_menu.xml',
     ],

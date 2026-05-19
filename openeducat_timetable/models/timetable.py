@@ -30,11 +30,11 @@ class OpSession(models.Model):
         
         active_day_ids = sessions.mapped('days_id').ids
         
-        for day in all_days:
-            # Сравниваем текущее значение, чтобы не дергать базу лишний раз
-            new_fold_state = (day.id not in active_day_ids)
-            if day.fold != new_fold_state:
-                day.sudo().fold = new_fold_state # Пишем через sudo
+        # for day in all_days:
+        #     # Сравниваем текущее значение, чтобы не дергать базу лишний раз
+        #     new_fold_state = (day.id not in active_day_ids)
+        #     if day.fold != new_fold_state:
+        #         day.sudo().fold = new_fold_state # Пишем через sudo
             
         return all_days
     

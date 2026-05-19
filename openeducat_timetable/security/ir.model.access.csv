@@ -15,3 +15,5 @@ access_op_day_user,op_day_user,model_op_day,openeducat_timetable.group_op_timeta
 access_op_day_manager,op_day_manager,model_op_day,openeducat_timetable.group_op_timetable_manager,1,1,1,1
 access_op_day_student,op_day_student,model_op_day,__custom__.group_op_students,1,0,0,0
 access_op_day_faculty,op_day_faculty,model_op_day,__custom__.group_op_faculty,1,1,1,0
+access_session_modify_wizard,session.modify.wizard,model_session_modify_wizard,openeducat_timetable.group_op_timetable_manager,1,1,1,1
+access_session_modify_line,session.modify.line,model_session_modify_line,openeducat_timetable.group_op_timetable_manager,1,1,1,1
