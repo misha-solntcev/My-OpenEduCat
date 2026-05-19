@@ -16,7 +16,8 @@
                     <!-- 1. ВХОДНЫЕ ДАННЫЕ -->
                     <div class="d-flex flex-column flex-md-row gap-2 mb-4">
                         <div class="flex-fill border rounded bg-white p-2 shadow-sm text-center">
-                            <div class="text-primary text-uppercase fw-bolder mb-2" style="font-size: 0.75rem;">Период</div>
+                            <div class="text-primary text-uppercase fw-bolder mb-2" style="font-size: 0.75rem;">
+                                <i class="fa fa-calendar me-1"/>Период</div>
                             <div class="d-flex justify-content-center align-items-center">
                                 <field name="date_from" nolabel="1" class="oe_inline text-center" style="width: 100px !important;"/>
                                 <span class="mx-2 text-muted">—</span>
@@ -24,16 +25,18 @@
                             </div>
                         </div>
                         <div class="flex-fill border rounded bg-white p-2 shadow-sm text-center">
-                            <div class="text-primary text-uppercase fw-bolder mb-2" style="font-size: 0.75rem;">Класс</div>
+                            <div class="text-primary text-uppercase fw-bolder mb-2" style="font-size: 0.75rem;">
+                                <i class="fa fa-users me-1"/>Класс</div>
                             <div class="d-flex justify-content-center">
                                 <field name="batch_ids" widget="many2many_tags" nolabel="1" options="{'no_create': True}" placeholder="Все классы..." class="text-center w-100"/>
                             </div>
                         </div>
                         <div class="flex-fill border rounded bg-white p-2 shadow-sm text-center">
-                            <div class="text-primary text-uppercase fw-bolder mb-2" style="font-size: 0.75rem;">Учитель</div>
+                            <div class="text-primary text-uppercase fw-bolder mb-2" style="font-size: 0.75rem;">
+                                <i class="fa fa-graduation-cap me-1"/>Учитель</div>
                             <div class="d-flex justify-content-center">
                                 <field name="faculty_domain" invisible="1"/>
-                                <field name="filter_faculty_id" nolabel="1" options="{'no_create': True, 'no_open': True}" domain="faculty_domain" placeholder="Любой учитель..." class="text-center w-100"/>
+                                <field name="filter_faculty_id" nolabel="1" options="{'no_create': True, 'no_open': True}" domain="faculty_domain" placeholder="Все учителя..." class="text-center w-100"/>
                             </div>
                         </div>
                     </div>
@@ -43,9 +46,12 @@
                     <div class="row align-items-center mb-4 g-0">
                         <div class="col border-top" style="border-top: 1px dashed #dee2e6 !important; height: 0;"/>
                         <div class="col-auto px-4" style="flex: 0 0 auto;">
+                            <!-- Замените текущую кнопку в секции 2 на эту -->
                             <button name="action_cycle_mode" type="object" 
                                     class="rounded-circle shadow-lg d-flex align-items-center justify-content-center bg-white p-0 border-primary" 
-                                    style="width: 84px; height: 84px; min-width: 84px; min-height: 84px; border-width: 4px !important; outline: none !important;">
+                                    style="width: 84px; height: 84px; min-width: 84px; min-height: 84px; border-width: 4px !important; outline: none !important; transition: transform 0.2s ease;"
+                                    onmouseover="this.style.transform='scale(1.1)'" 
+                                    onmouseout="this.style.transform='scale(1)'">
                                 <div class="d-flex align-items-center justify-content-center" style="width: 50px; height: 50px;">
                                     <i class="fa fa-user-circle-o text-primary" style="font-size: 42px;" invisible="action_mode != 'replace'"/>
                                     <i class="fa fa-arrow-circle-o-right text-primary" style="font-size: 42px;" invisible="action_mode != 'shift'"/>
@@ -68,7 +74,7 @@
                                 </div>
                                 <div invisible="action_mode != 'swap'">
                                     <div class="small fw-bolder text-uppercase mb-1 text-primary">Рокировка</div>
-                                    <div class="text-muted small">Взаимный обмен временем между двумя уроками.</div>
+                                    <div class="text-muted small">Поменять уроки местами.</div>
                                 </div>
                             </div>
                         </div>
@@ -77,25 +83,32 @@
                     <!-- 3. НОВЫЕ ПАРАМЕТРЫ -->
                     <div class="d-flex flex-column flex-md-row gap-3 mb-4">
                         <div class="flex-fill border rounded shadow-sm p-3 text-center" style="background-color: #f8f9fa;" invisible="action_mode != 'replace'">
-                            <div class="text-primary text-uppercase fw-bolder mb-2" style="font-size: 0.75rem;">Новый учитель</div>
+                            <div class="text-primary text-uppercase fw-bolder mb-2" style="font-size: 0.75rem;">
+                                <i class="fa fa-user-plus me-1"/>Новый учитель</div>
                             <field name="new_faculty_id" nolabel="1" options="{'no_create': True, 'no_open': True}" placeholder="Выберите учителя..." class="text-center w-100"/>
                         </div>
                         <div class="flex-fill border rounded shadow-sm p-3 text-center" style="background-color: #f8f9fa;" invisible="action_mode != 'replace'">
-                            <div class="text-primary text-uppercase fw-bolder mb-2" style="font-size: 0.75rem;">Новый кабинет</div>
+                            <div class="text-primary text-uppercase fw-bolder mb-2" style="font-size: 0.75rem;">
+                                <i class="fa fa-map-marker me-1"/>Новый кабинет</div>
                             <field name="new_classroom_id" nolabel="1" options="{'no_create': True, 'no_open': True}" placeholder="Выберите кабинет..." class="text-center w-100"/>
                         </div>
                         <div class="border rounded shadow-sm p-3 text-center mx-auto" style="width: 350px; background-color: #f8f9fa;" invisible="action_mode != 'shift'">
-                            <div class="text-primary text-uppercase fw-bolder mb-2" style="font-size: 0.75rem;">Новая дата</div>
+                            <div class="text-primary text-uppercase fw-bolder mb-2" style="font-size: 0.75rem;">
+                                <i class="fa fa-calendar me-1"/>Новая дата</div>
                             <field name="target_date" nolabel="1" placeholder="Выберите дату..." class="text-center w-100"/>
                         </div>
                         <field name="date_to_end" invisible="1"/><field name="swap_domain" invisible="1"/>
                         <div class="flex-fill border rounded shadow-sm p-3 text-center" style="background-color: #f8f9fa;" invisible="action_mode != 'swap'">
-                            <div class="text-primary text-uppercase fw-bolder mb-2" style="font-size: 0.75rem;">Урок А</div>
-                            <field name="swap_session_a_id" nolabel="1" options="{'no_create': True, 'no_open': True}" domain="swap_domain" class="w-100"/>
+                            <div class="text-primary text-uppercase fw-bolder mb-1" style="font-size: 0.75rem;">
+                                <i class="fa fa-book me-1"/>Урок А</div>
+                            <field name="swap_session_a_id" nolabel="1" placeholder="Выберите урок А..."
+                                options="{'no_create': True, 'no_open': True}" domain="swap_domain" class="w-100"/>
                         </div>
                         <div class="flex-fill border rounded shadow-sm p-3 text-center" style="background-color: #f8f9fa;" invisible="action_mode != 'swap'">
-                            <div class="text-primary text-uppercase fw-bolder mb-2" style="font-size: 0.75rem;">Урок Б</div>
-                            <field name="swap_session_b_id" nolabel="1" options="{'no_create': True, 'no_open': True}" domain="swap_domain" class="w-100"/>
+                            <div class="text-primary text-uppercase fw-bolder mb-1" style="font-size: 0.75rem;">
+                                <i class="fa fa-book me-1"/>Урок Б</div>
+                            <field name="swap_session_b_id" nolabel="1" placeholder="Выберите урок Б..."
+                                options="{'no_create': True, 'no_open': True}" domain="swap_domain" class="w-100"/>
                         </div>
                     </div>
 
