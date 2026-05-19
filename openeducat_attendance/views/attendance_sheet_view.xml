@@ -6,10 +6,9 @@
         <field name="model">op.attendance.sheet</field>
         <field name="arch" type="xml">
             <!-- Раскрашиваем всю строку в зависимости от статуса -->
-            <list string="Журналы уроков"
+            <list string="Журналы уроков" 
                 default_order="start_datetime asc, batch_id"
-                sample="1"
-                expand="0"
+                create="0" sample="1" expand="0"
                 decoration-info="state == 'confirm'"
                 decoration-warning="state == 'start'"
                 decoration-success="state == 'done'"
@@ -53,7 +52,7 @@
         <field name="model">op.attendance.sheet</field>
         <field name="priority" eval="8" />
         <field name="arch" type="xml">
-            <form string="Attendance Sheet">
+            <form string="Attendance Sheet" create="0">
 
                 <header>
                     <!-- 1. Начать урок (Синхронно переводит и Урок в 'start') -->
@@ -387,7 +386,7 @@
         <field name="model">op.attendance.sheet</field>
         <field name="arch" type="xml">
             <kanban default_group_by="days_id" default_order="start_datetime asc, batch_id"
-                quick_create="false">
+                create="0" quick_create="false">
                 <field name="attendance_rate" />
                 <field name="count_5" />
                 <field name="count_4" />
