@@ -79,19 +79,19 @@ class OpAttendanceLine(models.Model):
     # --- АВТОМАТИЗАЦИЯ ---
     @api.onchange('grade_1_ui', 'grade_2_ui', 'grade_3_ui')
     def _onchange_grades_auto_present(self):
+        """
+        Логика: если поставили оценку, а статус ПУСТОЙ — ставим 'Присутствует'.
+        Если статус УЖЕ стоит (например, 'Болеет'), мы его НЕ ТРОГАЕМ.
+        """
         if any([self.grade_1_ui, self.grade_2_ui, self.grade_3_ui]):
-            if not self.attendance_type_id or not self.present:
+            if not self.attendance_type_id:
                 p_type = self.env['op.attendance.type'].search([('present', '=', True)], limit=1)
                 if p_type:
                     self.attendance_type_id = p_type
 
     @api.onchange('attendance_type_id')
     def _onchange_attendance_type(self):
-        if self.attendance_type_id and not self.attendance_type_id.present:
-            if not self.attendance_type_id.late:
-                self.grade_1_ui = False
-                self.grade_2_ui = False
-                self.grade_3_ui = False
+        pass
 
     # --- ПРОВЕРКИ ---
     @api.constrains('grade_1', 'grade_2', 'grade_3')

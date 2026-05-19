@@ -65,12 +65,7 @@ class OpSession(models.Model):
     active = fields.Boolean(default=True)
     color = fields.Integer('Color Index', default=0)
     user_ids = fields.Many2many('res.users', string='Allowed Users', compute='_compute_user_ids', store=True)
-    # days = fields.Selection([
-    #     ('monday', 'Понедельник'), ('tuesday', 'Вторник'), ('wednesday', 'Среда'),
-    #     ('thursday', 'Четверг'), ('friday', 'Пятница'), ('saturday', 'Суббота'),
-    #     ('sunday', 'Воскресенье')],
-    #     string='Day of Week', compute='_compute_day_info', store=True, group_expand=True)
-
+    
     # --- ФОРМАТИРОВАНИЕ БЕЗ СЕКУНД ---
     @api.depends('start_datetime', 'end_datetime', 'faculty_id', 'subject_id')
     def _compute_name(self):
@@ -111,17 +106,7 @@ class OpSession(models.Model):
     def lecture_edit(self):
         self.write({'state': 'start'})
 
-    # --- ВСПОМОГАТЕЛЬНОЕ ---
-
-    # @api.model
-    # def _expand_groups(self, _days, _domain, _order=None):
-    #     target_order = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']        
-        
-    #     groups = self.env['op.session'].sudo().read_group(_domain, ['days'], ['days'])
-    #     present_days = [g['days'] for g in groups if g['days']]        
-        
-    #     return [d for d in target_order if d in present_days]
-
+    
     @api.depends('start_datetime')
     def _compute_day_info(self):
         # Карта соответствия номеров дней из Python кодам из нашей базы
@@ -168,59 +153,3 @@ class OpSession(models.Model):
     def _onchange_start_datetime(self):
         if self.start_datetime:
             self.end_datetime = self.start_datetime + timedelta(minutes=40)
-
-
-
-    # # --- СИНХРОНИЗАЦИЯ (Timetable -> Attendance) ---
-    # def _sync_sheet_state(self, new_state):
-    #     """Вспомогательный метод для обновления связанного журнала"""
-    #     AttendanceSheet = self.env['op.attendance.sheet'].sudo()
-    #     for session in self:
-    #         sheet = AttendanceSheet.search([('session_id', '=', session.id)], limit=1)
-    #         if sheet and sheet.state != new_state:
-    #             # Если переводим в 'done', вызываем метод завершения журнала с расчетами
-    #             if new_state == 'done':
-    #                 sheet.action_attendance_done()
-    #             else:
-    #                 sheet.write({'state': new_state})
-
-
-    # @api.onchange('course_id')
-    # def _onchange_course_id(self):
-    #     self.batch_id = False
-    #     self.subject_id = False
-    #     if self.course_id:
-    #         return {'domain': {'subject_id': [('id', 'in', self.course_id.subject_ids.ids)]}}
-
-
-
-    # def _create_attendance_sheet(self):
-    #     """Оптимизированное создание журнала в статусе 'confirm'"""
-    #     AttendanceSheet = self.env['op.attendance.sheet']
-    #     for record in self:
-    #         if AttendanceSheet.search_count([('session_id', '=', record.id)]):
-    #             continue
-            
-    #         students = self.env['op.student'].search([
-    #             ('course_detail_ids.course_id', '=', record.course_id.id),
-    #             ('course_detail_ids.batch_id', '=', record.batch_id.id),
-    #             ('active', '=', True)
-    #         ])
-    #         register = self.env['op.attendance.register'].search([
-    #             ('course_id', '=', record.course_id.id),
-    #             ('batch_id', '=', record.batch_id.id)
-    #         ], limit=1)
-    #         present_type = self.env['op.attendance.type'].search([('present', '=', True)], limit=1)
-
-    #         AttendanceSheet.create({
-    #             'session_id': record.id,
-    #             'attendance_date': record.start_datetime.date(),
-    #             'faculty_id': record.faculty_id.id,
-    #             'register_id': register.id if register else False,
-    #             'state': 'confirm', # Журнал сразу "Утвержден"
-    #             'attendance_line': [(0, 0, {
-    #                 'student_id': s.id,
-    #                 'attendance_type_id': present_type.id if present_type else False,
-    #             }) for s in students]
-    #         })
-

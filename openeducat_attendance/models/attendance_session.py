@@ -35,68 +35,65 @@ class OpSession(models.Model):
     # --- КАСКАДНАЯ ЛОГИКА (Массовая обработка) ---
 
     def lecture_draft(self):
-        """СБРОС: Обработка любого количества записей"""
-        res = super(OpSession, self).lecture_draft()
-        # Ищем все связанные журналы одной пачкой
+        """СБРОС: Возврат в черновик расписания"""
         sheets = self._get_linked_sheets()
         if sheets:
-            # Массово переводим журналы в черновик
-            sheets.action_attendance_draft()
-        return res
+            # Ищем ЛЮБЫЕ данные: оценки, статусы посещаемости или примечания
+            data_exists = sheets.attendance_line.filtered(
+                lambda l: l.grade_1 or l.grade_2 or l.grade_3 or l.attendance_type_id or l.remark
+            )
+            if data_exists:
+                raise ValidationError(_(
+                    "Нельзя вернуть урок в черновик! В журналах уже есть данные (оценки или отметки о посещаемости)."
+                ))
+            # Если данных нет — удаляем пустые оболочки журналов
+            sheets.unlink()
+        return super(OpSession, self).lecture_draft()
 
     def lecture_confirm(self):
-        """УТВЕРЖДЕНИЕ: Массовое создание шапок"""
+        """УТВЕРЖДЕНИЕ: Создание журналов"""
         res = super(OpSession, self).lecture_confirm()
-        # Для каждой сессии в наборе гарантируем наличие журнала
         for rec in self:
             self.env['op.attendance.sheet'].create_sheet_for_session(rec)
         return res
 
     def lecture_start(self):
-        """СТАРТ: Массовая генерация списков детей"""
-        # Сначала проталкиваем черновики и отмененные в confirm
-        to_confirm = self.filtered(lambda r: r.state in ['draft', 'cancel'])
-        if to_confirm:
-            to_confirm.lecture_confirm()
-            
+        """СТАРТ: Перевод в рабочий режим"""
         res = super(OpSession, self).lecture_start()
-        
-        # Запускаем журналы
         sheets = self._get_linked_sheets()
-        for sheet in sheets:
-            if sheet.state != 'start':
-                sheet.action_attendance_start()
+        if sheets:
+            sheets.action_generate_lines() # Генерируем список детей
+            sheets.write({'state': 'start'})
         return res
 
     def lecture_done(self):
-        """ЗАВЕРШЕНИЕ: Массовое закрытие и расчет статистики"""
-        # Все, что не в 'start', проталкиваем вперед по цепочке
-        to_start = self.filtered(lambda r: r.state != 'start')
-        if to_start:
-            to_start.lecture_start()
-            
+        """ЗАВЕРШЕНИЕ: Закрытие и фиксация успеваемости"""
         res = super(OpSession, self).lecture_done()
-        
-        # Закрываем журналы
         sheets = self._get_linked_sheets()
-        for sheet in sheets:
-            if sheet.state != 'done':
-                sheet.action_attendance_done()
+        if sheets:
+            sheets.write({'state': 'done'})
+            sheets._transfer_grades_to_stats() # Пересчет статистики
         return res
 
     def lecture_cancel(self):
-        """ОТМЕНА: Массовая проверка и блокировка"""
+        """ОТМЕНА: Блокировка при наличии данных"""
         sheets = self._get_linked_sheets()
-        # В Odoo 18 лучше вызвать метод для каждой записи, 
-        # чтобы увидеть ошибку ValidationError для конкретного журнала
-        for sheet in sheets:
-            sheet.action_attendance_cancel()
+        if sheets:
+            # Проверяем все важные поля на заполненность
+            data_exists = sheets.attendance_line.filtered(
+                lambda l: l.grade_1 or l.grade_2 or l.grade_3 or l.attendance_type_id or l.remark
+            )
+            if data_exists:
+                raise ValidationError(_(
+                    "Отмена невозможна! В журнале уже отмечена посещаемость или выставлены оценки."
+                ))
+            sheets.write({'state': 'cancel'})
         return super(OpSession, self).lecture_cancel()
 
     def lecture_edit(self):
-        """РЕДАКТИРОВАНИЕ: Массовый возврат в работу"""
+        """РЕДАКТИРОВАНИЕ: Возврат в Start"""
         res = super(OpSession, self).lecture_edit()
         sheets = self._get_linked_sheets()
         if sheets:
-            sheets.action_attendance_edit()
+            sheets.write({'state': 'start'})
         return res

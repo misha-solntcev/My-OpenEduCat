@@ -109,46 +109,56 @@ class OpAttendanceSheet(models.Model):
                 GradeObj.create([{'student_id': s, 'subject_id': sheet.subject_id.id, 'batch_id': sheet.batch_id.id} for s in to_create])
             GradeObj.search([('student_id', 'in', student_ids), ('subject_id', '=', sheet.subject_id.id)]).action_force_recompute()
 
-    def action_attendance_draft(self):
-        self.write({'state': 'draft'})
 
-    def action_attendance_confirm(self):
-        self.write({'state': 'confirm'})
+    # --- Кнопки интерфейса Журнала (вызывают логику Сессии) ---
+    def action_attendance_confirm(self): self.session_id.lecture_confirm()
+    def action_attendance_start(self): self.session_id.lecture_start()
+    def action_attendance_done(self): self.session_id.lecture_done()
+    def action_attendance_cancel(self): self.session_id.lecture_cancel()
+    def action_attendance_edit(self): self.session_id.lecture_edit()
 
-    # --- СИНХРОНИЗАЦИЯ СТАТУСОВ (Журнал -> Урок) ---
-    def action_attendance_start(self):
-        """Генерация списка учеников при фактическом начале"""
-        for rec in self:
-            if not rec.attendance_line:
-                students = self.env['op.student'].sudo().search([
-                    ('course_detail_ids.course_id', '=', rec.session_id.course_id.id),
-                    ('course_detail_ids.batch_id', '=', rec.batch_id.id),
-                    ('active', '=', True)
-                ])
-                lines = [(0, 0, {'student_id': s.id, 'attendance_type_id': False}) for s in students]
-                rec.write({'attendance_line': lines})
-            rec.write({'state': 'start'})
 
-    def action_attendance_done(self):        
-        self.write({'state': 'done'})                
-        for sheet in self:
-            if sheet.session_id and sheet.session_id.state != 'done':
-                sheet.session_id.write({'state': 'done'})        
-        self._transfer_grades_to_stats() 
-        return True
 
-    def action_attendance_cancel(self):
-        for rec in self:
-            marks = rec.attendance_line.filtered(lambda l: l.grade_1 or l.grade_2 or l.grade_3)
-            if marks:
-                raise ValidationError(_("В журнале [%s] есть оценки. Удалите их перед отменой.") % rec.display_title)
-            rec.write({'state': 'cancel'})
+    # def action_attendance_draft(self):
+    #     self.write({'state': 'draft'})
 
-    def action_attendance_edit(self):
-        """Кнопка 'Редактировать' в Журнале"""
-        self.write({'state': 'start'})
-        if self.session_id and self.session_id.state != 'start':
-            self.session_id.write({'state': 'start'})
+    # def action_attendance_confirm(self):
+    #     self.write({'state': 'confirm'})
+
+    # # --- СИНХРОНИЗАЦИЯ СТАТУСОВ (Журнал -> Урок) ---
+    # def action_attendance_start(self):
+    #     """Генерация списка учеников при фактическом начале"""
+    #     for rec in self:
+    #         if not rec.attendance_line:
+    #             students = self.env['op.student'].sudo().search([
+    #                 ('course_detail_ids.course_id', '=', rec.session_id.course_id.id),
+    #                 ('course_detail_ids.batch_id', '=', rec.batch_id.id),
+    #                 ('active', '=', True)
+    #             ])
+    #             lines = [(0, 0, {'student_id': s.id, 'attendance_type_id': False}) for s in students]
+    #             rec.write({'attendance_line': lines})
+    #         rec.write({'state': 'start'})
+
+    # def action_attendance_done(self):        
+    #     self.write({'state': 'done'})                
+    #     for sheet in self:
+    #         if sheet.session_id and sheet.session_id.state != 'done':
+    #             sheet.session_id.write({'state': 'done'})        
+    #     self._transfer_grades_to_stats() 
+    #     return True
+
+    # def action_attendance_cancel(self):
+    #     for rec in self:
+    #         marks = rec.attendance_line.filtered(lambda l: l.grade_1 or l.grade_2 or l.grade_3)
+    #         if marks:
+    #             raise ValidationError(_("В журнале [%s] есть оценки. Удалите их перед отменой.") % rec.display_title)
+    #         rec.write({'state': 'cancel'})
+
+    # def action_attendance_edit(self):
+    #     """Кнопка 'Редактировать' в Журнале"""
+    #     self.write({'state': 'start'})
+    #     if self.session_id and self.session_id.state != 'start':
+    #         self.session_id.write({'state': 'start'})
 
     # def action_attendance_confirm(self):
     #     """Восстановление журнала"""
@@ -258,40 +268,25 @@ class OpAttendanceSheet(models.Model):
         return super(OpAttendanceSheet, self).create(vals_list)
 
     def action_mass_set_attendance(self):
-        self.ensure_one()
-        if self.state in ('done', 'cancel'): return
-        target_name = self.env.context.get('set_name')
-        if not target_name: return
-        target_type = self.env['op.attendance.type'].search([('name', '=', target_name)], limit=1)
-        if target_type:            
-            self.attendance_line.write({'attendance_type_id': target_type.id})
-
-    def action_mass_set_grade(self):
-        self.ensure_one()
-        if self.state != 'start': 
+        self.ensure_one()        
+        if self.state in ('done', 'cancel'): 
             return
-        
-        grade_val = self.env.context.get('set_grade')
-        if not grade_val: 
-            return
-
-        if not self.attendance_line:
-            self.action_generate_lines()
             
-        # Проставляем оценку всем ученикам
-        self.attendance_line.write({'grade_1': float(grade_val)})
-        
-        # Логика: если поставили оценку, значит ученик "Присутствует" (если статус не был выбран ранее)
-        present_type = self.env['op.attendance.type'].sudo().search([('present', '=', True)], limit=1)
-        if present_type:
-            self.attendance_line.filtered(lambda l: not l.attendance_type_id).write({
-                'attendance_type_id': present_type.id
-            })
+        target_name = self.env.context.get('set_name')
+        if not target_name: 
+            return
+            
+        target_type = self.env['op.attendance.type'].search([('name', '=', target_name)], limit=1)
+        if target_type:
+            empty_status_lines = self.attendance_line.filtered(lambda l: not l.attendance_type_id)            
+            if empty_status_lines:
+                empty_status_lines.write({'attendance_type_id': target_type.id})
+    
 
     # Техническое поле для выбора колонки (не хранится в БД)
-    mass_target_1 = fields.Boolean('О1', default=True)
-    mass_target_2 = fields.Boolean('О2')
-    mass_target_3 = fields.Boolean('О3')
+    mass_target_1 = fields.Boolean('Оценка 1', default=True)
+    mass_target_2 = fields.Boolean('Оценка 2')
+    mass_target_3 = fields.Boolean('Оценка 3')
 
     def action_mass_set_grade(self):
         self.ensure_one()
@@ -302,24 +297,26 @@ class OpAttendanceSheet(models.Model):
         if not grade_val:
             return
 
-        # Собираем список выбранных колонок
-        vals = {}
-        if self.mass_target_1: vals['grade_1'] = float(grade_val)
-        if self.mass_target_2: vals['grade_2'] = float(grade_val)
-        if self.mass_target_3: vals['grade_3'] = float(grade_val)
-
-        # Если ни одна колонка не выбрана, ничего не делаем или выбираем О1 по умолчанию
-        if not vals:
-            return
-
-        self.attendance_line.write(vals)
-        
-        # Проставляем "Присутствует" автоматом
+        grade_float = float(grade_val)
         present_type = self.env['op.attendance.type'].sudo().search([('present', '=', True)], limit=1)
-        if present_type:
-            self.attendance_line.filtered(lambda l: not l.attendance_type_id).write({
-                'attendance_type_id': present_type.id
-            })
+
+        # Список колонок для обработки
+        targets = []
+        if self.mass_target_1: targets.append('grade_1')
+        if self.mass_target_2: targets.append('grade_2')
+        if self.mass_target_3: targets.append('grade_3')
+
+        for field_name in targets:
+            # Находим строки, где оценка в этой колонке еще не стоит
+            empty_lines = self.attendance_line.filtered(lambda l: not l[field_name])
+            if empty_lines:
+                # 1. Проставляем оценку (всем: и присутствующим, и болеющим)
+                empty_lines.write({field_name: grade_float})
+                
+                # 2. Ставим "Присутствует" ТОЛЬКО тем, у кого вообще нет статуса
+                lines_without_status = empty_lines.filtered(lambda l: not l.attendance_type_id)
+                if lines_without_status and present_type:
+                    lines_without_status.write({'attendance_type_id': present_type.id})
 
     def action_mass_clear_grades(self):
         """Очистка только оценок в выбранных тумблерами колонках"""
