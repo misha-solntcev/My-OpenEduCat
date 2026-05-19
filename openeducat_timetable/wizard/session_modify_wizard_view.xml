@@ -18,7 +18,9 @@
                         <i class="fa fa-database me-2" title="Данные"/> 1. ВХОДНЫЕ ДАННЫЕ
                     </div>
                     
-                    <div class="d-flex gap-2 mb-4">
+                    <!-- Адаптивные плитки: в колонку на мобильных, в ряд на ПК -->
+                    <div class="d-flex flex-column flex-md-row gap-2 mb-4">
+                        <!-- Плитка 1: ПЕРИОД -->
                         <div class="flex-fill border rounded bg-white p-2 shadow-sm">
                             <div class="text-center text-muted text-uppercase fw-bolder mb-2" style="font-size: 0.75rem;">Период</div>
                             <div class="d-flex justify-content-center align-items-center">
@@ -27,17 +29,21 @@
                                 <field name="date_to" nolabel="1" class="oe_inline text-center" style="width: 95px !important;"/>
                             </div>
                         </div>
+
+                        <!-- Плитка 2: КЛАСС -->
                         <div class="flex-fill border rounded bg-white p-2 shadow-sm">
                             <div class="text-center text-muted text-uppercase fw-bolder mb-2" style="font-size: 0.75rem;">Класс</div>
                             <div class="d-flex justify-content-center">
                                 <field name="batch_ids" widget="many2many_tags" nolabel="1" options="{'no_create': True}" placeholder="Все классы..." class="w-100 text-center"/>
                             </div>
                         </div>
+
+                        <!-- Плитка 3: УЧИТЕЛЬ -->
                         <div class="flex-fill border rounded bg-white p-2 shadow-sm">
                             <div class="text-center text-muted text-uppercase fw-bolder mb-2" style="font-size: 0.75rem;">Учитель</div>
                             <div class="d-flex justify-content-center">
                                 <field name="faculty_domain" invisible="1"/>
-                                <field name="filter_faculty_id" nolabel="1" class="text-center w-100" options="{'no_create': True, 'no_open': True}" domain="faculty_domain" placeholder="Все учителя..."/>
+                                <field name="filter_faculty_id" nolabel="1" class="text-center w-100" options="{'no_create': True, 'no_open': True}" domain="faculty_domain" placeholder="Любой учитель..."/>
                             </div>
                         </div>
                     </div>
@@ -49,46 +55,63 @@
 
 <field name="action_mode" invisible="1"/>
 
-<div class="d-flex align-items-center mb-4" style="min-height: 90px;">
-    <!-- 1. ЛЕВАЯ ЛИНИЯ -->
-    <div class="flex-grow-1 border-top" style="border-top: 1px dashed #ced4da !important;"/>
+<div class="row align-items-center mb-4 g-0">
+    <!-- Левая колонка: Пунктир -->
+    <div class="col border-top" style="border-top: 2px dashed #dee2e6 !important; height: 0;"/>
 
-    <!-- 2. ЦЕНТРАЛЬНАЯ КНОПКА (Фиксированная геометрия) -->
-    <div class="px-4" style="flex: 0 0 auto;">
+    <!-- Центр: Кнопка (Цвет #714B67, Анимация и фиксированный размер) -->
+    <div class="col-auto px-4" style="flex: 0 0 auto;">
         <button name="action_cycle_mode" type="object" 
-                class="rounded-circle shadow d-flex align-items-center justify-content-center border border-4 border-light bg-white p-0" 
-                style="width: 84px; height: 84px; outline: none !important; transition: all 0.2s ease;">
+                class="rounded-circle shadow-lg d-flex align-items-center justify-content-center bg-white p-0" 
+                style="width: 84px; height: 84px; min-width: 84px; min-height: 84px; 
+                       border: 4px solid #714B67 !important; outline: none !important;
+                       transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);"
+                onmouseover="this.style.transform='scale(1.1)'" 
+                onmouseout="this.style.transform='scale(1)'">
             
-            <!-- Все иконки одного цвета (антрацит #495057) для дорогого вида -->
-            <i class="fa fa-user-plus text-700" style="font-size: 30px; color: #495057;" invisible="action_mode != 'replace'"/>
-            <i class="fa fa-long-arrow-right text-700" style="font-size: 30px; color: #495057;" invisible="action_mode != 'shift'"/>
-            <i class="fa fa-exchange text-700" style="font-size: 30px; color: #495057;" invisible="action_mode != 'swap'"/>
+            <!-- Контейнер с фиксированным размером для центровки иконок -->
+            <div class="d-flex align-items-center justify-content-center" style="width: 50px; height: 50px;">
+                <!-- 1. ЗАМЕЩЕНИЕ (Учитель в круге) -->
+                <i class="fa fa-user-circle-o" 
+                   style="font-size: 44px; color: #714B67;" 
+                   invisible="action_mode != 'replace'"/>
+                
+                <!-- 2. ПЕРЕНОС (Стрелка в круге) -->
+                <i class="fa fa-arrow-circle-o-right" 
+                   style="font-size: 44px; color: #714B67;" 
+                   invisible="action_mode != 'shift'"/>
+                
+                <!-- 3. РОКИРОВКА (Обновление/Обмен) -->
+                <!-- fa-refresh чуть массивнее, поэтому ставим 40px для баланса -->
+                <i class="fa fa-refresh" 
+                   style="font-size: 40px; color: #714B67;" 
+                   invisible="action_mode != 'swap'"/>
+            </div>
         </button>
     </div>
 
-    <!-- 3. ПРАВАЯ ЛИНИЯ + ПАНЕЛЬ -->
-    <div class="flex-grow-1 d-flex align-items-center position-relative">
-        <!-- Линия -->
-        <div class="w-100 border-top" style="border-top: 1px dashed #ced4da !important;"/>
+    <!-- Правая колонка: Пунктир + Инфо-панель -->
+    <div class="col d-flex align-items-center position-relative" style="height: 84px;">
+        <div class="w-100 border-top" style="border-top: 2px dashed #dee2e6 !important; height: 0;"/>
         
-        <!-- Инфо-панель (Монохромный дизайн) -->
+        <!-- Инфо-панель (Цвет полоски совпадает с кнопкой) -->
         <div class="position-absolute shadow-sm bg-white border border-1 rounded-3 p-3" 
              style="left: 30px; width: 300px; z-index: 10; border-left: 4px solid #714B67 !important;"
              invisible="action_mode == False">
             
             <div invisible="action_mode != 'replace'">
-                <div class="small fw-bolder text-900 text-uppercase mb-1" style="color: #714B67;">Замещение</div>
-                <div class="text-muted small">Переназначение преподавателя или кабинета для выбранных занятий.</div>
+                <div class="small fw-bolder text-uppercase mb-1" style="color: #714B67;">Замещение</div>
+                <div class="text-muted small">Переназначение учителя или кабинета.</div>
             </div>
             
             <div invisible="action_mode != 'shift'">
-                <div class="small fw-bolder text-900 text-uppercase mb-1" style="color: #714B67;">Перенос</div>
-                <div class="text-muted small">Массовый сдвиг расписания на другую дату с сохранением времени.</div>
+                <div class="small fw-bolder text-uppercase mb-1" style="color: #714B67;">Перенос</div>
+                <div class="text-muted small">Массовый сдвиг уроков на другую дату.</div>
             </div>
             
             <div invisible="action_mode != 'swap'">
-                <div class="small fw-bolder text-900 text-uppercase mb-1" style="color: #714B67;">Рокировка</div>
-                <div class="text-muted small">Взаимный обмен временными слотами между двумя уроками.</div>
+                <div class="small fw-bolder text-uppercase mb-1" style="color: #714B67;">Рокировка</div>
+                <div class="text-muted small">Взаимный обмен временем между уроками.</div>
             </div>
         </div>
     </div>
@@ -99,16 +122,16 @@
                         <div class="col-md-8">
                             <div class="row g-2">
                                 <div class="col-md-6" invisible="action_mode != 'replace'">
-                                    <label for="new_faculty_id" class="small text-uppercase fw-bold text-muted"/>
-                                    <field name="new_faculty_id" options="{'no_create': True}" placeholder="Укажите замену..."/>
+                                    <label for="new_faculty_id" class="small text-uppercase fw-bold text-muted" string="Новый учитель"/>
+                                    <field name="new_faculty_id" options="{'no_create': True}" placeholder="Укажите учителя..."/>
                                 </div>
                                 <div class="col-md-6" invisible="action_mode != 'replace'">
-                                    <label for="new_classroom_id" class="small text-uppercase fw-bold text-muted"/>
+                                    <label for="new_classroom_id" class="small text-uppercase fw-bold text-muted" string="Новый кабинет"/>
                                     <field name="new_classroom_id" options="{'no_create': True}" placeholder="Укажите кабинет..."/>
                                 </div>
                                 <div class="col-md-12" invisible="action_mode != 'shift'">
-                                    <label for="target_date" class="small text-uppercase fw-bold text-muted"/>
-                                    <field name="target_date" placeholder="Выберите новую дату..."/>
+                                    <label for="target_date" class="small text-uppercase fw-bold text-muted" string="Дата переноса"/>
+                                    <field name="target_date" placeholder="Выберите дату..."/>
                                 </div>
                             </div>
                         </div>
@@ -140,11 +163,11 @@
                             <list editable="bottom" create="0" decoration-danger="conflict_status != 'ОК'" decoration-success="conflict_status == 'ОК'" decoration-muted="not is_selected">
                                 <field name="is_selected" string="" width="30px" widget="boolean_toggle"/>
                                 <field name="session_id" width="200px" options="{'no_open': True}"/>
-                                <field name="faculty_id" options="{'no_create': True, 'no_open': True}"/>
+                                <field name="faculty_id" string="Учитель" options="{'no_create': True, 'no_open': True}"/>
                                 <field name="classroom_id" string="Каб." options="{'no_create': True, 'no_open': True}" width="70px"/>
                                 <field name="start_datetime" string="Начало" options="{'show_seconds': False}"/>
                                 <field name="end_datetime" string="Конец" options="{'show_seconds': False}" optional="hide"/>
-                                <field name="conflict_status" string="Проверка" decoration-bf="1"/>
+                                <field name="conflict_status" string="Статус" decoration-bf="1"/>
                                 <button name="unlink" type="object" icon="fa-trash-o" title="Убрать"/>
                             </list>
                         </field>
