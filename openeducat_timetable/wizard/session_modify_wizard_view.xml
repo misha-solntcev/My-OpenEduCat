@@ -11,104 +11,62 @@
         <field name="name">session.modify.wizard.form</field>
         <field name="model">session.modify.wizard</field>
         <field name="arch" type="xml">
-            <form string="Управление расписанием">
+            <form string="Мастер правок">
                 <sheet>
-                    <!-- 1. ВХОДНЫЕ ДАННЫЕ -->
-                    <div class="o_horizontal_separator text-primary fw-bolder mb-3" style="font-size: 1.1rem;">
-                        <i class="fa fa-database me-2" title="Данные"/> 1. ВХОДНЫЕ ДАННЫЕ
-                    </div>
-                    
-                    <!-- Адаптивные плитки: в колонку на мобильных, в ряд на ПК -->
-                    <div class="d-flex flex-column flex-md-row gap-2 mb-4">
-                        <!-- Плитка 1: ПЕРИОД -->
-                        <div class="flex-fill border rounded bg-white p-2 shadow-sm">
-                            <div class="text-center text-muted text-uppercase fw-bolder mb-2" style="font-size: 0.75rem;">Период</div>
+                    <!-- 1. ВЕРХНИЙ БЛОК: ИСХОДНЫЕ ДАННЫЕ (Легкий стиль) -->
+                    <div class="d-flex flex-column flex-md-row gap-3 mb-4">
+                        <div class="flex-fill border rounded bg-white p-3 shadow-sm text-center">
+                            <div class="text-muted text-uppercase fw-bolder mb-2" style="font-size: 0.7rem; opacity: 0.7;">Период</div>
                             <div class="d-flex justify-content-center align-items-center">
                                 <field name="date_from" nolabel="1" class="oe_inline text-center" style="width: 95px !important;"/>
                                 <span class="mx-2 text-muted">—</span>
                                 <field name="date_to" nolabel="1" class="oe_inline text-center" style="width: 95px !important;"/>
                             </div>
                         </div>
-
-                        <!-- Плитка 2: КЛАСС -->
-                        <div class="flex-fill border rounded bg-white p-2 shadow-sm">
-                            <div class="text-center text-muted text-uppercase fw-bolder mb-2" style="font-size: 0.75rem;">Класс</div>
+                        <div class="flex-fill border rounded bg-white p-3 shadow-sm text-center">
+                            <div class="text-muted text-uppercase fw-bolder mb-2" style="font-size: 0.7rem; opacity: 0.7;">Класс</div>
                             <div class="d-flex justify-content-center">
-                                <field name="batch_ids" widget="many2many_tags" nolabel="1" options="{'no_create': True}" placeholder="Все классы..." class="w-100 text-center"/>
+                                <field name="batch_ids" widget="many2many_tags" nolabel="1" options="{'no_create': True}" placeholder="Все классы..." class="w-100"/>
                             </div>
                         </div>
-
-                        <!-- Плитка 3: УЧИТЕЛЬ -->
-                        <div class="flex-fill border rounded bg-white p-2 shadow-sm">
-                            <div class="text-center text-muted text-uppercase fw-bolder mb-2" style="font-size: 0.75rem;">Учитель</div>
+                        <div class="flex-fill border rounded bg-white p-3 shadow-sm text-center">
+                            <div class="text-muted text-uppercase fw-bolder mb-2" style="font-size: 0.7rem; opacity: 0.7;">Учитель</div>
                             <div class="d-flex justify-content-center">
                                 <field name="faculty_domain" invisible="1"/>
-                                <field name="filter_faculty_id" nolabel="1" class="text-center w-100" options="{'no_create': True, 'no_open': True}" domain="faculty_domain" placeholder="Любой учитель..."/>
+                                <field name="filter_faculty_id" nolabel="1" class="text-center w-100" options="{'no_create': True, 'no_open': True}" domain="faculty_domain" placeholder="Любой..."/>
                             </div>
                         </div>
                     </div>
 
-                    <!-- 2. КОРРЕКТИРОВКА -->
-                    <div class="o_horizontal_separator text-primary fw-bolder mb-3" style="font-size: 1.1rem;">
-                        <i class="fa fa-magic me-2" title="Действие"/> 2. КОРРЕКТИРОВКА
-                    </div>
-
+                    <!-- 2. ЦЕНТРАЛЬНЫЙ ПУЛЬТ (Кнопка-селектор) -->
                     <field name="action_mode" invisible="1"/>
-
                     <div class="row align-items-center mb-4 g-0">
-                        <!-- Левая колонка: Пунктир -->
-                        <div class="col border-top" style="border-top: 2px dashed #dee2e6 !important; height: 0;"/>
-
-                        <!-- Центр: Кнопка (Цвет #714B67, Анимация и фиксированный размер) -->
+                        <div class="col border-top" style="border-top: 1px dashed #ced4da !important; height: 0;"/>
                         <div class="col-auto px-4" style="flex: 0 0 auto;">
                             <button name="action_cycle_mode" type="object" 
                                     class="rounded-circle shadow-lg d-flex align-items-center justify-content-center bg-white p-0" 
-                                    style="width: 84px; height: 84px; min-width: 84px; min-height: 84px; 
-                                        border: 4px solid #714B67 !important; outline: none !important;
-                                        transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);"
-                                    onmouseover="this.style.transform='scale(1.1)'" 
-                                    onmouseout="this.style.transform='scale(1)'">
-                                
-                                <!-- Контейнер с фиксированным размером для центровки иконок -->
-                                <div class="d-flex align-items-center justify-content-center" style="width: 50px; height: 50px;">
-                                    <!-- 1. ЗАМЕЩЕНИЕ (Учитель в круге) -->
-                                    <i class="fa fa-user-circle-o" 
-                                    style="font-size: 44px; color: #714B67;" 
-                                    invisible="action_mode != 'replace'"/>
-                                    
-                                    <!-- 2. ПЕРЕНОС (Стрелка в круге) -->
-                                    <i class="fa fa-arrow-circle-o-right" 
-                                    style="font-size: 44px; color: #714B67;" 
-                                    invisible="action_mode != 'shift'"/>
-                                    
-                                    <!-- 3. РОКИРОВКА (Обновление/Обмен) -->
-                                    <!-- fa-refresh чуть массивнее, поэтому ставим 40px для баланса -->
-                                    <i class="fa fa-refresh" 
-                                    style="font-size: 40px; color: #714B67;" 
-                                    invisible="action_mode != 'swap'"/>
+                                    style="width: 80px; height: 80px; min-width: 80px; min-height: 80px; border: 4px solid #714B67 !important; outline: none !important; transition: transform 0.2s ease;">
+                                <div class="d-flex align-items-center justify-content-center" style="width: 50px; height: 50px;" onmouseover="this.parentElement.style.transform='scale(1.1)'" onmouseout="this.parentElement.style.transform='scale(1)'">
+                                    <i class="fa fa-user-circle-o" style="font-size: 50px; color: #714B67;" invisible="action_mode != 'replace'"/>
+                                    <i class="fa fa-arrow-circle-o-right" style="font-size: 55px; color: #714B67;" invisible="action_mode != 'shift'"/>
+                                    <i class="fa fa-refresh" style="font-size: 40px; color: #714B67;" invisible="action_mode != 'swap'"/>
                                 </div>
                             </button>
                         </div>
-
-                        <!-- Правая колонка: Пунктир + Инфо-панель -->
-                        <div class="col d-flex align-items-center position-relative" style="height: 84px;">
-                            <div class="w-100 border-top" style="border-top: 2px dashed #dee2e6 !important; height: 0;"/>
-                            
-                            <!-- Инфо-панель (Цвет полоски совпадает с кнопкой) -->
+                        <div class="col d-flex align-items-center position-relative" style="height: 80px;">
+                            <div class="w-100 border-top" style="border-top: 1px dashed #ced4da !important; height: 0;"/>
+                            <!-- Инфо-панель -->
                             <div class="position-absolute shadow-sm bg-white border border-1 rounded-3 p-3" 
                                 style="left: 30px; width: 300px; z-index: 10; border-left: 4px solid #714B67 !important;"
                                 invisible="action_mode == False">
-                                
                                 <div invisible="action_mode != 'replace'">
                                     <div class="small fw-bolder text-uppercase mb-1" style="color: #714B67;">Замещение</div>
                                     <div class="text-muted small">Переназначение учителя или кабинета.</div>
                                 </div>
-                                
                                 <div invisible="action_mode != 'shift'">
                                     <div class="small fw-bolder text-uppercase mb-1" style="color: #714B67;">Перенос</div>
                                     <div class="text-muted small">Массовый сдвиг уроков на другую дату.</div>
                                 </div>
-                                
                                 <div invisible="action_mode != 'swap'">
                                     <div class="small fw-bolder text-uppercase mb-1" style="color: #714B67;">Рокировка</div>
                                     <div class="text-muted small">Взаимный обмен временем между уроками.</div>
@@ -117,79 +75,69 @@
                         </div>
                     </div>
 
-                    <!-- 3. НОВЫЕ ПАРАМЕТРЫ (В стиле верхних плиток) -->
-<div class="mb-4">
-    <!-- Блок для ЗАМЕНЫ -->
-    <div class="d-flex flex-column flex-md-row gap-2" invisible="action_mode != 'replace'">
-        <div class="flex-fill border rounded bg-white p-2 shadow-sm">
-            <div class="text-center text-muted text-uppercase fw-bolder mb-2" style="font-size: 0.75rem;">Новый учитель</div>
-            <div class="d-flex justify-content-center">
-                <field name="new_faculty_id" nolabel="1" options="{'no_create': True, 'no_open': True}" 
-                       placeholder="Укажите учителя..." class="text-center w-100"/>
-            </div>
-        </div>
-        <div class="flex-fill border rounded bg-white p-2 shadow-sm">
-            <div class="text-center text-muted text-uppercase fw-bolder mb-2" style="font-size: 0.75rem;">Новый кабинет</div>
-            <div class="d-flex justify-content-center">
-                <field name="new_classroom_id" nolabel="1" options="{'no_create': True, 'no_open': True}" 
-                       placeholder="Укажите кабинет..." class="text-center w-100"/>
-            </div>
-        </div>
-    </div>
+                    <!-- 3. НИЖНИЙ БЛОК: НОВЫЕ ПАРАМЕТРЫ (Акцентный стиль) -->
+                    <div class="mb-4">
+                        <!-- Стиль плиток изменен: фон f8f9fa и жирная рамка -->
+                        <div class="d-flex flex-column flex-md-row gap-3" invisible="action_mode != 'replace'">
+                            <div class="flex-fill border rounded shadow p-3 text-center" style="background-color: #f8f9fa; border: 1px solid #ced4da !important;">
+                                <div class="text-muted text-uppercase fw-bolder mb-2" style="font-size: 0.75rem;">Новый учитель</div>
+                                <field name="new_faculty_id" nolabel="1" options="{'no_create': True, 'no_open': True}" class="text-center w-100"/>
+                            </div>
+                            <div class="flex-fill border rounded shadow p-3 text-center" style="background-color: #f8f9fa; border: 1px solid #ced4da !important;">
+                                <div class="text-muted text-uppercase fw-bolder mb-2" style="font-size: 0.75rem;">Новый кабинет</div>
+                                <field name="new_classroom_id" nolabel="1" options="{'no_create': True, 'no_open': True}" class="text-center w-100"/>
+                            </div>
+                        </div>
 
-    <!-- Блок для ПЕРЕНОСА (Одна широкая плитка по центру) -->
-    <div class="d-flex justify-content-center" invisible="action_mode != 'shift'">
-        <div class="border rounded bg-white p-2 shadow-sm" style="width: 350px;">
-            <div class="text-center text-muted text-uppercase fw-bolder mb-2" style="font-size: 0.75rem;">Дата переноса</div>
-            <div class="d-flex justify-content-center">
-                <field name="target_date" nolabel="1" class="text-center"/>
-            </div>
-        </div>
-    </div>
+                        <div class="d-flex justify-content-center" invisible="action_mode != 'shift'">
+                            <div class="border rounded shadow p-3 text-center" style="width: 350px; background-color: #f8f9fa; border: 1px solid #ced4da !important;">
+                                <div class="text-muted text-uppercase fw-bolder mb-2" style="font-size: 0.75rem;">Дата переноса</div>
+                                <field name="target_date" nolabel="1" class="text-center"/>
+                            </div>
+                        </div>
 
-    <!-- Блок для РОКИРОВКИ (Две плитки) -->
-    <div class="d-flex flex-column flex-md-row gap-2" invisible="action_mode != 'swap'">
-        <field name="date_to_end" invisible="1"/>
-        <field name="swap_domain" invisible="1"/>
-        <div class="flex-fill border rounded bg-white p-2 shadow-sm">
-            <div class="text-center text-muted text-uppercase fw-bolder mb-2" style="font-size: 0.75rem;">Урок А (Ротация)</div>
-            <field name="swap_session_a_id" nolabel="1" options="{'no_create': True, 'no_open': True}" 
-                   domain="swap_domain" placeholder="Выберите первый урок..."/>
-        </div>
-        <div class="flex-fill border rounded bg-white p-2 shadow-sm">
-            <div class="text-center text-muted text-uppercase fw-bolder mb-2" style="font-size: 0.75rem;">Урок Б (Ротация)</div>
-            <field name="swap_session_b_id" nolabel="1" options="{'no_create': True, 'no_open': True}" 
-                   domain="swap_domain" placeholder="Выберите второй урок..."/>
-        </div>
-    </div>
-</div>
+                        <div class="d-flex flex-column flex-md-row gap-3" invisible="action_mode != 'swap'">
+                            <field name="date_to_end" invisible="1"/>
+                            <field name="swap_domain" invisible="1"/>
+                            <div class="flex-fill border rounded shadow p-3 text-center" style="background-color: #f8f9fa; border: 1px solid #ced4da !important;">
+                                <div class="text-muted text-uppercase fw-bolder mb-2" style="font-size: 0.75rem;">Урок А</div>
+                                <field name="swap_session_a_id" nolabel="1" options="{'no_create': True, 'no_open': True}" domain="swap_domain" class="w-100"/>
+                            </div>
+                            <div class="flex-fill border rounded shadow p-3 text-center" style="background-color: #f8f9fa; border: 1px solid #ced4da !important;">
+                                <div class="text-muted text-uppercase fw-bolder mb-2" style="font-size: 0.75rem;">Урок Б</div>
+                                <field name="swap_session_b_id" nolabel="1" options="{'no_create': True, 'no_open': True}" domain="swap_domain" class="w-100"/>
+                            </div>
+                        </div>
+                    </div>
 
-<!-- 4. РАЗДЕЛИТЕЛЬ И КНОПКА ПОИСКА -->
-<div class="d-flex align-items-center mb-4 invisible_when_swap" invisible="action_mode == 'swap'">
-    <div class="flex-grow-1 border-top" style="border-top: 1px dashed #dee2e6 !important; height: 0;"/>
-    
-    <div class="mx-3">
-        <button name="action_search_sessions" 
-                string="ПОИСК И ПРОВЕРКА" 
-                type="object" 
-                class="btn btn-primary rounded-pill px-4 shadow-sm" 
-                style="background-color: #714B67; border-color: #714B67;"
-                icon="fa-search"/>
-    </div>
-    
-    <div class="flex-grow-1 border-top" style="border-top: 1px dashed #dee2e6 !important; height: 0;"/>
-</div>
+                    <!-- 4. КНОПКА ПОИСКА (Исправленный стиль) -->
+                    <div class="d-flex align-items-center mb-4" invisible="action_mode == 'swap'">
+                        <!-- Линия слева -->
+                        <div class="flex-grow-1 border-top" style="border-top: 1px dashed #ced4da !important; height: 0;"/>
+                        
+                        <div class="mx-3">
+                            <button name="action_search_sessions" 
+                                    string="ПОИСК И ПРОВЕРКА" 
+                                    type="object" 
+                                    class="btn btn-primary rounded-pill px-4 shadow-lg fw-bolder text-uppercase" 
+                                    style="background-color: #714B67 !important; border: none !important; color: white !important; height: 48px; min-width: 200px; letter-spacing: 0.5px;"
+                                    icon="fa-search"/>
+                        </div>
+                        
+                        <!-- Линия справа -->
+                        <div class="flex-grow-1 border-top" style="border-top: 1px dashed #ced4da !important; height: 0;"/>
+                    </div>
 
-                    <!-- ТАБЛИЦА РЕЗУЛЬТАТОВ -->
+                    <!-- 5. ТАБЛИЦА РЕЗУЛЬТАТОВ -->
                     <div invisible="action_mode == 'swap' or not line_ids">
                         <div class="alert alert-info d-flex align-items-center mb-3 py-2" role="status">
-                            <i class="fa fa-info-circle me-3" style="font-size: 1.2rem;" title="Инфо"/>
+                            <i class="fa fa-info-circle me-3" style="font-size: 1.2rem;" title="Справка"/>
                             <field name="free_window_info" nolabel="1"/>
                         </div>
                         <field name="line_ids" nolabel="1">
                             <list editable="bottom" create="0" decoration-danger="conflict_status != 'ОК'" decoration-success="conflict_status == 'ОК'" decoration-muted="not is_selected">
                                 <field name="is_selected" string="" width="30px" widget="boolean_toggle"/>
-                                <field name="session_id" width="200px" options="{'no_open': True}"/>
+                                <field name="session_id" width="220px" options="{'no_open': True}"/>
                                 <field name="faculty_id" string="Учитель" options="{'no_create': True, 'no_open': True}"/>
                                 <field name="classroom_id" string="Каб." options="{'no_create': True, 'no_open': True}" width="70px"/>
                                 <field name="start_datetime" string="Начало" options="{'show_seconds': False}"/>
@@ -201,7 +149,7 @@
                     </div>
                 </sheet>
                 <footer>
-                    <button name="action_apply" string="ВНЕСТИ ИЗМЕНЕНИЯ" type="object" class="btn-success" confirm="Применить изменения?"/>
+                    <button name="action_apply" string="ВНЕСТИ ИЗМЕНЕНИЯ" type="object" class="btn-success shadow-sm fw-bold"/>
                     <button string="ОТМЕНА" class="btn-secondary" special="cancel"/>
                 </footer>
             </form>
