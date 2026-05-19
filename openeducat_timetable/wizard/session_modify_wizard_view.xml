@@ -63,6 +63,38 @@
     </div>
 </div>
 
+
+<!-- Графический разделитель-подсказка -->
+<div class="d-flex justify-content-center align-items-center my-3">
+    <!-- Линия слева -->
+    <div class="flex-grow-1 border-top" style="border-top: 2px dashed #dee2e6 !important; height: 0;"/>
+    
+    <!-- Контейнер иконки -->
+    <div class="mx-3 rounded-circle shadow d-flex align-items-center justify-content-center border border-2 border-primary bg-white" 
+         style="width: 54px; height: 54px;">
+        
+        <!-- Мы используем только проверенные иконки Odoo/FontAwesome 4.7 -->
+        
+        <!-- 1. Иконка для замены (Человечек с плюсом) -->
+        <i class="fa fa-user-plus text-primary" 
+           style="font-size: 24px;"
+           invisible="action_mode != 'replace'"/>
+        
+        <!-- 2. Иконка для переноса (Стрелка вправо или Календарь) -->
+        <i class="fa fa-long-arrow-right text-primary" 
+           style="font-size: 24px;"
+           invisible="action_mode != 'shift'"/>
+        
+        <!-- 3. Иконка для рокировки (Стрелки обмена) -->
+        <i class="fa fa-exchange text-primary" 
+           style="font-size: 24px;"
+           invisible="action_mode != 'swap'"/>
+    </div>
+
+    <!-- Линия справа -->
+    <div class="flex-grow-1 border-top" style="border-top: 2px dashed #dee2e6 !important; height: 0;"/>
+</div>
+
                     <!-- Секция 2: Выбор действия -->
                     <div class="o_horizontal_separator text-primary fw-bolder mb-3" style="font-size: 1.1rem;">
                         <i class="fa fa-magic me-2" title="Действие"/> 2. ЧТО НУЖНО СДЕЛАТЬ?
