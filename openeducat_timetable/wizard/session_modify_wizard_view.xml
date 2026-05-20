@@ -98,13 +98,13 @@
                             <field name="target_date" nolabel="1" placeholder="Выберите дату..." class="text-center w-100"/>
                         </div>
                         <field name="date_to_end" invisible="1"/><field name="swap_domain" invisible="1"/>
-                        <div class="flex-fill border rounded shadow-sm p-3 text-center" style="background-color: #f8f9fa;" invisible="action_mode != 'swap'">
+                        <div class="flex-fill border rounded shadow p-3 text-center" style="background-color: #f8f9fa;" invisible="action_mode != 'swap'">
                             <div class="text-primary text-uppercase fw-bolder mb-1" style="font-size: 0.75rem;">
                                 <i class="fa fa-book me-1"/>Урок А</div>
                             <field name="swap_session_a_id" nolabel="1" placeholder="Выберите урок А..."
                                 options="{'no_create': True, 'no_open': True}" domain="swap_domain" class="w-100"/>
                         </div>
-                        <div class="flex-fill border rounded shadow-sm p-3 text-center" style="background-color: #f8f9fa;" invisible="action_mode != 'swap'">
+                        <div class="flex-fill border rounded shadow p-3 text-center" style="background-color: #f8f9fa;" invisible="action_mode != 'swap'">
                             <div class="text-primary text-uppercase fw-bolder mb-1" style="font-size: 0.75rem;">
                                 <i class="fa fa-book me-1"/>Урок Б</div>
                             <field name="swap_session_b_id" nolabel="1" placeholder="Выберите урок Б..."
