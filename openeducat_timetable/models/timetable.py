@@ -20,7 +20,9 @@ class OpSession(models.Model):
     def _onchange_start_datetime_sync_date(self):
         for rec in self:
             if rec.start_datetime:
-                rec.timetable_date = rec.start_datetime.date()
+                # Используем локальное время пользователя для определения корректной даты
+                local_dt = fields.Datetime.context_timestamp(rec, rec.start_datetime)
+                rec.timetable_date = local_dt.date()
 
     @api.model
     def _read_group_days(self, days, domain):
@@ -54,6 +56,23 @@ class OpSession(models.Model):
     course_id = fields.Many2one('op.course', 'Course', required=True, index=True)
     classroom_id = fields.Many2one('op.classroom', 'Classroom', index=True, tracking=True)
     timing_id = fields.Many2one('op.timing', string='Lesson Slot')
+
+    @api.onchange('faculty_id')
+    def _onchange_faculty_id_set_subject(self):
+        if self.faculty_id and self.faculty_id.faculty_subject_ids:
+            if len(self.faculty_id.faculty_subject_ids) == 1:
+                self.subject_id = self.faculty_id.faculty_subject_ids[0].id
+
+    @api.onchange('course_id')
+    def _onchange_course_id_set_batch(self):
+        if self.course_id:
+            batches = self.env['op.batch'].search([('course_id', '=', self.course_id.id)])
+            if len(batches) == 1:
+                self.batch_id = batches[0].id
+            elif self.batch_id and self.batch_id.course_id != self.course_id:
+                self.batch_id = False
+        else:
+            self.batch_id = False
 
     @api.onchange('timing_id', 'timetable_date')
     def _onchange_timing(self):
@@ -145,6 +164,41 @@ class OpSession(models.Model):
                 students = self.env['op.student'].sudo().search([('course_detail_ids.batch_id', '=', session.batch_id.id), ('user_id', '!=', False)])
                 u_ids.update(students.mapped('user_id').ids)
             session.user_ids = [(6, 0, list(u_ids))]
+
+    @api.onchange('course_id')
+    def _onchange_course_id_set_batch(self):
+        if self.course_id:
+            batches = self.env['op.batch'].search([('course_id', '=', self.course_id.id)])
+            if len(batches) == 1:
+                self.batch_id = batches[0].id
+            elif self.batch_id and self.batch_id.course_id != self.course_id:
+                self.batch_id = False
+        else:
+            self.batch_id = False
+
+    @api.onchange('batch_id')
+    def _onchange_batch_id_set_classroom(self):
+        if self.batch_id:
+            classroom = self.env['op.classroom'].search([
+                ('batch_id', '=', self.batch_id.id)
+            ], limit=1)
+            if classroom:
+                self.classroom_id = classroom.id
+
+    @api.onchange('start_datetime')
+    def _onchange_start_datetime_auto_slot(self):
+        """Автоматически подбирает timing_id, если меняется время начала"""
+        for rec in self:
+            if rec.start_datetime and not rec.timing_id:
+                # Переводим время в локальное
+                local_dt = fields.Datetime.context_timestamp(rec, rec.start_datetime)
+                # Ищем подходящий слот по времени
+                match = self.env['op.timing'].search([
+                    ('lesson_hour', '=', local_dt.hour),
+                    ('lesson_minute', '=', local_dt.minute)
+                ], limit=1)
+                if match:
+                    rec.timing_id = match.id
 
     @api.constrains('start_datetime', 'end_datetime')
     def _check_date_time(self):
