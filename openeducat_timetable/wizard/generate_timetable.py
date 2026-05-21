@@ -20,10 +20,13 @@ class GenerateSession(models.TransientModel):
     time_table_lines_5 = fields.One2many('gen.time.table.line', 'gen_time_table', domain=[('day', '=', '4')])
     time_table_lines_6 = fields.One2many('gen.time.table.line', 'gen_time_table', domain=[('day', '=', '5')])
     time_table_lines_7 = fields.One2many('gen.time.table.line', 'gen_time_table', domain=[('day', '=', '6')])
+
     start_date = fields.Date('С', required=True, default=fields.Date.context_today)
     end_date = fields.Date('По', required=True, 
         default=lambda self: (fields.Date.context_today(self) + datetime.timedelta(days=30)).replace(day=1) - datetime.timedelta(days=1))
-    import_week_date = fields.Date('Копировать неделю от...', help="Выберите любую дату недели, структуру которой хотите взять за основу")
+        
+    import_start_date = fields.Date('С (копировать)')
+    import_end_date = fields.Date('По (копировать)')
 
     @api.onchange('start_date')
     def _onchange_start_date(self):
@@ -99,65 +102,75 @@ class GenerateSession(models.TransientModel):
                 session_obj.create(data)
             return {'type': 'ir.actions.act_window_close'}
 
+    def action_clear_all(self):
+        """Полная очистка всего мастера"""
+        self.ensure_one()
+        self.time_table_lines = [(5, 0, 0)]
+        return self._reopen_wizard()
+
+    def action_clear_day(self):
+        """Очистка конкретного дня недели"""
+        self.ensure_one()
+        day = self.env.context.get('day_to_clear')
+        if day is not None:
+            # Ищем строки именно этого дня и удаляем их
+            lines_to_del = self.time_table_lines.filtered(lambda l: l.day == str(day))
+            self.write({'time_table_lines': [(2, line.id, 0) for line in lines_to_del]})
+        return self._reopen_wizard()
+
+    def _reopen_wizard(self):
+        return {
+            'type': 'ir.actions.act_window',
+            'res_model': self._name,
+            'res_id': self.id,
+            'view_mode': 'form',
+            'target': 'new',
+        }
+
     def action_import_last_week(self):
         self.ensure_one()
-        if not self.import_week_date:
-            raise ValidationError(_("Выберите дату на неделе для импорта."))
-        
-        start_of_week = self.import_week_date - datetime.timedelta(days=self.import_week_date.weekday())
-        end_of_week = start_of_week + datetime.timedelta(days=6)
-        
+        if not self.import_start_date or not self.import_end_date:
+            raise ValidationError(_("Укажите диапазон дат для импорта."))
+
+        # 1. Определяем, какие дни недели (0-6) входят в диапазон
+        target_days = set()
+        curr = self.import_start_date
+        while curr <= self.import_end_date:
+            target_days.add(str(curr.weekday()))
+            curr += datetime.timedelta(days=1)
+            if len(target_days) == 7: break
+
+        # 2. Ищем уроки в базе
         sessions = self.env['op.session'].search([
             ('course_id', '=', self.course_id.id),
             ('batch_id', '=', self.batch_id.id),
-            ('timetable_date', '>=', start_of_week),
-            ('timetable_date', '<=', end_of_week),
+            ('timetable_date', '>=', self.import_start_date),
+            ('timetable_date', '<=', self.import_end_date),
             ('state', '!=', 'cancel'),
-        ], order='timetable_date asc, start_datetime asc')
-        
-        if not sessions:
-            raise ValidationError(_("Занятий не найдено."))
-             
-        lines_data = [(5, 0, 0)]
+            ('timing_id', '!=', False),
+        ], order='timetable_date desc')
+
+        # 3. Удаляем старые строки ТОЛЬКО для импортируемых дней
+        lines_to_remove = self.time_table_lines.filtered(lambda l: l.day in target_days)
+        lines_data = [(2, line.id, 0) for line in lines_to_remove]
+
+        # 4. Добавляем новые
         seen = set()
-        
         for session in sessions:
             day = str(session.timetable_date.weekday())
-            timing_id = session.timing_id.id
-            
-            # --- ЛОГИКА ГЕОЛЕРНИНГА (ПОИСК СЛОТА ПО ВРЕМЕНИ) ---
-            if not timing_id:
-                # Берем время начала урока в часовом поясе пользователя
-                local_dt = fields.Datetime.context_timestamp(session, session.start_datetime)
-                # Ищем подходящий тайминг по часам и минутам
-                match = self.env['op.timing'].search([
-                    ('lesson_hour', '=', local_dt.hour),
-                    ('lesson_minute', '=', local_dt.minute)
-                ], limit=1)
-                if match:
-                    timing_id = match.id
-            
-            # Если даже после поиска слот не найден — пропускаем
-            if not timing_id:
-                continue
-                
-            if (day, timing_id) in seen:
-                continue
-            seen.add((day, timing_id))
+            if (day, session.timing_id.id) in seen: continue
+            seen.add((day, session.timing_id.id))
             
             lines_data.append((0, 0, {
                 'faculty_id': session.faculty_id.id,
                 'subject_id': session.subject_id.id,
-                'timing_id': timing_id,
+                'timing_id': session.timing_id.id,
                 'classroom_id': session.classroom_id.id,
                 'day': day,
             }))
-        
+
         self.write({'time_table_lines': lines_data})
-        return {
-            'type': 'ir.actions.act_window', 'res_model': self._name, 'res_id': self.id,
-            'view_mode': 'form', 'target': 'new',
-        }
+        return self._reopen_wizard()
 
 
 class GenerateSessionLine(models.TransientModel):

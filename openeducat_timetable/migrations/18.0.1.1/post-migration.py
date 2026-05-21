@@ -2,34 +2,35 @@ from odoo import api, SUPERUSER_ID
 
 def migrate(cr, version):
     """
-    Автоматическая миграция данных при обновлении модуля.
-    Выполняется после (post) обновления структуры таблиц.
+    Автоматическая миграция данных. 
+    Используем SQL для корректной обработки часовых поясов.
     """
-    env = api.Environment(cr, SUPERUSER_ID, {})
-    
-    # 1. Заполняем timetable_date на основе start_datetime
+    # 1. Определяем часовой пояс школы (сетка уроков 09:30 и т.д. создана в нем)
+    # Даже если сервер в облаке, а вы в Иркутске, сопоставляем с МСК
+    tz_school = 'Europe/Moscow'
+
+    # 2. Обновляем timetable_date (Дата урока)
+    # Конвертируем UTC из базы в локальное время школы, чтобы дата была верной
     cr.execute("""
         UPDATE op_session 
-        SET timetable_date = (start_datetime AT TIME ZONE 'UTC' AT TIME ZONE 'UTC')::date
-        WHERE timetable_date IS NULL
-    """)
+        SET timetable_date = (start_datetime AT TIME ZONE 'UTC' AT TIME ZONE %s)::date
+        WHERE timetable_date IS NULL AND start_datetime IS NOT NULL
+    """, (tz_school,))
 
-    # 2. Сопоставляем уроки с сеткой звонков (timing_id)
-    cr.execute("SELECT id, start_datetime FROM op_session WHERE timing_id IS NULL")
-    sessions_data = cr.fetchall()
+    # 3. Привязываем уроки к сетке звонков (timing_id)
+    # Сравниваем часы и минуты начала урока (в МСК) с часами и минутами в op_timing
+    query_timing = """
+        UPDATE op_session sess
+        SET timing_id = t.id
+        FROM op_timing t
+        WHERE sess.timing_id IS NULL 
+          AND sess.start_datetime IS NOT NULL
+          AND t.lesson_hour = EXTRACT(HOUR FROM sess.start_datetime AT TIME ZONE 'UTC' AT TIME ZONE %s)
+          AND t.lesson_minute = EXTRACT(MINUTE FROM sess.start_datetime AT TIME ZONE 'UTC' AT TIME ZONE %s)
+    """
+    cr.execute(query_timing, (tz_school, tz_school))
     
-    if not sessions_data:
-        return
-
-    timings = env['op.timing'].search([])
-    if not timings:
-        return
-
-    for session_id, start_datetime in sessions_data:
-        if not start_datetime:
-            continue
-            
-        h, m = start_datetime.hour, start_datetime.minute
-        match = timings.filtered(lambda t: t.lesson_hour == h and t.lesson_minute == m)
-        if match:
-            cr.execute("UPDATE op_session SET timing_id = %s WHERE id = %s", (match[0].id, session_id))
+    # 4. Логируем результат в лог сервера (опционально)
+    # Это поможет при деплое увидеть, сколько записей подхватилось
+    row_count = cr.rowcount
+    # print/logging здесь обычно не виден, но можно оставить для отладки
