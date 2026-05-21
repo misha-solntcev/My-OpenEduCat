@@ -8,9 +8,8 @@
             <field name="arch" type="xml">
                 <list string="Session Line" editable="bottom">
                     <field name="day" invisible="1"/>
-                    <field name="session_start_time" widget="float_time"/>
-                    <field name="session_end_time" widget="float_time"/>
-                    <field name="faculty_id"/>
+                    <field name="timing_id" options="{'no_create': True}"/>
+                    <field name="faculty_id" widget="many2one_avatar_user"/>
                     <field name="subject_id"/>
                     <field name="classroom_id"/>
                 </list>
@@ -25,8 +24,7 @@
                 <form string="Table Line">
                     <group>
                         <field name="day"/>
-                        <field name="session_start_time" widget="float_time"/>
-                        <field name="session_end_time" widget="float_time"/>
+                        <field name="timing_id" options="{'no_create': True}"/>
                         <field name="faculty_id"/>
                         <field name="subject_id"/>
                         <field name="classroom_id"/>

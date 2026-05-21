@@ -1,20 +1,23 @@
-from odoo import fields, models
+from odoo import fields, models # type: ignore
 
 
 class OpTiming(models.Model):
     _name = "op.timing"
-    _description = "Period"
+    _description = "Period (Lesson Slot)"
     _order = "sequence"
 
-    name = fields.Char('Name', size=16, required=True)
-    hour = fields.Selection(
-        [('1', '1'), ('2', '2'), ('3', '3'), ('4', '4'), ('5', '5'),
-         ('6', '6'), ('7', '7'), ('8', '8'), ('9', '9'), ('10', '10'),
-         ('11', '11'), ('12', '12')], 'Hours', required=True)
-    minute = fields.Selection(
-        [('00', '00'), ('15', '15'), ('30', '30'), ('45', '45')], 'Minute',
-        required=True)
-    duration = fields.Float('Duration')
-    am_pm = fields.Selection(
-        [('am', 'AM'), ('pm', 'PM')], 'AM/PM', required=True)
-    sequence = fields.Integer('Sequence')
+    name = fields.Char('Name', size=32, required=True)
+    lesson_hour = fields.Integer('Hour', required=True)
+    lesson_minute = fields.Integer('Minute', required=True)
+    duration = fields.Integer('Duration (Minutes)', default=40)
+    sequence = fields.Integer('Sequence', default=10)
+
+    def name_get(self):
+        result = []
+        for rec in self:
+            start = f"{rec.lesson_hour:02d}:{rec.lesson_minute:02d}"
+            total_min = rec.lesson_hour * 60 + rec.lesson_minute + rec.duration
+            h_e, m_e = divmod(total_min, 60)
+            end = f"{int(h_e):02d}:{int(m_e):02d}"
+            result.append((rec.id, f"{rec.name} ({start} - {end})"))
+        return result

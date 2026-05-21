@@ -13,6 +13,7 @@
         'security/op_security.xml',
         'security/ir.model.access.csv',
         'data/day_data.xml',
+        'data/lesson_data.xml',
         'views/timetable_view.xml',
         'views/timing_view.xml',
         'views/faculty_view.xml',
@@ -28,8 +29,6 @@
         'menus/op_menu.xml',
     ],
     'demo': [
-        'demo/timing_demo.xml',
-        'demo/op_timetable_demo.xml'
     ],
     'images': [
         'static/description/openeducat-timetable_banner.jpg',

@@ -74,16 +74,18 @@ class GenerateSession(models.TransientModel):
                 curr_date = start_date + datetime.timedelta(n)
                 for line in session.time_table_lines:
                     if int(line.day) == curr_date.weekday():
-                        session_start_time = '%s:00' % '{:02.0f}:{:02.0f}'.format(
-                            *divmod(line.session_start_time * 60, 60))
-                        session_end_time = '%s:00' % '{:02.0f}:{:02.0f}'.format(
-                            *divmod(line.session_end_time * 60, 60))
-                        final_start_date = datetime.datetime.strptime(
-                            curr_date.strftime('%Y-%m-%d ') +
-                            session_start_time, '%Y-%m-%d %H:%M:%S')
-                        final_end_date = datetime.datetime.strptime(
-                            curr_date.strftime('%Y-%m-%d ') +
-                            session_end_time, '%Y-%m-%d %H:%M:%S')
+                        if line.timing_id:
+                            h, m = line.timing_id.lesson_hour, line.timing_id.lesson_minute
+                            duration = line.timing_id.duration
+                            final_start_date = datetime.datetime.combine(curr_date, datetime.time(h, m))
+                            final_end_date = final_start_date + datetime.timedelta(minutes=duration)
+                        else:
+                            # Резервный вариант, если урок не выбран
+                            final_start_date = datetime.datetime.combine(
+                                curr_date, datetime.time(int(line.session_start_time), 
+                                int((line.session_start_time % 1) * 60)))
+                            final_end_date = final_start_date + datetime.timedelta(minutes=40)
+                        
                         curr_start_date = self.change_tz(final_start_date)
                         curr_end_date = self.change_tz(final_end_date)
                         data.append({
@@ -91,12 +93,10 @@ class GenerateSession(models.TransientModel):
                             'subject_id': line.subject_id.id,
                             'course_id': session.course_id.id,
                             'batch_id': session.batch_id.id,
+                            'timing_id': line.timing_id.id,
                             'classroom_id': line.classroom_id.id,
-                            'start_datetime':
-                            curr_start_date.strftime("%Y-%m-%d %H:%M:%S"),
-                            'end_datetime':
-                            curr_end_date.strftime("%Y-%m-%d %H:%M:%S"),
-                            'type': calendar.day_name[int(line.day)],
+                            'start_datetime': curr_start_date.strftime("%Y-%m-%d %H:%M:%S"),
+                            'end_datetime': curr_end_date.strftime("%Y-%m-%d %H:%M:%S"),
                         })
             if data:
                 session_obj.create(data)
@@ -112,7 +112,7 @@ class GenerateSessionLine(models.TransientModel):
         'generate.time.table', 'Time Table', required=True)
     faculty_id = fields.Many2one('op.faculty', 'Faculty', required=True)
     subject_id = fields.Many2one('op.subject', 'Subject', required=True)
-    timing_id = fields.Many2one('op.timing', 'Timing')
+    timing_id = fields.Many2one('op.timing', 'Lesson Slot', required=True)
     session_start_time = fields.Float("Start Time")
     session_end_time = fields.Float("End Time")
     classroom_id = fields.Many2one('op.classroom', 'Classroom')

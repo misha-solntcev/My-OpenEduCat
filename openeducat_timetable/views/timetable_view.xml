@@ -11,14 +11,14 @@
                 decoration-primary="state == 'start'"
                 decoration-success="state == 'done'"
                 decoration-danger="state == 'cancel'">
-                <field name="faculty_id" widget="many2one_avatar_user" optional="show"/>
-                <field name="subject_id" optional="show"/>
+                <field name="faculty_id" widget="many2one_avatar_user" optional="show" />
+                <field name="subject_id" optional="show" />
                 <field name="start_datetime" optional="show"
                     options="{'related_start_date': 'start_datetime', 
-                    'show_seconds': False}"/>
+                    'show_seconds': False}" />
                 <field name="end_datetime" optional="show"
                     options="{'related_start_date': 'end_datetime', 
-                    'show_seconds': False}" />                
+                    'show_seconds': False}" />
                 <field name="course_id" optional="show" />
                 <field name="batch_id" optional="hide" />
                 <field name="classroom_id" />
@@ -27,8 +27,8 @@
                     decoration-info="state == 'confirm'"
                     decoration-primary="state == 'start'"
                     decoration-success="state == 'done'"
-                    decoration-danger="state == 'cancel'" 
-                    optional="show"/>
+                    decoration-danger="state == 'cancel'"
+                    optional="show" />
             </list>
         </field>
     </record>
@@ -96,6 +96,7 @@
                                 options="{'no_create': True}" />
                         </group>
                         <group>
+                            <field name="timing_id" options="{'no_create': True}"/>
                             <label for="start_datetime" string="Schedule" />
                             <div class="o_row">
                                 <field name="start_datetime" widget="daterange"
@@ -104,10 +105,10 @@
                                     required="1" />
                                 <span class="fa fa-long-arrow-right mx-2" title="Arrow" />
                                 <field name="end_datetime" widget="daterange"
-                                options="{
+                                    options="{
                                     'related_end_date': 'end_datetime', 
                                     'show_seconds': False, 'rounding': 10}"
-                                    required="1" />                                    
+                                    required="1" />
                             </div>
                             <field name="classroom_id" options="{'no_create_edit': True}" />
 
@@ -252,7 +253,7 @@
                         ('timetable_date', '&lt;=', (context_today() + relativedelta(weekday=6)).strftime('%Y-%m-%d'))]" />
 
                 <!-- Следующая неделя -->
-                <filter string="📆 Следующая неделя" name="next_week" 
+                <filter string="📆 Следующая неделя" name="next_week"
                     domain="[
                         ('timetable_date', '&gt;=', (context_today() + relativedelta(days=1, weekday=0)).strftime('%Y-%m-%d')),
                         ('timetable_date', '&lt;=', (context_today() + relativedelta(days=7, weekday=6)).strftime('%Y-%m-%d'))]" />
@@ -276,7 +277,8 @@
                 <separator />
 
                 <group expand="0" string="Группировать по...">
-                    <filter string="📅 По дням недели" name="group_day" context="{'group_by': 'days_id'}" />
+                    <filter string="📅 По дням недели" name="group_day"
+                        context="{'group_by': 'days_id'}" />
                     <filter string="👨‍🏫 По учителю" name="group_faculty"
                         context="{'group_by': 'faculty_id'}" />
                     <filter string="📚 По предмету" name="group_subject"
@@ -284,7 +286,8 @@
                     <filter string="🏫 По классу" name="group_batch"
                         context="{'group_by': 'batch_id'}" />
                     <filter string="🕒 Статус" name="group_state" context="{'group_by': 'state'}" />
-                    <filter string="🗓️ Дата урока" name="group_date" context="{'group_by': 'timetable_date'}" />            
+                    <filter string="🗓️ Дата урока" name="group_date"
+                        context="{'group_by': 'timetable_date'}" />
                 </group>
                 <searchpanel>
                     <!-- Фильтр по классам -->
@@ -322,4 +325,13 @@
             }</field>
     </record>
 
+    <record id="act_open_op_timing_view" model="ir.actions.act_window">
+        <field name="name">Lesson Slots</field>
+        <field name="type">ir.actions.act_window</field>
+        <field name="res_model">op.timing</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="view_op_timing_search" />
+        <field name="domain">[]</field>
+        <field name="context">{}</field>
+    </record>
 </odoo>

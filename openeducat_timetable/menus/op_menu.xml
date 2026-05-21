@@ -59,6 +59,12 @@
                 sequence="30"
                 action="openeducat_core.action_openeducat_configuration" />
 
+            <menuitem id="menu_op_timing"
+                name="Уроки (сетка звонков)"
+                groups="openeducat_timetable.group_op_timetable_manager"
+                sequence="40"
+                action="act_open_op_timing_view" />
+
         </menuitem>
     </menuitem>
     

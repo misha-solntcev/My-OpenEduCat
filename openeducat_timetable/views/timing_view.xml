@@ -7,12 +7,11 @@
             <field name="priority" eval="8"/>
             <field name="arch" type="xml">
                 <list string="Period" editable="bottom">
+                    <field name="sequence" widget="handle"/>
                     <field name="name"/>
-                    <field name="hour"/>
-                    <field name="minute"/>
-                    <field name="am_pm"/>
-                    <field name="duration" widget="float_time"/>
-                    <field name="sequence"/>
+                    <field name="lesson_hour"/>
+                    <field name="lesson_minute"/>
+                    <field name="duration"/>
                 </list>
             </field>
         </record>
@@ -26,10 +25,9 @@
                     <sheet>
                         <group col="4">
                             <field name="name" select="1"/>
-                            <field name="duration" widget="float_time"/>
-                            <field name="hour"/>
-                            <field name="minute"/>
-                            <field name="am_pm"/>
+                            <field name="lesson_hour"/>
+                            <field name="lesson_minute"/>
+                            <field name="duration"/>
                         </group>
                     </sheet>
                 </form>
@@ -43,10 +41,8 @@
             <field name="arch" type="xml">
                 <search string="Period">
                     <field name="name" select="True"/>
-                    <field name="duration"/>
-                    <field name="hour" select="True"/>
-                    <field name="minute" select="True"/>
-                    <field name="am_pm" select="True"/>
+                    <field name="lesson_hour" select="True"/>
+                    <field name="lesson_minute" select="True"/>
                 </search>
             </field>
         </record>

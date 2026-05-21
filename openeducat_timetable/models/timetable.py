@@ -1,10 +1,12 @@
 from datetime import timedelta
-from odoo import _, api, fields, models
-from odoo.exceptions import ValidationError
+import datetime
+import pytz
+from odoo import _, api, fields, models # type: ignore
+from odoo.exceptions import ValidationError # type: ignore
 
 class OpSession(models.Model):
     _name = "op.session"
-    _inherit = ["mail.thread", "mail.activity.mixin"]
+    _inherit = ["mail.thread", "mail.activity.mixin"] 
     _description = "Sessions"
     _order = "start_datetime desc, batch_id, id"
 
@@ -51,6 +53,17 @@ class OpSession(models.Model):
     subject_id = fields.Many2one('op.subject', 'Subject', required=True, index=True, tracking=True)
     course_id = fields.Many2one('op.course', 'Course', required=True, index=True)
     classroom_id = fields.Many2one('op.classroom', 'Classroom', index=True, tracking=True)
+    timing_id = fields.Many2one('op.timing', string='Lesson Slot')
+
+    @api.onchange('timing_id', 'timetable_date')
+    def _onchange_timing(self):
+        if self.timing_id and self.timetable_date:
+            dt_start = datetime.datetime.combine(self.timetable_date, 
+                datetime.time(self.timing_id.lesson_hour, self.timing_id.lesson_minute))
+            local_tz = pytz.timezone(self.env.user.tz or 'UTC')
+            self.start_datetime = local_tz.localize(dt_start).astimezone(pytz.utc).replace(tzinfo=None)
+            dt_end = dt_start + datetime.timedelta(minutes=self.timing_id.duration)
+            self.end_datetime = local_tz.localize(dt_end).astimezone(pytz.utc).replace(tzinfo=None)
 
     name = fields.Char(compute='_compute_name', string='Name', store=False)
     timing = fields.Char(compute='_compute_timing', string='Session Timing', store=False)
