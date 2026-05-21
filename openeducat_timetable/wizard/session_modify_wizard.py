@@ -1,6 +1,7 @@
 from odoo import models, fields, api, _
 from odoo.exceptions import ValidationError
 from datetime import datetime, timedelta, time
+import pytz
 
 class SessionModifyLine(models.TransientModel):
     _name = 'session.modify.line'
@@ -11,18 +12,31 @@ class SessionModifyLine(models.TransientModel):
     session_id = fields.Many2one('op.session', 'Урок', readonly=True)
     faculty_id = fields.Many2one('op.faculty', 'Учитель', required=True)
     classroom_id = fields.Many2one('op.classroom', 'Кабинет')
+    timing_id = fields.Many2one('op.timing', string='Слот (время)')
     start_datetime = fields.Datetime('Начало', required=True)
     end_datetime = fields.Datetime('Конец', required=True)
     conflict_status = fields.Char('Статус', compute='_compute_conflict')
 
-    @api.onchange('start_datetime')
-    def _onchange_start_datetime(self):
-        if self.start_datetime and self.session_id:
-            clean_start = self.start_datetime.replace(second=0, microsecond=0)
-            if self.start_datetime != clean_start:
-                self.start_datetime = clean_start
-            duration = self.session_id.end_datetime - self.session_id.start_datetime
-            self.end_datetime = self.start_datetime + duration
+    @api.onchange('timing_id', 'start_datetime')
+    def _onchange_timing(self):
+        for rec in self:
+            if rec.timing_id and rec.start_datetime:
+                # Берем дату из start_datetime и время из timing_id
+                dt_start = datetime.combine(rec.start_datetime.date(), 
+                    time(rec.timing_id.lesson_hour, rec.timing_id.lesson_minute))
+                
+                # Переводим в UTC (как это делает Odoo Datetime field)
+                local_tz = pytz.timezone(self.env.user.tz or 'UTC')
+                rec.start_datetime = local_tz.localize(dt_start).astimezone(pytz.utc).replace(tzinfo=None)
+                
+                dt_end = dt_start + timedelta(minutes=rec.timing_id.duration)
+                rec.end_datetime = local_tz.localize(dt_end).astimezone(pytz.utc).replace(tzinfo=None)
+            elif rec.start_datetime:
+                # Если timing_id не выбран, просто чистим секунды и ставим 40 мин
+                clean_start = rec.start_datetime.replace(second=0, microsecond=0)
+                if rec.start_datetime != clean_start:
+                    rec.start_datetime = clean_start
+                rec.end_datetime = rec.start_datetime + timedelta(minutes=40)
 
     @api.depends('faculty_id', 'classroom_id', 'start_datetime', 'end_datetime')
     def _compute_conflict(self):
@@ -134,6 +148,7 @@ class SessionModifyWizard(models.TransientModel):
                 'session_id': s.id,
                 'faculty_id': self.new_faculty_id.id if (self.action_mode == 'replace' and self.new_faculty_id) else s.faculty_id.id,
                 'classroom_id': self.new_classroom_id.id if (self.action_mode == 'replace' and self.new_classroom_id) else s.classroom_id.id,
+                'timing_id': s.timing_id.id,
                 'start_datetime': new_start,
                 'end_datetime': new_end,
                 'is_selected': False,
@@ -179,8 +194,11 @@ class SessionModifyWizard(models.TransientModel):
 
         for line in selected_lines:
             line.session_id.write({
-                'faculty_id': line.faculty_id.id, 'classroom_id': line.classroom_id.id,
-                'start_datetime': line.start_datetime, 'end_datetime': line.end_datetime,
+                'faculty_id': line.faculty_id.id, 
+                'classroom_id': line.classroom_id.id,
+                'timing_id': line.timing_id.id,
+                'start_datetime': line.start_datetime, 
+                'end_datetime': line.end_datetime,
             })
             sheet = self.env['op.attendance.sheet'].sudo().search([('session_id', '=', line.session_id.id)], limit=1)
             if sheet: sheet.write({'faculty_id': line.faculty_id.id, 'attendance_date': line.start_datetime.date()})

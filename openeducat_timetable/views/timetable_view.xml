@@ -97,6 +97,7 @@
                         </group>
                         <group>
                             <field name="timing_id" options="{'no_create': True}"/>
+                            <field name="timetable_date" />
                             <label for="start_datetime" string="Schedule" />
                             <div class="o_row">
                                 <field name="start_datetime" widget="daterange"

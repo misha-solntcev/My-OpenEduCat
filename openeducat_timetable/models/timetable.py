@@ -8,21 +8,19 @@ class OpSession(models.Model):
     _name = "op.session"
     _inherit = ["mail.thread", "mail.activity.mixin"] 
     _description = "Sessions"
-    _order = "start_datetime desc, batch_id, id"
+    _order = "timetable_date asc, start_datetime asc, batch_id"
 
-    timetable_date = fields.Date(string='Дата урока', 
-        compute='_compute_timetable_date', store=True, index=True)
+    timetable_date = fields.Date(string='Дата урока', required=True, index=True,
+        default=fields.Date.context_today)
 
     days_id = fields.Many2one('op.day', string='День недели', 
         compute='_compute_day_info', store=True, group_expand='_read_group_days')
 
-    @api.depends('start_datetime')
-    def _compute_timetable_date(self):
+    @api.onchange('start_datetime')
+    def _onchange_start_datetime_sync_date(self):
         for rec in self:
             if rec.start_datetime:
                 rec.timetable_date = rec.start_datetime.date()
-            else:
-                rec.timetable_date = False
 
     @api.model
     def _read_group_days(self, days, domain):
@@ -64,6 +62,8 @@ class OpSession(models.Model):
             self.start_datetime = local_tz.localize(dt_start).astimezone(pytz.utc).replace(tzinfo=None)
             dt_end = dt_start + datetime.timedelta(minutes=self.timing_id.duration)
             self.end_datetime = local_tz.localize(dt_end).astimezone(pytz.utc).replace(tzinfo=None)
+        elif self.start_datetime:
+             self.end_datetime = self.start_datetime + datetime.timedelta(minutes=40)
 
     name = fields.Char(compute='_compute_name', string='Name', store=False)
     timing = fields.Char(compute='_compute_timing', string='Session Timing', store=False)
@@ -161,8 +161,3 @@ class OpSession(models.Model):
                 raise ValidationError(_('Группа %s занята!') % rec.batch_id.name)
             if rec.classroom_id and self.search_count(domain + [('classroom_id', '=', rec.classroom_id.id)]):
                 raise ValidationError(_('Кабинет %s занят!') % rec.classroom_id.name)
-
-    @api.onchange('start_datetime')
-    def _onchange_start_datetime(self):
-        if self.start_datetime:
-            self.end_datetime = self.start_datetime + timedelta(minutes=40)

@@ -138,8 +138,9 @@
                                 <field name="session_id" width="220px" options="{'no_open': True}"/>
                                 <field name="faculty_id" string="Учитель" options="{'no_create': True, 'no_open': True}"/>
                                 <field name="classroom_id" string="Каб." options="{'no_create': True, 'no_open': True}" width="70px"/>
+                                <field name="timing_id" string="Слот" options="{'no_create': True, 'no_open': True}" width="100px"/>
                                 <field name="start_datetime" string="Начало" options="{'show_seconds': False}"/>
-                                <field name="end_datetime" string="Конец" options="{'show_seconds': False}" optional="hide"/>
+                                <field name="end_datetime" string="Конец" options="{'show_seconds': False}"/>
                                 <field name="conflict_status" string="Статус" decoration-bf="1"/>
                                 <button name="unlink" type="object" icon="fa-trash-o" title="Убрать"/>
                             </list>
