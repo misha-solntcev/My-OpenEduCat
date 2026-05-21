@@ -38,16 +38,21 @@ class GenerateSession(models.TransientModel):
         'gen.time.table.line', 'gen_time_table', 'Time Table Lines7',
         domain=[('day', '=', '6')])
     start_date = fields.Date(
-        'Start Date', required=True, default=time.strftime('%Y-%m-01'))
-    end_date = fields.Date('End Date', required=True)
+        'Дата начала', required=True, default=fields.Date.context_today)
+    end_date = fields.Date('Дата окончания', required=True, 
+        default=lambda self: (fields.Date.context_today(self) + datetime.timedelta(days=30)).replace(day=1) - datetime.timedelta(days=1))
+
+    @api.onchange('start_date')
+    def _onchange_start_date(self):
+        if self.start_date:
+            # По умолчанию ставим конец месяца от даты начала
+            next_month = self.start_date.replace(day=28) + datetime.timedelta(days=4)
+            self.end_date = next_month.replace(day=1) - datetime.timedelta(days=1)
 
     @api.constrains('start_date', 'end_date')
     def check_dates(self):
-        start_date = fields.Date.from_string(self.start_date)
-        end_date = fields.Date.from_string(self.end_date)
-        if start_date > end_date:
-            raise ValidationError(_("End Date cannot be set before \
-            Start Date."))
+        if self.start_date and self.end_date and self.start_date > self.end_date:
+            raise ValidationError(_("Дата окончания не может быть раньше даты начала."))
 
     @api.onchange('course_id')
     def onchange_course(self):
@@ -100,20 +105,22 @@ class GenerateSession(models.TransientModel):
 class GenerateSessionLine(models.TransientModel):
     _name = 'gen.time.table.line'
     _description = 'Generate Time Table Lines'
-    _rec_name = 'day'
+    _rec_name = 'timing_id'
 
     gen_time_table = fields.Many2one(
         'generate.time.table', 'Time Table', required=True)
-    faculty_id = fields.Many2one('op.faculty', 'Faculty', required=True)
-    subject_id = fields.Many2one('op.subject', 'Subject', required=True)
-    timing_id = fields.Many2one('op.timing', 'Lesson Slot', required=True)
-    classroom_id = fields.Many2one('op.classroom', 'Classroom')
+    faculty_id = fields.Many2one('op.faculty', 'Учитель', required=True)
+    subject_id = fields.Many2one('op.subject', 'Предмет', required=True,
+        domain="[('id', 'in', faculty_subject_ids)]")
+    faculty_subject_ids = fields.Many2many('op.subject', related='faculty_id.faculty_subject_ids')
+    timing_id = fields.Many2one('op.timing', 'Урок', required=True)
+    classroom_id = fields.Many2one('op.classroom', 'Кабинет')
     day = fields.Selection([
-        ('0', calendar.day_name[0]),
-        ('1', calendar.day_name[1]),
-        ('2', calendar.day_name[2]),
-        ('3', calendar.day_name[3]),
-        ('4', calendar.day_name[4]),
-        ('5', calendar.day_name[5]),
-        ('6', calendar.day_name[6]),
-    ], 'Day', required=True)
+        ('0', 'Понедельник'),
+        ('1', 'Вторник'),
+        ('2', 'Среда'),
+        ('3', 'Четверг'),
+        ('4', 'Пятница'),
+        ('5', 'Суббота'),
+        ('6', 'Воскресенье'),
+    ], 'День', required=True)

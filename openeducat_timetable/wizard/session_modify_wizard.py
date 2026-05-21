@@ -11,6 +11,9 @@ class SessionModifyLine(models.TransientModel):
     is_selected = fields.Boolean('Выбрать', default=False)
     session_id = fields.Many2one('op.session', 'Урок', readonly=True)
     faculty_id = fields.Many2one('op.faculty', 'Учитель', required=True)
+    subject_id = fields.Many2one('op.subject', related='session_id.subject_id', readonly=False,
+        domain="[('id', 'in', faculty_subject_ids)]")
+    faculty_subject_ids = fields.Many2many('op.subject', related='faculty_id.faculty_subject_ids')
     classroom_id = fields.Many2one('op.classroom', 'Кабинет')
     timing_id = fields.Many2one('op.timing', string='Слот (время)')
     start_datetime = fields.Datetime('Начало', required=True)
@@ -147,6 +150,7 @@ class SessionModifyWizard(models.TransientModel):
             lines.append((0, 0, {
                 'session_id': s.id,
                 'faculty_id': self.new_faculty_id.id if (self.action_mode == 'replace' and self.new_faculty_id) else s.faculty_id.id,
+                'subject_id': s.subject_id.id,
                 'classroom_id': self.new_classroom_id.id if (self.action_mode == 'replace' and self.new_classroom_id) else s.classroom_id.id,
                 'timing_id': s.timing_id.id,
                 'start_datetime': new_start,
@@ -195,6 +199,7 @@ class SessionModifyWizard(models.TransientModel):
         for line in selected_lines:
             line.session_id.write({
                 'faculty_id': line.faculty_id.id, 
+                'subject_id': line.subject_id.id,
                 'classroom_id': line.classroom_id.id,
                 'timing_id': line.timing_id.id,
                 'start_datetime': line.start_datetime, 

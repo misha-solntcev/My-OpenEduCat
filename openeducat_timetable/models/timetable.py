@@ -48,7 +48,9 @@ class OpSession(models.Model):
     
     faculty_id = fields.Many2one('op.faculty', 'Faculty', required=True, index=True, tracking=True)
     batch_id = fields.Many2one('op.batch', 'Batch', required=True, index=True, tracking=True)
-    subject_id = fields.Many2one('op.subject', 'Subject', required=True, index=True, tracking=True)
+    subject_id = fields.Many2one('op.subject', 'Subject', required=True, index=True, tracking=True,
+        domain="[('id', 'in', faculty_subject_ids)]")
+    faculty_subject_ids = fields.Many2many('op.subject', related='faculty_id.faculty_subject_ids')
     course_id = fields.Many2one('op.course', 'Course', required=True, index=True)
     classroom_id = fields.Many2one('op.classroom', 'Classroom', index=True, tracking=True)
     timing_id = fields.Many2one('op.timing', string='Lesson Slot')
