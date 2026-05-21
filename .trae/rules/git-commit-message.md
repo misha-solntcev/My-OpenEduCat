@@ -1,14 +1,16 @@
 ---
 alwaysApply: true
-scene: git_message
-language: ru
+scene: ["git_commit_message"]
 ---
 
-Write your rules here to customize the style of AI-generated commit messages.
+---
+alwaysApply: true
+scene: ["git_commit_message"]
+---
 
 # Правила для генерации сообщений коммитов
 
-- **Язык**: Все сообщения коммитов ДОЛЖНЫ быть написаны на русском языке.
+- **Язык**: ВСЕ сообщения коммитов, включая заголовки и описания, должны быть написаны ИСКЛЮЧИТЕЛЬНО на русском языке.
 - **Стиль**: Используйте краткий, но информативный стиль.
 - **Формат**: 
   - Заголовок (первая строка) должен описывать суть изменений (до 50 символов).
@@ -17,3 +19,4 @@ Write your rules here to customize the style of AI-generated commit messages.
   - `feat: добавлена сетка звонков в расписание`
   - `fix: исправлена ошибка отображения имени сессии`
   - `refactor: упрощен мастер генерации расписания`
+
