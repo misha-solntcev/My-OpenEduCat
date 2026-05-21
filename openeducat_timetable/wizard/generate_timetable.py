@@ -9,8 +9,16 @@ class GenerateSession(models.TransientModel):
     _description = "Generate Sessions"
     _rec_name = "course_id"
 
-    course_id = fields.Many2one('op.course', 'Course', required=True)
-    batch_id = fields.Many2one('op.batch', 'Batch', required=True)
+    course_id = fields.Many2one('op.course', 'Класс', required=True, help="Выберите класс, для которого создается расписание")
+    batch_id = fields.Many2one('op.batch', 'Параллель', required=True, help="Выберите параллель")    
+    
+    start_date = fields.Date(' ', required=True, default=fields.Date.context_today, help="Дата, с которой начнутся занятия")
+    end_date = fields.Date(' ', required=True, 
+        default=lambda self: (fields.Date.context_today(self) + datetime.timedelta(days=30)).replace(day=1) - datetime.timedelta(days=1))
+    
+    import_start_date = fields.Date(' ', help="Начало периода, из которого копируем уроки")
+    import_end_date = fields.Date(' ', help="Конец периода, из которого копируем уроки")
+
     time_table_lines = fields.One2many(
         'gen.time.table.line', 'gen_time_table', 'Time Table Lines')
     time_table_lines_1 = fields.One2many('gen.time.table.line', 'gen_time_table', domain=[('day', '=', '0')])
@@ -20,13 +28,6 @@ class GenerateSession(models.TransientModel):
     time_table_lines_5 = fields.One2many('gen.time.table.line', 'gen_time_table', domain=[('day', '=', '4')])
     time_table_lines_6 = fields.One2many('gen.time.table.line', 'gen_time_table', domain=[('day', '=', '5')])
     time_table_lines_7 = fields.One2many('gen.time.table.line', 'gen_time_table', domain=[('day', '=', '6')])
-
-    start_date = fields.Date('С', required=True, default=fields.Date.context_today)
-    end_date = fields.Date('По', required=True, 
-        default=lambda self: (fields.Date.context_today(self) + datetime.timedelta(days=30)).replace(day=1) - datetime.timedelta(days=1))
-        
-    import_start_date = fields.Date('С (копировать)')
-    import_end_date = fields.Date('По (копировать)')
 
     @api.onchange('start_date')
     def _onchange_start_date(self):

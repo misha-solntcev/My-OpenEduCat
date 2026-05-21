@@ -22,53 +22,64 @@
             <field name="arch" type="xml">
                 <form string="Создание расписания">
                     <sheet>
-                        <!-- ВЕРХНИЙ БЛОК: Поля и общая очистка -->
-                        <group name="main_config" class="mt-0">
-                            <group col="2">
-                                <field name="course_id" string="Класс" options="{'no_create': True, 'no_open': True}"/>
-                                <field name="batch_id" string="Параллель" context="{'course_id': course_id, 'get_parent_batch': 1}" options="{'no_create': True, 'no_open': True}"/>
-                            </group>
-                            <group col="1">
-                                <label for="start_date" string="Период"/>
-                                <div class="o_row">
-                                    <field name="start_date" widget="date" class="oe_inline"/>
-                                    <i class="fa fa-long-arrow-right mx-2 text-muted" title="до"/>
-                                    <field name="end_date" widget="date" class="oe_inline"/>
-                                </div>
-                            </group>
-                        </group>
-
-                        <!-- БЛОК ИМПОРТА И ОБЩЕЙ ОЧИСТКИ -->
-                        <div class="alert alert-info d-flex align-items-center py-1 px-3 mb-2" role="alert">
-                            <!-- Текст слева -->
-                            <div class="flex-grow-1 small">
-                                <i class="fa fa-copy me-1" title="Импорт"/> 
-                                <strong>Импорт:</strong> выберите период
+                        <!-- 1. ВЕРХНИЙ БЛОК: Параметры генерации -->
+                        <div class="alert alert-light border-0 border-start border-4 border-secondary py-2 px-3 mb-2" style="background-color: #f8f9fa;">
+                            <div class="text-muted small mb-1">
+                                <i class="fa fa-info-circle me-1"/> Основные параметры расписания
                             </div>
-
-                            <!-- Блок управления справа -->
-                            <div class="d-flex align-items-center">
-                                <!-- Текст "С" и "По" — черные и четкие -->
-                                <span class="me-2 text-dark" style="font-weight: 500;">С</span>
-                                <field name="import_start_date" nolabel="1" style="width: 115px !important;"/>
-                                
-                                <span class="mx-2 text-dark" style="font-weight: 500;">По</span>
-                                <field name="import_end_date" nolabel="1" style="width: 115px !important;"/>
-
-                                <!-- Кнопка "Заполнить" — фиолетовая (основная) -->
-                                <button name="action_import_last_week" type="object" string="Заполнить" 
-                                        class="btn-primary btn-sm ms-3 me-2" icon="fa-refresh" 
-                                        invisible="not import_start_date or not import_end_date"/>
-                                
-                                <!-- Кнопка "Очистить всё" — серенькая (второстепенная) -->
-                                <button name="action_clear_all" type="object" string="Очистить всё" 
-                                        class="btn-secondary btn-sm" icon="fa-trash" 
-                                        confirm="Вы уверены, что хотите полностью очистить таблицу?"/>
+                            <div class="row align-items-center">
+                                <div class="col-lg-3">
+                                    <group class="m-0 p-0"><field name="course_id" options="{'no_create': True, 'no_open': True}"/></group>
+                                </div>
+                                <div class="col-lg-3">
+                                    <group class="m-0 p-0"><field name="batch_id" context="{'course_id': course_id}" options="{'no_create': True, 'no_open': True}"/></group>
+                                </div>
+                                <div class="col-lg-6">
+                                    <group class="m-0 p-0">
+                                        <label for="start_date" class="fa fa-calendar-plus-o" string=" " title="Период создания"/>
+                                        <div class="o_row">
+                                            <field name="start_date" widget="date"/>
+                                            <span class="mx-2 text-muted">→</span>
+                                            <field name="end_date" widget="date"/>
+                                        </div>
+                                    </group>
+                                </div>
                             </div>
                         </div>
 
+                        <!-- 2. ВТОРОЙ БЛОК: Инструмент импорта -->
+                        <div class="alert alert-light border-0 border-start border-4 border-secondary py-2 px-3 mb-1" style="background-color: #f8f9fa;">
+                            <div class="text-muted small mb-1">
+                                <i class="fa fa-magic me-1"/> Копирование структуры из прошлого
+                            </div>
+                            <div class="row align-items-center">
+                                <div class="col-lg-3">
+                                    <button name="action_import_last_week" type="object" string="Импорт" class="btn-secondary btn-sm w-100" icon="fa-download" invisible="import_start_date and import_end_date"/>
+                                    <button name="action_import_last_week" type="object" string="Импорт" class="btn-primary btn-sm w-100" icon="fa-download" invisible="not import_start_date or not import_end_date"/>
+                                </div>
+                                <!-- Пустая колонка 3 для выравнивания -->
+                                <div class="col-lg-3"></div>
+                                
+                                <div class="col-lg-6">
+                                    <group class="m-0 p-0">
+                                        <label for="import_start_date" class="fa fa-calendar" string=" " title="Период импорта"/>
+                                        <div class="o_row">
+                                            <field name="import_start_date" widget="date"/>
+                                            <span class="mx-2 text-muted">→</span>
+                                            <field name="import_end_date" widget="date"/>
+                                        </div>
+                                    </group>
+                                </div>
+                            </div>
+                        </div>
 
-                        <notebook>
+                        <!-- КНОПКА ОЧИСТКИ (теперь плотно к вкладкам) -->
+                        <div class="d-flex justify-content-end mt-2">
+                            <button name="action_clear_all" type="object" string="Очистить всё" class="btn-secondary btn-sm" icon="fa-trash" confirm="Вы уверены?"/>
+                        </div>
+
+
+                        <notebook class="mt-0">
                             <page name="monday" string="Понедельник">
                                 <div class="text-end mb-1">
                                 <button name="action_clear_day" type="object" string="Очистить понедельник" 
