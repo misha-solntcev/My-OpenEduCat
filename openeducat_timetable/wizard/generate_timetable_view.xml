@@ -23,9 +23,10 @@
                 <form string="Создание расписания">
                     <sheet>
                         <!-- 1. ВЕРХНИЙ БЛОК: Параметры генерации -->
-                        <div class="alert alert-light border-0 border-start border-4 border-secondary py-2 px-3 mb-2" style="background-color: #f8f9fa;">
+                        <div class="alert alert-light border-0 border-start border-4 border-secondary py-2 px-3 mb-2" 
+                            style="background-color: #f8f9fa;" role="status">
                             <div class="text-muted small mb-1">
-                                <i class="fa fa-info-circle me-1"/> Основные параметры расписания
+                                <i class="fa fa-info-circle me-1"/> Параметры создаваемого расписания
                             </div>
                             <div class="row align-items-center">
                                 <div class="col-lg-3">
@@ -48,9 +49,10 @@
                         </div>
 
                         <!-- 2. ВТОРОЙ БЛОК: Инструмент импорта -->
-                        <div class="alert alert-light border-0 border-start border-4 border-secondary py-2 px-3 mb-1" style="background-color: #f8f9fa;">
+                        <div class="alert alert-light border-0 border-start border-4 border-secondary py-2 px-3 mb-1" 
+                            style="background-color: #f8f9fa;" role="status">
                             <div class="text-muted small mb-1">
-                                <i class="fa fa-magic me-1"/> Копирование структуры из прошлого
+                                <i class="fa fa-magic me-1"/> Копирование прошлого расписания (опционально)
                             </div>
                             <div class="row align-items-center">
                                 <div class="col-lg-3">
@@ -78,6 +80,10 @@
                             <button name="action_clear_all" type="object" string="Очистить всё" class="btn-secondary btn-sm" icon="fa-trash" confirm="Вы уверены?"/>
                         </div>
 
+                        <!-- Блок статистики (над вкладками) -->
+                        <div class="mb-2 p-2 border-top border-bottom bg-light-subtle" style="min-height: 40px;">
+                            <field name="subject_stats_info" nolabel="1"/>
+                        </div>
 
                         <notebook class="mt-0">
                             <page name="monday" string="Понедельник">

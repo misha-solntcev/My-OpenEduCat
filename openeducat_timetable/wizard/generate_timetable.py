@@ -12,12 +12,12 @@ class GenerateSession(models.TransientModel):
     course_id = fields.Many2one('op.course', 'Класс', required=True, help="Выберите класс, для которого создается расписание")
     batch_id = fields.Many2one('op.batch', 'Параллель', required=True, help="Выберите параллель")    
     
-    start_date = fields.Date(' ', required=True, default=fields.Date.context_today, help="Дата, с которой начнутся занятия")
-    end_date = fields.Date(' ', required=True, 
+    start_date = fields.Date('Дата начала генерации', required=True, default=fields.Date.context_today, help="Дата, с которой начнутся занятия")
+    end_date = fields.Date('Дата окончания генерации', required=True, 
         default=lambda self: (fields.Date.context_today(self) + datetime.timedelta(days=30)).replace(day=1) - datetime.timedelta(days=1))
     
-    import_start_date = fields.Date(' ', help="Начало периода, из которого копируем уроки")
-    import_end_date = fields.Date(' ', help="Конец периода, из которого копируем уроки")
+    import_start_date = fields.Date('Начало периода импорта', help="Начало периода, из которого копируем уроки")
+    import_end_date = fields.Date('Конец периода импорта', help="Конец периода, из которого копируем уроки")
 
     time_table_lines = fields.One2many(
         'gen.time.table.line', 'gen_time_table', 'Time Table Lines')
@@ -63,45 +63,71 @@ class GenerateSession(models.TransientModel):
             self.batch_id = False
 
     def change_tz(self, date):
-        local_tz = pytz.timezone(
-            self.env.user.partner_id.tz or 'GMT')
+        # Школа работает по МСК, поэтому берем этот пояс ВСЕГДА
+        local_tz = pytz.timezone('Europe/Moscow')
         local_dt = local_tz.localize(date, is_dst=None)
         utc_dt = local_dt.astimezone(pytz.utc)
-        utc_dt = utc_dt.strftime("%Y-%m-%d %H:%M:%S")
-        return datetime.datetime.strptime(
-            utc_dt, "%Y-%m-%d %H:%M:%S")
+        return utc_dt.replace(tzinfo=None) # Возвращаем чистый объект для базы
 
     def act_gen_time_table(self):
-        session_obj = self.env['op.session']
+        self.ensure_one()
+        
+        if not self.time_table_lines:
+            raise ValidationError(_("Таблица расписания не заполнена."))
+
+        # УСИЛЕННАЯ ПРОВЕРКА НА ДУБЛИКАТЫ
+        # Проверяем наличие уроков именно в том поясе, в котором создаем
+        existing_sessions = self.env['op.session'].search_count([
+            ('course_id', '=', self.course_id.id),
+            ('batch_id', '=', self.batch_id.id),
+            ('timetable_date', '>=', self.start_date),
+            ('timetable_date', '<=', self.end_date),
+            ('state', '!=', 'cancel'),
+        ])
+        
+        if existing_sessions > 0:
+            raise ValidationError(_(
+                "Ошибка! Для этого класса уже создано %s уроков в указанном периоде. "
+                "Удалите их в календаре перед новой генерацией."
+            ) % existing_sessions)
+
+        # Собираем данные для создания
         data = []
-        for session in self:
-            start_date = session.start_date
-            end_date = session.end_date
-            for n in range((end_date - start_date).days + 1):
-                curr_date = start_date + datetime.timedelta(n)
-                for line in session.time_table_lines:
-                    if int(line.day) == curr_date.weekday():
-                        if line.timing_id:
-                            h, m = line.timing_id.lesson_hour, line.timing_id.lesson_minute
-                            duration = line.timing_id.duration
-                            final_start_date = datetime.datetime.combine(curr_date, datetime.time(h, m))
-                            final_end_date = final_start_date + datetime.timedelta(minutes=duration)
-                        
-                        curr_start_date = self.change_tz(final_start_date)
-                        curr_end_date = self.change_tz(final_end_date)
-                        data.append({
-                            'faculty_id': line.faculty_id.id,
-                            'subject_id': line.subject_id.id,
-                            'course_id': session.course_id.id,
-                            'batch_id': session.batch_id.id,
-                            'timing_id': line.timing_id.id,
-                            'classroom_id': line.classroom_id.id,
-                            'start_datetime': curr_start_date.strftime("%Y-%m-%d %H:%M:%S"),
-                            'end_datetime': curr_end_date.strftime("%Y-%m-%d %H:%M:%S"),
-                        })
-            if data:
-                session_obj.create(data)
-            return {'type': 'ir.actions.act_window_close'}
+        start_date = self.start_date
+        end_date = self.end_date
+        
+        for n in range((end_date - start_date).days + 1):
+            curr_date = start_date + datetime.timedelta(n)
+            # Ищем строки именно для текущего дня недели
+            day_lines = self.time_table_lines.filtered(lambda l: int(l.day) == curr_date.weekday())
+            
+            for line in day_lines:
+                h, m = line.timing_id.lesson_hour, line.timing_id.lesson_minute
+                duration = line.timing_id.duration
+                
+                final_start_date = datetime.datetime.combine(curr_date, datetime.time(h, m))
+                final_end_date = final_start_date + datetime.timedelta(minutes=duration)
+                
+                # Конвертируем в UTC (теперь по МСК)
+                curr_start_utc = self.change_tz(final_start_date)
+                curr_end_utc = self.change_tz(final_end_date)
+                
+                data.append({
+                    'faculty_id': line.faculty_id.id,
+                    'subject_id': line.subject_id.id,
+                    'course_id': self.course_id.id,
+                    'batch_id': self.batch_id.id,
+                    'timing_id': line.timing_id.id,
+                    'classroom_id': line.classroom_id.id,
+                    'start_datetime': curr_start_utc,
+                    'end_datetime': curr_end_utc,
+                    'timetable_date': curr_date, # Явно прописываем дату
+                })
+
+        if data:
+            self.env['op.session'].create(data)
+            
+        return {'type': 'ir.actions.act_window_close'}
 
     def action_clear_all(self):
         """Полная очистка всего мастера"""
@@ -130,18 +156,16 @@ class GenerateSession(models.TransientModel):
 
     def action_import_last_week(self):
         self.ensure_one()
+        
+        # 1. Валидация: Заполнены ли даты импорта?
         if not self.import_start_date or not self.import_end_date:
-            raise ValidationError(_("Укажите диапазон дат для импорта."))
+            raise ValidationError(_("Пожалуйста, сначала выберите период в блоке импорта."))
 
-        # 1. Определяем, какие дни недели (0-6) входят в диапазон
-        target_days = set()
-        curr = self.import_start_date
-        while curr <= self.import_end_date:
-            target_days.add(str(curr.weekday()))
-            curr += datetime.timedelta(days=1)
-            if len(target_days) == 7: break
+        if self.import_start_date > self.import_end_date:
+            raise ValidationError(_("Дата начала импорта не может быть позже даты окончания."))
 
-        # 2. Ищем уроки в базе
+        # 2. Поиск уроков в календаре (базе данных)
+        # Ищем сессии для текущего класса/параллели за выбранный период
         sessions = self.env['op.session'].search([
             ('course_id', '=', self.course_id.id),
             ('batch_id', '=', self.batch_id.id),
@@ -151,27 +175,81 @@ class GenerateSession(models.TransientModel):
             ('timing_id', '!=', False),
         ], order='timetable_date desc')
 
-        # 3. Удаляем старые строки ТОЛЬКО для импортируемых дней
+        # 3. Валидация: Если в базе ВООБЩЕ ничего не найдено за этот период
+        if not sessions:
+            raise ValidationError(_(
+                "Уроков не найдено! В базе данных нет записей для группы %s за период с %s по %s.\n\n"
+                "Возможно, в эти даты были праздники или расписание еще не было создано."
+            ) % (self.batch_id.name, self.import_start_date, self.import_end_date))
+
+        # 4. Определяем список дней недели (0-6), которые входят в выбранный период
+        # Это нужно, чтобы очистить эти дни в мастере, даже если в них не было уроков (праздники)
+        target_days = set()
+        curr = self.import_start_date
+        while curr <= self.import_end_date:
+            target_days.add(str(curr.weekday()))
+            curr += datetime.timedelta(days=1)
+            if len(target_days) == 7: 
+                break
+
+        # 5. Подготовка команд для изменения таблицы (One2many)
+        # Сначала находим текущие строки в мастере для затронутых дней и помечаем их на удаление (2, id, 0)
         lines_to_remove = self.time_table_lines.filtered(lambda l: l.day in target_days)
         lines_data = [(2, line.id, 0) for line in lines_to_remove]
 
-        # 4. Добавляем новые
-        seen = set()
+        # 6. Проходим по найденным в базе урокам и добавляем их в таблицу мастера (0, 0, {values})
+        seen = set() # Для контроля уникальности (день, номер урока)
         for session in sessions:
             day = str(session.timetable_date.weekday())
-            if (day, session.timing_id.id) in seen: continue
-            seen.add((day, session.timing_id.id))
+            timing_id = session.timing_id.id
+            
+            # Благодаря order='timetable_date desc' мы возьмем самый свежий урок в периоде
+            if (day, timing_id) in seen:
+                continue
+            seen.add((day, timing_id))
             
             lines_data.append((0, 0, {
                 'faculty_id': session.faculty_id.id,
                 'subject_id': session.subject_id.id,
-                'timing_id': session.timing_id.id,
+                'timing_id': timing_id,
                 'classroom_id': session.classroom_id.id,
                 'day': day,
             }))
 
+        # 7. Применяем все изменения (удаление старых и добавление новых строк)
         self.write({'time_table_lines': lines_data})
+
+        # 8. Переоткрываем окно мастера, чтобы интерфейс обновился
         return self._reopen_wizard()
+        
+
+    # Вычисляемое поле для статистики (не сохраняется в базу, нужно только для экрана)
+    subject_stats_info = fields.Html('Статистика нагрузки', compute='_compute_subject_stats')
+
+    @api.depends('time_table_lines', 'time_table_lines.subject_id')
+    def _compute_subject_stats(self):
+        for rec in self:
+            if not rec.time_table_lines:
+                rec.subject_stats_info = _("<div class='text-muted'>Таблица пуста</div>")
+                continue
+            
+            # Считаем уроки по предметам
+            stats = {}
+            for line in rec.time_table_lines:
+                if line.subject_id:
+                    stats[line.subject_id.name] = stats.get(line.subject_id.name, 0) + 1
+            
+            # Формируем красивый HTML-блок
+            html = '<div style="display: flex; flex-wrap: wrap; gap: 10px;">'
+            html += f'<span class="badge rounded-pill bg-secondary" style="font-size: 0.9rem;">Всего: {len(rec.time_table_lines)}</span>'
+            
+            # Сортируем по названию предмета
+            for subject in sorted(stats.keys()):
+                count = stats[subject]
+                html += f'<span class="badge rounded-pill bg-info text-dark" style="font-size: 0.85rem; font-weight: normal; border: 1px solid #bee5eb;">{subject}: {count}</span>'
+            
+            html += '</div>'
+            rec.subject_stats_info = html
 
 
 class GenerateSessionLine(models.TransientModel):
