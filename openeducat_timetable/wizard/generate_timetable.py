@@ -225,8 +225,7 @@ class GenerateSession(models.TransientModel):
     # Вычисляемое поле для статистики (не сохраняется в базу, нужно только для экрана)
     subject_stats_info = fields.Html('Статистика нагрузки', compute='_compute_subject_stats')
     
-   @api.depends('show_stats', 'time_table_lines_1', 'time_table_lines_2', 'time_table_lines_3', 
-                 'time_table_lines_4', 'time_table_lines_5', 'time_table_lines_6', 'time_table_lines_7')
+    @api.depends('show_stats', 'time_table_lines_1', 'time_table_lines_2', 'time_table_lines_3', 'time_table_lines_4', 'time_table_lines_5', 'time_table_lines_6', 'time_table_lines_7')
     def _compute_subject_stats(self):
         for rec in self:
             if not rec.show_stats:
