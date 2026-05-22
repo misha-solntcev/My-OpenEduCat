@@ -220,36 +220,101 @@ class GenerateSession(models.TransientModel):
         self.write({'time_table_lines': lines_data})
 
         # 8. Переоткрываем окно мастера, чтобы интерфейс обновился
-        return self._reopen_wizard()
-        
+        return self._reopen_wizard()        
 
     # Вычисляемое поле для статистики (не сохраняется в базу, нужно только для экрана)
     subject_stats_info = fields.Html('Статистика нагрузки', compute='_compute_subject_stats')
-
-    @api.depends('time_table_lines', 'time_table_lines.subject_id')
+    
+   @api.depends('show_stats', 'time_table_lines_1', 'time_table_lines_2', 'time_table_lines_3', 
+                 'time_table_lines_4', 'time_table_lines_5', 'time_table_lines_6', 'time_table_lines_7')
     def _compute_subject_stats(self):
         for rec in self:
-            if not rec.time_table_lines:
-                rec.subject_stats_info = _("<div class='text-muted'>Таблица пуста</div>")
+            if not rec.show_stats:
+                rec.subject_stats_info = False
                 continue
             
-            # Считаем уроки по предметам
+            all_lines = (rec.time_table_lines_1 | rec.time_table_lines_2 | rec.time_table_lines_3 | 
+                         rec.time_table_lines_4 | rec.time_table_lines_5 | rec.time_table_lines_6 | rec.time_table_lines_7)
+
+            if not all_lines:
+                rec.subject_stats_info = "<div class='text-muted small ps-2'>Добавьте уроки для расчета...</div>"
+                continue
+            
             stats = {}
-            for line in rec.time_table_lines:
+            for line in all_lines:
                 if line.subject_id:
-                    stats[line.subject_id.name] = stats.get(line.subject_id.name, 0) + 1
+                    name = line.subject_id.name
+                    actual_id = line.subject_id._origin.id or line.subject_id.id
+                    color_idx = (actual_id if isinstance(actual_id, int) else hash(name)) % 11 + 1
+                    if name not in stats:
+                        stats[name] = {'count': 0, 'color': color_idx}
+                    stats[name]['count'] += 1
             
-            # Формируем красивый HTML-блок
-            html = '<div style="display: flex; flex-wrap: wrap; gap: 10px;">'
-            html += f'<span class="badge rounded-pill bg-secondary" style="font-size: 0.9rem;">Всего: {len(rec.time_table_lines)}</span>'
+            html = '<div class="d-flex flex-wrap gap-2 ps-2">'
             
-            # Сортируем по названию предмета
-            for subject in sorted(stats.keys()):
-                count = stats[subject]
-                html += f'<span class="badge rounded-pill bg-info text-dark" style="font-size: 0.85rem; font-weight: normal; border: 1px solid #bee5eb;">{subject}: {count}</span>'
+            # --- НОВАЯ МЕТКА "ПРЕДМЕТЫ" ---
+            html += '<span class="text-dark small me-1 d-flex align-items-center" style="font-weight: 500;"><i class="fa fa-book me-1"/> Предметы:</span>'
             
+            html += f'<span class="badge rounded-pill border bg-white text-dark" style="padding: 5px 10px;">Всего: {len(all_lines)}</span>'
+            for name in sorted(stats.keys()):
+                info = stats[name]
+                color_class = f"o_tag o_tag_color_{info['color']}"
+                html += f'<span class="badge rounded-pill {color_class}" style="padding: 5px 12px; font-weight: 500; border: 1px solid rgba(0,0,0,0.1);">{name}: {info["count"]}</span>'
             html += '</div>'
             rec.subject_stats_info = html
+
+    faculty_stats_info = fields.Html('Нагрузка учителей', compute='_compute_faculty_stats')
+
+    @api.depends('show_stats', 'time_table_lines_1', 'time_table_lines_2', 'time_table_lines_3', 
+                 'time_table_lines_4', 'time_table_lines_5', 'time_table_lines_6', 'time_table_lines_7')
+    def _compute_faculty_stats(self):
+        for rec in self:
+            if not rec.show_stats:
+                rec.faculty_stats_info = False
+                continue
+            
+            all_lines = (rec.time_table_lines_1 | rec.time_table_lines_2 | rec.time_table_lines_3 | 
+                         rec.time_table_lines_4 | rec.time_table_lines_5 | rec.time_table_lines_6 | rec.time_table_lines_7)
+
+            stats = {}
+            for line in all_lines:
+                if line.faculty_id:
+                    name = line.faculty_id.name
+                    stats[name] = stats.get(name, 0) + 1
+            
+            if not stats:
+                rec.faculty_stats_info = False
+                continue
+
+            html = '<div class="d-flex flex-wrap gap-2 ps-2 mt-1">'
+            html += '<span class="text-dark small me-1 d-flex align-items-center" style="font-weight: 500;"><i class="fa fa-graduation-cap me-1"/> Учителя:</span>'
+            for name in sorted(stats.keys()):
+                count = stats[name]
+                color_style = "background-color: #dc3545; color: white;" if count > 30 else "background-color: #f8f9fa; color: #212529; border: 1px solid #dee2e6 !important;"
+                html += f'<span class="badge rounded-pill" style="padding: 4px 10px; font-weight: normal; font-size: 0.85rem; {color_style}">{name}: <b>{count}</b></span>'
+            html += '</div>'
+            rec.faculty_stats_info = html
+
+    # Поле для управления видимостью статистики
+    show_stats = fields.Boolean('Показать статистику', default=True)
+
+    # Добавляем метод для переключения (будет вызываться кнопкой)
+    def action_toggle_stats(self):
+        self.show_stats = not self.show_stats
+        return {
+            'type': 'ir.actions.act_window',
+            'res_model': self._name,
+            'res_id': self.id,
+            'view_mode': 'form',
+            'target': 'new',
+        }
+            
+    @api.onchange('time_table_lines_1', 'time_table_lines_2', 'time_table_lines_3', 
+                  'time_table_lines_4', 'time_table_lines_5', 'time_table_lines_6', 'time_table_lines_7')
+    def _onchange_refresh_stats(self):
+        """Этот метод заставляет Odoo пересчитывать статистику 'на лету'"""
+        self._compute_subject_stats()
+        self._compute_faculty_stats()
 
 
 class GenerateSessionLine(models.TransientModel):

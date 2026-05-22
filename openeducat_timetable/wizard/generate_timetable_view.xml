@@ -75,15 +75,31 @@
                             </div>
                         </div>
 
-                        <!-- КНОПКА ОЧИСТКИ (теперь плотно к вкладкам) -->
-                        <div class="d-flex justify-content-end mt-2">
-                            <button name="action_clear_all" type="object" string="Очистить всё" class="btn-secondary btn-sm" icon="fa-trash" confirm="Вы уверены?"/>
+                        <!-- Кнопки Статистика и Очистить все -->
+                        <div class="d-flex justify-content-between align-items-center mt-2">
+                            <!-- Блок переключателя -->
+                            <div class="d-flex align-items-center bg-white border rounded-pill px-3 py-1 shadow-sm">                                
+                                <span class="me-2" style="font-size: 1.2rem;" title="Статистика">📊</span>                                
+                                <span class="text-dark fw-bold small me-2">Статистика:</span>
+                                <field name="show_stats" widget="boolean_toggle" nolabel="1" class="m-0"/>
+                            </div>
+
+                            <!-- Кнопка очистки -->
+                            <button name="action_clear_all" type="object" string="Очистить всё" 
+                                    class="btn-secondary btn-sm" icon="fa-trash" confirm="Вы уверены?"/>
                         </div>
 
-                        <!-- Блок статистики (над вкладками) -->
-                        <div class="mb-2 p-2 border-top border-bottom bg-light-subtle" style="min-height: 40px;">
-                            <field name="subject_stats_info" nolabel="1"/>
+
+                        <!-- БЛОК СТАТИСТИКИ (показывается только если show_stats == True) -->
+                        <div class="mb-2 p-2 border-top border-bottom bg-light-subtle" 
+                            invisible="not show_stats" 
+                            style="min-height: 40px;" role="status">
+                            <field name="subject_stats_info" widget="html" readonly="1" nolabel="1"/>
+                            <field name="faculty_stats_info" widget="html" readonly="1" nolabel="1"/>
                         </div>
+                        
+                        <!-- Невидимое поле, чтобы Odoo знало его значение в браузере -->
+                        <field name="show_stats" invisible="1"/>
 
                         <notebook class="mt-0">
                             <page name="monday" string="Понедельник">
