@@ -211,9 +211,40 @@ class OpSession(models.Model):
         for rec in self:
             if rec.state == 'cancel': continue
             domain = [('id', '!=', rec.id), ('state', '!=', 'cancel'), ('start_datetime', '<', rec.end_datetime), ('end_datetime', '>', rec.start_datetime)]
-            if self.search_count(domain + [('faculty_id', '=', rec.faculty_id.id)]):
-                raise ValidationError(_('Учитель %s занят!') % rec.faculty_id.name)
+            # if self.search_count(domain + [('faculty_id', '=', rec.faculty_id.id)]):
+            #     raise ValidationError(_('Учитель %s занят!') % rec.faculty_id.name)
             if self.search_count(domain + [('batch_id', '=', rec.batch_id.id)]):
                 raise ValidationError(_('Группа %s занята!') % rec.batch_id.name)
             if rec.classroom_id and self.search_count(domain + [('classroom_id', '=', rec.classroom_id.id)]):
                 raise ValidationError(_('Кабинет %s занят!') % rec.classroom_id.name)
+
+
+    def write(self, vals):
+        # Если изменилось время начала (это происходит при перетаскивании в календаре)
+        if 'start_datetime' in vals and vals.get('start_datetime'):
+            # Нам нужно найти новый timing_id на основе нового времени
+            # Конвертируем строку из vals в объект datetime
+            new_start = fields.Datetime.to_datetime(vals['start_datetime'])
+            
+            # Переводим в школьный часовой пояс (МСК), чтобы найти соответствие в сетке звонков
+            school_tz = pytz.timezone('Europe/Moscow')
+            local_dt = pytz.utc.localize(new_start).astimezone(school_tz)
+            
+            # Ищем подходящий слот в сетке
+            match_timing = self.env['op.timing'].search([
+                ('lesson_hour', '=', local_dt.hour),
+                ('lesson_minute', '=', local_dt.minute)
+            ], limit=1)
+            
+            if match_timing:
+                vals['timing_id'] = match_timing.id
+                # Автоматически корректируем время окончания согласно длительности урока
+                # Это защитит от ошибок, если завуч "криво" бросил карточку
+                new_end = new_start + datetime.timedelta(minutes=match_timing.duration)
+                vals['end_datetime'] = fields.Datetime.to_string(new_end)
+            
+            # Обновляем поле даты для фильтров (в Иркутском поясе, как мы договаривались)
+            local_tz = pytz.timezone('Asia/Irkutsk')
+            vals['timetable_date'] = pytz.utc.localize(new_start).astimezone(local_tz).date()
+
+        return super(OpSession, self).write(vals)

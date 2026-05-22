@@ -27,9 +27,14 @@
         'wizard/session_modify_wizard_view.xml',
         'views/timetable_templates.xml',
         'menus/op_menu.xml',
-    ],
+    ],    
     'demo': [
     ],
+    'assets': {
+        'web.assets_backend': [
+            'openeducat_timetable/static/src/css/calendar_style.css',
+        ],
+    },
     'images': [
         'static/description/openeducat-timetable_banner.jpg',
     ],
