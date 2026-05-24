@@ -1,32 +1,7 @@
-/* 1. Увеличиваем высоту ячейки (было ~20px, станет 55px) */
-/* Это сделает карточки уроков "жирными" и читаемыми */
 .o_calendar_view .fc-timegrid-slot {
-    height: 50px !important;
+    height: 40px !important; /* Высота одного 10-минутного интервала */
 }
 
-/* 2. Скрываем ночные часы (с 00:00 до 08:30) */
-/* Мы находим ячейки по атрибуту времени и прячем их */
-.o_calendar_view .fc-timegrid-slot[data-time^="00"],
-.o_calendar_view .fc-timegrid-slot[data-time^="01"],
-.o_calendar_view .fc-timegrid-slot[data-time^="02"],
-.o_calendar_view .fc-timegrid-slot[data-time^="03"],
-.o_calendar_view .fc-timegrid-slot[data-time^="04"],
-.o_calendar_view .fc-timegrid-slot[data-time^="05"],
-.o_calendar_view .fc-timegrid-slot[data-time^="06"],
-.o_calendar_view .fc-timegrid-slot[data-time^="07"],
-.o_calendar_view .fc-timegrid-slot[data-time^="08"] {
-    display: none !important;
-}
-
-/* 3. Скрываем поздний вечер (после 21:00) */
-.o_calendar_view .fc-timegrid-slot[data-time^="22"],
-.o_calendar_view .fc-timegrid-slot[data-time^="23"] {
-    display: none !important;
-}
-
-/* 4. Делаем текст внутри карточки четче */
 .o_calendar_view .fc-event-main {
-    padding: 2px 5px !important;
-    font-size: 12px !important;
-    line-height: 1.2 !important;
+    padding: 1px 3px !important;
 }

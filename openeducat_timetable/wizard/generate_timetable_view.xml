@@ -86,20 +86,19 @@
 
                             <!-- Кнопка очистки -->
                             <button name="action_clear_all" type="object" string="Очистить всё" 
-                                    class="btn-secondary btn-sm" icon="fa-trash" confirm="Вы уверены?"/>
+                                    class="btn-secondary btn-sm" icon="fa-trash" 
+                                    confirm="Вы уверены что хотите очистить все введенные данные?"/>
                         </div>
 
 
                         <!-- БЛОК СТАТИСТИКИ (показывается только если show_stats == True) -->
+                        
                         <div class="mb-2 p-2 border-top border-bottom bg-light-subtle" 
                             invisible="not show_stats" 
                             style="min-height: 40px;" role="status">
                             <field name="subject_stats_info" widget="html" readonly="1" nolabel="1"/>
                             <field name="faculty_stats_info" widget="html" readonly="1" nolabel="1"/>
-                        </div>
-                        
-                        <!-- Невидимое поле, чтобы Odoo знало его значение в браузере -->
-                        <field name="show_stats" invisible="1"/>
+                        </div>                        
 
                         <notebook class="mt-0">
                             <page name="monday" string="Понедельник">

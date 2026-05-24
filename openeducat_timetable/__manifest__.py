@@ -32,7 +32,7 @@
     ],
     'assets': {
         'web.assets_backend': [
-            'openeducat_timetable/static/src/css/calendar_style.css',
+            'openeducat_timetable/static/src/css/calendar_style.css',            
         ],
     },
     'images': [

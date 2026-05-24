@@ -1,8 +1,8 @@
-import datetime
-import pytz
 from odoo import _, api, fields, models
 from odoo.exceptions import ValidationError
-
+from collections import defaultdict
+import datetime
+import pytz
 
 class GenerateSession(models.TransientModel):
     _name = "generate.time.table"
@@ -129,20 +129,80 @@ class GenerateSession(models.TransientModel):
             
         return {'type': 'ir.actions.act_window_close'}
 
+    # 1. Объединенный расчет статистики
+    @api.depends(
+        'show_stats', 
+        'time_table_lines_1', 'time_table_lines_2', 'time_table_lines_3', 
+        'time_table_lines_4', 'time_table_lines_5', 'time_table_lines_6', 'time_table_lines_7'
+    )
+    def _compute_all_stats(self):
+        """Единый метод расчета для обоих полей статистики"""
+        for rec in self:
+            if not rec.show_stats:
+                rec.subject_stats_info = False
+                rec.faculty_stats_info = False
+                continue
+            
+            # Объединяем все линии для расчета (используем | для наборов записей)
+            # Это гарантирует, что мы видим данные из всех вкладок интерфейса
+            all_lines = (
+                rec.time_table_lines_1 | rec.time_table_lines_2 | rec.time_table_lines_3 | 
+                rec.time_table_lines_4 | rec.time_table_lines_5 | rec.time_table_lines_6 | 
+                rec.time_table_lines_7
+            )
+
+            if not all_lines:
+                rec.subject_stats_info = "<div class='text-muted small ps-2'>Добавьте уроки...</div>"
+                rec.faculty_stats_info = False
+                continue
+
+            # --- Далее ваш оптимизированный код подсчета ---
+            subj_data = {}
+            fac_counts = defaultdict(int)
+            
+            for line in all_lines:
+                if line.subject_id:
+                    s_name = line.subject_id.name
+                    if s_name not in subj_data:
+                        s_id = line.subject_id._origin.id or line.subject_id.id
+                        color = (s_id if isinstance(s_id, int) else hash(s_name)) % 11 + 1
+                        subj_data[s_name] = {'count': 0, 'color': color}
+                    subj_data[s_name]['count'] += 1
+                
+                if line.faculty_id:
+                    fac_counts[line.faculty_id.name] += 1
+
+            # Сборка HTML для предметов
+            s_html = ['<div class="d-flex flex-wrap gap-2 ps-2">']
+            s_html.append('<span class="text-dark small fw-bold d-flex align-items-center"><i class="fa fa-book me-1"/> Предметы:</span>')
+            s_html.append(f'<span class="badge rounded-pill border bg-white text-dark">Всего: {len(all_lines)}</span>')
+            for name in sorted(subj_data.keys()):
+                d = subj_data[name]
+                s_html.append(f'<span class="badge rounded-pill o_tag_color_{d["color"]}" style="padding: 5px 12px; border: 1px solid rgba(0,0,0,0.1); font-weight: 500;">{name}: {d["count"]}</span>')
+            s_html.append('</div>')
+            rec.subject_stats_info = "".join(s_html)
+
+            # Сборка HTML для учителей
+            f_html = ['<div class="d-flex flex-wrap gap-2 ps-2 mt-1">']
+            f_html.append('<span class="text-dark small fw-bold d-flex align-items-center"><i class="fa fa-graduation-cap me-1"/> Учителя:</span>')
+            for name in sorted(fac_counts.keys()):
+                count = fac_counts[name]
+                bg = "background-color: #dc3545; color: white;" if count > 30 else "background-color: #f8f9fa; color: #212529; border: 1px solid #dee2e6;"
+                f_html.append(f'<span class="badge rounded-pill" style="padding: 4px 10px; font-weight: normal; {bg}">{name}: <b>{count}</b></span>')
+            f_html.append('</div>')
+            rec.faculty_stats_info = "".join(f_html)
+
     def action_clear_all(self):
-        """Полная очистка всего мастера"""
-        self.ensure_one()
-        self.time_table_lines = [(5, 0, 0)]
-        return self._reopen_wizard()
+        self.ensure_one()        
+        self.time_table_lines.unlink()        
+        return self._reopen_wizard()    
 
     def action_clear_day(self):
         """Очистка конкретного дня недели"""
         self.ensure_one()
         day = self.env.context.get('day_to_clear')
         if day is not None:
-            # Ищем строки именно этого дня и удаляем их
-            lines_to_del = self.time_table_lines.filtered(lambda l: l.day == str(day))
-            self.write({'time_table_lines': [(2, line.id, 0) for line in lines_to_del]})
+            self.time_table_lines.filtered(lambda l: l.day == str(day)).unlink()
         return self._reopen_wizard()
 
     def _reopen_wizard(self):
@@ -223,79 +283,79 @@ class GenerateSession(models.TransientModel):
         return self._reopen_wizard()        
 
     # Вычисляемое поле для статистики (не сохраняется в базу, нужно только для экрана)
-    subject_stats_info = fields.Html('Статистика нагрузки', compute='_compute_subject_stats')
+    subject_stats_info = fields.Html('Статистика нагрузки', compute='_compute_all_stats')
     
-    @api.depends('show_stats', 'time_table_lines_1', 'time_table_lines_2', 'time_table_lines_3', 'time_table_lines_4', 'time_table_lines_5', 'time_table_lines_6', 'time_table_lines_7')
-    def _compute_subject_stats(self):
-        for rec in self:
-            if not rec.show_stats:
-                rec.subject_stats_info = False
-                continue
+    # @api.depends('show_stats', 'time_table_lines_1', 'time_table_lines_2', 'time_table_lines_3', 'time_table_lines_4', 'time_table_lines_5', 'time_table_lines_6', 'time_table_lines_7')
+    # def _compute_subject_stats(self):
+    #     for rec in self:
+    #         if not rec.show_stats:
+    #             rec.subject_stats_info = False
+    #             continue
             
-            all_lines = (rec.time_table_lines_1 | rec.time_table_lines_2 | rec.time_table_lines_3 | 
-                         rec.time_table_lines_4 | rec.time_table_lines_5 | rec.time_table_lines_6 | rec.time_table_lines_7)
+    #         all_lines = (rec.time_table_lines_1 | rec.time_table_lines_2 | rec.time_table_lines_3 | 
+    #                      rec.time_table_lines_4 | rec.time_table_lines_5 | rec.time_table_lines_6 | rec.time_table_lines_7)
 
-            if not all_lines:
-                rec.subject_stats_info = "<div class='text-muted small ps-2'>Добавьте уроки для расчета...</div>"
-                continue
+    #         if not all_lines:
+    #             rec.subject_stats_info = "<div class='text-muted small ps-2'>Добавьте уроки для расчета...</div>"
+    #             continue
             
-            stats = {}
-            for line in all_lines:
-                if line.subject_id:
-                    name = line.subject_id.name
-                    actual_id = line.subject_id._origin.id or line.subject_id.id
-                    color_idx = (actual_id if isinstance(actual_id, int) else hash(name)) % 11 + 1
-                    if name not in stats:
-                        stats[name] = {'count': 0, 'color': color_idx}
-                    stats[name]['count'] += 1
+    #         stats = {}
+    #         for line in all_lines:
+    #             if line.subject_id:
+    #                 name = line.subject_id.name
+    #                 actual_id = line.subject_id._origin.id or line.subject_id.id
+    #                 color_idx = (actual_id if isinstance(actual_id, int) else hash(name)) % 11 + 1
+    #                 if name not in stats:
+    #                     stats[name] = {'count': 0, 'color': color_idx}
+    #                 stats[name]['count'] += 1
             
-            html = '<div class="d-flex flex-wrap gap-2 ps-2">'
+    #         html = '<div class="d-flex flex-wrap gap-2 ps-2">'
             
-            # --- НОВАЯ МЕТКА "ПРЕДМЕТЫ" ---
-            html += '<span class="text-dark small me-1 d-flex align-items-center" style="font-weight: 500;"><i class="fa fa-book me-1"/> Предметы:</span>'
+    #         # --- НОВАЯ МЕТКА "ПРЕДМЕТЫ" ---
+    #         html += '<span class="text-dark small me-1 d-flex align-items-center" style="font-weight: 500;"><i class="fa fa-book me-1"/> Предметы:</span>'
             
-            html += f'<span class="badge rounded-pill border bg-white text-dark" style="padding: 5px 10px;">Всего: {len(all_lines)}</span>'
-            for name in sorted(stats.keys()):
-                info = stats[name]
-                color_class = f"o_tag o_tag_color_{info['color']}"
-                html += f'<span class="badge rounded-pill {color_class}" style="padding: 5px 12px; font-weight: 500; border: 1px solid rgba(0,0,0,0.1);">{name}: {info["count"]}</span>'
-            html += '</div>'
-            rec.subject_stats_info = html
+    #         html += f'<span class="badge rounded-pill border bg-white text-dark" style="padding: 5px 10px;">Всего: {len(all_lines)}</span>'
+    #         for name in sorted(stats.keys()):
+    #             info = stats[name]
+    #             color_class = f"o_tag o_tag_color_{info['color']}"
+    #             html += f'<span class="badge rounded-pill {color_class}" style="padding: 5px 12px; font-weight: 500; border: 1px solid rgba(0,0,0,0.1);">{name}: {info["count"]}</span>'
+    #         html += '</div>'
+    #         rec.subject_stats_info = html
 
-    faculty_stats_info = fields.Html('Нагрузка учителей', compute='_compute_faculty_stats')
+    faculty_stats_info = fields.Html('Нагрузка учителей', compute='_compute_all_stats')
 
-    @api.depends('show_stats', 'time_table_lines_1', 'time_table_lines_2', 'time_table_lines_3', 
-                 'time_table_lines_4', 'time_table_lines_5', 'time_table_lines_6', 'time_table_lines_7')
-    def _compute_faculty_stats(self):
-        for rec in self:
-            if not rec.show_stats:
-                rec.faculty_stats_info = False
-                continue
+    # @api.depends('show_stats', 'time_table_lines_1', 'time_table_lines_2', 'time_table_lines_3', 
+    #              'time_table_lines_4', 'time_table_lines_5', 'time_table_lines_6', 'time_table_lines_7')
+    # def _compute_faculty_stats(self):
+    #     for rec in self:
+    #         if not rec.show_stats:
+    #             rec.faculty_stats_info = False
+    #             continue
             
-            all_lines = (rec.time_table_lines_1 | rec.time_table_lines_2 | rec.time_table_lines_3 | 
-                         rec.time_table_lines_4 | rec.time_table_lines_5 | rec.time_table_lines_6 | rec.time_table_lines_7)
+    #         all_lines = (rec.time_table_lines_1 | rec.time_table_lines_2 | rec.time_table_lines_3 | 
+    #                      rec.time_table_lines_4 | rec.time_table_lines_5 | rec.time_table_lines_6 | rec.time_table_lines_7)
 
-            stats = {}
-            for line in all_lines:
-                if line.faculty_id:
-                    name = line.faculty_id.name
-                    stats[name] = stats.get(name, 0) + 1
+    #         stats = {}
+    #         for line in all_lines:
+    #             if line.faculty_id:
+    #                 name = line.faculty_id.name
+    #                 stats[name] = stats.get(name, 0) + 1
             
-            if not stats:
-                rec.faculty_stats_info = False
-                continue
+    #         if not stats:
+    #             rec.faculty_stats_info = False
+    #             continue
 
-            html = '<div class="d-flex flex-wrap gap-2 ps-2 mt-1">'
-            html += '<span class="text-dark small me-1 d-flex align-items-center" style="font-weight: 500;"><i class="fa fa-graduation-cap me-1"/> Учителя:</span>'
-            for name in sorted(stats.keys()):
-                count = stats[name]
-                color_style = "background-color: #dc3545; color: white;" if count > 30 else "background-color: #f8f9fa; color: #212529; border: 1px solid #dee2e6 !important;"
-                html += f'<span class="badge rounded-pill" style="padding: 4px 10px; font-weight: normal; font-size: 0.85rem; {color_style}">{name}: <b>{count}</b></span>'
-            html += '</div>'
-            rec.faculty_stats_info = html
+    #         html = '<div class="d-flex flex-wrap gap-2 ps-2 mt-1">'
+    #         html += '<span class="text-dark small me-1 d-flex align-items-center" style="font-weight: 500;"><i class="fa fa-graduation-cap me-1"/> Учителя:</span>'
+    #         for name in sorted(stats.keys()):
+    #             count = stats[name]
+    #             color_style = "background-color: #dc3545; color: white;" if count > 30 else "background-color: #f8f9fa; color: #212529; border: 1px solid #dee2e6 !important;"
+    #             html += f'<span class="badge rounded-pill" style="padding: 4px 10px; font-weight: normal; font-size: 0.85rem; {color_style}">{name}: <b>{count}</b></span>'
+    #         html += '</div>'
+    #         rec.faculty_stats_info = html
 
     # Поле для управления видимостью статистики
-    show_stats = fields.Boolean('Показать статистику', default=True)
+    show_stats = fields.Boolean('Показать статистику', default=False)
 
     # Добавляем метод для переключения (будет вызываться кнопкой)
     def action_toggle_stats(self):
@@ -312,9 +372,7 @@ class GenerateSession(models.TransientModel):
                   'time_table_lines_4', 'time_table_lines_5', 'time_table_lines_6', 'time_table_lines_7')
     def _onchange_refresh_stats(self):
         """Этот метод заставляет Odoo пересчитывать статистику 'на лету'"""
-        self._compute_subject_stats()
-        self._compute_faculty_stats()
-
+        self._compute_all_stats()
 
 class GenerateSessionLine(models.TransientModel):
     _name = 'gen.time.table.line'

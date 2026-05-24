@@ -124,21 +124,15 @@
 
     <record id="view_op_session_calendar" model="ir.ui.view">
         <field name="name">op.session.calendar</field>
-        <field name="model">op.session</field>
-        <field name="priority" eval="8" />
+        <field name="model">op.session</field>        
         <field name="arch" type="xml">
-            <calendar string="Sessions" 
-                  date_start="start_datetime" 
-                  date_stop="end_datetime" 
-                  color="course_id"
-                  mode="week"
-                  scales="day,week,month"
-                  event_open_popup="true"
-                  quick_create="false">
+            <calendar string="Sessions" date_start="start_datetime" date_stop="end_datetime"                
+                color="subject_id" mode="week" event_open_popup="true" quick_create="false">
                 <field name="subject_id" />
                 <field name="faculty_id" widget="many2one_avatar_user"/>
                 <field name="batch_id" />
-                <field name="classroom_id" />                
+                <field name="classroom_id" />
+                <field name="state" widget="badge" />
             </calendar>
         </field>
     </record>
@@ -323,8 +317,7 @@
                 На выбранную неделю уроков нет.
             </p>
         </field>
-        <field name="context">{
-            'search_default_this_week': 1,
+        <field name="context">{            
             'search_default_group_day': 1
             }</field>
     </record>

@@ -100,17 +100,21 @@ class OpSession(models.Model):
     color = fields.Integer('Color Index', default=0)
     user_ids = fields.Many2many('res.users', string='Allowed Users', compute='_compute_user_ids', store=True)
     
-    # --- ФОРМАТИРОВАНИЕ БЕЗ СЕКУНД ---
-    @api.depends('start_datetime', 'end_datetime', 'faculty_id', 'subject_id')
+    @api.depends('subject_id', 'faculty_id', 'batch_id')
     def _compute_name(self):
         for rec in self:
-            if rec.start_datetime and rec.end_datetime:
-                # strftime('%H:%M') гарантирует отсутствие секунд в названии
-                s = fields.Datetime.context_timestamp(rec, rec.start_datetime).strftime('%H:%M')
-                e = fields.Datetime.context_timestamp(rec, rec.end_datetime).strftime('%H:%M')
-                rec.name = f"{rec.subject_id.name or ''} ({rec.faculty_id.name or ''}) {s}-{e}"
+            if rec.subject_id and rec.faculty_id:
+                # Берем только фамилию
+                name_parts = rec.faculty_id.name.split()
+                surname = name_parts[0] if name_parts else ""
+                
+                batch = rec.batch_id.name or ""
+                subject = rec.subject_id.name
+                
+                # Новый формат через тире
+                rec.name = f"{subject} - {batch} - {surname}"
             else:
-                rec.name = "/"
+                rec.name = " - - "
 
     @api.depends('start_datetime', 'end_datetime')
     def _compute_timing(self):
@@ -213,38 +217,43 @@ class OpSession(models.Model):
             domain = [('id', '!=', rec.id), ('state', '!=', 'cancel'), ('start_datetime', '<', rec.end_datetime), ('end_datetime', '>', rec.start_datetime)]
             # if self.search_count(domain + [('faculty_id', '=', rec.faculty_id.id)]):
             #     raise ValidationError(_('Учитель %s занят!') % rec.faculty_id.name)
-            if self.search_count(domain + [('batch_id', '=', rec.batch_id.id)]):
-                raise ValidationError(_('Группа %s занята!') % rec.batch_id.name)
-            if rec.classroom_id and self.search_count(domain + [('classroom_id', '=', rec.classroom_id.id)]):
-                raise ValidationError(_('Кабинет %s занят!') % rec.classroom_id.name)
+            # if self.search_count(domain + [('batch_id', '=', rec.batch_id.id)]):
+            #     raise ValidationError(_('Группа %s занята!') % rec.batch_id.name)
+            # if rec.classroom_id and self.search_count(domain + [('classroom_id', '=', rec.classroom_id.id)]):
+            #     raise ValidationError(_('Кабинет %s занят!') % rec.classroom_id.name)
 
 
     def write(self, vals):
-        # Если изменилось время начала (это происходит при перетаскивании в календаре)
         if 'start_datetime' in vals and vals.get('start_datetime'):
-            # Нам нужно найти новый timing_id на основе нового времени
-            # Конвертируем строку из vals в объект datetime
-            new_start = fields.Datetime.to_datetime(vals['start_datetime'])
+            # 1. Время, которое пришло из браузера (всегда UTC)
+            new_start_utc = fields.Datetime.to_datetime(vals['start_datetime'])
             
-            # Переводим в школьный часовой пояс (МСК), чтобы найти соответствие в сетке звонков
+            # 2. Переводим в часовой пояс ШКОЛЫ (Москва)
             school_tz = pytz.timezone('Europe/Moscow')
-            local_dt = pytz.utc.localize(new_start).astimezone(school_tz)
+            local_dt = pytz.utc.localize(new_start_utc).astimezone(school_tz)
             
-            # Ищем подходящий слот в сетке
-            match_timing = self.env['op.timing'].search([
-                ('lesson_hour', '=', local_dt.hour),
-                ('lesson_minute', '=', local_dt.minute)
-            ], limit=1)
+            # 3. Ищем ближайший урок в справочнике
+            target_min = local_dt.hour * 60 + local_dt.minute
+            all_timings = self.env['op.timing'].search([])
             
-            if match_timing:
-                vals['timing_id'] = match_timing.id
-                # Автоматически корректируем время окончания согласно длительности урока
-                # Это защитит от ошибок, если завуч "криво" бросил карточку
-                new_end = new_start + datetime.timedelta(minutes=match_timing.duration)
-                vals['end_datetime'] = fields.Datetime.to_string(new_end)
-            
-            # Обновляем поле даты для фильтров (в Иркутском поясе, как мы договаривались)
-            local_tz = pytz.timezone('Asia/Irkutsk')
-            vals['timetable_date'] = pytz.utc.localize(new_start).astimezone(local_tz).date()
-
-        return super(OpSession, self).write(vals)
+            if all_timings:
+                best_match = min(all_timings, key=lambda t: abs(target_min - (t.lesson_hour * 60 + t.lesson_minute)))
+                
+                # 4. Вычисляем точное время начала и конца по МСК
+                corrected_local = local_dt.replace(
+                    hour=best_match.lesson_hour, 
+                    minute=best_match.lesson_minute, 
+                    second=0, microsecond=0
+                )
+                # Переводим обратно в UTC для записи в базу
+                corrected_utc = corrected_local.astimezone(pytz.utc).replace(tzinfo=None)
+                
+                vals.update({
+                    'timing_id': best_match.id,
+                    'start_datetime': fields.Datetime.to_string(corrected_utc),
+                    'end_datetime': fields.Datetime.to_string(corrected_utc + datetime.timedelta(minutes=best_match.duration)),
+                    # ДАТА теперь тоже считается по Москве!
+                    'timetable_date': corrected_local.date()
+                })
+        
+        return super().write(vals)
