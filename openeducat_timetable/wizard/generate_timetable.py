@@ -130,67 +130,35 @@ class GenerateSession(models.TransientModel):
         return {'type': 'ir.actions.act_window_close'}
 
     # 1. Объединенный расчет статистики
-    @api.depends(
-        'show_stats', 
-        'time_table_lines_1', 'time_table_lines_2', 'time_table_lines_3', 
-        'time_table_lines_4', 'time_table_lines_5', 'time_table_lines_6', 'time_table_lines_7'
-    )
+    @api.depends('show_stats', 'time_table_lines_1', 'time_table_lines_2', 'time_table_lines_3', 
+                 'time_table_lines_4', 'time_table_lines_5', 'time_table_lines_6', 'time_table_lines_7')
     def _compute_all_stats(self):
-        """Единый метод расчета для обоих полей статистики"""
         for rec in self:
             if not rec.show_stats:
-                rec.subject_stats_info = False
-                rec.faculty_stats_info = False
+                rec.subject_stats_info = rec.faculty_stats_info = False
                 continue
             
-            # Объединяем все линии для расчета (используем | для наборов записей)
-            # Это гарантирует, что мы видим данные из всех вкладок интерфейса
-            all_lines = (
-                rec.time_table_lines_1 | rec.time_table_lines_2 | rec.time_table_lines_3 | 
-                rec.time_table_lines_4 | rec.time_table_lines_5 | rec.time_table_lines_6 | 
-                rec.time_table_lines_7
-            )
+            lines = (rec.time_table_lines_1 | rec.time_table_lines_2 | rec.time_table_lines_3 | 
+                     rec.time_table_lines_4 | rec.time_table_lines_5 | rec.time_table_lines_6 | rec.time_table_lines_7)
 
-            if not all_lines:
-                rec.subject_stats_info = "<div class='text-muted small ps-2'>Добавьте уроки...</div>"
-                rec.faculty_stats_info = False
-                continue
+            subj_data = defaultdict(int)
+            fac_data = defaultdict(int)
+            for l in lines:
+                if l.subject_id: subj_data[l.subject_id] += 1
+                if l.faculty_id: fac_data[l.faculty_id.name] += 1
 
-            # --- Далее ваш оптимизированный код подсчета ---
-            subj_data = {}
-            fac_counts = defaultdict(int)
-            
-            for line in all_lines:
-                if line.subject_id:
-                    s_name = line.subject_id.name
-                    if s_name not in subj_data:
-                        s_id = line.subject_id._origin.id or line.subject_id.id
-                        color = (s_id if isinstance(s_id, int) else hash(s_name)) % 11 + 1
-                        subj_data[s_name] = {'count': 0, 'color': color}
-                    subj_data[s_name]['count'] += 1
-                
-                if line.faculty_id:
-                    fac_counts[line.faculty_id.name] += 1
+            # Предметы (Сортировка по объекту subj.sequence)
+            s_res = ['<div class="d-flex flex-wrap gap-2 ps-2" style="font-size: 15px;"><b>📚 Предметы:</b>']
+            for subj, count in sorted(subj_data.items(), key=lambda x: x[0].sequence):
+                s_res.append(f'<span class="badge rounded-pill o_tag o_tag_subtle o_tag_color_{subj.color} border px-2 py-1">{subj.name}: {count}</span>')
+            rec.subject_stats_info = "".join(s_res) + "</div>"
 
-            # Сборка HTML для предметов
-            s_html = ['<div class="d-flex flex-wrap gap-2 ps-2">']
-            s_html.append('<span class="text-dark small fw-bold d-flex align-items-center"><i class="fa fa-book me-1"/> Предметы:</span>')
-            s_html.append(f'<span class="badge rounded-pill border bg-white text-dark">Всего: {len(all_lines)}</span>')
-            for name in sorted(subj_data.keys()):
-                d = subj_data[name]
-                s_html.append(f'<span class="badge rounded-pill o_tag_color_{d["color"]}" style="padding: 5px 12px; border: 1px solid rgba(0,0,0,0.1); font-weight: 500;">{name}: {d["count"]}</span>')
-            s_html.append('</div>')
-            rec.subject_stats_info = "".join(s_html)
-
-            # Сборка HTML для учителей
-            f_html = ['<div class="d-flex flex-wrap gap-2 ps-2 mt-1">']
-            f_html.append('<span class="text-dark small fw-bold d-flex align-items-center"><i class="fa fa-graduation-cap me-1"/> Учителя:</span>')
-            for name in sorted(fac_counts.keys()):
-                count = fac_counts[name]
-                bg = "background-color: #dc3545; color: white;" if count > 30 else "background-color: #f8f9fa; color: #212529; border: 1px solid #dee2e6;"
-                f_html.append(f'<span class="badge rounded-pill" style="padding: 4px 10px; font-weight: normal; {bg}">{name}: <b>{count}</b></span>')
-            f_html.append('</div>')
-            rec.faculty_stats_info = "".join(f_html)
+            # Учителя
+            f_res = ['<div class="d-flex flex-wrap gap-2 ps-2 mt-2" style="font-size: 15px;"><b>👨‍🏫 Учителя:</b>']
+            for name, count in sorted(fac_data.items()):
+                bg = "background: #dc3545; color: white;" if count > 30 else "background: #f8f9fa; border: 1px solid #ddd;"
+                f_res.append(f'<span class="badge rounded-pill px-2 py-1" style="{bg}">{name}: {count}</span>')
+            rec.faculty_stats_info = "".join(f_res) + "</div>"
 
     def action_clear_all(self):
         self.ensure_one()        

@@ -6,13 +6,15 @@
             <field name="model">op.subject</field>
             <field name="priority" eval="8"/>
             <field name="arch" type="xml">
-                <list string="Subject">
-                    <field name="name"/>
-                    <field name="code"/>
-                    <field name="type"/>
-                    <field name="subject_type"/>
-                    <field name="grade_weightage"/>
-                    <field name="department_id" groups="openeducat_core.group_multi_department"/>
+                <list string="Subject" editable="bottom">
+                    <field name="sequence" widget="handle"/>
+                    <field name="name" optional="show"/>
+                    <field name="code" optional="show"/>
+                    <field name="type" optional="show"/>
+                    <field name="subject_type" optional="show"/>
+                    <field name="grade_weightage" optional="show"/>
+                    <field name="department_id" optional="show" groups="openeducat_core.group_multi_department"/>
+                    <field name="color" widget="color_picker"/>
                 </list>
             </field>
         </record>
@@ -38,6 +40,7 @@
                             <group>
                                 <field name="code"/>
                                 <field name="grade_weightage"/>
+                                <field name="color" widget="color_picker"/>
                             </group>
                         </group>
                     </sheet>
