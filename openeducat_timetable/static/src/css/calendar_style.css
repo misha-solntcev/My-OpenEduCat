@@ -1,5 +1,5 @@
 .o_calendar_view .fc-timegrid-slot {
-    height: 40px !important; /* Высота одного 10-минутного интервала */
+    height: 45px !important; /* Высота одного 10-минутного интервала (не факт)*/
 }
 
 .o_calendar_view .fc-event-main {

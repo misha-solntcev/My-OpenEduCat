@@ -126,8 +126,13 @@
         <field name="name">op.session.calendar</field>
         <field name="model">op.session</field>        
         <field name="arch" type="xml">
-            <calendar string="Sessions" date_start="start_datetime" date_stop="end_datetime"                
-                color="subject_id" mode="week" event_open_popup="true" quick_create="false">
+            <calendar string="Sessions"                    
+                    date_start="start_datetime" 
+                    date_stop="end_datetime"
+                    color="subject_id" 
+                    mode="week" 
+                    event_open_popup="true"
+                    quick_create="false" >
                 <field name="subject_id" />
                 <field name="faculty_id" widget="many2one_avatar_user"/>
                 <field name="batch_id" />
@@ -307,7 +312,7 @@
         </field>
     </record>
 
-    <record model="ir.actions.act_window" id="act_open_op_session_view">
+    <record id="act_open_op_session_view" model="ir.actions.act_window" >
         <field name="name">Расписание</field>
         <field name="res_model">op.session</field>
         <field name="view_mode">calendar,kanban,list,pivot,form</field>
@@ -316,10 +321,7 @@
             <p class="o_view_nocontent_smiling_face">
                 На выбранную неделю уроков нет.
             </p>
-        </field>
-        <field name="context">{            
-            'search_default_group_day': 1
-            }</field>
+        </field>        
     </record>
 
     <record id="act_open_op_timing_view" model="ir.actions.act_window">
@@ -329,6 +331,5 @@
         <field name="view_mode">list,form</field>
         <field name="search_view_id" ref="view_op_timing_search" />
         <field name="domain">[]</field>
-        <field name="context">{}</field>
     </record>
 </odoo>
