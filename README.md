@@ -113,3 +113,7 @@ Have questions or need support? Get in touch:
 Thank you for choosing **OpenEduCat** – empowering educational institutions with open source technology. We appreciate your support and look forward to your contributions! 🙌
 
 *Happy Learning & Coding! 💻🎉*
+
+color: black !important; /* Цвет текста */
+    font-weight: normal !important; /* Жирный шрифт */
+    font-size: 13px !important; /* Размер шрифта */

@@ -97,8 +97,30 @@ class OpSession(models.Model):
         string='Status', default='draft', tracking=True, index=True)
 
     active = fields.Boolean(default=True)
-    color = fields.Integer('Color Index', default=0)
+    color = fields.Integer(
+        string='Цвет', 
+        related='subject_id.color', 
+        store=True, 
+        readonly=True,
+        aggregator=False  # Это уберет поле из мер в пивоте и графиках
+    )
+    
     user_ids = fields.Many2many('res.users', string='Allowed Users', compute='_compute_user_ids', store=True)
+    
+    faculty_surname = fields.Char(
+        string='Учитель (фамилия)', 
+        compute='_compute_faculty_surname', 
+        store=True
+    )
+
+    @api.depends('faculty_id.name')
+    def _compute_faculty_surname(self):
+        for rec in self:
+            if rec.faculty_id and rec.faculty_id.name:
+                # Берем первое слово из имени учителя (фамилию)
+                rec.faculty_surname = rec.faculty_id.name.split()[0]
+            else:
+                rec.faculty_surname = ""
     
     @api.depends('subject_id', 'faculty_id', 'batch_id')
     def _compute_name(self):

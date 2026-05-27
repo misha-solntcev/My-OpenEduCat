@@ -78,8 +78,7 @@
                     <widget name="web_ribbon" title="Archived" bg_color="text-bg-danger"
                         invisible="active" />
 
-                    <div class="oe_title">
-                        <label for="name" string="Session Title" />
+                    <div class="oe_title">                        
                         <h1>
                             <field name="name" placeholder="e.g. Mathematics Intro" />
                         </h1>
@@ -96,9 +95,8 @@
                                 options="{'no_create': True}" />
                         </group>
                         <group>
-                            <field name="timing_id" options="{'no_create': True}"/>
-                            <field name="timetable_date" />
-                            <label for="start_datetime" string="Schedule" />
+                            <field name="timing_id" options="{'no_create': True}"/>                            
+                            <label for="start_datetime" string="Время" />
                             <div class="o_row">
                                 <field name="start_datetime" widget="daterange"
                                     options="{'related_start_date': 'start_datetime',
@@ -111,9 +109,7 @@
                                     'show_seconds': False, 'rounding': 10}"
                                     required="1" />
                             </div>
-                            <field name="classroom_id" options="{'no_create_edit': True}" />
-
-                            <field name="color" widget="color_picker" />
+                            <field name="classroom_id" options="{'no_create_edit': True}" />                            
                         </group>
                     </group>
                 </sheet>
@@ -126,18 +122,21 @@
         <field name="name">op.session.calendar</field>
         <field name="model">op.session</field>        
         <field name="arch" type="xml">
+            <!-- 1. Атрибут color="batch_id" сделает так, что уроки будут 
+                 раскрашены по цветам классов, и список классов будет главным фильтром -->
             <calendar string="Sessions"                    
+                    quick_create="false"        
                     date_start="start_datetime" 
                     date_stop="end_datetime"
-                    color="subject_id" 
-                    mode="week" 
-                    event_open_popup="true"
-                    quick_create="false" >
+                    color="color"
+                    mode="week"
+                    event_open_popup="false">                
+                <field name="course_id" filters="1"/>
+                <field name="faculty_id" avatar_field="image_128" filters="1"/>                
                 <field name="subject_id" />
-                <field name="faculty_id" widget="many2one_avatar_user"/>
-                <field name="batch_id" />
                 <field name="classroom_id" />
-                <field name="state" widget="badge" />
+                <field name="state" widget="badge"/>
+                <field name="color" invisible="1"/>
             </calendar>
         </field>
     </record>
@@ -213,19 +212,34 @@
     <record id="view_op_session_pivot" model="ir.ui.view">
         <field name="name">op.session.pivot</field>
         <field name="model">op.session</field>
-        <field name="priority" eval="8" />
         <field name="arch" type="xml">
-            <pivot string="Session Analysis">
-                <field name="name" />
-                <field name="faculty_id" type="col" />
-                <field name="course_id" />
-                <field name="batch_id" />
-                <field name="subject_id" />
-                <field name="classroom_id" />
-                <field name="start_datetime" type="row" />
-                <field name="end_datetime" />
-
+            <!-- sample="1" заполнит таблицу демо-данными, если уроков еще нет -->
+            <pivot string="Анализ расписания" sample="1">
+                <!-- Строки: Учитель, а под ним Предмет -->
+                <field name="faculty_surname" type="row"/>
+                <field name="subject_id" type="row"/>
+                
+                <!-- Колонки: Статус урока (проведен/отменен) и Дата (по месяцам/неделям) -->
+                <field name="state" type="col"/>
+                <field name="timetable_date" interval="month" type="col"/>
+                
+                <!-- Меры: Количество уроков (стандартное поле) -->
+                <!-- Если у вас есть поле длительности, можно добавить его как сумму часов -->
             </pivot>
+        </field>
+    </record>
+
+    <record id="view_op_session_graph" model="ir.ui.view">
+        <field name="name">op.session.graph</field>
+        <field name="model">op.session</field>
+        <field name="arch" type="xml">
+            <!-- type="bar" (столбцы), stacked="True" (друг на друге) -->
+            <graph string="Визуальный анализ нагрузки" type="bar" stacked="True" sample="1">
+                <!-- Ось X: Учитель -->
+                <field name="faculty_surname"/>
+                <!-- Группировка внутри столбца: Предметы -->
+                <field name="subject_id"/>
+            </graph>
         </field>
     </record>
 
@@ -250,7 +264,7 @@
                         ('timetable_date', '&lt;=', (context_today() + relativedelta(weeks=-1, weekday=6)).strftime('%Y-%m-%d'))]" />
 
                 <!-- Текущая неделя -->
-                <filter string="📅 Текущая неделя" name="this_week"
+                <filter string="📅   Текущая неделя" name="this_week"
                     domain="[
                         ('timetable_date', '&gt;=', (context_today() + relativedelta(days=-6, weekday=0)).strftime('%Y-%m-%d')),
                         ('timetable_date', '&lt;=', (context_today() + relativedelta(weekday=6)).strftime('%Y-%m-%d'))]" />
@@ -282,7 +296,7 @@
                 <group expand="0" string="Группировать по...">
                     <filter string="📅 По дням недели" name="group_day"
                         context="{'group_by': 'days_id'}" />
-                    <filter string="👨‍🏫 По учителю" name="group_faculty"
+                    <filter string="👨‍🏫 По учителю" name="group_surname"
                         context="{'group_by': 'faculty_id'}" />
                     <filter string="📚 По предмету" name="group_subject"
                         context="{'group_by': 'subject_id'}" />
@@ -315,13 +329,18 @@
     <record id="act_open_op_session_view" model="ir.actions.act_window" >
         <field name="name">Расписание</field>
         <field name="res_model">op.session</field>
-        <field name="view_mode">calendar,kanban,list,pivot,form</field>
+        <field name="view_mode">calendar,kanban,list,pivot,graph,form</field>
         <field name="search_view_id" ref="view_op_session_search" />
         <field name="help" type="html">
             <p class="o_view_nocontent_smiling_face">
                 На выбранную неделю уроков нет.
             </p>
-        </field>        
+        </field>
+        <field name="context">{
+            'graph_groupbys': ['faculty_surname', 'subject_id'], 
+            'graph_stacked': True,
+            'graph_mode': 'bar'
+        }</field>
     </record>
 
     <record id="act_open_op_timing_view" model="ir.actions.act_window">

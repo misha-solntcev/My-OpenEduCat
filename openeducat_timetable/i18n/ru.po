@@ -970,7 +970,7 @@ msgstr "Расписание учителя отчет"
 #: model:ir.model.fields,field_description:openeducat_timetable.field_gen_time_table_line__timing_id
 #: model:ir.model.fields,field_description:openeducat_timetable.field_op_session__timing_id
 msgid "Timing"
-msgstr "Время"
+msgstr "Урок"
 
 #. module: openeducat_timetable
 #: model:ir.actions.act_window,name:openeducat_timetable.act_open_op_timing_view

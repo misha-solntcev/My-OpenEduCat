@@ -1,7 +1,9 @@
 .o_calendar_view .fc-timegrid-slot {
-    height: 45px !important; /* Высота одного 10-минутного интервала (не факт)*/
-}
+    height: 35px !important; /* Высота одного 10-минутного интервала (не факт)*/
+}    
 
 .o_calendar_view .fc-event-main {
-    padding: 1px 3px !important;
+    color: black !important; /* Цвет текста */
+    font-size: 13px !important; /* Размер шрифта */    
+    line-height: 1 !important;
 }
