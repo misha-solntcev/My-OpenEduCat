@@ -133,9 +133,9 @@
                     event_open_popup="false">                
                 <field name="course_id" filters="1"/>
                 <field name="faculty_id" avatar_field="image_128" filters="1"/>                
-                <field name="subject_id" />
-                <field name="classroom_id" />
-                <field name="state" widget="badge"/>
+                <field name="subject_id" filters="1"/>
+                <field name="classroom_id" filters="1"/>
+                <field name="state" widget="badge" filters="1"/>
                 <field name="color" invisible="1"/>
             </calendar>
         </field>

@@ -17,6 +17,7 @@ class OpAttendanceSheet(models.Model):
     session_id = fields.Many2one('op.session', 'Session', ondelete='cascade')
     
     start_datetime = fields.Datetime(related='session_id.start_datetime', string='Начало урока', store=True, index=True)
+    end_datetime = fields.Datetime(related='session_id.end_datetime', string='Окончание урока', store=True, index=True)
     attendance_date = fields.Date('Date', required=True, default=fields.Date.context_today, tracking=True)
     
     faculty_id = fields.Many2one('op.faculty', related='session_id.faculty_id', 

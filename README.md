@@ -114,6 +114,3 @@ Thank you for choosing **OpenEduCat** – empowering educational institutions wi
 
 *Happy Learning & Coding! 💻🎉*
 
-color: black !important; /* Цвет текста */
-    font-weight: normal !important; /* Жирный шрифт */
-    font-size: 13px !important; /* Размер шрифта */

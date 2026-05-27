@@ -621,11 +621,34 @@
         </field>
     </record>
 
+    <!-- КАЛЕНДАРЬ ЖУРНАЛОВ -->
+    <record id="view_op_attendance_sheet_calendar" model="ir.ui.view">
+        <field name="name">op.attendance.sheet.calendar</field>
+        <field name="model">op.attendance.sheet</field>
+        <field name="arch" type="xml">
+            <!-- 
+                edit="0" — запрещает перетаскивание (изменение времени)
+                quick_create="0" — запрещает создание кликом по пустому месту
+            -->
+            <calendar string="Журналы уроков"
+                    date_start="start_datetime"
+                    date_stop="end_datetime"                    
+                    color="batch_id"
+                    mode="week"
+                    quick_create="0"
+                    edit="0">                
+                <field name="course_id" filters="1"/>
+                <field name="faculty_id" filters="1"/>                
+                <field name="state" widget="badge"/>
+            </calendar>
+        </field>
+    </record>
+
     <!-- 7. ДЕЙСТВИЕ -->
     <record model="ir.actions.act_window" id="act_open_op_attendance_sheet_view">
         <field name="name">Attendance Sheets</field>
         <field name="res_model">op.attendance.sheet</field>
-        <field name="view_mode">kanban,list,pivot,form,graph</field>
+        <field name="view_mode">kanban,calendar,list,pivot,form,graph</field>
         <field name="search_view_id" ref="view_op_attendance_sheet_search" />
         <field name="context">{
             'search_default_this_week': 1,
