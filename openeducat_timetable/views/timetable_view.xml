@@ -217,14 +217,10 @@
             <pivot string="Анализ расписания" sample="1">
                 <!-- Строки: Учитель, а под ним Предмет -->
                 <field name="faculty_surname" type="row"/>
-                <field name="subject_id" type="row"/>
-                
+                <field name="subject_id" type="row"/>                
                 <!-- Колонки: Статус урока (проведен/отменен) и Дата (по месяцам/неделям) -->
                 <field name="state" type="col"/>
-                <field name="timetable_date" interval="month" type="col"/>
-                
-                <!-- Меры: Количество уроков (стандартное поле) -->
-                <!-- Если у вас есть поле длительности, можно добавить его как сумму часов -->
+                <field name="timetable_date" interval="month" type="col"/>                
             </pivot>
         </field>
     </record>
