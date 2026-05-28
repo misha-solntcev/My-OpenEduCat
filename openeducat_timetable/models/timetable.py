@@ -1,281 +1,201 @@
-from datetime import timedelta
+from odoo import _, api, fields, models
+from odoo.exceptions import ValidationError
 import datetime
 import pytz
-from odoo import _, api, fields, models # type: ignore
-from odoo.exceptions import ValidationError # type: ignore
+
+class OpDay(models.Model):
+    _name = 'op.day'
+    _description = 'День недели'
+    _order = 'sequence'
+
+    name = fields.Char('Название', required=True, translate=True)
+    code = fields.Char('Код', required=True)
+    sequence = fields.Integer('Последовательность', default=10)
+    fold = fields.Boolean('Свернуть пустые', default=False)
+
+
+class OpTiming(models.Model):
+    _name = "op.timing"
+    _description = "Сетка звонков"
+    _order = "sequence"
+
+    name = fields.Char('Название', size=32, required=True)
+    lesson_hour = fields.Integer('Часы', required=True)
+    lesson_minute = fields.Integer('Минуты', required=True)
+    duration = fields.Integer('Продолжительность', default=40)
+    sequence = fields.Integer('Последовательность', default=10)
+
+    def _compute_display_name(self):
+        for rec in self:
+            start = f"{rec.lesson_hour:02d}:{rec.lesson_minute:02d}"
+            total_min = rec.lesson_hour * 60 + rec.lesson_minute + rec.duration
+            h_e, m_e = divmod(total_min, 60)
+            rec.display_name = f"{rec.name} ({start} - {int(h_e):02d}:{int(m_e):02d})"
+
 
 class OpSession(models.Model):
     _name = "op.session"
-    _inherit = ["mail.thread", "mail.activity.mixin"] 
-    _description = "Sessions"
-    _order = "timetable_date asc, start_datetime asc, batch_id"
+    _inherit = ["mail.thread", "mail.activity.mixin", "op.time.mixin"]
+    _description = "Уроки расписания"
+    _order = "timetable_date asc, start_datetime asc"
 
-    timetable_date = fields.Date(string='Дата урока', required=True, index=True,
-        default=fields.Date.context_today)
+    # --- ПОЛЯ ДЛЯ XML (Имена и Группировки) ---
+    name = fields.Char(string='Name', compute='_compute_name', store=False)
+    timing = fields.Char(string='Session Timing', compute='_compute_timing', store=False)
+    
+    # Это поле Odoo ищет в Pivot view
+    faculty_surname = fields.Char(
+        string='Учитель (фамилия)', 
+        compute='_compute_faculty_surname', 
+        store=True)
 
-    days_id = fields.Many2one('op.day', string='День недели', 
+    # --- ПОЛЯ ВРЕМЕНИ ---
+    timetable_date = fields.Date(
+        string='Дата урока', required=True, index=True,
+        compute='_compute_day_info', store=True, readonly=False)
+
+    days_id = fields.Many2one(
+        'op.day', string='День недели',
         compute='_compute_day_info', store=True, group_expand='_read_group_days')
 
-    @api.onchange('start_datetime')
-    def _onchange_start_datetime_sync_date(self):
-        for rec in self:
-            if rec.start_datetime:
-                # Используем локальное время пользователя для определения корректной даты
-                local_dt = fields.Datetime.context_timestamp(rec, rec.start_datetime)
-                rec.timetable_date = local_dt.date()
-
-    @api.model
-    def _read_group_days(self, days, domain):
-        # Ищем дни через sudo, чтобы избежать проблем с правами
-        all_days = self.env['op.day'].sudo().search([])        
-        sessions = self.env['op.session'].search(domain)
-        
-        active_day_ids = sessions.mapped('days_id').ids
-        
-        # for day in all_days:
-        #     # Сравниваем текущее значение, чтобы не дергать базу лишний раз
-        #     new_fold_state = (day.id not in active_day_ids)
-        #     if day.fold != new_fold_state:
-        #         day.sudo().fold = new_fold_state # Пишем через sudo
-            
-        return all_days
-    
     start_datetime = fields.Datetime(
         'Start Time', required=True, index=True, tracking=True,
         default=fields.Datetime.now)
     
     end_datetime = fields.Datetime(
-        'End Time', required=True, index=True, tracking=True,
-        default=lambda self: fields.Datetime.now() + timedelta(minutes=40))
-    
+        'End Time', required=True, index=True, tracking=True)
+
+    # --- СВЯЗИ ---
     faculty_id = fields.Many2one('op.faculty', 'Faculty', required=True, index=True, tracking=True)
     batch_id = fields.Many2one('op.batch', 'Batch', required=True, index=True, tracking=True)
-    subject_id = fields.Many2one('op.subject', 'Subject', required=True, index=True, tracking=True,
-        domain="[('id', 'in', faculty_subject_ids)]")
-    faculty_subject_ids = fields.Many2many('op.subject', related='faculty_id.faculty_subject_ids')
+    subject_id = fields.Many2one('op.subject', 'Subject', required=True, index=True, tracking=True)
     course_id = fields.Many2one('op.course', 'Course', required=True, index=True)
     classroom_id = fields.Many2one('op.classroom', 'Classroom', index=True, tracking=True)
     timing_id = fields.Many2one('op.timing', string='Lesson Slot')
+    
+    # Вспомогательные поля
+    active = fields.Boolean(default=True)
+    color = fields.Integer(related='subject_id.color', store=True, readonly=True)
+    faculty_subject_ids = fields.Many2many('op.subject', related='faculty_id.faculty_subject_ids')
+    user_ids = fields.Many2many('res.users', string='Allowed Users', compute='_compute_user_ids', store=True)
 
-    @api.onchange('faculty_id')
-    def _onchange_faculty_id_set_subject(self):
-        if self.faculty_id and self.faculty_id.faculty_subject_ids:
-            if len(self.faculty_id.faculty_subject_ids) == 1:
-                self.subject_id = self.faculty_id.faculty_subject_ids[0].id
-
-    @api.onchange('course_id')
-    def _onchange_course_id_set_batch(self):
-        if self.course_id:
-            batches = self.env['op.batch'].search([('course_id', '=', self.course_id.id)])
-            if len(batches) == 1:
-                self.batch_id = batches[0].id
-            elif self.batch_id and self.batch_id.course_id != self.course_id:
-                self.batch_id = False
-        else:
-            self.batch_id = False
-
-    @api.onchange('timing_id', 'timetable_date')
-    def _onchange_timing(self):
-        if self.timing_id and self.timetable_date:
-            dt_start = datetime.datetime.combine(self.timetable_date, 
-                datetime.time(self.timing_id.lesson_hour, self.timing_id.lesson_minute))
-            local_tz = pytz.timezone(self.env.user.tz or 'UTC')
-            self.start_datetime = local_tz.localize(dt_start).astimezone(pytz.utc).replace(tzinfo=None)
-            dt_end = dt_start + datetime.timedelta(minutes=self.timing_id.duration)
-            self.end_datetime = local_tz.localize(dt_end).astimezone(pytz.utc).replace(tzinfo=None)
-        elif self.start_datetime:
-             self.end_datetime = self.start_datetime + datetime.timedelta(minutes=40)
-
-    name = fields.Char(compute='_compute_name', string='Name', store=False)
-    timing = fields.Char(compute='_compute_timing', string='Session Timing', store=False)
     state = fields.Selection([
         ('draft', 'Черновик'), 
-        ('confirm', 'Утвержден'),
-        ('start', 'Урок идет'),
+        ('confirm', 'Утвержден'),        
+        ('start', 'Урок идет'), 
         ('done', 'Завершен'), 
-        ('cancel', 'Отменен')],
-        string='Status', default='draft', tracking=True, index=True)
+        ('cancel', 'Отменен')
+    ], string='Status', default='draft', tracking=True, index=True)
 
-    active = fields.Boolean(default=True)
-    color = fields.Integer(
-        string='Цвет', 
-        related='subject_id.color', 
-        store=True, 
-        readonly=True,
-        aggregator=False  # Это уберет поле из мер в пивоте и графиках
-    )
-    
-    user_ids = fields.Many2many('res.users', string='Allowed Users', compute='_compute_user_ids', store=True)
-    
-    faculty_surname = fields.Char(
-        string='Учитель (фамилия)', 
-        compute='_compute_faculty_surname', 
-        store=True
-    )
+    # --- ЛОГИКА ВЫЧИСЛЕНИЙ ---
 
     @api.depends('faculty_id.name')
     def _compute_faculty_surname(self):
         for rec in self:
-            if rec.faculty_id and rec.faculty_id.name:
-                # Берем первое слово из имени учителя (фамилию)
+            if rec.faculty_id and rec.faculty_id.name:                
                 rec.faculty_surname = rec.faculty_id.name.split()[0]
             else:
                 rec.faculty_surname = ""
-    
-    @api.depends('subject_id', 'faculty_id', 'batch_id')
+
+    @api.depends('subject_id', 'batch_id', 'faculty_id')
     def _compute_name(self):
         for rec in self:
-            if rec.subject_id and rec.faculty_id:
-                # Берем только фамилию
-                name_parts = rec.faculty_id.name.split()
-                surname = name_parts[0] if name_parts else ""
-                
-                batch = rec.batch_id.name or ""
-                subject = rec.subject_id.name
-                
-                # Новый формат через тире
-                rec.name = f"{subject} - {batch} - {surname}"
-            else:
-                rec.name = " - - "
+            subj = rec.subject_id.name or ''
+            batch = rec.batch_id.name or ''
+            faculty = rec.faculty_id.name.split()[0] if rec.faculty_id.name else ''
+            rec.name = f"{subj} - {batch} - {faculty}"
 
     @api.depends('start_datetime', 'end_datetime')
     def _compute_timing(self):
         for rec in self:
             if rec.start_datetime and rec.end_datetime:
-                s = fields.Datetime.context_timestamp(rec, rec.start_datetime).strftime('%H:%M')
-                e = fields.Datetime.context_timestamp(rec, rec.end_datetime).strftime('%H:%M')
+                s = rec._convert_to_local(rec.start_datetime).strftime('%H:%M')
+                e = rec._convert_to_local(rec.end_datetime).strftime('%H:%M')
                 rec.timing = f"{s} - {e}"
             else:
                 rec.timing = ""
 
-    def lecture_draft(self):
-        self.write({'state': 'draft'})
-
-    def lecture_confirm(self):
-        self.write({'state': 'confirm'})
-
-    def lecture_start(self):
-        self.write({'state': 'start'})
-
-    def lecture_done(self):
-        self.write({'state': 'done'})
-
-    def lecture_cancel(self):
-        self.write({'state': 'cancel'})
-
-    def lecture_edit(self):
-        self.write({'state': 'start'})
-
-    
     @api.depends('start_datetime')
     def _compute_day_info(self):
-        # Карта соответствия номеров дней из Python кодам из нашей базы
-        day_map = {0: 'monday', 1: 'tuesday', 2: 'wednesday', 3: 'thursday', 4: 'friday', 5: 'saturday', 6: 'sunday'}
         for record in self:
             if record.start_datetime:
-                day_code = day_map.get(record.start_datetime.weekday())
-                # Ищем запись дня в нашей новой модели
-                day_rec = self.env['op.day'].search([('code', '=', day_code)], limit=1)
-                record.days_id = day_rec
-            else:
-                record.days_id = False
-                
+                local_dt = record._convert_to_local(record.start_datetime)
+                record.timetable_date = local_dt.date()
+                day_code = local_dt.strftime('%A').lower()
+                record.days_id = self.env['op.day'].search([('code', '=', day_code)], limit=1)
+
     @api.depends('batch_id', 'faculty_id')
     def _compute_user_ids(self):        
         for session in self:
             u_ids = set()
-            if session.faculty_id.user_id:
-                u_ids.add(session.faculty_id.user_id.id)
+            if session.faculty_id.user_id: u_ids.add(session.faculty_id.user_id.id)
             if session.batch_id:
-                students = self.env['op.student'].sudo().search([('course_detail_ids.batch_id', '=', session.batch_id.id), ('user_id', '!=', False)])
+                students = self.env['op.student'].sudo().search([
+                    ('course_detail_ids.batch_id', '=', session.batch_id.id), 
+                    ('user_id', '!=', False)])
                 u_ids.update(students.mapped('user_id').ids)
             session.user_ids = [(6, 0, list(u_ids))]
 
-    @api.onchange('course_id')
-    def _onchange_course_id_set_batch(self):
-        if self.course_id:
-            batches = self.env['op.batch'].search([('course_id', '=', self.course_id.id)])
-            if len(batches) == 1:
-                self.batch_id = batches[0].id
-            elif self.batch_id and self.batch_id.course_id != self.course_id:
-                self.batch_id = False
-        else:
-            self.batch_id = False
+    @api.model
+    def _read_group_days(self, days, domain):
+        return self.env['op.day'].sudo().search([])
 
-    @api.onchange('batch_id')
-    def _onchange_batch_id_set_classroom(self):
-        if self.batch_id:
-            classroom = self.env['op.classroom'].search([
-                ('batch_id', '=', self.batch_id.id)
-            ], limit=1)
-            if classroom:
-                self.classroom_id = classroom.id
-
-    @api.onchange('start_datetime')
-    def _onchange_start_datetime_auto_slot(self):
-        """Автоматически подбирает timing_id, если меняется время начала"""
-        for rec in self:
-            if rec.start_datetime and not rec.timing_id:
-                # Переводим время в локальное
-                local_dt = fields.Datetime.context_timestamp(rec, rec.start_datetime)
-                # Ищем подходящий слот по времени
-                match = self.env['op.timing'].search([
-                    ('lesson_hour', '=', local_dt.hour),
-                    ('lesson_minute', '=', local_dt.minute)
-                ], limit=1)
-                if match:
-                    rec.timing_id = match.id
+    @api.onchange('timing_id', 'timetable_date')
+    def _onchange_sync_with_timing(self):
+        if self.timing_id and self.timetable_date:
+            tz_name = self._get_school_timezone()
+            local_tz = pytz.timezone(tz_name)
+            naive_start = datetime.datetime.combine(
+                self.timetable_date, 
+                datetime.time(self.timing_id.lesson_hour, self.timing_id.lesson_minute))
+            local_start = local_tz.localize(naive_start)
+            self.start_datetime = local_start.astimezone(pytz.utc).replace(tzinfo=None)
+            self.end_datetime = (local_start + datetime.timedelta(minutes=self.timing_id.duration)).astimezone(pytz.utc).replace(tzinfo=None)
 
     @api.constrains('start_datetime', 'end_datetime')
     def _check_date_time(self):
         for rec in self:
-            if rec.start_datetime >= rec.end_datetime:
+            if rec.start_datetime and rec.end_datetime and rec.start_datetime >= rec.end_datetime:
                 raise ValidationError(_('Время окончания должно быть позже начала.'))
 
-    @api.constrains('faculty_id', 'start_datetime', 'end_datetime', 'classroom_id', 'batch_id')
-    def _check_conflicts(self):
-        for rec in self:
-            if rec.state == 'cancel': continue
-            domain = [('id', '!=', rec.id), ('state', '!=', 'cancel'), ('start_datetime', '<', rec.end_datetime), ('end_datetime', '>', rec.start_datetime)]
-            # if self.search_count(domain + [('faculty_id', '=', rec.faculty_id.id)]):
-            #     raise ValidationError(_('Учитель %s занят!') % rec.faculty_id.name)
-            # if self.search_count(domain + [('batch_id', '=', rec.batch_id.id)]):
-            #     raise ValidationError(_('Группа %s занята!') % rec.batch_id.name)
-            # if rec.classroom_id and self.search_count(domain + [('classroom_id', '=', rec.classroom_id.id)]):
-            #     raise ValidationError(_('Кабинет %s занят!') % rec.classroom_id.name)
-
+    # --- МЕТОДЫ СОСТОЯНИЙ ---
+    def lecture_draft(self): self.write({'state': 'draft'})
+    def lecture_confirm(self): self.write({'state': 'confirm'})
+    def lecture_start(self): self.write({'state': 'start'})
+    def lecture_done(self): self.write({'state': 'done'})
+    def lecture_cancel(self): self.write({'state': 'cancel'})
+    def lecture_edit(self): self.write({'state': 'start'})
 
     def write(self, vals):
-        if 'start_datetime' in vals and vals.get('start_datetime'):
-            # 1. Время, которое пришло из браузера (всегда UTC)
-            new_start_utc = fields.Datetime.to_datetime(vals['start_datetime'])
-            
-            # 2. Переводим в часовой пояс ШКОЛЫ (Москва)
-            school_tz = pytz.timezone('Europe/Moscow')
-            local_dt = pytz.utc.localize(new_start_utc).astimezone(school_tz)
-            
-            # 3. Ищем ближайший урок в справочнике
-            target_min = local_dt.hour * 60 + local_dt.minute
-            all_timings = self.env['op.timing'].search([])
-            
-            if all_timings:
-                best_match = min(all_timings, key=lambda t: abs(target_min - (t.lesson_hour * 60 + t.lesson_minute)))
+        for rec in self:
+            # 1. Если карточку ПЕРЕТАСКИВАЮТ (пришло только время начала)
+            if 'start_datetime' in vals and 'timing_id' not in vals:
+                sync_data = rec._sync_time_values(start_dt=vals['start_datetime'])
+                vals.update(sync_data)
+
+            # 2. Если меняют УРОК или ДАТУ в форме
+            # Мы принудительно пересчитываем ВСЕ поля времени, чтобы календарь "проснулся"
+            elif 'timing_id' in vals or 'timetable_date' in vals:
+                t_id = vals.get('timing_id', rec.timing_id.id)
+                d_val = vals.get('timetable_date', rec.timetable_date)
                 
-                # 4. Вычисляем точное время начала и конца по МСК
-                corrected_local = local_dt.replace(
-                    hour=best_match.lesson_hour, 
-                    minute=best_match.lesson_minute, 
-                    second=0, microsecond=0
-                )
-                # Переводим обратно в UTC для записи в базу
-                corrected_utc = corrected_local.astimezone(pytz.utc).replace(tzinfo=None)
-                
-                vals.update({
-                    'timing_id': best_match.id,
-                    'start_datetime': fields.Datetime.to_string(corrected_utc),
-                    'end_datetime': fields.Datetime.to_string(corrected_utc + datetime.timedelta(minutes=best_match.duration)),
-                    # ДАТА теперь тоже считается по Москве!
-                    'timetable_date': corrected_local.date()
-                })
-        
-        return super().write(vals)
+                if t_id and d_val:
+                    # Получаем полный набор данных от Миксина (start, end, date, slot)
+                    sync_data = rec._sync_time_values(timing_id=t_id, date_val=d_val)
+                    vals.update(sync_data)
+
+        return super(OpSession, self).write(vals)
+
+    @api.onchange('timing_id', 'timetable_date', 'start_datetime')
+    def _onchange_time_sync(self):
+        """Двусторонняя связь полей в интерфейсе"""
+        # Если пользователь вручную ввел время или дату
+        if self.start_datetime:
+            # Если изменили именно время начала (ввод руками)
+            res = self._sync_time_values(
+                start_dt=self.start_datetime,
+                timing_id=self.timing_id.id if self.timing_id else False,
+                date_val=self.timetable_date
+            )
+            # Обновляем поля в UI. В Odoo 18 важно использовать update()
+            self.update(res)

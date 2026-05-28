@@ -129,7 +129,7 @@
                     date_start="start_datetime" 
                     date_stop="end_datetime"
                     color="color"
-                    mode="week"
+                    mode="week"                    
                     event_open_popup="false">                
                 <field name="course_id" filters="1"/>
                 <field name="faculty_id" avatar_field="image_128" filters="1"/>                
@@ -337,14 +337,5 @@
             'graph_stacked': True,
             'graph_mode': 'bar'
         }</field>
-    </record>
-
-    <record id="act_open_op_timing_view" model="ir.actions.act_window">
-        <field name="name">Lesson Slots</field>
-        <field name="type">ir.actions.act_window</field>
-        <field name="res_model">op.timing</field>
-        <field name="view_mode">list,form</field>
-        <field name="search_view_id" ref="view_op_timing_search" />
-        <field name="domain">[]</field>
-    </record>
+    </record>    
 </odoo>
