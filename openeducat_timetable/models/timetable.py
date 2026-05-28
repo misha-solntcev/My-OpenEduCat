@@ -75,9 +75,17 @@ class OpSession(models.Model):
     
     # Вспомогательные поля
     active = fields.Boolean(default=True)
-    color = fields.Integer(related='subject_id.color', store=True, readonly=True)
+    color = fields.Integer(
+        string='Цвет карточки', 
+        compute='_compute_session_color', 
+        store=True
+    )
+
     faculty_subject_ids = fields.Many2many('op.subject', related='faculty_id.faculty_subject_ids')
     user_ids = fields.Many2many('res.users', string='Allowed Users', compute='_compute_user_ids', store=True)
+
+    allow_overlap = fields.Boolean("Разрешить наложение", default=False, tracking=True)
+    has_conflict = fields.Boolean("Конфликт", compute='_compute_conflict_data', store=True)    
 
     state = fields.Selection([
         ('draft', 'Черновик'), 
@@ -88,6 +96,18 @@ class OpSession(models.Model):
     ], string='Status', default='draft', tracking=True, index=True)
 
     # --- ЛОГИКА ВЫЧИСЛЕНИЙ ---
+
+    @api.depends('has_conflict', 'allow_overlap', 'subject_id.color')
+    def _compute_session_color(self):
+        for rec in self:
+            # 1. Сначала проверяем: есть ли неразрешенный конфликт?
+            if rec.has_conflict and not rec.allow_overlap:
+                rec.color = 1  # Принудительно КРАСНЫЙ (индекс 1 в Odoo)
+            else:
+                # 2. Если конфликта нет (или он разрешен), 
+                # читаем тот самый настроенный цвет из предмета
+                # Это то же самое, что делал related, но теперь через наш код
+                rec.color = rec.subject_id.color or 0
 
     @api.depends('faculty_id.name')
     def _compute_faculty_surname(self):
@@ -151,13 +171,7 @@ class OpSession(models.Model):
             local_start = local_tz.localize(naive_start)
             self.start_datetime = local_start.astimezone(pytz.utc).replace(tzinfo=None)
             self.end_datetime = (local_start + datetime.timedelta(minutes=self.timing_id.duration)).astimezone(pytz.utc).replace(tzinfo=None)
-
-    @api.constrains('start_datetime', 'end_datetime')
-    def _check_date_time(self):
-        for rec in self:
-            if rec.start_datetime and rec.end_datetime and rec.start_datetime >= rec.end_datetime:
-                raise ValidationError(_('Время окончания должно быть позже начала.'))
-
+    
     # --- МЕТОДЫ СОСТОЯНИЙ ---
     def lecture_draft(self): self.write({'state': 'draft'})
     def lecture_confirm(self): self.write({'state': 'confirm'})
@@ -166,25 +180,23 @@ class OpSession(models.Model):
     def lecture_cancel(self): self.write({'state': 'cancel'})
     def lecture_edit(self): self.write({'state': 'start'})
 
-    def write(self, vals):
-        for rec in self:
-            # 1. Если карточку ПЕРЕТАСКИВАЮТ (пришло только время начала)
-            if 'start_datetime' in vals and 'timing_id' not in vals:
-                sync_data = rec._sync_time_values(start_dt=vals['start_datetime'])
-                vals.update(sync_data)
-
-            # 2. Если меняют УРОК или ДАТУ в форме
-            # Мы принудительно пересчитываем ВСЕ поля времени, чтобы календарь "проснулся"
-            elif 'timing_id' in vals or 'timetable_date' in vals:
-                t_id = vals.get('timing_id', rec.timing_id.id)
-                d_val = vals.get('timetable_date', rec.timetable_date)
+    def write(self, vals):        
+        if any(f in vals for f in ('start_datetime', 'timing_id', 'timetable_date')):
+            for rec in self:
+                vals.update(rec._sync_time_values(
+                    start_dt=vals.get('start_datetime'),
+                    timing_id=vals.get('timing_id'),
+                    date_val=vals.get('timetable_date')
+                ))
                 
-                if t_id and d_val:
-                    # Получаем полный набор данных от Миксина (start, end, date, slot)
-                    sync_data = rec._sync_time_values(timing_id=t_id, date_val=d_val)
-                    vals.update(sync_data)
-
-        return super(OpSession, self).write(vals)
+        res = super(OpSession, self).write(vals)
+        
+        if not self._context.get('skip_refresh'):
+            self.env['bus.bus']._sendone(self.env.user.partner_id, 'notification', {
+                'type': 'refresh',
+                'model': self._name,
+            })
+        return res
 
     @api.onchange('timing_id', 'timetable_date', 'start_datetime')
     def _onchange_time_sync(self):
@@ -199,3 +211,88 @@ class OpSession(models.Model):
             )
             # Обновляем поля в UI. В Odoo 18 важно использовать update()
             self.update(res)
+    
+
+    @api.depends('start_datetime', 'end_datetime', 'faculty_id', 'batch_id', 'classroom_id', 'state')
+    def _compute_conflict_data(self):
+        """Вычисляет наличие конфликта для базы данных"""
+        for rec in self:
+            if rec.state == 'cancel' or not rec.start_datetime or not rec.end_datetime:
+                rec.has_conflict = False
+                continue           
+            
+            conflicts = rec._get_conflict_list(ignore_settings=True)
+            rec.has_conflict = bool(conflicts)
+
+    @api.onchange('start_datetime', 'end_datetime', 'faculty_id', 'batch_id', 'classroom_id')
+    def _onchange_check_conflicts_ui(self):
+        """Принудительное обновление флага конфликта для интерфейса"""
+        for rec in self:
+            if rec.start_datetime and rec.end_datetime:
+                # Ищем любые наложения (игнорируя настройки блокировки)
+                conflicts = rec._get_conflict_list(ignore_settings=True)
+                rec.has_conflict = bool(conflicts)
+            else:
+                rec.has_conflict = False
+
+    def _get_conflict_list(self, ignore_settings=False):
+        self.ensure_one()
+        get_param = self.env['ir.config_parameter'].sudo().get_param
+        
+        # Если ignore_settings=True, ищем всё (для красного цвета)
+        # Если False, ищем только то, что заблокировано в настройках
+        check_f = True if ignore_settings else get_param('timetable.is_faculty_constraint') == 'True'
+        check_b = True if ignore_settings else get_param('timetable.is_batch_constraint') == 'True'
+        check_c = True if ignore_settings else get_param('timetable.is_classroom_constraint') == 'True'
+
+        domain = [
+            ('id', '!=', self._origin.id or self.id),
+            ('state', '!=', 'cancel'),
+            ('start_datetime', '<', self.end_datetime),
+            ('end_datetime', '>', self.start_datetime),
+        ]
+        
+        conflicts = []
+        def fmt_msg(s):
+            st = s._convert_to_local(s.start_datetime).strftime('%H:%M')
+            return f"   • {s.subject_id.name} ({s.batch_id.name}) в {st}, каб. {s.classroom_id.name or '?'}"
+
+        if check_f and self.faculty_id:
+            res = self.search(domain + [('faculty_id', '=', self.faculty_id.id)])
+            if res:
+                conflicts.append(_("УЧИТЕЛЬ %s:") % self.faculty_id.name)
+                conflicts.extend([fmt_msg(s) for s in res])
+        
+        if check_b and self.batch_id:
+            res = self.search(domain + [('batch_id', '=', self.batch_id.id)])
+            if res:
+                conflicts.append(_("ГРУППА %s:") % self.batch_id.name)
+                conflicts.extend([fmt_msg(s) for s in res])
+
+        if check_c and self.classroom_id:
+            res = self.search(domain + [('classroom_id', '=', self.classroom_id.id)])
+            if res:
+                conflicts.append(_("КАБИНЕТ %s:") % self.classroom_id.name)
+                conflicts.extend([fmt_msg(s) for s in res])
+        return conflicts
+
+    @api.constrains('faculty_id', 'batch_id', 'classroom_id', 'start_datetime', 'end_datetime', 'state', 'allow_overlap')
+    def _check_all_session_constraints(self):
+        for rec in self:
+            if rec.state == 'cancel' or not rec.start_datetime or not rec.end_datetime:
+                continue
+
+            if rec.start_datetime >= rec.end_datetime:
+                raise ValidationError(_("Время окончания не может быть раньше начала!"))
+
+            # Проверка блокировки
+            conflicts = rec._get_conflict_list(ignore_settings=False)
+            if conflicts and not rec.allow_overlap:
+                header = _("🛑 БЛОКИРОВКА: КОНФЛИКТ РЕСУРСОВ\n\n")
+                raise ValidationError(header + "\n".join(conflicts) + 
+                    _("\n\nДля подтверждения наложения включите 'Разрешить наложение' в форме урока."))
+            
+            # Лог в чат
+            all_actual = rec._get_conflict_list(ignore_settings=True)
+            if all_actual and not rec._context.get('skip_message_post'):
+                rec.message_post(body=_("<b>Внимание:</b> Урок сохранен с наложением на:<br/>%s") % "<br/>".join(all_actual))

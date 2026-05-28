@@ -7,3 +7,31 @@
     font-size: 13px !important; /* Размер шрифта */    
     line-height: 1 !important;
 }
+
+
+
+/* Делаем цвет №1 (конфликт) сигнально-красным с пульсацией */
+.o_calendar_view .fc-event.o_calendar_color_1,
+.o_calendar_view .fc-event[data-color='1'] {
+    background-color: #ff3b3b !important; 
+    border: 1px solid #8b0000 !important; 
+    z-index: 10 !important; 
+    animation: pulse-red 2s infinite !important;
+}
+
+/* Анимация пульсации: меняем тень и насыщенность */
+@keyframes pulse-red {
+    0% {
+        box-shadow: 0 0 0 0 rgba(255, 59, 59, 1);
+        filter: brightness(1);
+    }
+    50% {
+        box-shadow: 0 0 15px 5px rgba(255, 59, 59, 0.5);
+        filter: brightness(1.2); /* Слегка вспыхивает */
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(255, 59, 59, 0);
+        filter: brightness(1);
+    }
+}
+

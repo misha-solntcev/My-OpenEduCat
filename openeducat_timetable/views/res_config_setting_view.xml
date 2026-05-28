@@ -3,58 +3,44 @@
     <record id="res_config_settings_view_form_timetable" model="ir.ui.view">
         <field name="name">res.config.settings.view.form.timetable</field>
         <field name="model">res.config.settings</field>
-        <field name="priority" eval="40"/>
+        <field name="priority" eval="50"/>
         <field name="inherit_id" ref="openeducat_core.res_config_settings_view_form_core"/>
         <field name="arch" type="xml">
-            <xpath expr="//div[@id='timetable_constraints']" position="inside">
-                    <div class="col-12 col-lg-6 o_setting_box">
-                        <div class="o_setting_left_pane">
-                            <field name="is_batch_constraint"/>
-                        </div>
-                        <div class="o_setting_right_pane">
-                            <label for="is_batch_constraint"/>
-                            <span class="fa fa-info-circle" title="Openeducat Enterprise Module"/>
-                            <div class="text-muted">
-                                Selecting this option will prevent session creation for the same batch, even if it's for a different subject.
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-12 col-lg-6 o_setting_box">
-                        <div class="o_setting_left_pane">
-                            <field name="is_batch_and_subject_constraint"/>
-                        </div>
-                        <div class="o_setting_right_pane">
-                            <label for="is_batch_and_subject_constraint"/>
-                            <span class="fa fa-info-circle" title="Openeducat Enterprise Module"/>
-                            <div class="text-muted">
-                                Selecting this option will prevent session creation for the same batch and subject on the same date and time.
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-12 col-lg-6 o_setting_box">
-                        <div class="o_setting_left_pane">
-                            <field name="is_classroom_constraint"/>
-                        </div>
-                        <div class="o_setting_right_pane">
-                            <label for="is_classroom_constraint"/>
-                            <span class="fa fa-info-circle" title="Openeducat Enterprise Module"/>
-                            <div class="text-muted">
-                                Selecting this option will prevent session creation in the same classroom on the same date and time
-                            </div>
-                        </div>
-                    </div>
+            <!-- Мы вставляем настройки в самый конец блока OpenEduCat -->
+            <xpath expr="//app[@name='openeducat_core']" position="inside">
+                <h2 class="mt32">Timetable Constraints (Community)</h2>
+                <div class="row mt16 o_settings_container">
+                    <!-- Учитель -->
                     <div class="col-12 col-lg-6 o_setting_box">
                         <div class="o_setting_left_pane">
                             <field name="is_faculty_constraint"/>
                         </div>
                         <div class="o_setting_right_pane">
-                            <label for="is_faculty_constraint"/>
-                            <span class="fa fa-info-circle" title="Openeducat Enterprise Module"/>
-                            <div class="text-muted">
-                                Selecting this option will prevent session creation with the same faculty on the same date and time.
-                            </div>
+                            <label for="is_faculty_constraint" string="Контроль учителей"/>
+                            <div class="text-muted">Запретить пересечения для преподавателей.</div>
                         </div>
                     </div>
+                    <!-- Класс -->
+                    <div class="col-12 col-lg-6 o_setting_box">
+                        <div class="o_setting_left_pane">
+                            <field name="is_batch_constraint"/>
+                        </div>
+                        <div class="o_setting_right_pane">
+                            <label for="is_batch_constraint" string="Контроль групп (классов)"/>
+                            <div class="text-muted">Запретить два урока одновременно в одном классе.</div>
+                        </div>
+                    </div>
+                    <!-- Кабинет -->
+                    <div class="col-12 col-lg-6 o_setting_box">
+                        <div class="o_setting_left_pane">
+                            <field name="is_classroom_constraint"/>
+                        </div>
+                        <div class="o_setting_right_pane">
+                            <label for="is_classroom_constraint" string="Контроль кабинетов"/>
+                            <div class="text-muted">Запретить занимать один кабинет разными уроками.</div>
+                        </div>
+                    </div>
+                </div>
             </xpath>
         </field>
     </record>
