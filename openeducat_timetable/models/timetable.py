@@ -24,14 +24,7 @@ class OpTiming(models.Model):
     lesson_minute = fields.Integer('Минуты', required=True)
     duration = fields.Integer('Продолжительность', default=40)
     sequence = fields.Integer('Последовательность', default=10)
-
-    def _compute_display_name(self):
-        for rec in self:
-            start = f"{rec.lesson_hour:02d}:{rec.lesson_minute:02d}"
-            total_min = rec.lesson_hour * 60 + rec.lesson_minute + rec.duration
-            h_e, m_e = divmod(total_min, 60)
-            rec.display_name = f"{rec.name} ({start} - {int(h_e):02d}:{int(m_e):02d})"
-
+        
 
 class OpSession(models.Model):
     _name = "op.session"
