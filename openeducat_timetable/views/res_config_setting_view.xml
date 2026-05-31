@@ -6,38 +6,37 @@
         <field name="priority" eval="50"/>
         <field name="inherit_id" ref="openeducat_core.res_config_settings_view_form_core"/>
         <field name="arch" type="xml">
-            <!-- Мы вставляем настройки в самый конец блока OpenEduCat -->
-            <xpath expr="//app[@name='openeducat_core']" position="inside">
-                <h2 class="mt32">Timetable Constraints (Community)</h2>
-                <div class="row mt16 o_settings_container">
-                    <!-- Учитель -->
-                    <div class="col-12 col-lg-6 o_setting_box">
-                        <div class="o_setting_left_pane">
-                            <field name="is_faculty_constraint"/>
-                        </div>
-                        <div class="o_setting_right_pane">
-                            <label for="is_faculty_constraint" string="Контроль учителей"/>
-                            <div class="text-muted">Запретить пересечения для преподавателей.</div>
+            <xpath expr="//div[@id='timetable_constraints']" position="after">
+                <div class="col-12 col-lg-6 o_setting_box">
+                    <div class="o_setting_left_pane">
+                        <field name="prevent_faculty_overlap"/>
+                    </div>
+                    <div class="o_setting_right_pane">
+                        <label for="prevent_faculty_overlap" string="Запретить совмещение учителя"/>
+                        <div class="text-muted">
+                            Запретить назначать одного учителя на несколько уроков одновременно.
                         </div>
                     </div>
-                    <!-- Класс -->
-                    <div class="col-12 col-lg-6 o_setting_box">
-                        <div class="o_setting_left_pane">
-                            <field name="is_batch_constraint"/>
-                        </div>
-                        <div class="o_setting_right_pane">
-                            <label for="is_batch_constraint" string="Контроль групп (классов)"/>
-                            <div class="text-muted">Запретить два урока одновременно в одном классе.</div>
+                </div>
+                <div class="col-12 col-lg-6 o_setting_box">
+                    <div class="o_setting_left_pane">
+                        <field name="prevent_batch_overlap"/>
+                    </div>
+                    <div class="o_setting_right_pane">
+                        <label for="prevent_batch_overlap" string="Запретить совмещение класса"/>
+                        <div class="text-muted">
+                            Запретить назначать один класс на несколько уроков одновременно.
                         </div>
                     </div>
-                    <!-- Кабинет -->
-                    <div class="col-12 col-lg-6 o_setting_box">
-                        <div class="o_setting_left_pane">
-                            <field name="is_classroom_constraint"/>
-                        </div>
-                        <div class="o_setting_right_pane">
-                            <label for="is_classroom_constraint" string="Контроль кабинетов"/>
-                            <div class="text-muted">Запретить занимать один кабинет разными уроками.</div>
+                </div>
+                <div class="col-12 col-lg-6 o_setting_box">
+                    <div class="o_setting_left_pane">
+                        <field name="prevent_classroom_overlap"/>
+                    </div>
+                    <div class="o_setting_right_pane">
+                        <label for="prevent_classroom_overlap" string="Запретить совмещение кабинета"/>
+                        <div class="text-muted">
+                            Запретить занимать один кабинет разными уроками одновременно.
                         </div>
                     </div>
                 </div>

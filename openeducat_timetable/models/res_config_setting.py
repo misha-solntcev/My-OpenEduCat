@@ -1,20 +1,17 @@
 from odoo import fields, models
 
+
 class ResConfigSettings(models.TransientModel):
     _inherit = 'res.config.settings'
-    
-    is_faculty_constraint = fields.Boolean(
-        string="Faculty Constraint",
-        config_parameter='timetable.is_faculty_constraint')
-    
-    is_classroom_constraint = fields.Boolean(
-        string="Classroom Constraint",
-        config_parameter='timetable.is_classroom_constraint')
-    
-    is_batch_constraint = fields.Boolean(
-        string="Batch Constraint",
-        config_parameter='timetable.is_batch_constraint')
 
-    is_batch_and_subject_constraint = fields.Boolean(
-        string="Batch and Subject Constraint",
-        config_parameter='timetable.is_batch_and_subject_constraint')
+    prevent_faculty_overlap = fields.Boolean(
+        string="Запретить совмещение учителя",
+        config_parameter='timetable.prevent_faculty_overlap')
+
+    prevent_classroom_overlap = fields.Boolean(
+        string="Запретить совмещение кабинета",
+        config_parameter='timetable.prevent_classroom_overlap')
+
+    prevent_batch_overlap = fields.Boolean(
+        string="Запретить совмещение класса",
+        config_parameter='timetable.prevent_batch_overlap')
