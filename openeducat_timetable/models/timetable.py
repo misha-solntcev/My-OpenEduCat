@@ -80,6 +80,20 @@ class OpSession(models.Model):
     has_conflict = fields.Boolean(
         "Конфликт", compute='_compute_has_conflict', store=False)
 
+    conflict_override = fields.Boolean(
+        string="Конфликт утверждён",
+        default=False,
+        tracking=True,
+        help="Отметьте, если наложение уроков является осознанным выбором "
+             "и не является ошибкой. Карточка перестанет быть красной.",
+    )
+
+    conflict_details_html = fields.Html(
+        string="Детали конфликта",
+        compute='_compute_conflict_details_html',
+        store=False,
+    )
+
     state = fields.Selection([
         ('draft', 'Черновик'),
         ('confirm', 'Утвержден'),
@@ -92,10 +106,10 @@ class OpSession(models.Model):
     # COMPUTE METHODS
     # ---------------------------------------------------------------
 
-    @api.depends('has_conflict', 'subject_id.color')
+    @api.depends('has_conflict', 'subject_id.color', 'conflict_override')
     def _compute_session_color(self):
         for rec in self:
-            if rec.has_conflict:
+            if rec.has_conflict and not rec.conflict_override:
                 rec.color = 1  # red
             else:
                 rec.color = rec.subject_id.color or 0
@@ -109,6 +123,35 @@ class OpSession(models.Model):
                 continue
             conflicts = rec._find_overlapping_sessions()
             rec.has_conflict = bool(conflicts)
+
+    @api.depends('has_conflict', 'faculty_id', 'batch_id', 'classroom_id',
+                 'start_datetime', 'end_datetime')
+    def _compute_conflict_details_html(self):
+        """Build HTML list of conflicting resources for the banner."""
+        for rec in self:
+            if not rec.has_conflict:
+                rec.conflict_details_html = ''
+                continue
+            conflicts = rec._find_overlapping_sessions()
+            items = []
+            if rec.faculty_id and conflicts.filtered(
+                    lambda s: s.faculty_id == rec.faculty_id):
+                items.append(
+                    '<li>учитель: <strong>%s</strong> уже ведёт урок в это время</li>'
+                    % rec.faculty_id.name)
+            if rec.classroom_id and conflicts.filtered(
+                    lambda s: s.classroom_id == rec.classroom_id):
+                items.append(
+                    '<li>кабинет: <strong>%s</strong> занят</li>'
+                    % rec.classroom_id.name)
+            if rec.batch_id and conflicts.filtered(
+                    lambda s: s.batch_id == rec.batch_id):
+                items.append(
+                    '<li>класс: у <strong>%s</strong> класса уже есть урок в это время</li>'
+                    % rec.batch_id.name)
+            rec.conflict_details_html = (
+                '<ul class="mb-0 ps-3">%s</ul>' % ''.join(items)
+            ) if items else ''
 
     @api.depends('faculty_id.name')
     def _compute_faculty_surname(self):
@@ -215,8 +258,8 @@ class OpSession(models.Model):
     # ---------------------------------------------------------------
 
     def write(self, vals):
-        """Override: when start_datetime/timing_id/timetable_date changes,
-        snap time to the nearest grid slot via _sync_time_values."""
+        """Override: snap time to grid + reset conflict override
+        when conflict-relevant fields change."""
         if any(f in vals for f in ('start_datetime', 'timing_id', 'timetable_date')):
             for rec in self:
                 sync = rec._sync_time_values(
@@ -226,6 +269,15 @@ class OpSession(models.Model):
                 )
                 if sync:
                     vals.update(sync)
+        # Reset conflict_override if time or resources changed
+        # (unless user is explicitly setting it to True right now)
+        _RESET_FIELDS = {
+            'start_datetime', 'end_datetime',
+            'faculty_id', 'batch_id', 'classroom_id',
+            'timing_id', 'timetable_date',
+        }
+        if vals.get('conflict_override') is not True and _RESET_FIELDS.intersection(vals):
+            vals['conflict_override'] = False
         return super(OpSession, self).write(vals)
 
     # ---------------------------------------------------------------

@@ -87,6 +87,30 @@
                         </h1>
                     </div>
 
+                    <!-- Conflict banner: shown only when session has unapproved conflict -->
+                    <field name="has_conflict" invisible="1"/>
+                    <div class="alert alert-danger mb-3" role="alert"
+                         invisible="not has_conflict or conflict_override">
+                        <div class="d-flex gap-3">
+                            <div class="flex-grow-1">
+                                <div class="fw-bold mb-1">
+                                    <span class="fa fa-exclamation-triangle me-1"
+                                          aria-hidden="true"/>
+                                    Обнаружен конфликт ресурсов:
+                                </div>
+                                <field name="conflict_details_html"
+                                       readonly="1" widget="html"/>
+                            </div>
+                            <div class="d-flex align-items-center gap-2 flex-shrink-0">
+                                <label for="conflict_override"
+                                       class="fw-semibold mb-0"
+                                       string="Разрешить совмещение"/>
+                                <field name="conflict_override"
+                                       widget="boolean_toggle"/>
+                            </div>
+                        </div>
+                    </div>
+
                     <group>
                         <group>
                             <field name="faculty_id" widget="many2one_avatar_user"
