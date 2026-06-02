@@ -78,7 +78,7 @@ class OpSession(models.Model):
     user_ids = fields.Many2many('res.users', string='Allowed Users', compute='_compute_user_ids', store=True)
 
     has_conflict = fields.Boolean(
-        "Конфликт", compute='_compute_has_conflict', store=False)
+        "Конфликт", compute='_compute_has_conflict', store=True)
 
     conflict_override = fields.Boolean(
         string="Конфликт утверждён",
@@ -109,10 +109,7 @@ class OpSession(models.Model):
     @api.depends('has_conflict', 'subject_id.color', 'conflict_override')
     def _compute_session_color(self):
         for rec in self:
-            if rec.has_conflict and not rec.conflict_override:
-                rec.color = 1  # red
-            else:
-                rec.color = rec.subject_id.color or 0
+            rec.color = 1 if (rec.has_conflict and not rec.conflict_override) else rec.subject_id.color or 0
 
     @api.depends('start_datetime', 'end_datetime', 'faculty_id',
                  'batch_id', 'classroom_id', 'state')
@@ -133,25 +130,16 @@ class OpSession(models.Model):
                 rec.conflict_details_html = ''
                 continue
             conflicts = rec._find_overlapping_sessions()
-            items = []
-            if rec.faculty_id and conflicts.filtered(
-                    lambda s: s.faculty_id == rec.faculty_id):
-                items.append(
-                    '<li>учитель: <strong>%s</strong> уже ведёт урок в это время</li>'
-                    % rec.faculty_id.name)
-            if rec.classroom_id and conflicts.filtered(
-                    lambda s: s.classroom_id == rec.classroom_id):
-                items.append(
-                    '<li>кабинет: <strong>%s</strong> занят</li>'
-                    % rec.classroom_id.name)
-            if rec.batch_id and conflicts.filtered(
-                    lambda s: s.batch_id == rec.batch_id):
-                items.append(
-                    '<li>класс: у <strong>%s</strong> класса уже есть урок в это время</li>'
-                    % rec.batch_id.name)
-            rec.conflict_details_html = (
-                '<ul class="mb-0 ps-3">%s</ul>' % ''.join(items)
-            ) if items else ''
+            parts = []
+            for s in conflicts:
+                if s.faculty_id == rec.faculty_id:
+                    parts.append('<li>учитель: <strong>%s</strong> уже ведёт урок</li>' % s.faculty_id.name)
+                if s.classroom_id == rec.classroom_id:
+                    parts.append('<li>кабинет: <strong>%s</strong> занят</li>' % s.classroom_id.name)
+                if s.batch_id == rec.batch_id:
+                    parts.append('<li>класс: у <strong>%s</strong> уже есть урок</li>' % s.batch_id.name)
+            rec.conflict_details_html = '<ul class="mb-0 ps-3">%s</ul>' % ''.join(parts) if parts else ''
+
 
     @api.depends('faculty_id.name')
     def _compute_faculty_surname(self):
@@ -161,13 +149,10 @@ class OpSession(models.Model):
             else:
                 rec.faculty_surname = ""
 
-    @api.depends('subject_id', 'batch_id', 'faculty_id')
+    @api.depends('subject_id', 'batch_id', 'faculty_surname')
     def _compute_name(self):
         for rec in self:
-            subj = rec.subject_id.name or ''
-            batch = rec.batch_id.name or ''
-            faculty = rec.faculty_id.name.split()[0] if rec.faculty_id.name else ''
-            rec.name = f"{subj} - {batch} - {faculty}"
+            rec.name = f"{rec.subject_id.name or ''} - {rec.batch_id.name or ''} - {rec.faculty_surname or ''}"
 
     @api.depends('start_datetime', 'end_datetime')
     def _compute_timing(self):
@@ -318,20 +303,21 @@ class OpSession(models.Model):
                     lambda s: s.batch_id.id == rec.batch_id.id)
 
             if blocking:
-                # Build per-resource conflict lines
+                # Build per-resource conflict lines (single pass)
                 conflict_lines = []
-                if prevent_faculty and rec.faculty_id and blocking.filtered(lambda s: s.faculty_id.id == rec.faculty_id.id):
-                    conflict_lines.append(
-                        "- учитель: %s уже ведёт урок в это время"
-                        % rec.faculty_id.name)
-                if prevent_classroom and rec.classroom_id and blocking.filtered(lambda s: s.classroom_id.id == rec.classroom_id.id):
-                    conflict_lines.append(
-                        "- кабинет: %s занят"
-                        % rec.classroom_id.name)
-                if prevent_batch and rec.batch_id and blocking.filtered(lambda s: s.batch_id.id == rec.batch_id.id):
-                    conflict_lines.append(
-                        "- класс: у %s класса уже есть урок в это время"
-                        % rec.batch_id.name)
+                for s in blocking:
+                    if prevent_faculty and s.faculty_id == rec.faculty_id:
+                        conflict_lines.append(
+                            "- учитель: %s уже ведёт урок в это время"
+                            % rec.faculty_id.name)
+                    if prevent_classroom and s.classroom_id == rec.classroom_id:
+                        conflict_lines.append(
+                            "- кабинет: %s занят"
+                            % rec.classroom_id.name)
+                    if prevent_batch and s.batch_id == rec.batch_id:
+                        conflict_lines.append(
+                            "- класс: у %s класса уже есть урок в это время"
+                            % rec.batch_id.name)
                 conflict_body = "\n".join(conflict_lines)
 
                 raise UserError(
@@ -348,33 +334,22 @@ class OpSession(models.Model):
 
     def _find_overlapping_sessions(self):
         self.ensure_one()
-        if not self.start_datetime or not self.end_datetime:
+        if not (self.start_datetime and self.end_datetime):
             return self.env['op.session']
-
         domain = [
             ('id', '!=', self._origin.id or self.id),
             ('state', '!=', 'cancel'),
             ('start_datetime', '<', self.end_datetime),
             ('end_datetime', '>', self.start_datetime),
         ]
-        resource_filters = []
-        if self.faculty_id:
-            resource_filters.append(('faculty_id', '=', self.faculty_id.id))
-        if self.batch_id:
-            resource_filters.append(('batch_id', '=', self.batch_id.id))
-        if self.classroom_id:
-            resource_filters.append(('classroom_id', '=', self.classroom_id.id))
-
-        if not resource_filters:
+        resources = []
+        for field_name in ('faculty_id', 'batch_id', 'classroom_id'):
+            if self[field_name]:
+                resources.append((field_name, '=', self[field_name].id))
+        if not resources:
             return self.env['op.session']
-
-        if len(resource_filters) == 1:
-            full_domain = domain + resource_filters
-        else:
-            or_prefix = ['|'] * (len(resource_filters) - 1)
-            full_domain = domain + or_prefix + resource_filters
-
-        return self.search(full_domain)
+        or_prefix = ['|'] * (len(resources) - 1)
+        return self.search(domain + or_prefix + resources)
 
     # ---------------------------------------------------------------
     # ACTIONS (state machine)

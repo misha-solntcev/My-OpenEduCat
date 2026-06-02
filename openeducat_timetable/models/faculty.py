@@ -8,9 +8,8 @@ class OpFaculty(models.Model):
 
     @api.depends('session_ids')
     def _compute_session_details(self):
-        for session in self:
-            session.session_count = self.env['op.session'].search_count(
-                [('faculty_id', '=', self.id)])
+        for rec in self:
+            rec.session_count = len(rec.session_ids)
 
     def count_sessions_details(self):
         return {

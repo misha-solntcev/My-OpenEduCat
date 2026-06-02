@@ -35,3 +35,31 @@
     }
 }
 
+/* === KANBAN CONFLICT RIBBON === */
+.conflict-ribbon-wrap .ribbon {
+    position: absolute;
+    top: 0;
+    right: 0;
+    z-index: 10;
+    overflow: hidden;
+    width: 100px;
+    height: 100px;
+    pointer-events: none;
+}
+.conflict-ribbon-wrap .ribbon-top-right span {
+    position: absolute;
+    display: block;
+    width: 140px;
+    padding: 2px 0;
+    background-color: #dc3545;
+    color: #fff;
+    font-size: 10px;
+    font-weight: 700;
+    text-align: center;
+    text-transform: uppercase;
+    transform: rotate(45deg);
+    transform-origin: 0 0;
+    top: 20px;
+    right: -10px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}

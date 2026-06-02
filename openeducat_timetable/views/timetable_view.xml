@@ -173,9 +173,12 @@
         <field name="model">op.session</field>
         <field name="arch" type="xml">
             <kanban default_group_by="days_id" class="o_kanban_small_column" sample="1"
-                quick_create="false" default_order="start_datetime asc, batch_id, id">
+                quick_create="false" default_order="start_datetime asc, batch_id, id"
+                draggable="1">
                 <field name="color" />
                 <field name="state" />
+                <field name="has_conflict" />
+                <field name="conflict_override" />
                 <field name="days_id" />
                 <field name="start_datetime" />
                 <field name="subject_id" />
@@ -183,11 +186,15 @@
                 <field name="batch_id" />
                 <templates>
                     <t t-name="card">
-                        <div
-                            t-attf-class="#{kanban_color(record.color.raw_value)} oe_kanban_global_click shadow-sm p-2"
-                            style="min-height: unset;">
+                        <div class="oe_kanban_global_click shadow-sm p-2"
+                             style="min-height: unset; position: relative; overflow: hidden;"
+                             t-attf-class="#{kanban_color(record.color.raw_value)}">
 
-                            <div class="d-flex align-items-start justify-content-between mb-1">
+                            <!-- Conflict ribbon (top-right corner) -->
+                            <div t-if="record.has_conflict.raw_value and !record.conflict_override.raw_value"
+                                 style="position: absolute; top: 20px; right: -38px; z-index: 2; pointer-events: none; transform: rotate(45deg); transform-origin: center;">
+                                <span class="bg-danger text-white px-4 py-1" style="display: inline-block; min-width: 140px; text-align: center; font-size: 0.75rem; font-weight: 700;">КОНФЛИКТ</span>
+                            </div>
                                 <div class="d-flex flex-column text-truncate">
                                     <strong class="o_kanban_record_title text-primary text-truncate"
                                         style="font-size: 0.9rem; line-height: 1.1;">
@@ -229,7 +236,6 @@
                                         decoration-danger="state == 'cancel'" />
                                 </div>
                             </div>
-                        </div>
                     </t>
                 </templates>
             </kanban>
