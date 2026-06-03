@@ -84,6 +84,8 @@
                         invisible="active" />
                     <widget name="web_ribbon" title="КОНФЛИКТ" bg_color="text-bg-danger"
                         invisible="not has_conflict or conflict_override" />
+                    <widget name="web_ribbon" title="СОВМЕЩЕН" bg_color="text-bg-success"
+                        invisible="not conflict_override or not has_conflict" />
 
                     <div class="oe_title">                        
                         <h1>
@@ -91,8 +93,9 @@
                         </h1>
                     </div>
 
-                    <!-- Conflict banner: shown only when session has unapproved conflict -->
+                    <!-- Conflict / co-location banner -->
                     <field name="has_conflict" invisible="1"/>
+                    <field name="conflict_override" invisible="1"/>
                     <div class="alert alert-danger mb-3" role="alert"
                          invisible="not has_conflict or conflict_override">
                         <div class="d-flex gap-3">
@@ -109,6 +112,27 @@
                                 <label for="conflict_override"
                                        class="fw-semibold mb-0"
                                        string="Разрешить совмещение"/>
+                                <field name="conflict_override"
+                                       widget="boolean_toggle"/>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="alert alert-success mb-3" role="alert"
+                         invisible="not has_conflict or not conflict_override">
+                        <div class="d-flex gap-3">
+                            <div class="flex-grow-1">
+                                <div class="fw-bold mb-1">
+                                    <span class="fa fa-check-circle me-1"
+                                          aria-hidden="true"/>
+                                    Совмещение разрешено:
+                                </div>
+                                <field name="conflict_details_html"
+                                       readonly="1" widget="html"/>
+                            </div>
+                            <div class="d-flex align-items-center gap-2 flex-shrink-0">
+                                <label for="conflict_override"
+                                       class="fw-semibold mb-0"
+                                       string="Запретить совмещение"/>
                                 <field name="conflict_override"
                                        widget="boolean_toggle"/>
                             </div>
@@ -181,8 +205,8 @@
                 draggable="1">
                 <field name="color" />
                 <field name="state" />
-                <field name="has_conflict" />
-                <field name="conflict_override" />
+                <field name="has_conflict" invisible="1" />
+                <field name="conflict_override" invisible="1" />
                 <field name="days_id" />
                 <field name="start_datetime" />
                 <field name="subject_id" />
@@ -196,8 +220,9 @@
 
                             <!-- Conflict ribbon (top-right corner) -->
                             <widget name="web_ribbon" title="КОНФЛИКТ" bg_color="text-bg-danger"
-                                invisible="not has_conflict or conflict_override"
-                                class="ribbon-top-right" />
+                                invisible="not has_conflict or conflict_override" />
+                            <widget name="web_ribbon" title="СОВМЕЩЕН" bg_color="text-bg-success"
+                                invisible="not conflict_override or not has_conflict" />
                                 <div class="d-flex flex-column text-truncate">
                                     <strong class="o_kanban_record_title text-primary text-truncate"
                                         style="font-size: 0.9rem; line-height: 1.1;">
