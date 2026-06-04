@@ -10,7 +10,6 @@
                 <field name="name"/>
                 <field name="media_type_id"/>
                 <field name="isbn"/>
-                <field name="internal_code"/>
                 <field name="edition"/>
                 <field name="description" optional="hide"/>
                 <field name="tags" widget="many2many_tags" optional="hide"/>
@@ -47,7 +46,6 @@
                         </group>
                         <group>
                             <field name="publisher_ids" widget="many2many_tags"/>
-                            <field name="internal_code"/>
                             <field name="tags" widget="many2many_tags"/>
                         </group>
                     </group>
@@ -169,7 +167,6 @@
                         <field name="x_image_128" />
                         <field name="media_type_id" />
                         <field name="isbn" />
-                        <field name="internal_code" />
                         <field name="unit_barcode" />
                         <field name="edition" />
                         <field name="author_ids" />
@@ -191,11 +188,6 @@
                                         <div/>
                                         <span class="fw-bold">ISBN:</span>
                                         <field name="isbn"/>
-                                    </footer>
-                                    <footer t-if="record.internal_code.raw_value" class="text-muted small mb-2">
-                                        <div/>
-                                        <span class="fw-bold">Internal Code:</span>
-                                        <field name="internal_code"/>
                                     </footer>
                                     <!-- Отображение количества экземпляров в виде бейджей в правом нижнем углу карточки -->
                                     <div class="unit-badges">

@@ -41,7 +41,6 @@ class OpMedia(models.Model):
                                     'Movements')
     subject_ids = fields.Many2many(
         'op.subject', string='Subjects')
-    internal_code = fields.Char('Internal Code', size=64)
     queue_ids = fields.One2many('op.media.queue', 'media_id', 'Media Queue')
     unit_ids = fields.One2many('op.media.unit', 'media_id', 'Units')
     media_type_id = fields.Many2one('op.media.type', 'Media Type')
@@ -75,7 +74,4 @@ class OpMedia(models.Model):
         ('unique_name_isbn',
          'unique(isbn)',
          'ISBN code must be unique per media!'),
-        ('unique_name_internal_code',
-         'unique(internal_code)',
-         'Internal Code must be unique per media!'),
     ]
