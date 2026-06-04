@@ -33,7 +33,7 @@
                         <button name="issue_media" string="Issue media" type="object" class="oe_highlight"
                                 invisible="state not in ('available','reserve')"
                                 groups="openeducat_library.group_op_library"/>
-                        <button name="%(return_media_act)d" string="Return Media"
+                        <button name="%(return_media_act)d" string="Вернуть книгу"
                                 type="action"
                                 context="{'default_media_id': media_id, 'default_media_unit_id': media_unit_id}"
                                 invisible="state != 'issue'"
@@ -104,37 +104,53 @@
             <field name="model">op.media.movement</field>
             <field name="priority" eval="8"/>
             <field name="arch" type="xml">
-                <search string="media Movement">
+                <search string="Движения книг">
                     <field name="media_id"/>
-                    <field name="student_id"/>
+                    <field name="media_unit_id"/>
                     <field name="library_card_id"/>
+                    <field name="student_id"/>
+                    <field name="faculty_id"/>
+                    <field name="partner_id"/>
                     <field name="issued_date"/>
                     <field name="return_date"/>
                     <field name="actual_return_date"/>
-                    <field name="state"/>
-                    <field name="penalty"/>
-                    <filter string="Issued Today" name="group_by_lbr_media_mvmn_issue"
+                    <separator/>
+                    <filter string="Выдано сегодня" name="filter_issued_today"
                             domain="[('issued_date', '=', context_today().strftime('%Y-%m-%d'))]"/>
-                    <filter string="Returned Today" name="group_by_lbr_media_mvmn_return"
-                            domain="[('return_date', '=', context_today().strftime('%Y-%m-%d'))]"/>
-                    <filter string="Archived" name="inactive"
+                    <filter string="Возвращено сегодня" name="filter_returned_today"
+                            domain="[('actual_return_date', '=', context_today().strftime('%Y-%m-%d'))]"/>
+                    <separator/>
+                    <filter string="Доступно" name="filter_state_available"
+                            domain="[('state', '=', 'available')]"/>
+                    <filter string="Зарезервировано" name="filter_state_reserve"
+                            domain="[('state', '=', 'reserve')]"/>
+                    <filter string="Выдано" name="filter_state_issue"
+                            domain="[('state', '=', 'issue')]"/>
+                    <filter string="Утеряно" name="filter_state_lost"
+                            domain="[('state', '=', 'lost')]"/>
+                    <filter string="Возвращено" name="filter_state_return"
+                            domain="[('state', 'in', ('return', 'return_done'))]"/>
+                    <filter string="Со штрафом" name="filter_penalty"
+                            domain="[('penalty', '>', 0)]"/>
+                    <separator/>
+                    <filter string="В архиве" name="inactive"
                             domain="[('active', '=', False)]"/>
-                    <group expand="0" string="Group By...">
-                        <filter string="media" name="group_by_lbr_media_mvmn_media"
+                    <group expand="0" string="Группировка...">
+                        <filter string="Книга" name="group_by_lbr_media_mvmn_media"
                                 domain="[]" context="{'group_by':'media_id'}"/>
-                        <filter string="Student" name="group_by_lbr_media_mvmn_student"
+                        <filter string="Ученик" name="group_by_lbr_media_mvmn_student"
                                 domain="[]" context="{'group_by':'student_id'}"/>
-                        <filter string="Faculty" name="group_by_lbr_media_mvmn_faculty"
+                        <filter string="Учитель" name="group_by_lbr_media_mvmn_faculty"
                                 domain="[]" context="{'group_by':'faculty_id'}"/>
-                        <filter string="Library Card" name="group_by_lbr_media_mvmn_library_card"
+                        <filter string="Библиотечная карточка" name="group_by_lbr_media_mvmn_library_card"
                                 domain="[]" context="{'group_by':'library_card_id'}"/>
-                        <filter string="Issued Date" name="group_by_lbr_media_mvmn_issue_date"
+                        <filter string="Дата выдачи" name="group_by_lbr_media_mvmn_issue_date"
                                 domain="[]" context="{'group_by':'issued_date'}"/>
-                        <filter string="Return Date" name="group_by_lbr_media_mvmn_return_date"
+                        <filter string="Дата возврата" name="group_by_lbr_media_mvmn_return_date"
                                 domain="[]" context="{'group_by':'return_date'}"/>
-                        <filter string="Actual Return Date" name="group_by_lbr_media_mvmn_issue_date"
+                        <filter string="Фактическая дата возврата" name="group_by_lbr_media_mvmn_actual_return_date"
                                 domain="[]" context="{'group_by':'actual_return_date'}"/>
-                        <filter string="Status" name="group_by_lbr_media_mvmn_state"
+                        <filter string="Статус" name="group_by_lbr_media_mvmn_state"
                                 domain="[]" context="{'group_by':'state'}"/>
                     </group>
                 </search>

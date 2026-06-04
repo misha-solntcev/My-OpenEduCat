@@ -73,15 +73,33 @@
                 <search string="Purchase Request">
                     <field name="name"/>
                     <field name="request_no"/>
-                    <field name="request_date"/>
+                    <field name="requested_id"/>
                     <field name="author"/>
-                    <field name="edition"/>
-                    <field name="publisher"/>
                     <field name="course_ids"/>
                     <field name="subject_ids"/>
-                    <field name="requested_id"/>
-                    <filter string="Archived" name="inactive"
+                    <field name="request_date"/>
+                    <separator/>
+                    <filter string="Черновик" name="filter_state_draft"
+                            domain="[('state', '=', 'draft')]"/>
+                    <filter string="Запрошено" name="filter_state_request"
+                            domain="[('state', '=', 'request')]"/>
+                    <filter string="Принято" name="filter_state_accept"
+                            domain="[('state', '=', 'accept')]"/>
+                    <filter string="Отклонено" name="filter_state_reject"
+                            domain="[('state', '=', 'reject')]"/>
+                    <separator/>
+                    <filter string="В архиве" name="inactive"
                             domain="[('active', '=', False)]"/>
+                    <group expand="0" string="Группировка...">
+                        <filter string="Статус" name="group_by_state"
+                                domain="[]" context="{'group_by': 'state'}"/>
+                        <filter string="Запросил" name="group_by_requested"
+                                domain="[]" context="{'group_by': 'requested_id'}"/>
+                        <filter string="Курс" name="group_by_course"
+                                domain="[]" context="{'group_by': 'course_ids'}"/>
+                        <filter string="Дата запроса" name="group_by_request_date"
+                                domain="[]" context="{'group_by': 'request_date'}"/>
+                    </group>
                 </search>
             </field>
         </record>

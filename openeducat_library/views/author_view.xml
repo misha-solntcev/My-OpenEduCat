@@ -32,7 +32,7 @@
                                        options='{"always_reload": True}'/>
                             </group>
                         </group>
-                        <group col="4" string="Media(s)">
+                        <group col="4" string="Книги">
                             <field name="media_ids" colspan="4" nolabel="1"/>
                         </group>
                     </sheet>
@@ -47,8 +47,10 @@
             <field name="arch" type="xml">
                 <search string="Author">
                     <field name="name"/>
-                    <field name="address"/>
                     <field name="media_ids"/>
+                    <separator/>
+                    <filter string="Есть книги" name="filter_has_media"
+                            domain="[('media_ids', '!=', False)]"/>
                 </search>
             </field>
         </record>

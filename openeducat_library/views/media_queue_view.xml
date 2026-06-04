@@ -6,7 +6,7 @@
             <field name="model">op.media.queue</field>
             <field name="priority" eval="8"/>
             <field name="arch" type="xml">
-                <list string="Media Queue Request">
+                <list string="Запросы на книги">
                     <field name='name'/>
                     <field name="media_id"/>
                     <field name="user_id"/>
@@ -66,20 +66,31 @@
             <field name="model">op.media.queue</field>
             <field name="priority" eval="8"/>
             <field name="arch" type="xml">
-                <search string="Media Queue Request">
+                <search string="Запросы на книги">
+                    <field name="media_id"/>
                     <field name="user_id"/>
                     <field name="date_from"/>
                     <field name="date_to"/>
-                    <field name="state"/>
-                    <field name="media_id"/>
-                    <filter string="Archived" name="inactive"
+                    <separator/>
+                    <filter string="Запрошено" name="filter_state_request"
+                            domain="[('state', '=', 'request')]"/>
+                    <filter string="Принято" name="filter_state_accept"
+                            domain="[('state', '=', 'accept')]"/>
+                    <filter string="Отклонено" name="filter_state_reject"
+                            domain="[('state', '=', 'reject')]"/>
+                    <separator/>
+                    <filter string="Активно сегодня" name="filter_active_today"
+                            domain="['&amp;', ('date_from', '&lt;=', context_today().strftime('%Y-%m-%d')),
+                                    ('date_to', '&gt;=', context_today().strftime('%Y-%m-%d'))]"/>
+                    <separator/>
+                    <filter string="В архиве" name="inactive"
                             domain="[('active', '=', False)]"/>
-                    <group expand="0" string="Group By...">
-                        <filter string="Media" name="group_by_lbr_media_queue_media"
+                    <group expand="0" string="Группировка...">
+                        <filter string="Книга" name="group_by_lbr_media_queue_media"
                                 domain="[]" context="{'group_by':'media_id'}"/>
-                        <filter string="User" name="group_by_lbr_media_queue_user"
+                        <filter string="Пользователь" name="group_by_lbr_media_queue_user"
                                 domain="[]" context="{'group_by':'user_id'}"/>
-                        <filter string="Status" name="group_by_lbr_media_queue_state"
+                        <filter string="Статус" name="group_by_lbr_media_queue_state"
                                 domain="[]" context="{'group_by':'state'}"/>
                     </group>
                 </search>
@@ -90,7 +101,7 @@
             <field name="name">op.media.queue.pivot</field>
             <field name="model">op.media.queue</field>
             <field name="arch" type="xml">
-                <pivot string="Media Queue Request">
+                <pivot string="Запросы на книги">
                     <field name="media_id" type="col"/>
                     <field name="user_id" type="row"/>
                 </pivot>
@@ -101,7 +112,7 @@
             <field name="name">op.media.queue.graph</field>
             <field name="model">op.media.queue</field>
             <field name="arch" type="xml">
-                <graph string="Media Queue Request" type="bar">
+                <graph string="Запросы на книги" type="bar">
                     <field name="user_id"/>
                     <field name="media_id"/>
                 </graph>

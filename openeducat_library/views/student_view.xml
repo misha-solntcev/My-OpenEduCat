@@ -29,7 +29,7 @@
                             style="border-right: 1px solid;"
                             icon="fa-file"
                             groups="openeducat_library.group_op_library_user,openeducat_library.group_op_library">
-                        <field string="Media" name="media_movement_lines_count" widget="statinfo"/>
+                        <field string="Книги" name="media_movement_lines_count" widget="statinfo"/>
                     </button>
                 </xpath>
             </field>

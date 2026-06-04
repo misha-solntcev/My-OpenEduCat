@@ -47,11 +47,16 @@ class OpMedia(models.Model):
     media_type_id = fields.Many2one('op.media.type', 'Media Type')
     active = fields.Boolean(default=True)
     x_image_128 = fields.Image('Image', max_width=128, max_height=128)
-    
+
     # Вычисляемые поля для отображения количества экземпляров
-    total_units = fields.Integer('Total Units', compute='_compute_unit_counts')
-    issued_units = fields.Integer('Issued Units', compute='_compute_unit_counts')
-    available_units = fields.Integer('Available Units', compute='_compute_unit_counts')
+    total_units = fields.Integer('Total Units', compute='_compute_unit_counts',
+                                 store=True)
+    issued_units = fields.Integer('Issued Units', compute='_compute_unit_counts',
+                                  store=True)
+    available_units = fields.Integer('Available Units', compute='_compute_unit_counts',
+                                     store=True)
+    unit_barcode = fields.Char('Unit Barcodes', compute='_compute_unit_barcode',
+                               store=True, help='Concatenated barcodes of all units')
 
     @api.depends('unit_ids', 'unit_ids.state')
     def _compute_unit_counts(self):
@@ -59,6 +64,12 @@ class OpMedia(models.Model):
             record.total_units = len(record.unit_ids)
             record.issued_units = len(record.unit_ids.filtered(lambda r: r.state == 'issue'))
             record.available_units = len(record.unit_ids.filtered(lambda r: r.state == 'available'))
+
+    @api.depends('unit_ids', 'unit_ids.barcode')
+    def _compute_unit_barcode(self):
+        for record in self:
+            record.unit_barcode = ', '.join(
+                record.unit_ids.mapped('barcode') or [])
 
     _sql_constraints = [
         ('unique_name_isbn',

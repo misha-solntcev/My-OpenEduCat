@@ -6,7 +6,7 @@
         <field name="model">op.media</field>
         <field name="priority" eval="8"/>
         <field name="arch" type="xml">
-            <list string="Media">
+            <list string="Книги">
                 <field name="name"/>
                 <field name="media_type_id"/>
                 <field name="isbn"/>
@@ -28,7 +28,7 @@
         <field name="model">op.media</field>
         <field name="priority" eval="8"/>
         <field name="arch" type="xml">
-            <form string="Media">
+            <form string="Книга">
                 <header/>
                 <sheet>
                     <field name="active" invisible="1"/>
@@ -70,9 +70,9 @@
                               groups="openeducat_library.group_op_library">
                             <field name="movement_line" colspan="4" nolabel="1"/>
                         </page>
-                        <page name="media_queue_requests" string="Media Queue Requests">
+                        <page name="media_queue_requests" string="Запросы на книги">
                             <field name="queue_ids" colspan="4" nolabel="1">
-                                <list string="Media Queue Request">
+                                <list string="Запросы на книги">
                                     <field name="user_id"/>
                                     <field name="date_from"/>
                                     <field name="date_to"/>
@@ -105,36 +105,40 @@
             <field name="model">op.media</field>
             <field name="priority" eval="8"/>
             <field name="arch" type="xml">
-                <search string="Media">
-                    <field name="name"/>
+                <search string="Книги">
+                    <field name="name" string="Название"/>
                     <field name="isbn"/>
-                    <field name="tags"/>
-                    <field name="unit_ids"/>
-                    <field name="author_ids"/>
-                    <field name="edition"/>
-                    <field name="publisher_ids"/>
-                    <field name="course_ids"/>
-                    <field name="subject_ids"/>
-                    <field name="internal_code"/>
-                    <newline/>
-                    <group expand="0" string="Group By...">
-                        <filter string="Edition" name="group_by_lbr_media_edition"
-                                domain="[]" context="{'group_by':'edition'}"/>
-                        <filter string="Type" name="group_by_lbr_media_type"
+                    <field name="author_ids" string="Автор"/>
+                    <field name="publisher_ids" string="Издатель"/>
+                    <field name="tags" string="Тег"/>
+                    <field name="course_ids" string="Предмет"/>
+                    <field name="subject_ids" string="Предмет"/>
+                    <field name="media_type_id" string="Тип"/>
+                    <field name="unit_barcode" string="Штрихкод"/>
+                    <separator/>
+                    <filter string="Есть экземпляры" name="has_units"
+                            domain="[('unit_ids', '!=', False)]"/>
+                    <filter string="Нет экземпляров" name="no_units"
+                            domain="[('unit_ids', '=', False)]"/>
+                    <separator/>
+                    <filter string="В архиве" name="inactive"
+                            domain="[('active', '=', False)]"/>
+                    <group expand="0" string="Группировка...">
+                        <filter string="Тип" name="group_by_lbr_media_type"
                                 domain="[]" context="{'group_by':'media_type_id'}"/>
-                        <filter string="Archived" name="inactive"
-                                domain="[('active', '=', False)]"/>
-                        </group>
-                    </search>
-                </field>
-            </record>
+                        <filter string="Издание" name="group_by_lbr_media_edition"
+                                domain="[]" context="{'group_by':'edition'}"/>
+                    </group>
+                </search>
+            </field>
+        </record>
 
             <!-- Pivot View -->
             <record id="view_op_media_pivot" model="ir.ui.view">
                 <field name="name">op.media.pivot</field>
                 <field name="model">op.media</field>
                 <field name="arch" type="xml">
-                    <pivot string="Media">
+                    <pivot string="Книги">
                         <field name="media_type_id" type="col"/>
                         <field name="name" type="row"/>
                     </pivot>
@@ -146,7 +150,7 @@
                 <field name="name">op.media.graph</field>
                 <field name="model">op.media</field>
                 <field name="arch" type="xml">
-                    <graph string="Media" type="bar">
+                    <graph string="Книги" type="bar">
                         <field name="name"/>
                         <field name="media_type_id"/>
                     </graph>
@@ -159,12 +163,14 @@
                 <field name="name">op.media.kanban</field> <!-- Исправлено: добавлено имя -->
                 <field name="model">op.media</field>      <!-- Исправлено: добавлена модель -->
                 <field name="arch" type="xml">            <!-- Исправлено: добавлен arch -->
-                    <kanban sample="1" default_order="name"> <!-- Исправлено: добавлен тег kanban -->
+                    <kanban sample="1" default_order="name">
                         <field name="id"/>
                         <field name="name" />
                         <field name="x_image_128" />
                         <field name="media_type_id" />
                         <field name="isbn" />
+                        <field name="internal_code" />
+                        <field name="unit_barcode" />
                         <field name="edition" />
                         <field name="author_ids" />
                         <templates>
@@ -181,10 +187,15 @@
                                     </p>
                                     <field name="edition" class="text-truncate mb-1"/>
                                     <field name="author_ids" widget="many2many_tags" class="text-truncate mb-1"/> <!-- Добавлен widget many2many_tags -->
-                                    <footer t-if="record.isbn.raw_value" class="text-muted small mb-2"> <!-- Добавлены классы стилей -->
+                                    <footer t-if="record.isbn.raw_value" class="text-muted small mb-2">
                                         <div/>
                                         <span class="fw-bold">ISBN:</span>
                                         <field name="isbn"/>
+                                    </footer>
+                                    <footer t-if="record.internal_code.raw_value" class="text-muted small mb-2">
+                                        <div/>
+                                        <span class="fw-bold">Internal Code:</span>
+                                        <field name="internal_code"/>
                                     </footer>
                                     <!-- Отображение количества экземпляров в виде бейджей в правом нижнем углу карточки -->
                                     <div class="unit-badges">

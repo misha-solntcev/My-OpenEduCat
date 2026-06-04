@@ -46,10 +46,16 @@
             <field name="arch" type="xml">
                 <search string="Library Card Type">
                     <field name="name"/>
-                    <field name="duration"/>
-                    <field name="penalty_amt_per_day"/>
-                    <newline/>
-                    <group expand="0" string="Group By...">
+                    <separator/>
+                    <filter string="Краткосрочный (&lt;= 7 дней)" name="filter_short_term"
+                            domain="[('duration', '&lt;=', 7)]"/>
+                    <filter string="Долгосрочный (&gt; 7 дней)" name="filter_long_term"
+                            domain="[('duration', '&gt;', 7)]"/>
+                    <filter string="Со штрафом" name="filter_with_penalty"
+                            domain="[('penalty_amt_per_day', '>', 0)]"/>
+                    <group expand="0" string="Группировка...">
+                        <filter string="Срок" name="group_by_duration"
+                                domain="[]" context="{'group_by': 'duration'}"/>
                     </group>
                 </search>
             </field>
@@ -133,15 +139,26 @@
             <field name="arch" type="xml">
                 <search string="Library Card">
                     <field name="number"/>
-                    <field name="issue_date"/>
                     <field name="partner_id"/>
                     <field name="library_card_type_id"/>
-                    <newline/>
-                    <group expand="0" string="Group By...">
-                        <filter string="Type" name="group_by_type"
+                    <field name="student_id"/>
+                    <field name="faculty_id"/>
+                    <field name="issue_date"/>
+                    <separator/>
+                    <filter string="Ученик" name="filter_type_student"
+                            domain="[('type', '=', 'student')]"/>
+                    <filter string="Учитель" name="filter_type_faculty"
+                            domain="[('type', '=', 'faculty')]"/>
+                    <separator/>
+                    <filter string="В архиве" name="inactive"
+                            domain="[('active', '=', False)]"/>
+                    <group expand="0" string="Группировка...">
+                        <filter string="Тип" name="group_by_type"
                                 domain="[]" context="{'group_by': 'type'}"/>
-                        <filter string="Archived" name="inactive"
-                                domain="[('active', '=', False)]"/>
+                        <filter string="Тип карточки" name="group_by_card_type"
+                                domain="[]" context="{'group_by': 'library_card_type_id'}"/>
+                        <filter string="Дата выдачи" name="group_by_issue_date"
+                                domain="[]" context="{'group_by': 'issue_date'}"/>
                     </group>
                 </search>
             </field>
