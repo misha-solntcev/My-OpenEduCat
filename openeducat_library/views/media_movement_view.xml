@@ -145,7 +145,7 @@
                         <filter string="Библиотечная карточка" name="group_by_lbr_media_mvmn_library_card"
                                 domain="[]" context="{'group_by':'library_card_id'}"/>
                         <filter string="Издательство" name="group_by_lbr_media_mvmn_publisher"
-                                domain="[]" context="{'group_by':'media_id.publisher_ids'}"/>
+                                domain="[]" context="{'group_by':'publisher_ids'}"/>
                         <filter string="Дата выдачи" name="group_by_lbr_media_mvmn_issue_date"
                                 domain="[]" context="{'group_by':'issued_date'}"/>
                         <filter string="Дата возврата" name="group_by_lbr_media_mvmn_return_date"

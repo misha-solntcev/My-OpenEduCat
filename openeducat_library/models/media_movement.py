@@ -69,6 +69,8 @@ class OpMediaMovement(models.Model):
                                   string='Класс')
     subject_ids = fields.Many2many(related='media_id.subject_ids',
                                    string='Предмет')
+    publisher_ids = fields.Many2many(related='media_id.publisher_ids',
+                                     string='Издательство')
     user_id = fields.Many2one(
         'res.users', string='Users')
     invoice_id = fields.Many2one('account.move', 'Invoice', readonly=True)

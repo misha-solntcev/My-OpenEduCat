@@ -41,6 +41,10 @@ class OpMediaQueue(models.Model):
         [('request', 'Request'), ('accept', 'Accepted'),
          ('reject', 'Rejected')],
         'Status', copy=False, default='request', tracking=True)
+    course_ids = fields.Many2many(related='media_id.course_ids',
+                                  string='Класс')
+    subject_ids = fields.Many2many(related='media_id.subject_ids',
+                                   string='Предмет')
     active = fields.Boolean(default=True)
 
     @api.onchange('user_id')

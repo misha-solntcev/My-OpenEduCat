@@ -93,9 +93,9 @@
                         <filter string="Статус" name="group_by_lbr_media_queue_state"
                                 domain="[]" context="{'group_by':'state'}"/>
                         <filter string="Класс" name="group_by_lbr_media_queue_course"
-                                domain="[]" context="{'group_by':'media_id.course_ids'}"/>
+                                domain="[]" context="{'group_by':'course_ids'}"/>
                         <filter string="Предмет" name="group_by_lbr_media_queue_subject"
-                                domain="[]" context="{'group_by':'media_id.subject_ids'}"/>
+                                domain="[]" context="{'group_by':'subject_ids'}"/>
                     </group>
                 </search>
             </field>
