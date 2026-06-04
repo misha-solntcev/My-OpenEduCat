@@ -41,6 +41,7 @@ class OpMediaMovement(models.Model):
     media_unit_id = fields.Many2one(
         'op.media.unit', 'Media Unit', required=True,
         tracking=True, domain=[('state', '=', 'available')])
+    barcode = fields.Char(related='media_unit_id.barcode', string='Штрихкод', store=True)
     type = fields.Selection(
         [('student', 'Student'), ('faculty', 'Faculty')],
         'Student/Faculty', required=True)

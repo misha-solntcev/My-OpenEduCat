@@ -107,6 +107,7 @@
                 <search string="Движения книг">
                     <field name="media_id"/>
                     <field name="media_unit_id"/>
+                    <field name="barcode" string="Штрихкод"/>
                     <field name="library_card_id"/>
                     <field name="student_id"/>
                     <field name="faculty_id"/>
