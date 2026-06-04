@@ -126,6 +126,14 @@
                                 domain="[]" context="{'group_by':'media_type_id'}"/>
                         <filter string="Издание" name="group_by_lbr_media_edition"
                                 domain="[]" context="{'group_by':'edition'}"/>
+                        <filter string="Автор" name="group_by_lbr_media_author"
+                                domain="[]" context="{'group_by':'author_ids'}"/>
+                        <filter string="Издательство" name="group_by_lbr_media_publisher"
+                                domain="[]" context="{'group_by':'publisher_ids'}"/>
+                        <filter string="Класс" name="group_by_lbr_media_course"
+                                domain="[]" context="{'group_by':'course_ids'}"/>
+                        <filter string="Предмет" name="group_by_lbr_media_subject"
+                                domain="[]" context="{'group_by':'subject_ids'}"/>
                     </group>
                 </search>
             </field>

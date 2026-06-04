@@ -38,6 +38,10 @@ class OpMediaUnit(models.Model):
         'State', default='available', tracking=True)
     media_type_id = fields.Many2one(related='media_id.media_type_id',
                                     store=True, string='Media Type')
+    course_ids = fields.Many2many(related='media_id.course_ids',
+                                  string='Класс')
+    subject_ids = fields.Many2many(related='media_id.subject_ids',
+                                   string='Предмет')
     active = fields.Boolean(default=True)
 
     _sql_constraints = [

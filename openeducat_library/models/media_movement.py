@@ -65,6 +65,10 @@ class OpMediaMovement(models.Model):
         'Status', default='available', tracking=True)
     media_type_id = fields.Many2one(related='media_id.media_type_id',
                                     store=True, string='Media Type')
+    course_ids = fields.Many2many(related='media_id.course_ids',
+                                  string='Класс')
+    subject_ids = fields.Many2many(related='media_id.subject_ids',
+                                   string='Предмет')
     user_id = fields.Many2one(
         'res.users', string='Users')
     invoice_id = fields.Many2one('account.move', 'Invoice', readonly=True)
