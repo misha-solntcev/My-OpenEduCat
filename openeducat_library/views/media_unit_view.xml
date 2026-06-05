@@ -87,7 +87,7 @@
                 <search string="Экземпляры">                    
                     <field name="barcode" string="│█║▌Штрихкод"/>
                     <field name="name" string="📖 Название книги"/>
-                    <field name="isbn" string="📚 ISBN"/>                    
+                    <field name="isbn" string="🪧 ISBN"/>                    
                     <field name="subject_ids" string="📚 Предмет"/>
                     <field name="course_ids" string="🏫 Класс"/>                    
                     <field name="author_ids" string="✍️ Автор"/>

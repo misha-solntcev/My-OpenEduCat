@@ -97,47 +97,7 @@
             </field>
         </record>
 
-        <!-- Search View -->
-        <record id="view_op_media_search" model="ir.ui.view">
-            <field name="name">op.media.search</field>
-            <field name="model">op.media</field>
-            <field name="priority" eval="8"/>
-            <field name="arch" type="xml">
-                <search string="Книги">
-                    <field name="unit_barcode" string="│█║▌Штрихкод"/>
-                    <field name="name" string="📖  Название книги"/>
-                    <field name="isbn" string="📚 ISBN"/>
-                    <field name="subject_ids" string="📚 Предмет"/>
-                    <field name="course_ids" string="🏫 Класс"/>                    
-                    <field name="author_ids" string="✍️ Автор"/>
-                    <field name="publisher_ids" string="🏢  Издательство"/>
-                    <field name="media_type_id" string="📦 Тип"/>
-                    <field name="tags" string="🏷️ Тег"/>
-                    <separator/>
-                    <filter string="📗 Есть экземпляры" name="has_units"
-                            domain="[('unit_ids', '!=', False)]"/>
-                    <filter string="📕 Нет экземпляров" name="no_units"
-                            domain="[('unit_ids', '=', False)]"/>
-                    <separator/>
-                    <filter string="🗃️ В архиве" name="inactive"
-                            domain="[('active', '=', False)]"/>
-                    <group expand="0" string="Группировка...">
-                        <filter string="📚 Предмет" name="group_by_lbr_media_subject"
-                                domain="[]" context="{'group_by':'subject_ids'}"/>
-                        <filter string="🏫 Класс" name="group_by_lbr_media_course"
-                                domain="[]" context="{'group_by':'course_ids'}"/>
-                        <filter string="📦 Тип" name="group_by_lbr_media_type"
-                                domain="[]" context="{'group_by':'media_type_id'}"/>
-                        <filter string="🏢 Издательство" name="group_by_lbr_media_publisher"
-                                domain="[]" context="{'group_by':'publisher_ids'}"/>
-                        <filter string="✍️ Автор" name="group_by_lbr_media_author"
-                                domain="[]" context="{'group_by':'author_ids'}"/>
-                        <filter string="📖 Издание" name="group_by_lbr_media_edition"
-                                domain="[]" context="{'group_by':'edition'}"/>
-                    </group>
-                </search>
-            </field>
-        </record>
+        
 
             <!-- Pivot View -->
             <record id="view_op_media_pivot" model="ir.ui.view">
@@ -217,6 +177,48 @@
                     </kanban> <!-- Закрыт тег kanban -->
                 </field>
             </record>
+
+            <!-- Search View -->
+        <record id="view_op_media_search" model="ir.ui.view">
+            <field name="name">op.media.search</field>
+            <field name="model">op.media</field>
+            <field name="priority" eval="8"/>
+            <field name="arch" type="xml">
+                <search string="Книги">
+                    <field name="unit_barcode" string="│█║▌Штрихкод"/>
+                    <field name="name" string="📖  Название книги"/>
+                    <field name="isbn" string="🪧 ISBN"/>
+                    <field name="subject_ids" string="📚 Предмет"/>
+                    <field name="course_ids" string="🏫 Класс"/>                    
+                    <field name="author_ids" string="✍️ Автор"/>
+                    <field name="publisher_ids" string="🏢  Издательство"/>
+                    <field name="media_type_id" string="📦 Тип"/>
+                    <field name="tags" string="🏷️ Тег"/>
+                    <separator/>
+                    <filter string="📗  Есть экземпляры" name="has_units"
+                            domain="[('unit_ids', '!=', False)]"/>
+                    <filter string="📕  Нет экземпляров" name="no_units"
+                            domain="[('unit_ids', '=', False)]"/>
+                    <separator/>
+                    <filter string="🗃️ В архиве" name="inactive"
+                            domain="[('active', '=', False)]"/>
+                    <group expand="0" string="Группировка...">
+                        <filter string="📚 Предмет" name="group_by_lbr_media_subject"
+                                domain="[]" context="{'group_by':'subject_ids'}"/>
+                        <filter string="🏫 Класс" name="group_by_lbr_media_course"
+                                domain="[]" context="{'group_by':'course_ids'}"/>
+                        <filter string="📦 Тип" name="group_by_lbr_media_type"
+                                domain="[]" context="{'group_by':'media_type_id'}"/>
+                        <filter string="🏢 Издательство" name="group_by_lbr_media_publisher"
+                                domain="[]" context="{'group_by':'publisher_ids'}"/>
+                        <filter string="✍️ Автор" name="group_by_lbr_media_author"
+                                domain="[]" context="{'group_by':'author_ids'}"/>
+                        <filter string="📖 Издание" name="group_by_lbr_media_edition"
+                                domain="[]" context="{'group_by':'edition'}"/>
+                    </group>
+                </search>
+            </field>
+        </record>
 
             <!-- Action Window -->
             <record model="ir.actions.act_window" id="act_open_op_media_view">
