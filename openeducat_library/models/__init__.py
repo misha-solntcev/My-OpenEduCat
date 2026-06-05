@@ -18,7 +18,6 @@
 #
 ###############################################################################
 
-from . import account_invoice
 from . import author
 from . import faculty
 from . import library

@@ -11,13 +11,16 @@
                       decoration-danger="state == 'issue'"
                       decoration-warning="state == 'reserve'"
                       decoration-muted="state == 'lost'">
-                    <field name="name" string="📖 Название экземпляра" optional="show"/>
+                    <field name="name" string="📖  Название экземпляра" optional="show"/>
+                    <field name="subject_ids" string="📚 Предмет" optional="show" widget="many2many_tags"/>
+                    <field name="course_ids" string="🏫 Класс" optional="show" widget="many2many_tags"/>
+                    <field name="current_partner_id" string="👨‍🎓 Абонент" optional="show"/>
                     <field name="barcode" string="│█║▌Штрих-код" optional="show"/>
-                    <field name="state" string="Статус" optional="show" widget="badge"
+                    <field name="state" string="🔖 Статус" optional="show" widget="badge"
                            decoration-success="state == 'available'"
                            decoration-danger="state == 'issue'"
                            decoration-warning="state == 'reserve'"
-                           decoration-muted="state == 'lost'"/>
+                           decoration-muted="state == 'lost'"/>                    
                 </list>
             </field>
         </record>
@@ -85,14 +88,15 @@
             <field name="priority" eval="8"/>
             <field name="arch" type="xml">
                 <search string="Экземпляры">                    
-                    <field name="barcode" string="│█║▌Штрихкод"/>
+                    <field name="barcode" string="│█║▌Штрихкод"/>                    
                     <field name="name" string="📖 Название книги"/>
                     <field name="isbn" string="🪧 ISBN"/>                    
                     <field name="subject_ids" string="📚 Предмет"/>
-                    <field name="course_ids" string="🏫 Класс"/>                    
+                    <field name="course_ids" string="🏫 Класс"/>
+                    <field name="current_partner_id" string="👨‍🎓 Абонент"/>
                     <field name="author_ids" string="✍️ Автор"/>
                     <field name="publisher_ids" string="🏢 Издательство"/>
-                    <field name="media_type_id" string="📦 Тип"/>
+                    <field name="media_type_id" string="📦 Тип"/>                    
                     <separator/>
                     <filter string="🟢 Доступна" name="available"
                             domain="[('state', '=', 'available')]"/>
@@ -106,19 +110,21 @@
                     <filter string="🗃️ В архиве" name="inactive"
                             domain="[('active', '=', False)]"/>
                     <group expand="0" string="Группировка...">
-                        <filter string="📖 Название книги" name="group_by_lbr_media_unit_media"
-                                domain="[]" context="{'group_by':'media_id'}"/>
-                        <filter string="🏫 Класс" name="group_by_lbr_media_unit_course"
-                                domain="[]" context="{'group_by':'course_ids'}"/>
-                        <filter string="📚 Предмет" name="group_by_lbr_media_unit_subject"
-                                domain="[]" context="{'group_by':'subject_ids'}"/>
-                        <filter string="✍️ Автор" name="group_by_lbr_media_unit_author"
+                        <filter string="📖 Название книги" name="group_bymedia"
+                            domain="[]" context="{'group_by':'media_id'}"/>
+                        <filter string="📚 Предмет" name="group_by_subject"
+                            domain="[]" context="{'group_by':'subject_ids'}"/>                        
+                        <filter string="🏫 Класс" name="group_by_course"
+                            domain="[]" context="{'group_by':'course_ids'}"/>
+                        <filter string="👨‍🎓 Абонент" name="group_by_current_partner"
+                            domain="[]" context="{'group_by':'current_partner_id'}"/>
+                        <filter string="✍️ Автор" name="group_by_author"
                                 domain="[]" context="{'group_by':'author_ids'}"/>
-                        <filter string="🏢 Издательство" name="group_by_lbr_media_unit_publisher"
+                        <filter string="🏢 Издательство" name="group_by_publisher"
                                 domain="[]" context="{'group_by':'publisher_ids'}"/>
-                        <filter string="📦 Тип" name="group_by_lbr_media_unit_type"
+                        <filter string="📦 Тип" name="group_by_type"
                                 domain="[]" context="{'group_by':'media_type_id'}"/>
-                        <filter string="🔖  Статус" name="group_by_lbr_media_unit_state"
+                        <filter string="🔖  Статус" name="group_by_state"
                                 domain="[]" context="{'group_by':'state'}"/>
                     </group>
                 </search>
@@ -129,7 +135,11 @@
             <field name="name">Экземпляры</field>
             <field name="type">ir.actions.act_window</field>
             <field name="res_model">op.media.unit</field>
-            <field name="view_mode">list,form</field>            
+            <field name="view_mode">list,form</field>
+            <field name= "context">{
+                'search_default_group_by_course': 1,
+                'search_default_group_by_current_partner': 1}
+            </field>
         </record>
 
 </odoo>

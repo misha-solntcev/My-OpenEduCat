@@ -16,6 +16,7 @@ class OpTimeMixin(models.AbstractModel):
     def _convert_to_local(self, utc_datetime):
         """Переводит UTC из базы в локальное время школы (МСК)"""
         if not utc_datetime:
+            
             return False
         tz = self._get_school_timezone()
         return fields.Datetime.context_timestamp(self.with_context(tz=tz), utc_datetime)

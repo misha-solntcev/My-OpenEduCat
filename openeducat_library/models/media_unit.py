@@ -48,12 +48,22 @@ class OpMediaUnit(models.Model):
                                      string='Издательство')
     isbn = fields.Char(related='media_id.isbn', string='ISBN')
     active = fields.Boolean(default=True)
+    current_partner_id = fields.Many2one(
+        'res.partner', 'Текущий ученик',
+        compute='_compute_current_partner', store=True)
 
     _sql_constraints = [
         ('unique_name_barcode',
          'unique(barcode)',
          'Barcode must be unique per Media unit!'),
     ]
+
+    @api.depends('movement_lines.partner_id', 'movement_lines.state')
+    def _compute_current_partner(self):
+        for rec in self:
+            line = rec.movement_lines.filtered(
+                lambda m: m.state == 'issue')[:1]
+            rec.current_partner_id = line.partner_id.id if line else False
 
     @api.model_create_multi
     def create(self, vals_list):

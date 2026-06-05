@@ -61,10 +61,9 @@ class IssueMedia(models.TransientModel):
         self.return_date = datetime.today() + relativedelta(
             days=self.library_card_id.library_card_type_id.duration)
 
-    def check_max_issue(self, student_id, library_card_id):
+    def check_max_issue(self, library_card_id):
         media_movement_search = self.env["op.media.movement"].search(
             [('library_card_id', '=', library_card_id),
-             ('student_id', '=', student_id),
              ('state', '=', 'issue')])
         if len(media_movement_search) < self.env["op.library.card"].browse(
                 library_card_id).library_card_type_id.allow_media:
@@ -75,8 +74,7 @@ class IssueMedia(models.TransientModel):
     def do_issue(self):
         for media in self:
             value = {}
-            if media.check_max_issue(media.student_id.id,
-                                     media.library_card_id.id):
+            if media.check_max_issue(media.library_card_id.id):
                 if media.media_unit_id.state and \
                         media.media_unit_id.state == 'available':
                     media_movement_create = {
@@ -109,6 +107,6 @@ class IssueMedia(models.TransientModel):
             else:
                 raise UserError(
                     _('Maximum Number of media allowed for %s is : %s') %
-                    (media.student_id.name,
+                    (media.library_card_id.partner_id.name,
                      media.library_card_id.library_card_type_id.allow_media))
             return value
