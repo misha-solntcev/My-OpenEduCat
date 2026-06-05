@@ -33,6 +33,7 @@
                     <field name="active" invisible="1"/>
                     <widget name="web_ribbon" title="Archived" bg_color="bg-danger"
                             invisible="active == True"/>
+                    <field name="x_image_128" widget="image" class="oe_avatar"/>
                     <h1>
                         <field name="name" placeholder="Media Name" style="width: 50%%"/>
                     </h1>
@@ -99,86 +100,85 @@
 
         
 
-            <!-- Pivot View -->
-            <record id="view_op_media_pivot" model="ir.ui.view">
-                <field name="name">op.media.pivot</field>
-                <field name="model">op.media</field>
-                <field name="arch" type="xml">
-                    <pivot string="Книги">
-                        <field name="media_type_id" type="col"/>
-                        <field name="name" type="row"/>
-                    </pivot>
-                </field>
-            </record>
+        <!-- Pivot View -->
+        <record id="view_op_media_pivot" model="ir.ui.view">
+            <field name="name">op.media.pivot</field>
+            <field name="model">op.media</field>
+            <field name="arch" type="xml">
+                <pivot string="Книги">
+                    <field name="media_type_id" type="col"/>
+                    <field name="name" type="row"/>
+                </pivot>
+            </field>
+        </record>
 
-            <!-- Graph View -->
-            <record model="ir.ui.view" id="view_op_media_graph">
-                <field name="name">op.media.graph</field>
-                <field name="model">op.media</field>
-                <field name="arch" type="xml">
-                    <graph string="Книги" type="bar">
-                        <field name="name"/>
-                        <field name="media_type_id"/>
-                    </graph>
-                </field>
-            </record>
+        <!-- Graph View -->
+        <record model="ir.ui.view" id="view_op_media_graph">
+            <field name="name">op.media.graph</field>
+            <field name="model">op.media</field>
+            <field name="arch" type="xml">
+                <graph string="Книги" type="bar">
+                    <field name="name"/>
+                    <field name="media_type_id"/>
+                </graph>
+            </field>
+        </record>
 
-            <!-- Kanban View -->            
-            <record id="view_op_media_kanban" model="ir.ui.view">
-                <field name="name">op.media.kanban</field> 
-                <field name="model">op.media</field>
-                <field name="arch" type="xml">
-                    <kanban sample="1" default_order="name">
-                        <field name="id"/>
-                        <field name="name" />
-                        <field name="x_image_128" />
-                        <field name="media_type_id" />
-                        <field name="isbn" />
-                        <field name="unit_barcode" />
-                        <field name="edition" />
-                        <field name="author_ids" />
-                        <templates>
-                            <t t-name="card" class="flex-row">
-                                <aside class="o_kanban_aside_full">
-                                    <field name="x_image_128" class="w-100" widget="image" options="{'img_class': 'object-fit-contain w-100 h-100'}"/>
-                                </aside>
-                                <main class="ps-2 ps-md-0">
-                                    <h5 class="mb-1 fw-bold text">
-                                        <field name="name"/>
-                                    </h5>
-                                    <p class="mb-1 text-body-secondary small">
-                                        <field name="media_type_id"/>
-                                    </p>
-                                    <field name="edition" class="text-truncate mb-1"/>
-                                    <field name="author_ids" widget="many2many_tags" class="text-truncate mb-1"/> <!-- Добавлен widget many2many_tags -->
-                                    <footer t-if="record.isbn.raw_value" class="text-muted small mb-2">
-                                        <div/>
-                                        <span class="fw-bold">ISBN:</span>
-                                        <field name="isbn"/>
-                                    </footer>
-                                    <!-- Отображение количества экземпляров в виде бейджей в правом нижнем углу карточки -->
-                                    <div class="unit-badges">
-                                        <span class="badge" style="background-color: #e7f5ff; color: #1c7ed6; font-size: 14px;">
-                                            <i class="fa fa-book" title="Всего" style="font-size: 18px; margin-right: 4px;"></i>
-                                            <field name="total_units"/>
-                                        </span>
-                                        <span class="badge" style="background-color: #fff0f6; color: #d6336c; font-size: 14px;">
-                                            <i class="fa fa-arrow-circle-o-right" title="Выдано" style="font-size: 18px; margin-right: 4px;"></i>
-                                            <field name="issued_units"/>
-                                        </span>
-                                        <span class="badge" style="background-color: #ebfbee; color: #37b24d; font-size: 14px;">
-                                            <i class="fa fa-check-circle" title="Доступно" style="font-size: 18px; margin-right: 4px;"></i>
-                                            <field name="available_units"/>
-                                        </span>
-                                    </div>
-                                </main>
-                            </t>
-                        </templates>
-                    </kanban> <!-- Закрыт тег kanban -->
-                </field>
-            </record>
+        <!-- Kanban View -->            
+        <record id="view_op_media_kanban" model="ir.ui.view">
+            <field name="name">op.media.kanban</field> 
+            <field name="model">op.media</field>
+            <field name="arch" type="xml">
+                <kanban sample="1" default_order="name">
+                    <field name="id"/>
+                    <field name="name"/>
+                    <field name="x_image_128"/>
+                    <field name="media_type_id"/>
+                    <field name="isbn"/>
+                    <field name="unit_barcode"/>
+                    <field name="edition"/>
+                    <field name="author_ids"/>
+                    <templates>
+                        <t t-name="card" class="flex-row">
+                            <aside class="o_kanban_aside_full">
+                                <field name="x_image_128" class="w-100" widget="image" options="{'img_class': 'object-fit-contain w-100 h-100'}"/>
+                            </aside>
+                            <main class="ps-2 ps-md-0">
+                                <h5 class="mb-1 fw-bold text">
+                                    <field name="name"/>
+                                </h5>
+                                <p class="mb-1 text-body-secondary small">
+                                    <field name="media_type_id"/>
+                                </p>
+                                <field name="edition" class="text-truncate mb-1"/>
+                                <field name="author_ids" widget="many2many_tags" class="text-truncate mb-1"/>
+                                <footer t-if="record.isbn.raw_value" class="text-muted small mb-2">
+                                    <div/>
+                                    <span class="fw-bold">ISBN:</span>
+                                    <field name="isbn"/>
+                                </footer>
+                                <div class="unit-badges">
+                                    <span class="badge" style="background-color: #e7f5ff; color: #1c7ed6; font-size: 14px; padding: 4px 8px;">
+                                        <i class="fa fa-book" title="Всего"/>
+                                        <field name="total_units"/>
+                                    </span>
+                                    <span class="badge" style="background-color: #fff0f6; color: #d6336c; font-size: 14px; padding: 4px 8px;">
+                                        <i class="fa fa-arrow-circle-o-right" title="Выдано"/>
+                                        <field name="issued_units"/>
+                                    </span>
+                                    <span class="badge" style="background-color: #ebfbee; color: #37b24d; font-size: 14px; padding: 4px 8px;">
+                                        <i class="fa fa-check-circle" title="Доступно"/>
+                                        <field name="available_units"/>
+                                    </span>
+                                </div>
+                            </main>
+                        </t>
+                    </templates>
+                </kanban>
+            </field>
+        </record>
 
-            <!-- Search View -->
+        <!-- Search View -->
         <record id="view_op_media_search" model="ir.ui.view">
             <field name="name">op.media.search</field>
             <field name="model">op.media</field>
@@ -186,18 +186,18 @@
             <field name="arch" type="xml">
                 <search string="Книги">
                     <field name="unit_barcode" string="│█║▌Штрихкод"/>
-                    <field name="name" string="📖  Название книги"/>
-                    <field name="isbn" string="🪧 ISBN"/>
+                    <field name="name" string="📖 Название книги"/>
+                    <field name="isbn" string="🔢 ISBN"/>
                     <field name="subject_ids" string="📚 Предмет"/>
-                    <field name="course_ids" string="🏫 Класс"/>                    
+                    <field name="course_ids" string="🏫 Класс"/>
                     <field name="author_ids" string="✍️ Автор"/>
-                    <field name="publisher_ids" string="🏢  Издательство"/>
+                    <field name="publisher_ids" string="🏢 Издательство"/>
                     <field name="media_type_id" string="📦 Тип"/>
                     <field name="tags" string="🏷️ Тег"/>
                     <separator/>
-                    <filter string="📗  Есть экземпляры" name="has_units"
+                    <filter string="📗 Есть экземпляры" name="has_units"
                             domain="[('unit_ids', '!=', False)]"/>
-                    <filter string="📕  Нет экземпляров" name="no_units"
+                    <filter string="📕 Нет экземпляров" name="no_units"
                             domain="[('unit_ids', '=', False)]"/>
                     <separator/>
                     <filter string="🗃️ В архиве" name="inactive"
@@ -220,49 +220,25 @@
             </field>
         </record>
 
-            <!-- Action Window -->
-            <record model="ir.actions.act_window" id="act_open_op_media_view">
-                <field name="name">All Media</field>
-                <field name="type">ir.actions.act_window</field>
-                <field name="res_model">op.media</field>
-                <field name="binding_view_types">form</field>
-                <field name="view_mode">kanban,list,form,pivot,graph</field>
-                <field name="path">media</field>
-                <field name="search_view_id" ref="view_op_media_search"/>
-            </record>
+        <!-- Action Window -->
+        <record model="ir.actions.act_window" id="act_open_op_media_view">
+            <field name="name">Книги</field>
+            <field name="type">ir.actions.act_window</field>
+            <field name="res_model">op.media</field>
+            <field name="view_mode">kanban,list,form,pivot,graph</field>
+            <field name="search_view_id" ref="view_op_media_search"/>
+        </record>
 
-            <!-- Action Window Views Links -->
-            <record model="ir.actions.act_window.view" id="act_open_op_media_view_kanban">
-                <field name="act_window_id" ref="act_open_op_media_view"/>
-                <field name="sequence" eval="5"/>
-                <field name="view_mode">kanban</field>
-                <field name="view_id" ref="view_op_media_kanban"/>
-            </record>
+        <!-- Inherit Form View to add Image -->
+        <!-- <record id="view_op_media_form_inherit_image" model="ir.ui.view">
+            <field name="name">op.media.form.inherit.image</field>
+            <field name="model">op.media</field>
+            <field name="inherit_id" ref="view_op_media_form"/>
+            <field name="arch" type="xml">
+                <xpath expr="//sheet/h1" position="before">
+                    <field name="x_image_128" widget="image" class="oe_avatar"/>
+                </xpath>
+            </field>
+        </record> -->
 
-            <record model="ir.actions.act_window.view" id="act_open_op_media_view_tree">
-                <field name="act_window_id" ref="act_open_op_media_view"/>
-                <field name="sequence" eval="10"/>
-                <field name="view_mode">list</field>
-                <field name="view_id" ref="view_op_media_tree"/>
-            </record>
-
-            <record model="ir.actions.act_window.view" id="act_open_op_media_view_form">
-                <field name="act_window_id" ref="act_open_op_media_view"/>
-                <field name="sequence" eval="20"/>
-                <field name="view_mode">form</field>
-                <field name="view_id" ref="view_op_media_form"/>
-            </record>
-
-            <!-- Inherit Form View to add Image -->
-            <record id="view_op_media_form_inherit_image" model="ir.ui.view">
-                <field name="name">op.media.form.inherit.image</field>
-                <field name="model">op.media</field>
-                <field name="inherit_id" ref="view_op_media_form"/>
-                <field name="arch" type="xml">
-                    <xpath expr="//sheet/h1" position="before">
-                        <field name="x_image_128" widget="image" class="oe_avatar"/>
-                    </xpath>
-                </field>
-            </record>
-
-        </odoo>
+    </odoo>
