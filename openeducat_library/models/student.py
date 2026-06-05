@@ -29,12 +29,20 @@ class OpStudent(models.Model):
         'op.media.movement', 'student_id', 'Movements')
     media_movement_lines_count = fields.Integer(compute='_compute_media_movement_lines')
 
-    @api.depends('media_movement_lines')
     def _compute_media_movement_lines(self):
-        for media in self:
-            media.media_movement_lines_count = \
-                self.env['op.media.movement'].search_count(
-                    [('student_id', '=', self.id)])
+        for rec in self:
+            rec.media_movement_lines_count = 0
+        if not self.ids:
+            return
+        self.env['op.media.movement'].flush_model(['student_id'])
+        data = self.env['op.media.movement'].read_group(
+            [('student_id', 'in', self.ids)],
+            ['student_id'],
+            ['student_id'],
+        )
+        count_map = {r['student_id'][0]: r['__count'] for r in data}
+        for rec in self:
+            rec.media_movement_lines_count = count_map.get(rec.id, 0)
 
     def count_media_movement_lines(self):
         return {

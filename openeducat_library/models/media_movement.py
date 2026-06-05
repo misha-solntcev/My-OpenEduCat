@@ -63,7 +63,7 @@ class OpMediaMovement(models.Model):
         [('available', 'Available'), ('reserve', 'Reserved'),
          ('issue', 'Issued'), ('lost', 'Lost'),
          ('return', 'Returned'), ('return_done', 'Returned Done')],
-        'Status', default='available', tracking=True)
+        'Status', default='available', tracking=True, index=True)
     media_type_id = fields.Many2one(related='media_id.media_type_id',
                                     store=True, string='Media Type')
     course_ids = fields.Many2many(related='media_id.course_ids',

@@ -60,15 +60,42 @@ class OpMedia(models.Model):
     @api.depends('unit_ids', 'unit_ids.state')
     def _compute_unit_counts(self):
         for record in self:
-            record.total_units = len(record.unit_ids)
-            record.issued_units = len(record.unit_ids.filtered(lambda r: r.state == 'issue'))
-            record.available_units = len(record.unit_ids.filtered(lambda r: r.state == 'available'))
+            record.total_units = 0
+            record.issued_units = 0
+            record.available_units = 0
+        if not self.ids:
+            return
+        # Total units per media
+        total_data = self.env['op.media.unit'].read_group(
+            [('media_id', 'in', self.ids)],
+            ['media_id'],
+            ['media_id'],
+        )
+        total_map = {r['media_id'][0]: r['__count'] for r in total_data}
+        # Units per media grouped by state
+        state_data = self.env['op.media.unit'].read_group(
+            [('media_id', 'in', self.ids)],
+            ['media_id', 'state'],
+            ['media_id', 'state'],
+            lazy=False,
+        )
+        state_map = {}
+        for r in state_data:
+            mid = r['media_id'][0]
+            if mid not in state_map:
+                state_map[mid] = {}
+            state_map[mid][r['state']] = r['__count']
+        for rec in self:
+            rec.total_units = total_map.get(rec.id, 0)
+            states = state_map.get(rec.id, {})
+            rec.issued_units = states.get('issue', 0)
+            rec.available_units = states.get('available', 0)
 
     @api.depends('unit_ids', 'unit_ids.barcode')
     def _compute_unit_barcode(self):
         for record in self:
             record.unit_barcode = ', '.join(
-                record.unit_ids.mapped('barcode') or [])
+                record.unit_ids.mapped('barcode'))
 
     _sql_constraints = [
         ('unique_name_isbn',

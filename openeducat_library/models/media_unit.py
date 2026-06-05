@@ -35,7 +35,7 @@ class OpMediaUnit(models.Model):
         'op.media.movement', 'media_unit_id', 'Movements')
     state = fields.Selection(
         [('available', 'Available'), ('issue', 'Issued')],
-        'State', default='available', tracking=True)
+        'State', default='available', tracking=True, index=True)
     media_type_id = fields.Many2one(related='media_id.media_type_id',
                                     store=True, string='Тип')
     course_ids = fields.Many2many(related='media_id.course_ids',
@@ -61,9 +61,20 @@ class OpMediaUnit(models.Model):
     @api.depends('movement_lines.partner_id', 'movement_lines.state')
     def _compute_current_partner(self):
         for rec in self:
-            line = rec.movement_lines.filtered(
-                lambda m: m.state == 'issue')[:1]
-            rec.current_partner_id = line.partner_id.id if line else False
+            rec.current_partner_id = False
+        if not self.ids:
+            return
+        # Get the latest issued movement per unit
+        data = self.env['op.media.movement'].read_group(
+            [('media_unit_id', 'in', self.ids), ('state', '=', 'issue')],
+            ['media_unit_id', 'partner_id'],
+            ['media_unit_id'],
+            lazy=False,
+            orderby='id desc',
+        )
+        for r in data:
+            if r['partner_id']:
+                self.browse(r['media_unit_id'][0]).current_partner_id = r['partner_id'][0]
 
     @api.model_create_multi
     def create(self, vals_list):
