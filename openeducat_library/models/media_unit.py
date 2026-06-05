@@ -87,11 +87,7 @@ class OpMediaUnit(models.Model):
     @api.model
     def name_search(self, name, args=None, operator='ilike', limit=100):
         args = args or []
-        recs = self.browse()
-        if name:
-            recs = self.search(
-                [('name', operator, name)] + args, limit=limit)
-        if not recs:
-            recs = self.search(
-                [('barcode', operator, name)] + args, limit=limit)
-        return [(res.id, res.display_name) for res in recs]
+        if not name:
+            return super().name_search(name, args, operator, limit)
+        domain = ['|', ('name', operator, name), ('barcode', operator, name)]
+        return super().name_search(name, args + domain, operator, limit)

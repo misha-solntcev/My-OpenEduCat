@@ -81,8 +81,8 @@ class IssueMedia(models.TransientModel):
                         'media_id': media.media_id.id,
                         'media_unit_id': media.media_unit_id.id,
                         'type': media.type,
-                        'student_id': media.student_id.id or False,
-                        'faculty_id': media.faculty_id.id or False,
+                        'student_id': media.student_id.id,
+                        'faculty_id': media.faculty_id.id,
                         'library_card_id': media.library_card_id.id,
                         'issued_date': media.issued_date,
                         'return_date': media.return_date,
@@ -90,10 +90,10 @@ class IssueMedia(models.TransientModel):
                     }
                     if media.type == 'student':
                         media_movement_create[
-                            'partner_id'] = media.student_id.partner_id.id or False
+                            'partner_id'] = media.student_id.partner_id.id
                     elif media.type == 'faculty':
                         media_movement_create[
-                            'partner_id'] = media.faculty_id.partner_id.id or False
+                            'partner_id'] = media.faculty_id.partner_id.id
                     else:
                         media_movement_create['partner_id'] = False
 

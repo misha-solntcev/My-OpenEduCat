@@ -18,16 +18,16 @@
 #
 ###############################################################################
 
-from datetime import datetime, timedelta
+from datetime import timedelta
 
 from odoo import _, api, fields, models
 from odoo.exceptions import UserError, ValidationError
 
 
 def days_between(to_date, from_date):
-    to_date = fields.Datetime.from_string(to_date)
-    from_date = fields.Datetime.from_string(from_date)
-    return abs((from_date - to_date).days)
+    if not to_date or not from_date:
+        return 0
+    return abs((to_date - from_date).days)
 
 
 class OpMediaMovement(models.Model):
@@ -80,14 +80,6 @@ class OpMediaMovement(models.Model):
         'res.company', string='Company',
         default=lambda self: self.env.user.company_id)
 
-    def get_diff_day(self):
-        for media_mov_id in self:
-            today_date = datetime.strptime(str(fields.Date.today()), '%Y-%m-%d')
-            return_date = datetime.strptime(
-                str(media_mov_id.return_date), '%Y-%m-%d')
-            diff = today_date - return_date
-            return abs(diff.days)
-
     @api.constrains('issued_date', 'return_date')
     def _check_date(self):
         for record in self:
@@ -114,13 +106,13 @@ class OpMediaMovement(models.Model):
         self.return_date = self.issued_date + timedelta(
             days=self.library_card_id.library_card_type_id.duration)
         if self.type == 'student':
-            self.student_id = self.library_card_id.student_id.id or False
-            self.partner_id = self.student_id.partner_id.id or False
-            self.user_id = self.student_id.user_id.id or False
+            self.student_id = self.library_card_id.student_id.id
+            self.partner_id = self.student_id.partner_id.id
+            self.user_id = self.student_id.user_id.id
         else:
-            self.faculty_id = self.library_card_id.faculty_id.id or False
-            self.partner_id = self.faculty_id.partner_id.id or False
-            self.user_id = self.faculty_id.user_id.id or False
+            self.faculty_id = self.library_card_id.faculty_id.id
+            self.partner_id = self.faculty_id.partner_id.id
+            self.user_id = self.faculty_id.user_id.id
 
     @api.onchange('issued_date')
     def onchange_issued_date(self):
