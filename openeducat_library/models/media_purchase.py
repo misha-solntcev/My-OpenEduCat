@@ -27,13 +27,13 @@ class OpMediaPurchase(models.Model):
     _inherit = "mail.thread"
     _description = "Media Purchase Request"
 
-    name = fields.Char('Title', size=128, required=True)
+    name = fields.Char('Title', required=True)
     request_no = fields.Char('Request No.', readonly=True, copy=False , default='/')
     request_date = fields.Date('Request Date', default=fields.Date.today())
     author = fields.Char(
-        'Author(s)', size=256, required=True, tracking=True)
+        'Author(s)', required=True, tracking=True)
     edition = fields.Char('Edition')
-    publisher = fields.Char('Publisher(s)', size=256)
+    publisher = fields.Char('Publisher(s)')
     course_ids = fields.Many2one(
         'op.course', 'Course', required=True, tracking=True)
     subject_ids = fields.Many2one(

@@ -26,7 +26,7 @@ class OpLibraryCardType(models.Model):
     _name = "op.library.card.type"
     _description = "Library Card Type"
 
-    name = fields.Char('Name', size=256, required=True)
+    name = fields.Char('Name', required=True)
     allow_media = fields.Integer('No Of Medias Allowed', default=10,
                                  required=True)
     duration = fields.Integer(
@@ -49,7 +49,7 @@ class OpLibraryCard(models.Model):
 
     partner_id = fields.Many2one(
         'res.partner', 'Student/Faculty', required=True)
-    number = fields.Char('Number', size=256, readonly=True)
+    number = fields.Char('Number', readonly=True)
     library_card_type_id = fields.Many2one(
         'op.library.card.type', 'Card Type', required=True)
     issue_date = fields.Date(

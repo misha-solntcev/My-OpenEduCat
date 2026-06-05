@@ -27,8 +27,8 @@ class OpMedia(models.Model):
     _inherit = "mail.thread"
     _order = "name"
 
-    name = fields.Char('Title', size=128, required=True)
-    isbn = fields.Char('ISBN Code', size=64)
+    name = fields.Char('Title', required=True)
+    isbn = fields.Char('ISBN Code')
     tags = fields.Many2many('op.tag', string='Tag(s)')
     author_ids = fields.Many2many(
         'op.author', string='Author(s)', required=True)

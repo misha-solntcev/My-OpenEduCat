@@ -58,7 +58,7 @@ class OpMediaMovement(models.Model):
     penalty = fields.Float('Penalty')
     partner_id = fields.Many2one(
         'res.partner', 'Person', tracking=True)
-    reserver_name = fields.Char('Person Name', size=256)
+    reserver_name = fields.Char('Person Name')
     state = fields.Selection(
         [('available', 'Available'), ('reserve', 'Reserved'),
          ('issue', 'Issued'), ('lost', 'Lost'),
