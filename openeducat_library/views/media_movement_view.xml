@@ -105,16 +105,14 @@
             <field name="priority" eval="8"/>
             <field name="arch" type="xml">
                 <search string="Движения книг">
-                    <field name="media_id"/>
-                    <field name="media_unit_id"/>
-                    <field name="barcode" string="Штрихкод"/>
-                    <field name="library_card_id"/>
-                    <field name="student_id"/>
-                    <field name="faculty_id"/>
-                    <field name="partner_id"/>
-                    <field name="issued_date"/>
-                    <field name="return_date"/>
-                    <field name="actual_return_date"/>
+                    <field name="barcode" string="│█║▌Штрихкод"/>
+                    <field name="media_id" string="📖 Название книги"/>
+                    <field name="library_card_id" string="💳 Библиотечная карточка"/>                    
+                    <field name="faculty_id" string="👨‍🏫 Учитель"/>
+                    <field name="student_id" string="👤 Ученик"/>
+                    <field name="issued_date" string="📅 Дата выдачи"/>
+                    <field name="return_date" string="📅 Дата возврата"/>
+                    <field name="actual_return_date" string="📅 Факт. дата возврата"/>
                     <separator/>
                     <filter string="Выдано сегодня" name="filter_issued_today"
                             domain="[('issued_date', '=', context_today().strftime('%Y-%m-%d'))]"/>

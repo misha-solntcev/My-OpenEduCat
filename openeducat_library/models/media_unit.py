@@ -37,11 +37,16 @@ class OpMediaUnit(models.Model):
         [('available', 'Available'), ('issue', 'Issued')],
         'State', default='available', tracking=True)
     media_type_id = fields.Many2one(related='media_id.media_type_id',
-                                    store=True, string='Media Type')
+                                    store=True, string='Тип')
     course_ids = fields.Many2many(related='media_id.course_ids',
                                   string='Класс')
     subject_ids = fields.Many2many(related='media_id.subject_ids',
                                    string='Предмет')
+    author_ids = fields.Many2many(related='media_id.author_ids',
+                                  string='Автор')
+    publisher_ids = fields.Many2many(related='media_id.publisher_ids',
+                                     string='Издательство')
+    isbn = fields.Char(related='media_id.isbn', string='ISBN')
     active = fields.Boolean(default=True)
 
     _sql_constraints = [

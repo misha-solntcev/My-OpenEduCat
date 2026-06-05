@@ -7,16 +7,16 @@
         <field name="priority" eval="8"/>
         <field name="arch" type="xml">
             <list string="Книги">
-                <field name="name"/>
-                <field name="media_type_id"/>
-                <field name="isbn"/>
-                <field name="edition"/>
-                <field name="description" optional="hide"/>
-                <field name="tags" widget="many2many_tags" optional="hide"/>
-                <field name="author_ids" widget="many2many_tags" optional="hide"/>
-                <field name="publisher_ids" widget="many2many_tags" optional="hide"/>
-                <field name="course_ids" widget="many2many_tags" optional="hide"/>
-                <field name="subject_ids" widget="many2many_tags" optional="hide"/>
+                <field name="name" string="Название книги" optional="show"/>
+                <field name="subject_ids" string="Предмет" widget="many2many_tags" optional="hide"/>
+                <field name="course_ids" string="Класс" widget="many2many_tags" optional="hide"/>
+                <field name="author_ids" string="Автор" widget="many2many_tags" optional="show"/>                
+                <field name="publisher_ids" string="Издательство" widget="many2many_tags" optional="hide"/>
+                <field name="edition" string="Издание" optional="show"/>
+                <field name="isbn" string="Код ISBN" optional="show"/>
+                <field name="description" string="Описание" optional="hide"/>
+                <field name="tags" string="Тег" widget="many2many_tags" optional="hide"/>                                
+                <field name="media_type_id" string="Тип" optional="show"/>
             </list>
         </field>
     </record>
@@ -104,36 +104,36 @@
             <field name="priority" eval="8"/>
             <field name="arch" type="xml">
                 <search string="Книги">
-                    <field name="name" string="Название"/>
-                    <field name="isbn"/>
-                    <field name="author_ids" string="Автор"/>
-                    <field name="publisher_ids" string="Издатель"/>
-                    <field name="tags" string="Тег"/>
-                    <field name="course_ids" string="Предмет"/>
-                    <field name="subject_ids" string="Предмет"/>
-                    <field name="media_type_id" string="Тип"/>
-                    <field name="unit_barcode" string="Штрихкод"/>
+                    <field name="unit_barcode" string="│█║▌Штрихкод"/>
+                    <field name="name" string="📖  Название книги"/>
+                    <field name="isbn" string="📚 ISBN"/>
+                    <field name="subject_ids" string="📚 Предмет"/>
+                    <field name="course_ids" string="🏫 Класс"/>                    
+                    <field name="author_ids" string="✍️ Автор"/>
+                    <field name="publisher_ids" string="🏢  Издательство"/>
+                    <field name="media_type_id" string="📦 Тип"/>
+                    <field name="tags" string="🏷️ Тег"/>
                     <separator/>
-                    <filter string="Есть экземпляры" name="has_units"
+                    <filter string="📗 Есть экземпляры" name="has_units"
                             domain="[('unit_ids', '!=', False)]"/>
-                    <filter string="Нет экземпляров" name="no_units"
+                    <filter string="📕 Нет экземпляров" name="no_units"
                             domain="[('unit_ids', '=', False)]"/>
                     <separator/>
-                    <filter string="В архиве" name="inactive"
+                    <filter string="🗃️ В архиве" name="inactive"
                             domain="[('active', '=', False)]"/>
                     <group expand="0" string="Группировка...">
-                        <filter string="Тип" name="group_by_lbr_media_type"
-                                domain="[]" context="{'group_by':'media_type_id'}"/>
-                        <filter string="Издание" name="group_by_lbr_media_edition"
-                                domain="[]" context="{'group_by':'edition'}"/>
-                        <filter string="Автор" name="group_by_lbr_media_author"
-                                domain="[]" context="{'group_by':'author_ids'}"/>
-                        <filter string="Издательство" name="group_by_lbr_media_publisher"
-                                domain="[]" context="{'group_by':'publisher_ids'}"/>
-                        <filter string="Класс" name="group_by_lbr_media_course"
-                                domain="[]" context="{'group_by':'course_ids'}"/>
-                        <filter string="Предмет" name="group_by_lbr_media_subject"
+                        <filter string="📚 Предмет" name="group_by_lbr_media_subject"
                                 domain="[]" context="{'group_by':'subject_ids'}"/>
+                        <filter string="🏫 Класс" name="group_by_lbr_media_course"
+                                domain="[]" context="{'group_by':'course_ids'}"/>
+                        <filter string="📦 Тип" name="group_by_lbr_media_type"
+                                domain="[]" context="{'group_by':'media_type_id'}"/>
+                        <filter string="🏢 Издательство" name="group_by_lbr_media_publisher"
+                                domain="[]" context="{'group_by':'publisher_ids'}"/>
+                        <filter string="✍️ Автор" name="group_by_lbr_media_author"
+                                domain="[]" context="{'group_by':'author_ids'}"/>
+                        <filter string="📖 Издание" name="group_by_lbr_media_edition"
+                                domain="[]" context="{'group_by':'edition'}"/>
                     </group>
                 </search>
             </field>
@@ -163,12 +163,11 @@
                 </field>
             </record>
 
-            <!-- Kanban View -->
-            <!-- Исправлено: добавлены недостающие поля и корректная структура kanban -->
+            <!-- Kanban View -->            
             <record id="view_op_media_kanban" model="ir.ui.view">
-                <field name="name">op.media.kanban</field> <!-- Исправлено: добавлено имя -->
-                <field name="model">op.media</field>      <!-- Исправлено: добавлена модель -->
-                <field name="arch" type="xml">            <!-- Исправлено: добавлен arch -->
+                <field name="name">op.media.kanban</field> 
+                <field name="model">op.media</field>
+                <field name="arch" type="xml">
                     <kanban sample="1" default_order="name">
                         <field name="id"/>
                         <field name="name" />
@@ -200,15 +199,15 @@
                                     <!-- Отображение количества экземпляров в виде бейджей в правом нижнем углу карточки -->
                                     <div class="unit-badges">
                                         <span class="badge" style="background-color: #e7f5ff; color: #1c7ed6; font-size: 14px;">
-                                            <i class="fa fa-book" style="font-size: 18px; margin-right: 4px;"></i>
+                                            <i class="fa fa-book" title="Всего" style="font-size: 18px; margin-right: 4px;"></i>
                                             <field name="total_units"/>
                                         </span>
                                         <span class="badge" style="background-color: #fff0f6; color: #d6336c; font-size: 14px;">
-                                            <i class="fa fa-arrow-circle-o-right" style="font-size: 18px; margin-right: 4px;"></i>
+                                            <i class="fa fa-arrow-circle-o-right" title="Выдано" style="font-size: 18px; margin-right: 4px;"></i>
                                             <field name="issued_units"/>
                                         </span>
                                         <span class="badge" style="background-color: #ebfbee; color: #37b24d; font-size: 14px;">
-                                            <i class="fa fa-check-circle" style="font-size: 18px; margin-right: 4px;"></i>
+                                            <i class="fa fa-check-circle" title="Доступно" style="font-size: 18px; margin-right: 4px;"></i>
                                             <field name="available_units"/>
                                         </span>
                                     </div>

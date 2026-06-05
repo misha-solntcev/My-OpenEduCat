@@ -70,14 +70,14 @@
             <field name="model">op.media.purchase</field>
             <field name="priority" eval="8"/>
             <field name="arch" type="xml">
-                <search string="Purchase Request">
-                    <field name="name"/>
-                    <field name="request_no"/>
-                    <field name="requested_id"/>
-                    <field name="author"/>
-                    <field name="course_ids"/>
-                    <field name="subject_ids"/>
-                    <field name="request_date"/>
+                <search string="Заявки на книги">
+                    <field name="name" string="📝 Номер"/>
+                    <field name="request_no" string="🔢 Номер заявки"/>
+                    <field name="requested_id" string="👤 Запросил"/>                    
+                    <field name="subject_ids" string="📚 Предмет"/>
+                    <field name="course_ids" string="🏫 Класс"/>
+                    <field name="author" string="✍️ Автор"/>
+                    <field name="request_date" string="📅 Дата запроса"/>
                     <separator/>
                     <filter string="Черновик" name="filter_state_draft"
                             domain="[('state', '=', 'draft')]"/>
