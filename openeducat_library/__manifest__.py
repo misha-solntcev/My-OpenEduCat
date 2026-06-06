@@ -51,6 +51,7 @@
         'views/media_view.xml',
         'views/media_unit_view.xml',
         'views/media_movement_view.xml',
+        'views/media_movement_actions.xml',
         'views/media_purchase_view.xml',
         'views/media_queue_view.xml',
         'views/library_view.xml',

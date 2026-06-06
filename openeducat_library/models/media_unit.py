@@ -1,23 +1,3 @@
-###############################################################################
-#
-#    OpenEduCat Inc
-#    Copyright (C) 2009-TODAY OpenEduCat Inc(<https://www.openeducat.org>).
-#
-#    This program is free software: you can redistribute it and/or modify
-#    it under the terms of the GNU Lesser General Public License as
-#    published by the Free Software Foundation, either version 3 of the
-#    License, or (at your option) any later version.
-#
-#    This program is distributed in the hope that it will be useful,
-#    but WITHOUT ANY WARRANTY; without even the implied warranty of
-#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#    GNU Lesser General Public License for more details.
-#
-#    You should have received a copy of the GNU Lesser General Public License
-#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#
-###############################################################################
-
 from odoo import api, fields, models
 
 
@@ -65,16 +45,16 @@ class OpMediaUnit(models.Model):
         if not self.ids:
             return
         # Get the latest issued movement per unit
-        data = self.env['op.media.movement'].read_group(
-            [('media_unit_id', 'in', self.ids), ('state', '=', 'issue')],
-            ['media_unit_id', 'partner_id'],
-            ['media_unit_id'],
-            lazy=False,
-            orderby='id desc',
-        )
-        for r in data:
-            if r['partner_id']:
-                self.browse(r['media_unit_id'][0]).current_partner_id = r['partner_id'][0]
+        self.env['op.media.movement'].flush_model(['media_unit_id', 'state', 'partner_id'])
+        self.env.cr.execute("""
+            SELECT DISTINCT ON (m.media_unit_id) m.media_unit_id, m.partner_id
+            FROM op_media_movement m
+            WHERE m.media_unit_id IN %s AND m.state = 'issue'
+            ORDER BY m.media_unit_id, m.id DESC
+        """, (tuple(self.ids),))
+        for unit_id, partner_id in self.env.cr.fetchall():
+            if partner_id:
+                self.browse(unit_id).current_partner_id = partner_id
 
     @api.model_create_multi
     def create(self, vals_list):

@@ -139,6 +139,14 @@ class OpMediaMovement(models.Model):
                 record.state = 'return_done'
             record.media_unit_id.state = 'available'
 
+    def action_mass_return(self):
+        """Mass return selected media movements."""
+        today = fields.Date.today()
+        for record in self:
+            if record.state != 'issue':
+                continue
+            record.return_media(today)
+
     def calculate_penalty(self):
         for record in self:
             penalty_amt = 0

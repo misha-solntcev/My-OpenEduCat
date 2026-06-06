@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <record id="action_mass_return_media" model="ir.actions.server">
+        <field name="name">Сдать выбранные</field>
+        <field name="model_id" ref="model_op_media_movement"/>
+        <field name="binding_model_id" ref="model_op_media_movement"/>
+        <field name="binding_view_types">list</field>
+        <field name="state">code</field>
+        <field name="code">
+if records:
+    records.action_mass_return()
+        </field>
+        <field name="groups_id" eval="[(4, ref('openeducat_library.group_op_library'))]"/>
+    </record>
+</odoo>

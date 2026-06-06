@@ -6,19 +6,27 @@
             <field name="model">op.media.movement</field>
             <field name="priority" eval="8"/>
             <field name="arch" type="xml">
-                <list string="media Movement">
-                    <field name="library_card_id"/>
-                    <field name="partner_id"/>
-                    <field name="media_id"/>
-                    <field name="media_type_id" optional="hide"/>
-                    <field name="media_unit_id"/>
-                    <field name="issued_date"/>
-                    <field name="return_date"/>
-                    <field name="actual_return_date"/>
+                <list string="media Movement"
+                    decoration-success="state == 'available'"
+                      decoration-danger="state == 'issue'"
+                      decoration-warning="state == 'reserve'"
+                      decoration-muted="state == 'lost'">
+                    <field name="media_unit_id" optional="show" /> 
+                    <field name="media_id" string="Книга" optional="hide" />
+                    <field name="partner_id" string="Абонент" optional="hide" />                    
+                    <field name="issued_date" optional="show"/>
+                    <field name="return_date" optional="show"/>
+                    <field name="actual_return_date" optional="show"/>
                     <field name="penalty" widget="monetary" optional="hide"/>
-                    <field name="state"/>
-                    <field name="invoice_id" invisible="1"/>
+                    <field name="invoice_id" invisible="1" optional="hide"/>
                     <field name="type" optional="hide"/>
+                    <field name="state" string="🔖 Статус" optional="show" widget="badge"
+                           decoration-success="state == 'available'"
+                           decoration-danger="state == 'issue'"
+                           decoration-warning="state == 'reserve'"
+                           decoration-muted="state == 'lost'"/>                    
+                    <field name="media_type_id" optional="hide"/>
+                    <field name="library_card_id" optional="show"/>
                 </list>
             </field>
         </record>
@@ -135,28 +143,26 @@
                     <filter string="В архиве" name="inactive"
                             domain="[('active', '=', False)]"/>
                     <group expand="0" string="Группировка...">
-                        <filter string="Книга" name="group_by_lbr_media_mvmn_media"
+                        <filter string="📖 Название книги" name="group_by_media"
                                 domain="[]" context="{'group_by':'media_id'}"/>
-                        <filter string="Ученик" name="group_by_lbr_media_mvmn_student"
-                                domain="[]" context="{'group_by':'student_id'}"/>
-                        <filter string="Учитель" name="group_by_lbr_media_mvmn_faculty"
-                                domain="[]" context="{'group_by':'faculty_id'}"/>
-                        <filter string="Библиотечная карточка" name="group_by_lbr_media_mvmn_library_card"
-                                domain="[]" context="{'group_by':'library_card_id'}"/>
-                        <filter string="Издательство" name="group_by_lbr_media_mvmn_publisher"
-                                domain="[]" context="{'group_by':'publisher_ids'}"/>
-                        <filter string="Дата выдачи" name="group_by_lbr_media_mvmn_issue_date"
-                                domain="[]" context="{'group_by':'issued_date'}"/>
-                        <filter string="Дата возврата" name="group_by_lbr_media_mvmn_return_date"
-                                domain="[]" context="{'group_by':'return_date'}"/>
-                        <filter string="Фактическая дата возврата" name="group_by_lbr_media_mvmn_actual_return_date"
-                                domain="[]" context="{'group_by':'actual_return_date'}"/>
-                        <filter string="Статус" name="group_by_lbr_media_mvmn_state"
-                                domain="[]" context="{'group_by':'state'}"/>
-                        <filter string="Класс" name="group_by_lbr_media_mvmn_course"
-                                domain="[]" context="{'group_by':'course_ids'}"/>
-                        <filter string="Предмет" name="group_by_lbr_media_mvmn_subject"
+                        <filter string="📚 Предмет" name="group_by_subject"
                                 domain="[]" context="{'group_by':'subject_ids'}"/>
+                        <filter string="👥 Класс" name="group_by_course"
+                                domain="[]" context="{'group_by':'course_ids'}"/>                        
+                        <filter string="🧑‍🎓 Ученик" name="group_by_student"
+                                domain="[]" context="{'group_by':'student_id'}"/>
+                        <filter string="👨‍🏫 Учитель" name="group_by_faculty"
+                                domain="[]" context="{'group_by':'faculty_id'}"/>
+                        <filter string="🔖 Статус" name="group_by_state"
+                                domain="[]" context="{'group_by':'state'}"/>
+                        <filter string="💳 Библиотечная карточка" name="group_by_library_card"
+                                domain="[]" context="{'group_by':'library_card_id'}"/>                        
+                        <filter string="Дата выдачи" name="group_by_issue_date"
+                                domain="[]" context="{'group_by':'issued_date'}"/>
+                        <filter string="Дата возврата" name="group_by_return_date"
+                                domain="[]" context="{'group_by':'return_date'}"/>
+                        <filter string="Фактическая дата возврата" name="group_by_actual_return_date"
+                                domain="[]" context="{'group_by':'actual_return_date'}"/>                        
                     </group>
                 </search>
             </field>
@@ -170,20 +176,10 @@
             <field name="view_mode">list,form</field>
             <field name="path">media-movement</field>
             <field name="search_view_id" ref="view_op_media_movement_search"/>
-        </record>
-
-        <record model="ir.actions.act_window.view" id="act_open_op_media_movement_view_form">
-            <field name="act_window_id" ref="act_open_op_media_movement_view"/>
-            <field name="sequence" eval="20"/>
-            <field name="view_mode">form</field>
-            <field name="view_id" ref="view_op_media_movement_form"/>
-        </record>
-
-        <record model="ir.actions.act_window.view" id="act_open_op_media_movement_view_tree">
-            <field name="act_window_id" ref="act_open_op_media_movement_view"/>
-            <field name="sequence" eval="10"/>
-            <field name="view_mode">list</field>
-            <field name="view_id" ref="view_op_media_movement_tree"/>
-        </record>
+            <field name= "context">{
+                'search_default_group_by_course': 1,
+                'search_default_group_by_student': 1}
+            </field>
+        </record>       
 
 </odoo>

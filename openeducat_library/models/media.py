@@ -1,23 +1,3 @@
-##############################################################################
-#
-#    OpenEduCat Inc
-#    Copyright (C) 2009-TODAY OpenEduCat Inc(<https://www.openeducat.org>).
-#
-#    This program is free software: you can redistribute it and/or modify
-#    it under the terms of the GNU Lesser General Public License as
-#    published by the Free Software Foundation, either version 3 of the
-#    License, or (at your option) any later version.
-#
-#    This program is distributed in the hope that it will be useful,
-#    but WITHOUT ANY WARRANTY; without even the implied warranty of
-#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#    GNU Lesser General Public License for more details.
-#
-#    You should have received a copy of the GNU Lesser General Public License
-#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#
-##############################################################################
-
 from odoo import fields, models, api
 
 
@@ -68,15 +48,15 @@ class OpMedia(models.Model):
         # Total units per media
         total_data = self.env['op.media.unit'].read_group(
             [('media_id', 'in', self.ids)],
-            ['media_id'],
-            ['media_id'],
+            ['media_id', 'id:count'],
+            groupby=['media_id'],
         )
-        total_map = {r['media_id'][0]: r['__count'] for r in total_data}
+        total_map = {r['media_id'][0]: r['id'] for r in total_data}
         # Units per media grouped by state
         state_data = self.env['op.media.unit'].read_group(
             [('media_id', 'in', self.ids)],
-            ['media_id', 'state'],
-            ['media_id', 'state'],
+            ['media_id', 'state', 'id:count'],
+            groupby=['media_id', 'state'],
             lazy=False,
         )
         state_map = {}
@@ -84,7 +64,7 @@ class OpMedia(models.Model):
             mid = r['media_id'][0]
             if mid not in state_map:
                 state_map[mid] = {}
-            state_map[mid][r['state']] = r['__count']
+            state_map[mid][r['state']] = r['id']
         for rec in self:
             rec.total_units = total_map.get(rec.id, 0)
             states = state_map.get(rec.id, {})
