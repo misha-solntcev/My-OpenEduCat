@@ -9,7 +9,7 @@
                 <list string="Запросы на книги">
                     <field name='name'/>
                     <field name="media_id"/>
-                    <field name="user_id"/>
+                    <field name="user_id" widget="many2one_avatar_user"/>
                     <field name="date_from"/>
                     <field name="date_to"/>
                     <field name="state"/>
@@ -47,7 +47,7 @@
                         </group>
                         <group class="pt-3">
                             <group>
-                                <field name="user_id" placeholder="Name"/>
+                                <field name="user_id" widget="many2one_avatar_user" placeholder="Name"/>
                                 <field name="date_from"/>
                             </group>
                             <group>

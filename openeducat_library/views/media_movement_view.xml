@@ -13,7 +13,7 @@
                       decoration-muted="state == 'lost'">
                     <field name="media_unit_id" optional="show" /> 
                     <field name="media_id" string="Книга" optional="hide" />
-                    <field name="partner_id" string="Абонент" optional="hide" />                    
+                    <field name="partner_id" widget="many2one_avatar" string="Абонент" optional="show"/>
                     <field name="issued_date" optional="show"/>
                     <field name="return_date" optional="show"/>
                     <field name="actual_return_date" optional="show"/>
@@ -66,10 +66,10 @@
                         <group string="Student/Faculty Detail">
                             <group class="pt-3">
                                 <field name="library_card_id"/>
-                                <field name="student_id" readonly="1" force_save="1"
+                                <field name="student_id" widget="many2one_avatar" readonly="1" force_save="1"
                                     required="type == 'student'" invisible= "type != 'student'"
                                        context="{'form_view_ref':'openeducat_library.view_op_student_library_form'}"/>
-                                <field name="faculty_id" readonly="1" force_save="1"
+                                <field name="faculty_id" widget="many2one_avatar" readonly="1" force_save="1"
                                     required="type == 'faculty'" invisible= "type != 'faculty'"/>
                             </group>
                             <group class="pt-3">

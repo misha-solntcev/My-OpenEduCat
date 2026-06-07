@@ -72,7 +72,7 @@
                         <page name="media_queue_requests" string="Запросы на книги">
                             <field name="queue_ids" colspan="4" nolabel="1">
                                 <list string="Запросы на книги">
-                                    <field name="user_id"/>
+                                    <field name="user_id" widget="many2one_avatar_user"/>
                                     <field name="date_from"/>
                                     <field name="date_to"/>
                                     <field name="state"/>

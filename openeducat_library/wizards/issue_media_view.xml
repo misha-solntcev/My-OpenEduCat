@@ -14,9 +14,9 @@
                             <field name="type"/>
                         </group>
                         <group col="4">
-                            <field name="student_id"
+                            <field name="student_id" widget="many2one_avatar"
                                 required= "type == 'student'" invisible= "type != 'student'"/>
-                            <field name="faculty_id"
+                            <field name="faculty_id" widget="many2one_avatar"
                                 required="type == 'faculty'" invisible="type != 'faculty'"/>
                         </group>
                         <group col="4">
