@@ -95,7 +95,7 @@
                 <list string="Library Card">
                     <field name="number"/>
                     <field name="issue_date"/>
-                    <field name="partner_id" widget="many2one_avatar"/>
+                    <field name="partner_id"/>
                     <field name="library_card_type_id"/>
                 </list>
             </field>
@@ -117,14 +117,14 @@
                                 <field name="number"/>
                                 <field name="library_card_type_id"/>
                                 <field name="type"/>
-                                <field name="student_id" widget="many2one_avatar" options="{'no_create': True , 'no_open': True}"
+                                <field name="student_id" options="{'no_create': True , 'no_open': True}"
                                 invisible="type != 'student'" required= "type == 'student'"/>
-                                <field name="faculty_id" widget="many2one_avatar" options="{'no_create': True , 'no_open': True}"
+                                <field name="faculty_id" options="{'no_create': True , 'no_open': True}"
                                 invisible="type != 'faculty'" required= "type == 'faculty'"/>
                             </group>
                             <group>
                                 <field name="issue_date"/>
-                                <field name="partner_id" widget="many2one_avatar" readonly="1" force_save="1"/>
+                                <field name="partner_id" readonly="1" force_save="1"/>
                             </group>
                         </group>
                     </sheet>

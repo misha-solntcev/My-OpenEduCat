@@ -12,15 +12,15 @@
                       decoration-warning="state == 'reserve'"
                       decoration-muted="state == 'lost'">
                     <field name="name" string="📖  Название экземпляра" optional="show"/>
-                    <field name="current_partner_id" widget="many2one_avatar" string="👨‍🎓 Абонент" optional="show"/>
                     <field name="subject_ids" string="📚 Предмет" optional="show" widget="many2many_tags"/>
-                    <field name="course_ids" string="🏫 Класс" optional="show" widget="many2many_tags"/>                    
+                    <field name="course_ids" string="🏫 Класс" optional="show" widget="many2many_tags"/>
+                    <field name="current_partner_id" string="👨‍🎓 Абонент" optional="show"/>
                     <field name="barcode" string="│█║▌Штрих-код" optional="show"/>
                     <field name="state" string="🔖 Статус" optional="show" widget="badge"
                            decoration-success="state == 'available'"
                            decoration-danger="state == 'issue'"
                            decoration-warning="state == 'reserve'"
-                           decoration-muted="state == 'lost'"/>                    
+                           decoration-muted="state == 'lost'"/>
                 </list>
             </field>
         </record>
@@ -64,7 +64,7 @@
                                 <field name="movement_lines" nolabel='1'>
                                     <list create='false' editable="top">
                                         <field name="library_card_id"/>
-                                        <field name="partner_id" widget="many2one_avatar"/>
+                                        <field name="partner_id"/>
                                         <field name="media_id"/>
                                         <field name="media_unit_id"/>
                                         <field name="issued_date"/>
@@ -87,16 +87,16 @@
             <field name="model">op.media.unit</field>
             <field name="priority" eval="8"/>
             <field name="arch" type="xml">
-                <search string="Экземпляры">                    
-                    <field name="barcode" string="│█║▌Штрихкод"/>                    
+                <search string="Экземпляры">
+                    <field name="barcode" string="│█║▌Штрихкод"/>
                     <field name="name" string="📖 Название книги"/>
-                    <field name="isbn" string="🪧 ISBN"/>                    
+                    <field name="isbn" string="🪧 ISBN"/>
                     <field name="subject_ids" string="📚 Предмет"/>
                     <field name="course_ids" string="🏫 Класс"/>
                     <field name="current_partner_id" string="👨‍🎓 Абонент"/>
                     <field name="author_ids" string="✍️ Автор"/>
                     <field name="publisher_ids" string="🏢 Издательство"/>
-                    <field name="media_type_id" string="📦 Тип"/>                    
+                    <field name="media_type_id" string="📦 Тип"/>
                     <separator/>
                     <filter string="🟢 Доступна" name="available"
                             domain="[('state', '=', 'available')]"/>
@@ -113,7 +113,7 @@
                         <filter string="📖 Название книги" name="group_bymedia"
                             domain="[]" context="{'group_by':'media_id'}"/>
                         <filter string="📚 Предмет" name="group_by_subject"
-                            domain="[]" context="{'group_by':'subject_ids'}"/>                        
+                            domain="[]" context="{'group_by':'subject_ids'}"/>
                         <filter string="🏫 Класс" name="group_by_course"
                             domain="[]" context="{'group_by':'course_ids'}"/>
                         <filter string="👨‍🎓 Абонент" name="group_by_current_partner"

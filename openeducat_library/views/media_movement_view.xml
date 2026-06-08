@@ -11,9 +11,9 @@
                       decoration-danger="state == 'issue'"
                       decoration-warning="state == 'reserve'"
                       decoration-muted="state == 'lost'">
-                    <field name="media_unit_id" optional="show" /> 
+                    <field name="media_unit_id" optional="show" />
                     <field name="media_id" string="Книга" optional="hide" />
-                    <field name="partner_id" widget="many2one_avatar" string="Абонент" optional="show"/>
+                    <field name="partner_id" string="Абонент" optional="hide"/>
                     <field name="issued_date" optional="show"/>
                     <field name="return_date" optional="show"/>
                     <field name="actual_return_date" optional="show"/>
@@ -24,7 +24,7 @@
                            decoration-success="state == 'available'"
                            decoration-danger="state == 'issue'"
                            decoration-warning="state == 'reserve'"
-                           decoration-muted="state == 'lost'"/>                    
+                           decoration-muted="state == 'lost'"/>
                     <field name="media_type_id" optional="hide"/>
                     <field name="library_card_id" optional="show"/>
                 </list>
@@ -66,10 +66,10 @@
                         <group string="Student/Faculty Detail">
                             <group class="pt-3">
                                 <field name="library_card_id"/>
-                                <field name="student_id" widget="many2one_avatar" readonly="1" force_save="1"
+                                <field name="student_id" readonly="1" force_save="1"
                                     required="type == 'student'" invisible= "type != 'student'"
                                        context="{'form_view_ref':'openeducat_library.view_op_student_library_form'}"/>
-                                <field name="faculty_id" widget="many2one_avatar" readonly="1" force_save="1"
+                                <field name="faculty_id" readonly="1" force_save="1"
                                     required="type == 'faculty'" invisible= "type != 'faculty'"/>
                             </group>
                             <group class="pt-3">
@@ -115,7 +115,7 @@
                 <search string="Движения книг">
                     <field name="barcode" string="│█║▌Штрихкод"/>
                     <field name="media_id" string="📖 Название книги"/>
-                    <field name="library_card_id" string="💳 Библиотечная карточка"/>                    
+                    <field name="library_card_id" string="💳 Библиотечная карточка"/>
                     <field name="faculty_id" string="👨‍🏫 Учитель"/>
                     <field name="student_id" string="👤 Ученик"/>
                     <field name="issued_date" string="📅 Дата выдачи"/>
@@ -148,7 +148,7 @@
                         <filter string="📚 Предмет" name="group_by_subject"
                                 domain="[]" context="{'group_by':'subject_ids'}"/>
                         <filter string="👥 Класс" name="group_by_course"
-                                domain="[]" context="{'group_by':'course_ids'}"/>                        
+                                domain="[]" context="{'group_by':'course_ids'}"/>
                         <filter string="🧑‍🎓 Ученик" name="group_by_student"
                                 domain="[]" context="{'group_by':'student_id'}"/>
                         <filter string="👨‍🏫 Учитель" name="group_by_faculty"
@@ -156,13 +156,13 @@
                         <filter string="🔖 Статус" name="group_by_state"
                                 domain="[]" context="{'group_by':'state'}"/>
                         <filter string="💳 Библиотечная карточка" name="group_by_library_card"
-                                domain="[]" context="{'group_by':'library_card_id'}"/>                        
+                                domain="[]" context="{'group_by':'library_card_id'}"/>
                         <filter string="Дата выдачи" name="group_by_issue_date"
                                 domain="[]" context="{'group_by':'issued_date'}"/>
                         <filter string="Дата возврата" name="group_by_return_date"
                                 domain="[]" context="{'group_by':'return_date'}"/>
                         <filter string="Фактическая дата возврата" name="group_by_actual_return_date"
-                                domain="[]" context="{'group_by':'actual_return_date'}"/>                        
+                                domain="[]" context="{'group_by':'actual_return_date'}"/>
                     </group>
                 </search>
             </field>
@@ -180,6 +180,6 @@
                 'search_default_group_by_course': 1,
                 'search_default_group_by_student': 1}
             </field>
-        </record>       
+        </record>
 
 </odoo>

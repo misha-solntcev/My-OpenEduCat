@@ -7,7 +7,7 @@
             <field name="arch" type="xml">
                 <form string="Media Reservation">
                     <group>
-                        <field name="partner_id" widget="many2one_avatar"/>
+                        <field name="partner_id"/>
                     </group>
                     <footer groups="base.group_user">
                         <button name="set_partner" type="object" string="Proceed" class="oe_highlight"/>
