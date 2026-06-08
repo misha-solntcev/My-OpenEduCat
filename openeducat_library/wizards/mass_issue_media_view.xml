@@ -1,0 +1,60 @@
+<?xml version="1.0"?>
+<odoo>
+
+    <record model="ir.ui.view" id="mass_issue_media_form">
+        <field name="name">mass.issue.media.form</field>
+        <field name="model">mass.issue.media</field>
+        <field name="arch" type="xml">
+            <form string="Массовая выдача книг">
+                <group>
+                    <group>
+                        <field name="library_card_id"/>
+                        <field name="issued_date"/>
+                        <field name="return_date"/>
+                    </group>
+                    <group>
+                        <field name="unit_ids" widget="many2many_tags"
+                               domain="[('state', '=', 'available')]"/>
+                    </group>
+                </group>
+                <footer groups="base.group_user">
+                    <button name="do_mass_issue" type="object"
+                            string="Выдать все" class="oe_highlight"/>
+                    <button string="Отмена" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_mass_issue_media_wizard" model="ir.actions.act_window">
+        <field name="name">Выдать выбранные</field>
+        <field name="res_model">mass.issue.media</field>
+        <field name="binding_view_types">form</field>
+        <field name="view_mode">form</field>
+        <field name="view_id" ref="mass_issue_media_form"/>
+        <field name="target">new</field>
+    </record>
+
+    <record id="action_mass_issue_media" model="ir.actions.server">
+        <field name="name">Выдать выбранные</field>
+        <field name="model_id" ref="model_op_media_unit"/>
+        <field name="binding_model_id" ref="model_op_media_unit"/>
+        <field name="binding_view_types">list</field>
+        <field name="state">code</field>
+        <field name="code">
+if records:
+    action = {
+        'type': 'ir.actions.act_window',
+        'name': _('Выдать выбранные'),
+        'res_model': 'mass.issue.media',
+        'view_mode': 'form',
+        'target': 'new',
+        'context': {
+            'default_active_ids': records.ids,
+        },
+    }
+        </field>
+        <field name="groups_id" eval="[(4, ref('openeducat_library.group_op_library'))]"/>
+    </record>
+
+</odoo>

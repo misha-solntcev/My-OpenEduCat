@@ -8,9 +8,9 @@
             <field name="arch" type="xml">
                 <list string="Экземпляры"
                       decoration-success="state == 'available'"
-                      decoration-danger="state == 'issue'"
+                      decoration-info="state == 'issue'"
                       decoration-warning="state == 'reserve'"
-                      decoration-muted="state == 'lost'">
+                      decoration-danger="state == 'lost'">
                     <field name="name" string="📖  Название экземпляра" optional="show"/>
                     <field name="subject_ids" string="📚 Предмет" optional="show" widget="many2many_tags"/>
                     <field name="course_ids" string="🏫 Класс" optional="show" widget="many2many_tags"/>
@@ -18,9 +18,9 @@
                     <field name="barcode" string="│█║▌Штрих-код" optional="show"/>
                     <field name="state" string="🔖 Статус" optional="show" widget="badge"
                            decoration-success="state == 'available'"
-                           decoration-danger="state == 'issue'"
+                           decoration-info="state == 'issue'"
                            decoration-warning="state == 'reserve'"
-                           decoration-muted="state == 'lost'"/>
+                           decoration-danger="state == 'lost'"/>
                 </list>
             </field>
         </record>
@@ -100,11 +100,11 @@
                     <separator/>
                     <filter string="🟢 Доступна" name="available"
                             domain="[('state', '=', 'available')]"/>
-                    <filter string="🔴 Выдана" name="issued"
+                    <filter string="🔵 Выдана" name="issued"
                             domain="[('state', '=', 'issue')]"/>
                     <filter string="🟡 Зарезервирована" name="reserve"
                             domain="[('state', '=', 'reserve')]"/>
-                    <filter string="⚫ Утеряна" name="lost"
+                    <filter string="🔴 Утеряна" name="lost"
                             domain="[('state', '=', 'lost')]"/>
                     <separator/>
                     <filter string="🗃️ В архиве" name="inactive"

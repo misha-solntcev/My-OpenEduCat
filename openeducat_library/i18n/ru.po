@@ -1206,7 +1206,7 @@ msgstr "СМИ возвращается"
 #. module: openeducat_library
 #: model:ir.model,name:openeducat_library.model_op_tag
 msgid "Media Tags"
-msgstr "Медиа -теги"
+msgstr "Теги"
 
 #. module: openeducat_library
 #: model:ir.actions.act_window,name:openeducat_library.act_open_op_media_type_view
@@ -1216,8 +1216,8 @@ msgstr "Медиа -теги"
 #: model:ir.model.fields,field_description:openeducat_library.field_op_media_purchase__media_type_id
 #: model:ir.model.fields,field_description:openeducat_library.field_op_media_unit__media_type_id
 #: model:ir.ui.menu,name:openeducat_library.menu_op_tag_sub
-msgid "Media Type"
-msgstr "Тип книги"
+msgid "Tags"
+msgstr "Теги" 
 
 #. module: openeducat_library
 #: model:ir.model,name:openeducat_library.model_op_media_unit

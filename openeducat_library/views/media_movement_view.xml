@@ -7,11 +7,12 @@
             <field name="priority" eval="8"/>
             <field name="arch" type="xml">
                 <list string="media Movement"
-                    decoration-success="state == 'available'"
-                      decoration-danger="state == 'issue'"
+                    decoration-success="state in ('available', 'return', 'return_done')"
+                      decoration-info="state == 'issue'"
                       decoration-warning="state == 'reserve'"
-                      decoration-muted="state == 'lost'">
+                      decoration-danger="state == 'lost'">
                     <field name="media_unit_id" optional="show" />
+                    <field name="barcode" string="│█║▌Штрихкод" optional="show"/>
                     <field name="media_id" string="Книга" optional="hide" />
                     <field name="partner_id" string="Абонент" optional="hide"/>
                     <field name="issued_date" optional="show"/>
@@ -21,10 +22,10 @@
                     <field name="invoice_id" invisible="1" optional="hide"/>
                     <field name="type" optional="hide"/>
                     <field name="state" string="🔖 Статус" optional="show" widget="badge"
-                           decoration-success="state == 'available'"
-                           decoration-danger="state == 'issue'"
+                           decoration-success="state in ('available', 'return', 'return_done')"
+                           decoration-info="state == 'issue'"
                            decoration-warning="state == 'reserve'"
-                           decoration-muted="state == 'lost'"/>
+                           decoration-danger="state == 'lost'"/>
                     <field name="media_type_id" optional="hide"/>
                     <field name="library_card_id" optional="show"/>
                 </list>
@@ -127,17 +128,17 @@
                     <filter string="Возвращено сегодня" name="filter_returned_today"
                             domain="[('actual_return_date', '=', context_today().strftime('%Y-%m-%d'))]"/>
                     <separator/>
-                    <filter string="Доступно" name="filter_state_available"
+                    <filter string="🟢 Доступно" name="filter_state_available"
                             domain="[('state', '=', 'available')]"/>
-                    <filter string="Зарезервировано" name="filter_state_reserve"
+                    <filter string="🟡 Зарезервировано" name="filter_state_reserve"
                             domain="[('state', '=', 'reserve')]"/>
-                    <filter string="Выдано" name="filter_state_issue"
+                    <filter string="🔵 Выдано" name="filter_state_issue"
                             domain="[('state', '=', 'issue')]"/>
-                    <filter string="Утеряно" name="filter_state_lost"
+                    <filter string="🔴 Утеряно" name="filter_state_lost"
                             domain="[('state', '=', 'lost')]"/>
-                    <filter string="Возвращено" name="filter_state_return"
+                    <filter string="🟢 Возвращено" name="filter_state_return"
                             domain="[('state', 'in', ('return', 'return_done'))]"/>
-                    <filter string="Со штрафом" name="filter_penalty"
+                    <filter string="🟠 Со штрафом" name="filter_penalty"
                             domain="[('penalty', '>', 0)]"/>
                     <separator/>
                     <filter string="В архиве" name="inactive"

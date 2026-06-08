@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <data noupdate="0">
+        <!-- Создаём/обновляем перевод для menu Tags -> Теги -->
+        <record id="translation_menu_tag_sub" model="ir.translation">
+            <field name="name">menu,name</field>
+            <field name="type">model</field>
+            <field name="lang">ru_RU</field>
+            <field name="res_id" ref="menu_op_tag_sub"/>
+            <field name="src">Tags</field>
+            <field name="value">Теги</field>
+            <field name="state">translated</field>
+        </record>
+    </data>
+</odoo>
