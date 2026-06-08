@@ -1222,7 +1222,7 @@ msgstr "Теги"
 #. module: openeducat_library
 #: model:ir.model,name:openeducat_library.model_op_media_unit
 #: model:ir.model.fields,field_description:openeducat_library.field_issue_media__media_unit_id
-#: model:ir.model.fields,field_description:openeducat_library.field_op_media_movement__media_unit_id
+#: model:ir.model.fields,field_description:op по класамeneducat_library.field_op_media_movement__media_unit_id
 #: model:ir.model.fields,field_description:openeducat_library.field_return_media__media_unit_id
 #: model_terms:ir.ui.view,arch_db:openeducat_library.report_media_barcode
 msgid "Media Unit"
