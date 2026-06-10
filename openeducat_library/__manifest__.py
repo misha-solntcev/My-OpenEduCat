@@ -55,6 +55,7 @@
         'views/media_purchase_view.xml',
         'views/media_queue_view.xml',
         'views/library_view.xml',
+        'views/library_set_view.xml',
         'views/author_view.xml',
         'views/publisher_view.xml',
         'views/tag_view.xml',

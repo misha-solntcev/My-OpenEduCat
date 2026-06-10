@@ -102,4 +102,18 @@
                   action="act_open_op_library_card_type_view"
                   groups="group_op_library"/>
 
+        <menuitem id="menu_op_library_set_sub"
+                  name="Комплекты"
+                  parent="menu_op_school_library_config"
+                  sequence="70"
+                  action="action_library_set"
+                  groups="group_op_library"/>
+
+        <menuitem id="menu_op_library_set_issue_sub"
+                  name="Выдачи комплектов"
+                  parent="menu_library_medias"
+                  sequence="35"
+                  action="action_library_set_issue"
+                  groups="group_op_library"/>
+
 </odoo>

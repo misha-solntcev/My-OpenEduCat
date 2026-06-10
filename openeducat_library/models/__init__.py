@@ -21,6 +21,7 @@
 from . import author
 from . import faculty
 from . import library
+from . import library_set
 from . import media
 from . import media_movement
 from . import media_purchase

@@ -1,0 +1,182 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+
+    <!-- library.set (шаблон комплекта) -->
+    <record id="view_library_set_tree" model="ir.ui.view">
+        <field name="name">library.set.list</field>
+        <field name="model">library.set</field>
+        <field name="arch" type="xml">
+            <list string="Комплекты">
+                <field name="name"/>
+                <field name="course_id"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_library_set_form" model="ir.ui.view">
+        <field name="name">library.set.form</field>
+        <field name="model">library.set</field>
+        <field name="arch" type="xml">
+            <form string="Комплект">
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="name"/>
+                            <field name="course_id"/>
+                        </group>
+                        <group>
+                            <field name="active"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Состав комплекта">
+                            <field name="line_ids">
+                                <list string="Книги" editable="bottom">
+                                    <field name="sequence" widget="handle"/>
+                                    <field name="media_id"/>
+                                    <field name="quantity"/>
+                                </list>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_library_set" model="ir.actions.act_window">
+        <field name="name">Комплекты</field>
+        <field name="res_model">library.set</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+    <!-- library.set.issue (выдача комплекта) -->
+    <record id="view_library_set_issue_tree" model="ir.ui.view">
+        <field name="name">library.set.issue.list</field>
+        <field name="model">library.set.issue</field>
+        <field name="arch" type="xml">
+            <list string="Выдачи комплектов"
+                  decoration-info="state == 'draft'"
+                  decoration-success="state == 'issued'"
+                  decoration-muted="state == 'returned'">
+                <field name="name"/>
+                <field name="set_id"/>
+                <field name="library_card_id"/>
+                <field name="issued_date"/>
+                <field name="return_date"/>
+                <field name="state" widget="badge"
+                       decoration-info="state == 'draft'"
+                       decoration-success="state == 'issued'"
+                       decoration-muted="state == 'returned'"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_library_set_issue_form" model="ir.ui.view">
+        <field name="name">library.set.issue.form</field>
+        <field name="model">library.set.issue</field>
+        <field name="arch" type="xml">
+            <form string="Выдача комплекта">
+                <header>
+                    <button name="action_pick_units"
+                            string="Подобрать экземпляры"
+                            type="object"
+                            class="oe_highlight"
+                            invisible="state != 'draft'"/>
+                    <button name="action_issue"
+                            string="Выдать комплект"
+                            type="object"
+                            class="oe_highlight"
+                            invisible="state != 'draft'"/>
+                    <button name="action_return_all"
+                            string="Сдать комплект"
+                            type="object"
+                            class="oe_highlight"
+                            invisible="state != 'issued'"/>
+                    <field name="state" widget="statusbar"
+                           statusbar_visible="draft,issued,returned"/>
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <h1>
+                            <field name="name" readonly="1"/>
+                        </h1>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="set_id"
+                                   readonly="state != 'draft'"/>
+                            <field name="library_card_id"
+                                   readonly="state != 'draft'"/>
+                        </group>
+                        <group>
+                            <field name="issued_date"
+                                   readonly="state != 'draft'"/>
+                            <field name="return_date"
+                                   readonly="state != 'draft'"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Экземпляры">
+                            <field name="line_ids">
+                                <list string="Выданные экземпляры"
+                                      decoration-danger="state == 'issue'"
+                                      decoration-muted="state == 'returned'">
+                                    <field name="set_line_id"
+                                           readonly="1"/>
+                                    <field name="media_unit_id"
+                                           readonly="1"/>
+                                    <field name="state" widget="badge"
+                                           decoration-info="state == 'draft'"
+                                           decoration-success="state == 'issue'"
+                                           decoration-muted="state == 'returned'"/>
+                                    <button name="action_change_unit"
+                                            string="Заменить"
+                                            type="object"
+                                            invisible="state != 'draft'"
+                                            class="oe_link"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="Примечания">
+                            <field name="notes"/>
+                        </page>
+                    </notebook>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_library_set_issue" model="ir.actions.act_window">
+        <field name="name">Выдачи комплектов</field>
+        <field name="res_model">library.set.issue</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+    <!-- Form view for issue line (used by Change Unit button) -->
+    <record id="view_library_set_issue_line_form" model="ir.ui.view">
+        <field name="name">library.set.issue.line.form</field>
+        <field name="model">library.set.issue.line</field>
+        <field name="arch" type="xml">
+            <form string="Замена экземпляра">
+                <group>
+                    <group>
+                        <field name="set_line_id" readonly="1"/>
+                        <field name="media_unit_id"
+                               domain="[('state', '=', 'available')]"/>
+                    </group>
+                    <group>
+                        <field name="state" readonly="1"/>
+                    </group>
+                </group>
+                <footer>
+                    <button string="Сохранить" type="object"
+                            special="save" class="oe_highlight"/>
+                    <button string="Отмена" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+</odoo>
