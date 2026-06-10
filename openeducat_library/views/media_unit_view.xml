@@ -12,6 +12,12 @@
                       decoration-warning="state == 'reserve'"
                       decoration-danger="state == 'lost'">
                     <field name="name" string="📖  Название экземпляра" optional="show"/>
+                    <field name="isbn" string="🪧 ISBN" optional="show"/>
+                    <field name="edition" string="📝 Издание" optional="show"/>
+                    <field name="x_issue_year" string="📅 Год" optional="show"/>
+                    <field name="isbn" string="🪧 ISBN" optional="show"/>
+                    <field name="edition" string="📝 Издание" optional="show"/>
+                    <field name="x_issue_year" string="📅 Год" optional="show"/>
                     <field name="subject_ids" string="📚 Предмет" optional="show" widget="many2many_tags"/>
                     <field name="course_ids" string="🏫 Класс" optional="show" widget="many2many_tags"/>
                     <field name="current_partner_id" string="👨‍🎓 Абонент" optional="show"/>
@@ -57,6 +63,16 @@
                             <group>
                                 <field name="media_id"/>
                                 <field name="media_type_id"/>
+                            <group>
+                                <field name="isbn"/>
+                                <field name="edition"/>
+                                <field name="x_issue_year"/>
+                            </group>
+                            <group>
+                                <field name="isbn"/>
+                                <field name="edition"/>
+                                <field name="x_issue_year"/>
+                            </group>
                             </group>
                         </group>
                         <notebook>
@@ -90,6 +106,8 @@
                 <search string="Экземпляры">
                     <field name="barcode" string="│█║▌Штрихкод"/>
                     <field name="name" string="📖 Название книги"/>
+                    <field name="isbn" string="🪧 ISBN"/>
+                    <field name="isbn" string="🪧 ISBN"/>
                     <field name="isbn" string="🪧 ISBN"/>
                     <field name="subject_ids" string="📚 Предмет"/>
                     <field name="course_ids" string="🏫 Класс"/>

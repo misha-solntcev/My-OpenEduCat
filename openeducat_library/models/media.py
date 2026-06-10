@@ -8,11 +8,9 @@ class OpMedia(models.Model):
     _order = "name"
 
     name = fields.Char('Title', required=True)
-    isbn = fields.Char('ISBN Code')
     tags = fields.Many2many('op.tag', string='Tag(s)')
     author_ids = fields.Many2many(
         'op.author', string='Author(s)', required=True)
-    edition = fields.Char('Edition')
     description = fields.Text('Description')
     publisher_ids = fields.Many2many(
         'op.publisher', string='Publisher(s)', required=True)
@@ -77,8 +75,3 @@ class OpMedia(models.Model):
             record.unit_barcode = ', '.join(
                 record.unit_ids.mapped('barcode'))
 
-    _sql_constraints = [
-        ('unique_name_isbn',
-         'unique(isbn)',
-         'ISBN code must be unique per media!'),
-    ]
