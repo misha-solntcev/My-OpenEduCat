@@ -40,9 +40,7 @@
                     <newline/>
                     <group class="pt-2">
                         <group>
-                            <field name="author_ids" widget="many2many_tags"/>
-                            
-                            
+                            <field name="author_ids" widget="many2many_tags"/>                            
                             <field name="media_type_id"/>
                         </group>
                         <group>

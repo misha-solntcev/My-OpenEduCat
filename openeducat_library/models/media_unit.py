@@ -26,9 +26,7 @@ class OpMediaUnit(models.Model):
                                   string='Автор')
     publisher_ids = fields.Many2many(related='media_id.publisher_ids',
                                      string='Издательство')
-    isbn = fields.Char('ISBN Code')
-    edition = fields.Char('Edition')
-    x_issue_year = fields.Char('Issue Year')
+   
     isbn = fields.Char('ISBN Code')
     edition = fields.Char('Edition')
     x_issue_year = fields.Char('Issue Year')

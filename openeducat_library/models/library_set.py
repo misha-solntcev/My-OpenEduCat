@@ -1,23 +1,3 @@
-###############################################################################
-#
-#    OpenEduCat Inc
-#    Copyright (C) 2009-TODAY OpenEduCat Inc(<https://www.openeducat.org>).
-#
-#    This program is free software: you can redistribute it and/or modify
-#    it under the terms of the GNU Lesser General Public License as
-#    published by the Free Software Foundation, either version 3 of the
-#    License, or (at your option) any later version.
-#
-#    This program is distributed in the hope that it will be useful,
-#    but WITHOUT ANY WARRANTY; without even the implied warranty of
-#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#    GNU Lesser General Public License for more details.
-#
-#    You should have received a copy of the GNU Lesser General Public License
-#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#
-###############################################################################
-
 from odoo import _, api, fields, models
 from odoo.exceptions import UserError, ValidationError
 
@@ -32,27 +12,13 @@ class LibrarySet(models.Model):
         'op.course', 'Class', required=True,
         help='This set is assigned to this class.')
     active = fields.Boolean(default=True)
-    line_ids = fields.One2many(
-        'library.set.line', 'set_id', 'Books in Set')
+    media_ids = fields.Many2many('op.media', string='Books')
 
     _sql_constraints = [
         ('unique_course_set',
          'unique(course_id)',
          'Only one set per class is allowed!'),
     ]
-
-
-class LibrarySetLine(models.Model):
-    _name = "library.set.line"
-    _description = "Library Set Line"
-    _order = "sequence, id"
-
-    set_id = fields.Many2one(
-        'library.set', 'Set', required=True, ondelete='cascade')
-    media_id = fields.Many2one(
-        'op.media', 'Book', required=True)
-    quantity = fields.Integer('Quantity', default=1, required=True)
-    sequence = fields.Integer('Sequence', default=10)
 
 
 class LibrarySetIssue(models.Model):
@@ -63,29 +29,44 @@ class LibrarySetIssue(models.Model):
 
     name = fields.Char('Reference', compute='_compute_name', store=True)
     set_id = fields.Many2one(
-        'library.set', 'Set', required=True,
-        domain="[('active', '=', True)]")
-    library_card_id = fields.Many2one(
-        'op.library.card', 'Library Card', required=True)
-    issued_date = fields.Date(
-        'Issued Date', required=True, default=fields.Date.today())
+        'library.set', 'Set', required=True, domain="[('active', '=', True)]")
+    library_card_id = fields.Many2one('op.library.card', 'Library Card', required=True)
+    issued_date = fields.Date('Issued Date', required=True, default=fields.Date.today())
     return_date = fields.Date('Return Date', required=True)
     state = fields.Selection([
         ('draft', 'Draft'),
         ('issued', 'Issued'),
+        ('partial_return', 'Partial Return'),
         ('returned', 'Returned'),
     ], 'State', default='draft', tracking=True)
-    line_ids = fields.One2many(
-        'library.set.issue.line', 'issue_id', 'Issue Lines')
+
+    unit_ids = fields.Many2many('op.media.unit', string='Media Units')
     notes = fields.Text('Notes')
+
+    # Computed for available units (preview, not editable)
+    available_unit_ids = fields.Many2many(
+        'op.media.unit', string='Available Units',
+        compute='_compute_available_units')
+
+    @api.depends('set_id')
+    def _compute_available_units(self):
+        """Show available units from set's media for preview (draft state)."""
+        for rec in self:
+            if rec.state == 'draft' and rec.set_id:
+                units = self.env['op.media.unit'].search([
+                    ('media_id', 'in', rec.set_id.media_ids.ids),
+                    ('state', '=', 'available'),
+                ])
+                rec.available_unit_ids = units
+            else:
+                rec.available_unit_ids = False
 
     @api.depends('set_id', 'library_card_id')
     def _compute_name(self):
         for rec in self:
             if rec.set_id and rec.library_card_id:
-                rec.name = "%s / %s" % (
-                    rec.set_id.name,
-                    rec.library_card_id.partner_id.name or '')
+                partner_name = rec.library_card_id.partner_id.name or ''
+                rec.name = f"{rec.set_id.name} / {partner_name}"
             else:
                 rec.name = ''
 
@@ -97,72 +78,46 @@ class LibrarySetIssue(models.Model):
                 raise ValidationError(_(
                     'Return Date cannot be set before Issued Date.'))
 
-    def _get_partner_id(self):
-        self.ensure_one()
-        card = self.library_card_id
-        if card.type == 'student' and card.student_id:
-            return card.student_id.partner_id.id
-        elif card.type == 'faculty' and card.faculty_id:
-            return card.faculty_id.partner_id.id
-        return False
-
-    def _check_max_issue(self, card, additional_count):
-        """Check if card can take 'additional_count' more books."""
-        current = self.env['op.media.movement'].search_count([
-            ('library_card_id', '=', card.id),
-            ('state', '=', 'issue'),
-        ])
-        allowed = card.library_card_type_id.allow_media
-        return (current + additional_count) <= allowed
-
     def action_pick_units(self):
-        """Auto-pick available media units for all lines."""
+        """Auto-pick available media units for all books in the set.
+        Adds units to unit_ids (doesn't replace) for flexibility."""
         self.ensure_one()
-        if self.state != 'draft':
+        if self.state not in ('draft', 'returned'):
             raise UserError(_('Can only pick units in draft state.'))
 
-        # Clear existing lines
-        self.line_ids.unlink()
-
-        IssueLine = self.env['library.set.issue.line']
+        units_to_add = []
         missing = []
         picked = []
 
-        for set_line in self.set_id.line_ids:
-            needed = set_line.quantity
-            # Find available units for this media, matching the set's course
+        for media in self.set_id.media_ids:
             domain = [
-                ('media_id', '=', set_line.media_id.id),
+                ('media_id', '=', media.id),
                 ('state', '=', 'available'),
             ]
             if self.set_id.course_id:
                 domain.append(
                     ('course_ids', 'in', [self.set_id.course_id.id]))
-            available_units = self.env['op.media.unit'].search(
-                domain, limit=needed)
-
-            if len(available_units) < needed:
-                missing.append(
-                    _("Not enough copies of '%s': need %d, found %d") % (
-                        set_line.media_id.name, needed,
-                        len(available_units)))
-
-            for unit in available_units:
-                IssueLine.create({
-                    'issue_id': self.id,
-                    'set_line_id': set_line.id,
-                    'media_unit_id': unit.id,
-                })
+            unit = self.env['op.media.unit'].search(domain, limit=1)
+            if unit and unit.id not in self.unit_ids.ids:
                 picked.append(unit.name)
+                units_to_add.append(unit.id)
+            elif not unit:
+                missing.append(_("No available copy of '%s'") % media.name)
+
+        if units_to_add:
+            self.unit_ids = [(4, uid) for uid in units_to_add]
 
         msg_parts = []
         if picked:
             msg_parts.append(
-                _("Picked %d unit(s): %s") % (
+                _("Added %d unit(s) to selection: %s") % (
                     len(picked), ', '.join(picked)))
         if missing:
             msg_parts.append(
-                _("Warnings:\n%s") % '\n'.join(missing))
+                _("Missing:\n%s") % '\n'.join(missing))
+
+        if msg_parts:
+            self.message_post(body='\n'.join(msg_parts))
 
         return {
             'type': 'ir.actions.client',
@@ -170,19 +125,18 @@ class LibrarySetIssue(models.Model):
         }
 
     def action_issue(self):
-        """Issue all picked units, skipping those that exceed the limit."""
+        """Issue all picked units."""
         self.ensure_one()
         if self.state != 'draft':
             raise UserError(_('Can only issue in draft state.'))
-        if not self.line_ids:
+        if not self.unit_ids:
             raise UserError(_(
                 'No units picked. Please pick units first.'))
 
         card = self.library_card_id
-        partner_id = self._get_partner_id()
         Movement = self.env['op.media.movement']
 
-        # Get current count once
+        # Current count on card
         current_count = Movement.search_count([
             ('library_card_id', '=', card.id),
             ('state', '=', 'issue'),
@@ -192,43 +146,63 @@ class LibrarySetIssue(models.Model):
         errors = []
         success = 0
         skipped_limit = 0
+        movements_vals = []
+        units_to_issue = []
 
-        for line in self.line_ids:
-            # Check per-unit limit before issuing
+        for unit in self.unit_ids:
             if current_count >= allowed:
                 skipped_limit += 1
                 continue
 
-            unit = line.media_unit_id
             if unit.state != 'available':
-                errors.append(
-                    _("SKIP: %s — already %s") % (
-                        unit.name,
-                        dict(unit._fields['state'].selection).get(unit.state)))
+                state_label = dict(
+                    self.env['op.media.unit']._fields['state'].selection
+                ).get(unit.state)
+                errors.append(_(f"SKIP: {unit.name} — already {state_label}"))
                 continue
 
-            Movement.create({
+            # Get partner inline (was _get_partner_id)
+            if card.type == 'student' and card.student_id:
+                partner_id = card.student_id.partner_id.id
+                student_id = card.student_id.id
+                faculty_id = False
+            elif card.type == 'faculty' and card.faculty_id:
+                partner_id = card.faculty_id.partner_id.id
+                student_id = False
+                faculty_id = card.faculty_id.id
+            else:
+                partner_id = False
+                student_id = False
+                faculty_id = False
+
+            movements_vals.append({
                 'media_id': unit.media_id.id,
                 'media_unit_id': unit.id,
                 'type': card.type,
-                'student_id': card.student_id.id if card.type == 'student' else False,
-                'faculty_id': card.faculty_id.id if card.type == 'faculty' else False,
+                'student_id': student_id,
+                'faculty_id': faculty_id,
                 'library_card_id': card.id,
                 'issued_date': self.issued_date,
                 'return_date': self.return_date,
                 'state': 'issue',
                 'partner_id': partner_id,
             })
-            unit.state = 'issue'
-            line.state = 'issue'
+            units_to_issue.append(unit)
             success += 1
-            current_count += 1  # increment for next iteration check
+            current_count += 1
+
+        if movements_vals:
+            Movement.create(movements_vals)
+            # Bulk update unit states
+            if units_to_issue:
+                self.env['op.media.unit'].browse(
+                    [u.id for u in units_to_issue]
+                ).write({'state': 'issue'})
 
         if success:
             self.state = 'issued'
 
-        msg = _("Issued %d of %d unit(s).") % (
-            success, len(self.line_ids))
+        msg = _("Issued %d of %d unit(s).") % (success, len(self.unit_ids))
         if skipped_limit:
             msg += _("\nSkipped %d (card limit: %d).") % (
                 skipped_limit, card.library_card_type_id.allow_media)
@@ -247,42 +221,39 @@ class LibrarySetIssue(models.Model):
         }
 
     def action_return_all(self):
-        """Return all issued lines in this set issue."""
+        """Return all issued units."""
         self.ensure_one()
-        if self.state != 'issued':
+        if self.state not in ('issued', 'partial_return'):
             raise UserError(_('Can only return issued sets.'))
-
-        lines_to_return = self.line_ids.filtered(
-            lambda l: l.state == 'issue')
-        if not lines_to_return:
-            raise UserError(_('No issued lines to return.'))
 
         today = fields.Date.today()
         Movement = self.env['op.media.movement']
         success = 0
         errors = []
 
-        for line in lines_to_return:
-            unit = line.media_unit_id
+        for unit in self.unit_ids:
             move = Movement.search([
                 ('media_unit_id', '=', unit.id),
                 ('state', '=', 'issue'),
             ], limit=1, order='id desc')
             if move:
                 move.return_media(today)
-                line.state = 'returned'
                 success += 1
             else:
                 errors.append(
                     _("No active movement found for %s") % unit.name)
 
-        # If all lines returned, mark issue as returned
-        remaining = self.line_ids.filtered(lambda l: l.state == 'issue')
-        if not remaining:
+        # Check if all returned
+        remaining = Movement.search_count([
+            ('media_unit_id', 'in', self.unit_ids.ids),
+            ('state', '=', 'issue'),
+        ])
+        if remaining == 0:
             self.state = 'returned'
+        elif success > 0:
+            self.state = 'partial_return'
 
-        msg = _("Returned %d of %d unit(s).") % (
-            success, len(lines_to_return))
+        msg = _("Returned %d of %d unit(s).") % (success, len(self.unit_ids))
         if errors:
             msg += "\n" + "\n".join(errors)
 
@@ -297,32 +268,17 @@ class LibrarySetIssue(models.Model):
             }
         }
 
-
-class LibrarySetIssueLine(models.Model):
-    _name = "library.set.issue.line"
-    _description = "Library Set Issue Line"
-    _order = "id"
-
-    issue_id = fields.Many2one(
-        'library.set.issue', 'Issue', required=True, ondelete='cascade')
-    set_line_id = fields.Many2one(
-        'library.set.line', 'Set Line', required=True)
-    media_unit_id = fields.Many2one(
-        'op.media.unit', 'Media Unit', required=True)
-    state = fields.Selection([
-        ('draft', 'Draft'),
-        ('issue', 'Issued'),
-        ('returned', 'Returned'),
-    ], 'State', default='draft')
-
-    def action_change_unit(self):
-        """Open form view to change media unit."""
+    def action_reset_to_draft(self):
+        """Reset returned set back to draft for re-issue."""
         self.ensure_one()
+        if self.state != 'returned':
+            raise UserError(_('Can only reset returned sets to draft.'))
+
+        # Clear unit_ids for re-pick (they will be available after return)
+        self.unit_ids = [(5, 0, 0)]
+        self.state = 'draft'
+
         return {
-            'type': 'ir.actions.act_window',
-            'name': _('Change Media Unit'),
-            'res_model': 'library.set.issue.line',
-            'res_id': self.id,
-            'view_mode': 'form',
-            'target': 'new',
+            'type': 'ir.actions.client',
+            'tag': 'reload',
         }

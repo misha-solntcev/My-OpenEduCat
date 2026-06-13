@@ -30,13 +30,7 @@
                     </group>
                     <notebook>
                         <page string="Состав комплекта">
-                            <field name="line_ids">
-                                <list string="Книги" editable="bottom">
-                                    <field name="sequence" widget="handle"/>
-                                    <field name="media_id"/>
-                                    <field name="quantity"/>
-                                </list>
-                            </field>
+                            <field name="media_ids"/>
                         </page>
                     </notebook>
                 </sheet>
@@ -58,6 +52,7 @@
             <list string="Выдачи комплектов"
                   decoration-info="state == 'draft'"
                   decoration-success="state == 'issued'"
+                  decoration-warning="state == 'partial_return'"
                   decoration-muted="state == 'returned'">
                 <field name="name"/>
                 <field name="set_id"/>
@@ -82,7 +77,7 @@
                             string="Подобрать экземпляры"
                             type="object"
                             class="oe_highlight"
-                            invisible="state != 'draft'"/>
+                            invisible="state not in ('draft', 'returned')"/>
                     <button name="action_issue"
                             string="Выдать комплект"
                             type="object"
@@ -92,9 +87,14 @@
                             string="Сдать комплект"
                             type="object"
                             class="oe_highlight"
-                            invisible="state != 'issued'"/>
+                            invisible="state not in ('issued', 'partial_return')"/>
+                    <button name="action_reset_to_draft"
+                            string="Сбросить в черновик"
+                            type="object"
+                            class="oe_highlight"
+                            invisible="state != 'returned'"/>
                     <field name="state" widget="statusbar"
-                           statusbar_visible="draft,issued,returned"/>
+                           statusbar_visible="draft,issued,partial_return,returned"/>
                 </header>
                 <sheet>
                     <div class="oe_title">
@@ -118,23 +118,12 @@
                     </group>
                     <notebook>
                         <page string="Экземпляры">
-                            <field name="line_ids">
-                                <list string="Выданные экземпляры"
-                                      decoration-danger="state == 'issue'"
-                                      decoration-muted="state == 'returned'">
-                                    <field name="set_line_id"
-                                           readonly="1"/>
-                                    <field name="media_unit_id"
-                                           readonly="1"/>
-                                    <field name="state" widget="badge"
-                                           decoration-info="state == 'draft'"
-                                           decoration-success="state == 'issue'"
-                                           decoration-muted="state == 'returned'"/>
-                                    <button name="action_change_unit"
-                                            string="Заменить"
-                                            type="object"
-                                            invisible="state != 'draft'"
-                                            class="oe_link"/>
+                            <field name="unit_ids" readonly="state != 'draft'">
+                                <list string="Подобранные экземпляры">
+                                    <field name="name"/>
+                                    <field name="media_id"/>
+                                    <field name="barcode"/>
+                                    <field name="state"/>
                                 </list>
                             </field>
                         </page>
@@ -152,31 +141,6 @@
         <field name="name">Выдачи комплектов</field>
         <field name="res_model">library.set.issue</field>
         <field name="view_mode">list,form</field>
-    </record>
-
-    <!-- Form view for issue line (used by Change Unit button) -->
-    <record id="view_library_set_issue_line_form" model="ir.ui.view">
-        <field name="name">library.set.issue.line.form</field>
-        <field name="model">library.set.issue.line</field>
-        <field name="arch" type="xml">
-            <form string="Замена экземпляра">
-                <group>
-                    <group>
-                        <field name="set_line_id" readonly="1"/>
-                        <field name="media_unit_id"
-                               domain="[('state', '=', 'available')]"/>
-                    </group>
-                    <group>
-                        <field name="state" readonly="1"/>
-                    </group>
-                </group>
-                <footer>
-                    <button string="Сохранить" type="object"
-                            special="save" class="oe_highlight"/>
-                    <button string="Отмена" special="cancel"/>
-                </footer>
-            </form>
-        </field>
     </record>
 
 </odoo>

@@ -8,6 +8,7 @@ class OpMedia(models.Model):
     _order = "name"
 
     name = fields.Char('Title', required=True)
+    x_issue_year = fields.Char('Issue Year')
     tags = fields.Many2many('op.tag', string='Tag(s)')
     author_ids = fields.Many2many(
         'op.author', string='Author(s)', required=True)
