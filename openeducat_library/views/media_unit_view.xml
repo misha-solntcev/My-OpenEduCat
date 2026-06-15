@@ -57,6 +57,21 @@
                             <group>
                                 <field name="media_id"/>
                                 <field name="media_type_id"/>
+                            <group>
+                                <field name="isbn"/>
+                                <field name="edition"/>
+                                <field name="x_issue_year"/>
+                            </group>
+                            <group>
+                                <field name="isbn"/>
+                                <field name="edition"/>
+                                <field name="x_issue_year"/>
+                            </group>
+                            <group>
+                                <field name="isbn"/>
+                                <field name="edition"/>
+                                <field name="x_issue_year"/>
+                            </group>
                             </group>
                         </group>
                         <notebook>

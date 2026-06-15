@@ -12,8 +12,8 @@
                 <field name="course_ids" string="Класс" widget="many2many_tags" optional="hide"/>
                 <field name="author_ids" string="Автор" widget="many2many_tags" optional="show"/>                
                 <field name="publisher_ids" string="Издательство" widget="many2many_tags" optional="hide"/>
-                <field name="edition" string="Издание" optional="show"/>
-                <field name="isbn" string="Код ISBN" optional="show"/>
+                
+                
                 <field name="description" string="Описание" optional="hide"/>
                 <field name="tags" string="Тег" widget="many2many_tags" optional="hide"/>                                
                 <field name="media_type_id" string="Тип" optional="show"/>
@@ -41,8 +41,8 @@
                     <group class="pt-2">
                         <group>
                             <field name="author_ids" widget="many2many_tags"/>
-                            <field name="isbn"/>
-                            <field name="edition"/>
+                            
+                            
                             <field name="media_type_id"/>
                         </group>
                         <group>
@@ -134,9 +134,9 @@
                     <field name="name"/>
                     <field name="x_image_128"/>
                     <field name="media_type_id"/>
-                    <field name="isbn"/>
+                    
                     <field name="unit_barcode"/>
-                    <field name="edition"/>
+                    
                     <field name="author_ids"/>
                     <templates>
                         <t t-name="card" class="flex-row">
@@ -150,13 +150,9 @@
                                 <p class="mb-1 text-body-secondary small">
                                     <field name="media_type_id"/>
                                 </p>
-                                <field name="edition" class="text-truncate mb-1"/>
+                                
                                 <field name="author_ids" widget="many2many_tags" class="text-truncate mb-1"/>
-                                <footer t-if="record.isbn.raw_value" class="text-muted small mb-2">
-                                    <div/>
-                                    <span class="fw-bold">ISBN:</span>
-                                    <field name="isbn"/>
-                                </footer>
+
                                 <div class="unit-badges">
                                     <span class="badge" style="background-color: #e7f5ff; color: #1c7ed6; font-size: 14px; padding: 4px 8px;">
                                         <i class="fa fa-book" title="Всего"/>
@@ -187,7 +183,7 @@
                 <search string="Книги">
                     <field name="unit_barcode" string="│█║▌Штрихкод"/>
                     <field name="name" string="📖 Название книги"/>
-                    <field name="isbn" string="🔢 ISBN"/>
+                    
                     <field name="subject_ids" string="📚 Предмет"/>
                     <field name="course_ids" string="🏫 Класс"/>
                     <field name="author_ids" string="✍️ Автор"/>
@@ -213,8 +209,7 @@
                                 domain="[]" context="{'group_by':'publisher_ids'}"/>
                         <filter string="✍️ Автор" name="group_by_lbr_media_author"
                                 domain="[]" context="{'group_by':'author_ids'}"/>
-                        <filter string="📖 Издание" name="group_by_lbr_media_edition"
-                                domain="[]" context="{'group_by':'edition'}"/>
+                        
                     </group>
                 </search>
             </field>
