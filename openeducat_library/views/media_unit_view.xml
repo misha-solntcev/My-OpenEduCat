@@ -11,11 +11,14 @@
                       decoration-info="state == 'issue'"
                       decoration-warning="state == 'reserve'"
                       decoration-danger="state == 'lost'">
-                    <field name="name" string="📖  Название экземпляра" optional="show"/>
+                    <field name="name" string="📖  Название экземпляра" optional="show"/>                    
                     <field name="subject_ids" string="📚 Предмет" optional="show" widget="many2many_tags"/>
                     <field name="course_ids" string="🏫 Класс" optional="show" widget="many2many_tags"/>
-                    <field name="current_partner_id" string="👨‍🎓 Абонент" optional="show"/>
+                    <field name="current_partner_id" string="👨‍🎓 Абонент" optional="show"/>                    
                     <field name="barcode" string="│█║▌Штрих-код" optional="show"/>
+                    <field name="isbn" string="🪧 ISBN" optional="show"/>
+                    <field name="edition" string="📕 Издание" optional="show"/>
+                    <field name="x_issue_year" string="📅 Год выпуска" optional="show"/>
                     <field name="state" string="🔖 Статус" optional="show" widget="badge"
                            decoration-success="state == 'available'"
                            decoration-info="state == 'issue'"
@@ -61,17 +64,7 @@
                                 <field name="isbn"/>
                                 <field name="edition"/>
                                 <field name="x_issue_year"/>
-                            </group>
-                            <group>
-                                <field name="isbn"/>
-                                <field name="edition"/>
-                                <field name="x_issue_year"/>
-                            </group>
-                            <group>
-                                <field name="isbn"/>
-                                <field name="edition"/>
-                                <field name="x_issue_year"/>
-                            </group>
+                            </group>                            
                             </group>
                         </group>
                         <notebook>
