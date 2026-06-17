@@ -1,0 +1,226 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Наследование дефолтной вакансии (с поддержкой dev=xml и без риска краша CSS) -->
+    <template id="default_website_description_rost" inherit_id="website_hr_recruitment.default_website_description">
+        <!-- Полностью заменяем архитектуру оригинального шаблона, сохраняя правильный корневой тег <t> -->
+        <xpath expr="." position="replace">
+            <t t-name="website_hr_recruitment.default_website_description">
+                <!-- Описание вакансии и рейтинги -->
+                <section class="pt32">
+                    <div class="container">
+                        <div class="row">
+                            <div class="col-lg-8 pb32" itemprop="description">
+                                <p class="lead">
+                                    <b>Приветствуем Вас!</b>
+                                    <br/><br/>
+                                    Каждый день в школе «РОСТ» — это живой и творческий процесс. 
+                                    Мы убеждены, что хорошая школа начинается с увлеченного учителя, 
+                                    которому комфортно и интересно работать. 
+                                    Поэтому мы стараемся создать среду, где нет жестких рамок и бесконечной бумажной рутины, 
+                                    но есть <b>пространство для профессиональной свободы, живого общения и искренней заботы о детях.</b>
+                                    <br/><br/>
+                                    Мы ищем не просто исполнителей, а <b>единомышленников</b> — людей, которые любят свой предмет,
+                                     и готовы развиваться вместе с нами. 
+                                    Если вам близок такой подход к образованию, мы будем очень рады познакомиться!
+                                </p>
+                            </div>
+                            <div class="col-lg-3 offset-lg-1 pb32">
+                                <!-- Блок навыков -->
+                                <div class="s_rating pb8" data-vcss="001" data-icon="fa-star" data-snippet="s_rating">
+                                    <h6 class="s_rating_title">Умение работать с детьми</h6>
+                                    <div class="s_rating_icons o_not_editable">
+                                        <span class="s_rating_active_icons text-primary">
+                                            <i class="fa fa-star"/><i class="fa fa-star"/><i class="fa fa-star"/><i class="fa fa-star"/><i class="fa fa-star-o"/>
+                                        </span>
+                                    </div>
+                                </div>                                
+                                <div class="s_rating pb8" data-vcss="001" data-icon="fa-star" data-snippet="s_rating">
+                                    <h6 class="s_rating_title">Инициативность</h6>
+                                    <div class="s_rating_icons o_not_editable">
+                                        <span class="s_rating_active_icons text-primary">
+                                            <i class="fa fa-star"/><i class="fa fa-star"/><i class="fa fa-star"/><i class="fa fa-star"/><i class="fa fa-star-o"/>
+                                        </span>                                        
+                                    </div>                                
+                                </div>
+                                <div class="s_rating pb8" data-vcss="001" data-icon="fa-star" data-snippet="s_rating">
+                                    <h6 class="s_rating_title">Стрессоустойчивость</h6>
+                                    <div class="s_rating_icons o_not_editable">
+                                        <span class="s_rating_active_icons text-primary">
+                                            <i class="fa fa-star"/><i class="fa fa-star"/><i class="fa fa-star"/><i class="fa fa-star"/><i class="fa fa-star-o"/>
+                                        </span>                                        
+                                    </div>
+                                </div>
+                                <div class="s_rating pb8" data-vcss="001" data-icon="fa-star" data-snippet="s_rating">
+                                    <h6 class="s_rating_title">Образование</h6>
+                                    <div class="s_rating_icons o_not_editable">
+                                        <span class="s_rating_active_icons text-primary">
+                                            <i class="fa fa-star"/><i class="fa fa-star"/><i class="fa fa-star"/><i class="fa fa-star-o"/><i class="fa fa-star-o"/>
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="s_rating pb8" data-vcss="001" data-icon="fa-star" data-snippet="s_rating">
+                                    <h6 class="s_rating_title">Опыт работы</h6>
+                                    <div class="s_rating_icons o_not_editable">
+                                        <span class="s_rating_active_icons text-primary">
+                                            <i class="fa fa-star"/><i class="fa fa-star"/><i class="fa fa-star"/><i class="fa fa-star-o"/><i class="fa fa-star-o"/>
+                                        </span>                                        
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Карточки: Обязанности, Требования, Желательно -->
+                <section class="s_comparisons pt24 pb24 bg-200" data-snippet="s_comparisons">
+                    <div class="container">
+                        <div class="row">
+                            <div class="col-lg-4 s_col_no_bgcolor pt16 pb16" data-name="Box">
+                                <div class="card text-bg-primary">
+                                    <h4 class="card-header text-center">Обязанности</h4>
+                                    <ul class="list-group list-group-flush" itemprop="responsibilities">
+                                        <li class="list-group-item">Проведение уроков</li>
+                                        <li class="list-group-item">Подготовка учебных материалов</li>                                        
+                                        <li class="list-group-item">Участие в школьных мероприятиях</li>
+                                        <li class="list-group-item">Ведение отчетности</li>
+                                    </ul>
+                                </div>
+                            </div>
+                            <div class="col-lg-4 s_col_no_bgcolor pt16 pb16" data-name="Box">
+                                <div class="card text-bg-primary">
+                                    <h4 class="card-header text-center">Требования</h4>
+                                    <ul class="list-group list-group-flush" itemprop="skills">
+                                        <li class="list-group-item">Профильное педагогическое образование</li>
+                                        <li class="list-group-item">Любовь к детям</li>
+                                        <li class="list-group-item">Грамотная устная и письменная речь</li>
+                                        <li class="list-group-item">Умение удерживать внимание класса</li>
+                                        <li class="list-group-item">Готовность развиваться</li>
+                                    </ul>
+                                </div>
+                            </div>
+                            <div class="col-lg-4 s_col_no_bgcolor pt16 pb16" data-name="Box">
+                                <div class="card text-bg-primary">
+                                    <h4 class="card-header text-center">Будет плюсом</h4>
+                                    <ul class="list-group list-group-flush">
+                                        <li class="list-group-item">Опыт работы в частных школах</li>
+                                        <li class="list-group-item">Владение игровыми методиками</li>
+                                        <li class="list-group-item">Знание современных технологий</li>
+                                        <li class="list-group-item">Наличие портфолио или отзывов</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Почему у нас хорошо работать -->
+                <section class="s_comparisons pt24 pb24" data-name="Comparisons">
+                    <div class="container">
+                        <div class="row align-items-center">
+                            <div class="col-sm-7 pb40">
+                                <h2>Что вас ждет в нашей школе?</h2>
+                                <br/>
+                                <ul class="lead">
+                                    <li>Сплоченный дружный коллектив</li>
+                                    <li>Малая наполняемость классов, возможность уделять внимание каждому ученику</li>
+                                    <li>Возможность реализовывать авторские учебные программы</li>
+                                    <li>Творческая свобода при проведении занятий</li>
+                                    <li>Поддержка ваших образовательных инициатив</li>                                    
+                                </ul>
+                            </div>
+                            <div data-name="Box" class="col-sm-4 offset-sm-1 pt16 pb16">
+                                <div class="card shadow text-center">
+                                    <h5 class="card-header o_colored_level text-bg-primary">Наша школа</h5>
+                                    <div class="card-body p-0 pt-3">
+                                        <img class="img-fluid o_we_custom_image pb24" src="https://rostschoolspb.ru/web/image/2620-51a5cd26/DSC_5569_resized.webp" style="width: 75% !important;" alt="Наша школа"/>
+                                        <p>Узнайте больше о жизни школы РОСТ.</p>
+                                        <p><a href="/" class="btn btn-primary" target="_blank" rel="noopener noreferrer"><small><b>ПОДРОБНЕЕ</b></small></a></p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Что мы предлагаем -->
+                <section class="s_features pt64 pb64" data-name="Features" data-snippet="s_features">
+                    <div class="container" itemprop="employerOverview">
+                        <div class="col-lg-12">
+                            <h3>Что мы предлагаем</h3>
+                            <p class="lead">
+                                Мы стремимся создать для наших учителей комфортную атмосферу, чтобы каждый мог сосредоточиться на качественном обучении детей.
+                            </p>
+                        </div>
+                        <div class="row">
+                            <div class="col-lg-4 text-center">
+                                <div class="s_hr pt-4 pb32"><hr class="w-100 mx-auto"/></div>
+                                <i class="fa fa-briefcase mb-3 rounded fs-5 bg-o-color-3" role="img"/>
+                                <h3 class="h5-fs">Условия</h3>
+                                <p>Официальное оформление<br/>Конкурентная оплата труда.</p>
+                            </div>
+                            <div class="col-lg-4 text-center">
+                                <div class="s_hr pt-4 pb32">
+                                    <hr class="w-100 mx-auto"/>
+                                </div>
+                                <i class="fa fa-graduation-cap mb-3 rounded fs-5 bg-o-color-3" role="img"/>
+                                <h3 class="h5-fs">Обучение</h3>
+                                <p>Регулярные курсы повышения квалификации.</p>
+                            </div>
+                            <div class="col-lg-4 text-center">
+                                <div class="s_hr pt-4 pb32">
+                                    <hr class="w-100 mx-auto"/>
+                                </div>
+                                <i class="fa fa-coffee mb-3 rounded fs-5 bg-o-color-3" role="img"/>
+                                <h3 class="h5-fs">Атмосфера</h3>
+                                <p>Уютная учительская, чай, кофе и легкие угощения в течение дня.</p>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Реальная галерея школы РОСТ (извлеченная из БД, без токенов, валидный XML-синтаксис) -->
+                <section class="s_image_gallery o_spc-small o_masonry pt24 pb24 o_colored_level o_half_screen_height" data-vcss="002" data-columns="3" style="overflow: hidden;" data-snippet="s_images_wall" data-name="Изображения Стена">
+                    <div class="container">
+                        <div class="row s_nb_column_fixed">
+                            <div class="o_masonry_col o_snippet_not_selectable col-lg-4">
+                                <img src="/web/image/2611-9b6e57cf/DSC_5721_resized.webp" alt="" class="img img-fluid d-block rounded o_we_custom_image" data-mimetype="image/webp" data-original-id="2604" data-original-src="/web/image/2604-6ebcafc8/DSC_5721_resized.jpg" data-mimetype-before-conversion="image/jpeg" data-resize-width="690" loading="lazy"/>
+                                <img src="/web/image/2612-77c9f504/a-9519F.webp" alt="" class="img img-fluid d-block rounded o_we_custom_image" data-mimetype="image/webp" data-original-id="2608" data-original-src="/web/image/2608-f8f38fd9/a-9519F.jpg" data-mimetype-before-conversion="image/jpeg" data-resize-width="690" loading="lazy"/>
+                                <img src="/web/image/2617-83ff5a13/a-9538.JPG" alt="" class="img img-fluid o_we_custom_image" loading="lazy"/>
+                            </div>
+                            <div class="o_masonry_col o_snippet_not_selectable col-lg-4">
+                                <img src="/web/image/2615-03eeed95/DSC_5508_resized.webp" alt="" class="img img-fluid d-block rounded o_we_custom_image" data-mimetype="image/webp" data-original-id="2603" data-original-src="/web/image/2603-bc74aef6/DSC_5508_resized.jpg" data-mimetype-before-conversion="image/jpeg" data-resize-width="690" loading="lazy"/>
+                                <img src="/web/image/2616-5e9c3ca1/a-9174.webp" alt="" class="img img-fluid d-block rounded o_we_custom_image" data-mimetype="image/webp" data-original-id="2607" data-original-src="/web/image/2607-8e9aefc0/a-9174.JPG" data-mimetype-before-conversion="image/jpeg" data-resize-width="690" loading="lazy"/>
+                            </div>
+                            <div class="o_masonry_col o_snippet_not_selectable col-lg-4">
+                                <img src="/web/image/2613-5659ae98/a-9525.webp" alt="" class="img img-fluid d-block rounded o_we_custom_image" data-mimetype="image/webp" data-original-id="2610" data-original-src="/web/image/2610-750dd0eb/a-9525.JPG" data-mimetype-before-conversion="image/jpeg" data-resize-width="690" loading="lazy"/>
+                                <img src="/web/image/2614-e058da38/DSC_5781_resized.webp" alt="" class="img img-fluid d-block rounded o_we_custom_image" data-mimetype="image/webp" data-original-id="2605" data-original-src="/web/image/2605-999d214f/DSC_5781_resized.jpg" data-mimetype-before-conversion="image/jpeg" data-resize-width="690" loading="lazy"/>
+                                <img src="/web/image/2618-6ddb252f/a-9208.JPG" alt="" class="img img-fluid o_we_custom_image" loading="lazy"/>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+                
+            </t>
+        </xpath>
+    </template>
+
+    <!-- Переопределение боковой панели на странице списка вакансий -->
+    <template id="job_right_side_bar_rost" inherit_id="website_hr_recruitment.job_right_side_bar">
+        <!-- Заменяем абзац о "passionate people... disruptive products" -->
+        <xpath expr="//div[@id='connect']/..//p[hasclass('mt24')]" position="replace">
+            <p class="mt24 mb8">
+                Мы — дружная команда частной школы «РОСТ». Наша цель — создать поддерживающую, безопасную и вдохновляющую среду для раскрытия талантов и гармоничного развития каждого ребенка.
+            </p>
+        </xpath>
+        <!-- Заменяем контакты Odoo по умолчанию на контакты школы РОСТ -->
+        <xpath expr="//div[@id='connect']/ul" position="replace">
+            <ul class="list-unstyled text-nowrap">
+                <li><i class="fa fa-comment fa-fw me-2"></i><span><a href="/contactus">Напишите нам</a></span></li>
+                <li><i class="fa fa-envelope fa-fw me-2"></i><span><a href="mailto:info@rostschoolspb.ru">info@rostschoolspb.ru</a></span></li>
+                <li><i class="fa fa-phone fa-fw me-2"></i><span class="o_force_ltr"><a href="tel:+79216312550">+7 (921) 631-25-50</a></span></li>
+            </ul>
+        </xpath>
+    </template>
+
+</odoo>
