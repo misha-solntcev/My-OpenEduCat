@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!-- Copyright 2026 ЧОУ СПБГШ 'РОСТ'
+     License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl). -->
+<odoo>
+    <record
+        id="mail_gateway_form_view_inherit_mail_gateway_max"
+        model="ir.ui.view"
+    >
+        <field name="name">mail.gateway.form (in mail_gateway_max)</field>
+        <field name="model">mail.gateway</field>
+        <field name="inherit_id" ref="mail_gateway.mail_gateway_form_view" />
+        <field name="arch" type="xml">
+
+            <!-- Add MAX-specific buttons to header -->
+            <xpath expr="//header" position="inside">
+                <button
+                    name="action_fetch_chats"
+                    string="Fetch Chats"
+                    type="object"
+                    invisible="gateway_type != 'max'"
+                />
+                <button
+                    name="action_test_connection"
+                    string="Test Connection"
+                    type="object"
+                    class="oe_highlight"
+                    invisible="gateway_type != 'max'"
+                />
+            </xpath>
+
+            <!-- Add MAX configuration notebook page -->
+            <xpath expr="//notebook" position="inside">
+                <page
+                    name="max_config"
+                    string="MAX configuration"
+                    invisible="gateway_type != 'max'"
+                >
+                    <div>
+                        <ol>
+                            <li>Register at <a
+                                href="https://business.max.ru"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                            >business.max.ru</a> and verify your organisation.</li>
+                            <li>Create a bot → get API token from the business cabinet.</li>
+                            <li>Copy the <b>token</b> to the Token field above.</li>
+                            <li>Define a <b>Webhook key</b> and <b>Webhook secret</b> for connection security.</li>
+                            <li>Save the gateway record — the <b>Integrate Webhook</b> button will appear.</li>
+                            <li>Press <b>Integrate Webhook</b> to connect MAX to Odoo.</li>
+                        </ol>
+                    </div>
+                </page>
+
+                <!-- Add MAX Chats notebook page -->
+                <page
+                    string="MAX Chats"
+                    name="max_chats"
+                    invisible="gateway_type != 'max'"
+                >
+                    <field name="max_chat_ids">
+                        <list editable="bottom">
+                            <field name="name" />
+                            <field name="chat_id" />
+                        </list>
+                    </field>
+                </page>
+            </xpath>
+
+        </field>
+    </record>
+</odoo>

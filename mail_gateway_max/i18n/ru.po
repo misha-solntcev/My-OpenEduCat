@@ -1,0 +1,104 @@
+# Translation file for mail_gateway_max
+# 
+msgid ""
+msgstr ""
+"Project-Id-Version: mail_gateway_max 18.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-06-19 22:00+0000\n"
+"PO-Revision-Date: 2026-06-19 22:00+0000\n"
+"Last-Translator: \n"
+"Language-Team: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=4; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n"
+"Language: ru\n"
+
+#. module: mail_gateway_max
+#: model_terms:ir.ui.view,arch_db:mail_gateway_max.mail_gateway_form_view_inherit_mail_gateway_max
+msgid "MAX configuration"
+msgstr "Настройка MAX"
+
+#. module: mail_gateway_max
+#: model_terms:ir.ui.view,arch_db:mail_gateway_max.mail_gateway_form_view_inherit_mail_gateway_max
+msgid "MAX Chats"
+msgstr "MAX чаты"
+
+#. module: mail_gateway_max
+#: model_terms:ir.ui.view,arch_db:mail_gateway_max.mail_gateway_form_view_inherit_mail_gateway_max
+msgid "Fetch Chats"
+msgstr "Получить чаты"
+
+#. module: mail_gateway_max
+#: model_terms:ir.ui.view,arch_db:mail_gateway_max.mail_gateway_form_view_inherit_mail_gateway_max
+msgid "Test Connection"
+msgstr "Проверить соединение"
+
+#. module: mail_gateway_max
+#: code:addons/mail_gateway_max/models/mail_gateway.py:0
+msgid "Please add or fetch at least one Chat ID first."
+msgstr "Сначала добавьте или получите хотя бы один ID чата."
+
+#. module: mail_gateway_max
+#: code:addons/mail_gateway_max/models/mail_gateway.py:0
+msgid "<b>Success!</b> Connection from Odoo to <i>%s</i> is working."
+msgstr "<b>Успех!</b> Соединение от Odoo к <i>%s</i> работает."
+
+#. module: mail_gateway_max
+#: code:addons/mail_gateway_max/models/mail_gateway.py:0
+msgid "Test messages sent!"
+msgstr "Тестовые сообщения отправлены!"
+
+#. module: mail_gateway_max
+#: code:addons/mail_gateway_max/models/mail_gateway.py:0
+msgid ""
+"MAX does not allow fetching updates manually while a Webhook is active. "
+"Please disable the Webhook before using 'Fetch Chats'."
+msgstr ""
+"MAX не позволяет получать обновления вручную, пока активен вебхук. "
+"Отключите вебхук перед использованием 'Получить чаты'."
+
+#. module: mail_gateway_max
+#: code:addons/mail_gateway_max/models/mail_gateway_max.py:0
+msgid "Unable to send the MAX message"
+msgstr "Не удалось отправить сообщение MAX"
+
+#. module: mail_gateway_max
+#: selection:mail.gateway,gateway_type
+msgid "MAX"
+msgstr "MAX"
+
+#. module: mail_gateway_max
+#: model:ir.model,name:mail_gateway_max.model_mail_gateway_max
+msgid "MAX Gateway services"
+msgstr "Сервисы шлюза MAX"
+
+#. module: mail_gateway_max
+#: model:ir.model,name:mail_gateway_max.model_max_chat
+msgid "MAX Chat"
+msgstr "Чат MAX"
+
+#. module: mail_gateway_max
+#: model:ir.model.fields,field_description:mail_gateway_max.field_max_chat__chat_id
+msgid "Chat ID"
+msgstr "ID чата"
+
+#. module: mail_gateway_max
+#: model:ir.model.fields,field_description:mail_gateway_max.field_max_chat__name
+msgid "Name"
+msgstr "Имя"
+
+#. module: mail_gateway_max
+#: model:ir.model.fields,field_description:mail_gateway_max.field_max_chat__gateway_id
+msgid "Mail Gateway"
+msgstr "Почтовый шлюз"
+
+#. module: mail_gateway_max
+#: model:ir.model.fields,field_description:mail_gateway_max.field_mail_gateway__max_chat_ids
+msgid "Authorized Chats"
+msgstr "Разрешённые чаты"
+
+#. module: mail_gateway_max
+#: model:ir.model,name:mail_gateway_max.model_mail_gateway
+msgid "Mail Gateway"
+msgstr "Почтовый шлюз"

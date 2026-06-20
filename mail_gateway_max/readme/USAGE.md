@@ -1,0 +1,4 @@
+- Messages from MAX users appear in Odoo Discuss as gateway channels.
+- Reply in Discuss → message is sent back to MAX.
+- Use "MAX Chats" tab to manage whitelisted chat IDs.
+- Use "Test Connection" to verify the bot works.

@@ -1,0 +1,2 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_max_chat_admin,max.chat.admin,model_max_chat,base.group_system,1,1,1,1
