@@ -1,0 +1,198 @@
+<section class="s_testimonials_carousel" style="padding: 80px 0; background: #f8f9fa;">
+  <div class="container" style="max-width: 1140px; margin: 0 auto; padding: 0 15px;">
+    <h2 style="font-size: 40px; font-weight: 700; color: #212529; text-align: center; margin: 0 0 16px 0; line-height: 1.2;">
+      Отзывы родителей
+    </h2>
+    <p style="font-size: 18px; color: #6c757d; text-align: center; margin: 0 0 48px 0;">
+      Тёплые слова благодарности от выпускников и их семей
+    </p>
+
+    <!-- Carousel -->
+    <div class="s_t_carousel" style="position: relative; max-width: 800px; margin: 0 auto;">
+      <div class="s_t_track" id="s_t_track" style="display: flex; overflow: hidden;">
+
+        <!-- ========== ОТЗЫВ 1 ========== -->
+        <div class="s_t_card" style="flex: 0 0 100%; box-sizing: border-box; padding: 0 10px;">
+          <div class="s_t_inner" style="background: #fff; border-radius: 16px; padding: 32px 48px 24px; box-shadow: 0 4px 24px rgba(0,0,0,0.08); text-align: left; border-left: 4px solid #337ab7;">
+
+            <!-- Красное обращение -->
+            <p style="font-family: 'Times New Roman', Georgia, serif; font-size: 24px; font-style: italic; color: #a52a2a; margin: 0 0 20px 0; line-height: 1.3;">
+              Уважаемый Виктор Евгеньевич!
+            </p>
+
+            <!-- Текст письма -->
+            <div style="font-family: 'Times New Roman', Georgia, serif; font-size: 20px; font-style: italic; color: #212529; line-height: 1.5;">
+              <p style="margin: 0 0 16px 0;">
+                Благодарим Вас за грамотное руководство школой, создание комфортной среды для обучения и развития детей, а также за внимание к вопросам родителей.
+              </p>
+              <p style="margin: 0 0 16px 0;">
+                Ценим Ваш профессионализм, открытость и заботу о коллективе.
+              </p>
+              <p style="margin: 0 0 16px 0;">
+                Желаем здоровья, энергии и успехов в работе!
+              </p>
+            </div>
+
+            <!-- Подпись — синяя -->
+            <p style="font-family: 'Times New Roman', Georgia, serif; font-size: 20px; font-style: italic; color: #003366; margin: 20px 0 0 0; line-height: 1.5;">
+              С глубокой признательностью и уважением,<br>
+              <strong>Родители выпускников 11-го класса</strong>
+            </p>
+
+            <!-- Дата -->
+            <p style="font-family: 'Times New Roman', Georgia, serif; font-size: 18px; font-style: italic; color: #212529; margin: 12px 0 0 0;">
+              Май 2026
+            </p>
+          </div>
+        </div>
+
+        <!-- ========== ОТЗЫВ 2 (место для следующего) ========== -->
+        <div class="s_t_card" style="flex: 0 0 100%; box-sizing: border-box; padding: 0 10px;">
+          <div class="s_t_inner" style="background: #fff; border-radius: 16px; padding: 32px 48px 24px; box-shadow: 0 4px 24px rgba(0,0,0,0.08); text-align: center; border-left: 4px solid #337ab7;">
+            <p style="font-family: 'Times New Roman', Georgia, serif; font-size: 20px; font-style: italic; color: #337ab7; margin: 0 0 12px 0;">
+              ✦ ✦ ✦
+            </p>
+            <p style="font-family: 'Times New Roman', Georgia, serif; font-size: 20px; font-style: italic; color: #6c757d; margin: 0;">
+              Здесь появится следующий отзыв
+            </p>
+            <p style="font-family: 'Times New Roman', Georgia, serif; font-size: 18px; font-style: italic; color: #6c757d; margin: 12px 0 0 0;">
+              Скоро...
+            </p>
+          </div>
+        </div>
+
+        <!-- ========== ИНСТРУКЦИЯ ========== -->
+        <!--
+          Чтобы добавить новый отзыв:
+          1. Скопируй блок <div class="s_t_card">...</div>
+          2. Вставь перед этим комментарием
+          3. Замени текст внутри
+        -->
+
+      </div>
+
+      <!-- Стрелки -->
+      <button class="s_t_btn s_t_prev" onclick="s_t_move(-1)" type="button"
+              style="position: absolute; top: 50%; left: -16px; transform: translateY(-50%);
+                     width: 40px; height: 40px; border-radius: 50%; border: none;
+                     background: #337ab7; color: #fff; font-size: 20px; cursor: pointer;
+                     box-shadow: 0 2px 8px rgba(0,0,0,0.15); z-index: 10;
+                     display: flex; align-items: center; justify-content: center; line-height: 1;">
+        ‹
+      </button>
+      <button class="s_t_btn s_t_next" onclick="s_t_move(1)" type="button"
+              style="position: absolute; top: 50%; right: -16px; transform: translateY(-50%);
+                     width: 40px; height: 40px; border-radius: 50%; border: none;
+                     background: #337ab7; color: #fff; font-size: 20px; cursor: pointer;
+                     box-shadow: 0 2px 8px rgba(0,0,0,0.15); z-index: 10;
+                     display: flex; align-items: center; justify-content: center; line-height: 1;">
+        ›
+      </button>
+    </div>
+
+    <!-- Точки -->
+    <div class="s_t_dots" id="s_t_dots" style="text-align: center; margin-top: 20px;"></div>
+  </div>
+</section>
+
+<style>
+  .s_t_track {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    border-radius: 16px;
+  }
+  .s_t_track::-webkit-scrollbar { display: none; }
+
+  .s_t_dot {
+    display: inline-block; width: 10px; height: 10px; border-radius: 50%;
+    background: #ced4da; margin: 0 6px; cursor: pointer; border: none; padding: 0;
+    transition: all 0.3s;
+  }
+  .s_t_dot.active {
+    background: #337ab7; width: 28px; border-radius: 5px;
+  }
+
+  @media (max-width: 768px) {
+    .s_t_inner { padding: 24px 20px 20px !important; }
+    .s_testimonials_carousel p:first-child { font-size: 20px !important; }
+    .s_testimonials_carousel p, .s_testimonials_carousel div > p { font-size: 17px !important; }
+    .s_t_btn.s_t_prev { left: -8px !important; width: 32px !important; height: 32px !important; font-size: 16px !important; }
+    .s_t_btn.s_t_next { right: -8px !important; width: 32px !important; height: 32px !important; font-size: 16px !important; }
+    h2 { font-size: 28px !important; }
+  }
+</style>
+
+<script>
+  var s_t_current = 0;
+  var s_t_interval = null;
+
+  function s_t_init() {
+    var track = document.getElementById('s_t_track');
+    var cards = track.querySelectorAll('.s_t_card');
+    var dotsDiv = document.getElementById('s_t_dots');
+    dotsDiv.innerHTML = '';
+
+    for (var i = 0; i < cards.length; i++) {
+      var dot = document.createElement('button');
+      dot.className = 's_t_dot' + (i === 0 ? ' active' : '');
+      dot.setAttribute('type', 'button');
+      dot.onclick = (function(idx) { return function() { s_t_goTo(idx); }; })(i);
+      dotsDiv.appendChild(dot);
+    }
+
+    s_t_current = 0;
+    s_t_update();
+    s_t_autoStart();
+  }
+
+  function s_t_move(dir) {
+    var track = document.getElementById('s_t_track');
+    var cards = track.querySelectorAll('.s_t_card');
+    s_t_current = (s_t_current + dir + cards.length) % cards.length;
+    s_t_update();
+    s_t_autoReset();
+  }
+
+  function s_t_goTo(idx) {
+    s_t_current = idx;
+    s_t_update();
+    s_t_autoReset();
+  }
+
+  function s_t_update() {
+    var track = document.getElementById('s_t_track');
+    var cards = track.querySelectorAll('.s_t_card');
+    if (!cards.length) return;
+
+    track.scrollTo({ left: s_t_current * cards[0].offsetWidth, behavior: 'smooth' });
+
+    var dots = document.querySelectorAll('.s_t_dot');
+    for (var i = 0; i < dots.length; i++) {
+      dots[i].className = 's_t_dot' + (i === s_t_current ? ' active' : '');
+    }
+  }
+
+  function s_t_autoStart() {
+    if (s_t_interval) clearInterval(s_t_interval);
+    s_t_interval = setInterval(function() {
+      s_t_move(1);
+    }, 10000);
+  }
+
+  function s_t_autoStop() {
+    if (s_t_interval) {
+      clearInterval(s_t_interval);
+      s_t_interval = null;
+    }
+  }
+
+  function s_t_autoReset() {
+    s_t_autoStop();
+    s_t_autoStart();
+  }
+
+  if (document.readyState === 'loading')
+    document.addEventListener('DOMContentLoaded', s_t_init);
+  else
+    s_t_init();
+</script>
