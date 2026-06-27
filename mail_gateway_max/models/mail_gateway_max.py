@@ -105,8 +105,10 @@ class MailGatewayMaxService(models.AbstractModel):
     def _get_channel_vals(self, gateway, token, update):
         result = super()._get_channel_vals(gateway, token, update)
         # Extract chat name from update
-        chat_info = update.get("chat", {}) or update.get("message", {}).get("chat", {})
-        name = chat_info.get("title") or chat_info.get("name") or "MAX Chat"
+        message = update.get("message") or update
+        sender = message.get("sender", {})
+        name = sender.get("name") or sender.get("first_name", "") + " " + sender.get("last_name", "")
+        name = name.strip() or "MAX Chat"
         result["name"] = name
         result["anonymous_name"] = name
         return result
@@ -119,12 +121,11 @@ class MailGatewayMaxService(models.AbstractModel):
             _logger.warning("MAX update without message: %s", update)
             return
 
-        chat_id = str(
-            message.get("chat_id")
-            or message.get("chat", {}).get("id")
-        )
+        # Extract chat_id from sender (used as channel token for replies)
+        sender = message.get("sender", {})
+        chat_id = str(sender.get("user_id", ""))
         if not chat_id:
-            _logger.warning("MAX update without chat_id: %s", message)
+            _logger.warning("MAX update without sender.user_id: %s", message)
             return
 
         # Get or create discuss channel
@@ -132,14 +133,18 @@ class MailGatewayMaxService(models.AbstractModel):
         if not chat:
             return
 
-        # Post message to the channel
-        body = message.get("text", "") or message.get("caption", "") or ""
+        # Extract body text from message.body.text
+        body_data = message.get("body", {})
+        body = body_data.get("text", "") or ""
         attachments = []
 
         author = self._get_author(gateway, message)
+        author_id = False
+        if author:
+            author_id = author._name == "res.partner" and author.id
         new_message = chat.message_post(
             body=body,
-            author_id=author._name == "res.partner" and author.id,
+            author_id=author_id,
             gateway_type="max",
             message_type="comment",
             subtype_xmlid="mail.mt_comment",
@@ -153,9 +158,9 @@ class MailGatewayMaxService(models.AbstractModel):
     # ------------------------------------------------------------------
 
     def _get_author_vals(self, gateway, message):
-        from_user = message.get("from", {})
-        name = from_user.get("name", "") or from_user.get("username", "") or "MAX User"
-        user_id = str(from_user.get("user_id", ""))
+        sender = message.get("sender", {})
+        name = sender.get("name", "") or (sender.get("first_name", "") + " " + sender.get("last_name", "")).strip() or "MAX User"
+        user_id = str(sender.get("user_id", ""))
         return {
             "name": name,
             "gateway_id": gateway.id,
@@ -163,10 +168,18 @@ class MailGatewayMaxService(models.AbstractModel):
         }
 
     def _get_author(self, gateway, message):
-        from_user = message.get("from", {})
-        user_id = from_user.get("user_id")
+        sender = message.get("sender", {})
+        user_id = sender.get("user_id")
         if not user_id:
-            return super()._get_author(gateway, message)
+            # Fallback: use recipient's chat_id as author token
+            recipient = message.get("recipient", {})
+            user_id = str(recipient.get("chat_id", ""))
+            if not user_id:
+                return False
+            sender = {
+                "user_id": user_id,
+                "name": "Bot",
+            }
 
         # Check existing partner gateway channel
         gateway_partner = self.env["res.partner.gateway.channel"].search(
@@ -217,14 +230,15 @@ class MailGatewayMaxService(models.AbstractModel):
             return
 
         payload = {
-            "chat_id": chat_id,
             "text": html2plaintext(message_text),
         }
         if parse_mode:
-            payload["parse_mode"] = parse_mode
+            payload["format"] = "html" if parse_mode in ("HTML", "html") else parse_mode
 
         try:
-            result = self._max_request(gateway, "POST", "/messages", json=payload)
+            result = self._max_request(
+                gateway, "POST", "/messages?user_id=" + chat_id, json=payload
+            )
             if result is None:
                 raise Exception("MAX API returned error")
 

@@ -59,12 +59,12 @@ class MailGateway(models.Model):
                 return False
 
         base = _get_max_api_base(self.env)
-        url = f"{base}/messages"
+        url = f"{base}/messages?user_id={chat_id}"
         payload = {
-            "chat_id": chat_id,
             "text": message,
-            "parse_mode": parse_mode,
         }
+        if parse_mode:
+            payload["format"] = "html" if parse_mode in ("HTML", "html") else parse_mode
         try:
             with requests.Session() as session:
                 response = session.post(
