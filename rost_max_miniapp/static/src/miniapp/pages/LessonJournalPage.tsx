@@ -179,14 +179,14 @@ export const LessonJournalPage: React.FC<LessonJournalPageProps> = ({ lessonId, 
                   <img
                     src={student.avatar}
                     alt={student.name}
-                    style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }}
+                    style={{ width: 40, height: 40, borderRadius: '8px', objectFit: 'cover', flexShrink: 0 }}
                   />
                 ) : (
                   <div
                     style={{
                       width: 40,
                       height: 40,
-                      borderRadius: '50%',
+                      borderRadius: '8px',
                       backgroundColor: avatarColor(student.id),
                       color: '#fff',
                       display: 'flex',
