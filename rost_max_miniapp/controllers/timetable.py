@@ -141,32 +141,118 @@ class RostMaxTimetableController(http.Controller):
 
     @http.route("/rost_max/api/lesson/<int:lesson_id>/students", type="http", auth="public", methods=["GET"])
     def api_lesson_students(self, lesson_id):
-        """API: список учеников по уроку с оценками"""
+        """API: список учеников урока с аватарками, оценками и посещаемостью"""
         sheet = request.env['op.attendance.sheet'].browse(lesson_id)
         if not sheet.exists():
-            return request.make_response(json.dumps({"students": []}), headers=[('Content-Type', 'application/json')])
-        
-        students = request.env['op.student'].search([], order='last_name,first_name')
-        return request.make_response(json.dumps({
-            "lesson_id": lesson_id,
-            "students": [
-                {
-                    "id": s.id,
-                    "name": f"{s.last_name or ''} {s.first_name or ''}".strip()
-                }
-                for s in students
-            ]
-        }), headers=[('Content-Type', 'application/json')])
+            return request.make_response(
+                json.dumps({"lesson": None, "attendance_types": [], "students": []}),
+                headers=[('Content-Type', 'application/json')]
+            )
 
-    @http.route("/rost_max/api/set_grade", type="http", auth="public", methods=["POST"], cors="*", csrf=False)
-    def api_set_grade(self, **kw):
-        """API: выставление оценки"""
+        attend_types = request.env['op.attendance.type'].search([])
+        attendance_types = [{"id": at.id, "name": at.name} for at in attend_types]
+
+        students = []
+        for ln in sheet.attendance_line:
+            student = ln.student_id
+            if not student:
+                continue
+
+            # Аватар: приоритет у student_avatar строки посещаемости, иначе avatar_1920 ученика
+            avatar = ''
+            avatar_data = ln.student_avatar or student.avatar_1920
+            if avatar_data:
+                try:
+                    data = avatar_data.decode('utf-8') if isinstance(avatar_data, bytes) else str(avatar_data)
+                    data = data.strip()
+                    if data:
+                        # PD94bWwg — это base64 от '<?xml' (SVG), иначе считаем PNG
+                        mime = 'svg+xml' if data.startswith('PD94bWwg') else 'png'
+                        avatar = 'data:image/%s;base64,%s' % (mime, data)
+                except Exception:
+                    avatar = ''
+
+            last = student.last_name or ''
+            first = student.first_name or ''
+            middle = student.middle_name or ''
+            initials = ('%s%s' % (last[:1], first[:1])).upper() if (last or first) else '?'
+            name = ('%s %s %s' % (last, first, middle)).strip()
+
+            students.append({
+                "id": student.id,
+                "name": name,
+                "avatar": avatar,
+                "initials": initials,
+                "grade": ln.grade_1 or None,
+                "attendance_type_id": ln.attendance_type_id.id if ln.attendance_type_id else None,
+            })
+
+        lesson = {
+            "subject": sheet.subject_id.name if sheet.subject_id else '',
+            "batch": sheet.batch_id.name if sheet.batch_id else '',
+            "date": str(sheet.attendance_date) if sheet.attendance_date else '',
+            "timing": sheet.timing or '',
+        }
+
+        return request.make_response(
+            json.dumps({
+                "lesson": lesson,
+                "attendance_types": attendance_types,
+                "students": students,
+            }),
+            headers=[('Content-Type', 'application/json')]
+        )
+
+    @http.route("/rost_max/api/lesson/<int:lesson_id>/update", type="http", auth="public", methods=["POST"], cors="*", csrf=False)
+    def api_update_lesson_student(self, lesson_id, **kw):
+        """API: сохранение оценки и/или отметки посещаемости ученика в строке посещаемости"""
         try:
             body = json.loads(request.httprequest.data.decode('utf-8'))
         except Exception:
-            return request.make_response(json.dumps({"error": "Invalid JSON"}), headers=[('Content-Type', 'application/json')])
-        
-        return request.make_response(json.dumps({"success": True}), headers=[('Content-Type', 'application/json')])
+            return request.make_response(
+                json.dumps({"error": "Invalid JSON"}),
+                headers=[('Content-Type', 'application/json')]
+            )
+
+        student_id = body.get('student_id')
+        if not student_id:
+            return request.make_response(
+                json.dumps({"error": "student_id обязателен"}),
+                headers=[('Content-Type', 'application/json')]
+            )
+
+        line = request.env['op.attendance.line'].sudo().search([
+            ('attendance_id', '=', lesson_id),
+            ('student_id', '=', int(student_id)),
+        ], limit=1)
+        if not line:
+            return request.make_response(
+                json.dumps({"error": "Строка посещаемости не найдена"}),
+                headers=[('Content-Type', 'application/json')]
+            )
+
+        vals = {}
+        grade = body.get('grade')
+        if grade is not None:
+            if grade == '' or grade is None:
+                vals['grade_1'] = 0.0
+            else:
+                try:
+                    vals['grade_1'] = float(grade)
+                except (ValueError, TypeError):
+                    pass
+
+        attendance_type_id = body.get('attendance_type_id')
+        if attendance_type_id not in (None, ''):
+            vals['attendance_type_id'] = int(attendance_type_id)
+
+        if vals:
+            line.write(vals)
+
+        return request.make_response(
+            json.dumps({"success": True}),
+            headers=[('Content-Type', 'application/json')]
+        )
 
     @http.route("/rost_max/api/faculties", type="http", auth="public", methods=["GET"])
     def api_faculties(self):
