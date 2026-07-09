@@ -268,19 +268,27 @@ export const LessonJournalPage: React.FC<LessonJournalPageProps> = ({ lessonId, 
   }
 
   return (
-    <Flex direction="column" style={{ width: '100%', height: '100dvh' }}>
+    <Flex direction="column" align="stretch" style={{ width: '100%', height: '100dvh' }}>
       {header}
       <div
         style={{
           flex: 1,
           overflowY: 'auto',
+          overflowX: 'hidden',
           WebkitOverflowScrolling: 'touch',
+          scrollbarWidth: 'thin',
+          scrollbarColor: 'rgba(128, 128, 128, 0.4) transparent',
           backgroundColor: 'var(--background-surface-ground)',
-          padding: '16px',
+          paddingTop: '16px',
           paddingBottom: '24px'
         }}
       >
-        {content}
+        {/* Горизонтальный паддинг — на внутреннюю обёртку, а НЕ на скролл-контейнер:
+            иначе padding-right сдвигает ползунок скроллбара влево от края экрана
+            и справа от ползунка остаётся пустой отступ. */}
+        <div style={{ paddingLeft: '16px', paddingRight: '16px' }}>
+          {content}
+        </div>
       </div>
     </Flex>
   );

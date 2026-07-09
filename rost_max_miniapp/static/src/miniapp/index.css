@@ -30,3 +30,21 @@ textarea:-webkit-autofill:focus {
   font-size: inherit !important;
   line-height: 1.4 !important;
 }
+
+/* 3. Скроллбар: делаем дорожку прозрачной, чтобы справа от ползунка не было
+      белой полосы (дефолтный белый track браузера на светлой теме).
+      Фон контейнера просвечивает сквозь прозрачную дорожку. */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(128, 128, 128, 0.4);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(128, 128, 128, 0.6);
+}

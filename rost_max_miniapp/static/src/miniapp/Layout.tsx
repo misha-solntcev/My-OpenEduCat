@@ -31,6 +31,7 @@ export const Layout: React.FC<LayoutProps> = ({
   return (
     <Flex 
       direction="column" 
+      align="stretch"
       style={{ 
         width: '100%', 
         height: '100dvh', 
@@ -51,7 +52,7 @@ export const Layout: React.FC<LayoutProps> = ({
           flexShrink: 0
         }}
       >
-        <Typography.Title level={4} style={{ margin: 0, fontWeight: 600 }}>
+        <Typography.Title variant="small-strong" style={{ margin: 0, fontWeight: 600 }}>
           {title}
         </Typography.Title>
         <div style={{ width: 32, height: 32, borderRadius: '50%', backgroundColor: 'var(--background-neutral-subtle)' }} />

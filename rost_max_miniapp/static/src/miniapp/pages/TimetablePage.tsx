@@ -63,7 +63,7 @@ export const TimetablePage: React.FC = () => {
   };
 
   return (
-    <Flex direction="column" gap={12} style={{ width: '100%', height: '100%' }}>
+    <Flex direction="column" align="stretch" gap={12} style={{ width: '100%', height: '100%' }}>
       {/* Карточка с фильтрами */}
       <div
         style={{
@@ -74,9 +74,9 @@ export const TimetablePage: React.FC = () => {
           boxShadow: '0 2px 8px rgba(0,0,0,0.02)'
         }}
       >
-        <Flex direction="column" gap={10}>
+        <Flex direction="column" align="stretch" gap={10}>
           {isAdmin && faculties.length > 0 && (
-            <Flex direction="column" gap={4}>
+            <Flex direction="column" align="stretch" gap={4}>
               <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 500, marginLeft: '4px' }}>
                 Преподаватель
               </span>
@@ -103,7 +103,7 @@ export const TimetablePage: React.FC = () => {
             </Flex>
           )}
 
-          <Flex direction="column" gap={4}>
+          <Flex direction="column" align="stretch" gap={4}>
             <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 500, marginLeft: '4px' }}>
               Дата занятий
             </span>
@@ -136,6 +136,7 @@ export const TimetablePage: React.FC = () => {
       ) : lessons.length > 0 ? (
         <Flex
           direction="column"
+          align="stretch"
           gap={12}
           style={{
             flex: 1,
@@ -158,7 +159,7 @@ export const TimetablePage: React.FC = () => {
                 cursor: 'pointer'
               }}
             >
-              <Flex direction="column" gap={4} style={{ width: '100%' }}>
+              <Flex direction="column" align="stretch" gap={4} style={{ width: '100%' }}>
                 <Flex align="center" gap={12} justify="space-between" style={{ width: '100%' }}>
                   <Flex align="center" gap={12}>
                     <span style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-default)', minWidth: '40px' }}>
