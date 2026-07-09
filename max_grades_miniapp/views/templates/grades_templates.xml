@@ -1,0 +1,306 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Логин -->
+    <template id="max_grades_login_page" name="Login Page">
+        <t t-call="web.html_container">
+            <t t-set="title">Вход в систему оценок</t>
+            <t t-set="head">
+                <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet"/>
+                <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>
+            </t>
+            <div style="padding: 24px 16px; max-width: 400px; margin: 0 auto;">
+                <div class="text-center mb-4"><h3>Вход в систему оценок</h3></div>
+                <div class="card shadow-sm">
+                    <div class="card-body p-4">
+                        <div class="mb-3"><label class="form-label">Email</label><input type="email" class="form-control" id="email"/></div>
+                        <div class="mb-3"><label class="form-label">Пароль</label><input type="password" class="form-control" id="password"/></div>
+                        <div id="error-msg" class="alert alert-danger d-none"></div>
+                        <button class="btn btn-primary w-100" id="login-btn">Войти</button>
+                    </div>
+                </div>
+            </div>
+            <script>
+            <![CDATA[
+                function getCsrfToken() {
+                    var cookieValue = document.cookie
+                        .split('; ')
+                        .find(function(row) { return row.startsWith('csrf_token='); });
+                    return cookieValue ? cookieValue.split('=')[1] : '';
+                }
+                document.addEventListener('DOMContentLoaded', function() {
+                    var loginBtn = document.getElementById('login-btn');
+                    if (loginBtn) {
+                        loginBtn.addEventListener('click', function() {
+                            var email = document.getElementById('email').value;
+                            var password = document.getElementById('password').value;
+                            fetch('/max/grades/login', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'X-CSRF-TOKEN': getCsrfToken()
+                                },
+                                body: JSON.stringify({email: email, password: password})
+                            })
+                            .then(function(r) { return r.json(); })
+                            .then(function(result) {
+                                if (result.error) {
+                                    document.getElementById('error-msg').textContent = result.error;
+                                    document.getElementById('error-msg').classList.remove('d-none');
+                                } else {
+                                    window.location.href = '/max/grades/dashboard';
+                                }
+                            });
+                        });
+                    }
+                });
+            ]]>
+            </script>
+        </t>
+    </template>
+
+    <!-- Дашборд -->
+    <template id="max_grades_dashboard_page" name="Dashboard Page">
+        <t t-call="web.html_container">
+            <t t-set="title">Мой класс</t>
+            <t t-set="head">
+                <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet"/>
+                <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>
+            </t>
+            <div style="padding: 16px; max-width: 400px; margin: 0 auto;">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h4>Мой класс</h4>
+                    <button class="btn btn-outline-secondary btn-sm" id="logout-btn">
+                        <i class="fa fa-sign-out-alt"></i> Выход
+                    </button>
+                </div>
+                <div id="modules-list" class="row g-3">
+                    <div class="col-6 col-md-4">
+                        <div class="card module-card text-center p-3" data-module-id="schedule">
+                            <i class="fa fa-calendar fa-2x mb-2 text-primary"></i>
+                            <div class="small">Расписание</div>
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-4">
+                        <div class="card module-card text-center p-3" data-module-id="grades">
+                            <i class="fa fa-star fa-2x mb-2 text-primary"></i>
+                            <div class="small">Оценки</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <script>
+            <![CDATA[
+                function getCsrfToken() {
+                    var cookieValue = document.cookie
+                        .split('; ')
+                        .find(function(row) { return row.startsWith('csrf_token='); });
+                    return cookieValue ? cookieValue.split('=')[1] : '';
+                }
+                document.addEventListener('DOMContentLoaded', function() {
+                    var logoutBtn = document.getElementById('logout-btn');
+                    if (logoutBtn) {
+                        logoutBtn.addEventListener('click', function() {
+                            window.location.href = '/max/grades/logout';
+                        });
+                    }
+                    document.querySelectorAll('[data-module-id]').forEach(function(el) {
+                        el.addEventListener('click', function() {
+                            var moduleId = this.getAttribute('data-module-id');
+                            if (moduleId === 'schedule') {
+                                window.location.href = '/max/grades/lessons';
+                            } else if (moduleId === 'grades') {
+                                window.location.href = '/max/grades/lessons';
+                            }
+                        });
+                    });
+                });
+            ]]>
+            </script>
+        </t>
+    </template>
+
+    <!-- Список уроков -->
+    <template id="max_grades_lessons_page" name="Lessons Page">
+        <t t-call="web.html_container">
+            <t t-set="title">Занятия</t>
+            <t t-set="head">
+                <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet"/>
+                <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>
+            </t>
+            <div style="padding: 12px 8px; max-width: 600px; margin: 0 auto;">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <h5>Занятия</h5>
+                    <button class="btn btn-outline-secondary btn-sm" id="back-btn">
+                        <i class="fa fa-arrow-left"></i>
+                    </button>
+                </div>
+                <t t-if="is_admin">
+                    <div class="mb-2">
+                        <select class="form-select" id="faculty-filter">
+                            <option value="">Все учителя</option>
+                            <t t-foreach="faculties" t-as="faculty">
+                                <option t-att-value="faculty.id"><t t-out="faculty.last_name"/> <t t-out="faculty.first_name"/> <t t-out="faculty.middle_name"/></option>
+                            </t>
+                        </select>
+                    </div>
+                </t>
+                <div class="mb-2">
+                    <input type="date" class="form-control" id="date-picker"/>
+                </div>
+                <div id="lessons-list" class="list-group mb-3"></div>
+            </div>
+            <script>
+            <![CDATA[
+                function getCsrfToken() {
+                    var cookieValue = document.cookie
+                        .split('; ')
+                        .find(function(row) { return row.startsWith('csrf_token='); });
+                    return cookieValue ? cookieValue.split('=')[1] : '';
+                }
+                function loadLessons() {
+                    var date = document.getElementById('date-picker').value;
+                    var facultyId = document.getElementById('faculty-filter') ? document.getElementById('faculty-filter').value : '';
+                    var url = '/max/grades/api/lessons?date=' + date;
+                    if (facultyId) url += '&faculty_id=' + facultyId;
+                    fetch(url, {
+                        method: 'GET',
+                        headers: {'Content-Type': 'application/json', 'X-CSRF-TOKEN': getCsrfToken()}
+                    })
+                    .then(function(r) { return r.json(); })
+                    .then(function(result) {
+                        var html = '';
+                        if (result.lessons && result.lessons.length) {
+                            result.lessons.forEach(function(l) {
+                                var timing = l.timing || '';
+                                var header = timing + ' | ' + l.subject + ' | ' + l.batch;
+                                html += '<button class="list-group-item list-group-item-action open-lesson" data-lesson-id="' + l.id + '">' +
+                                    '<div><small class="text-muted">' + header + '</small></div>' +
+                                    '<div><strong>' + (l.faculty || '') + '</strong></div>' +
+                                    '</button>';
+                            });
+                        } else {
+                            html = '<p class="text-muted">Нет занятий</p>';
+                        }
+                        document.getElementById('lessons-list').innerHTML = html;
+                        document.querySelectorAll('.open-lesson').forEach(function(btn) {
+                            btn.addEventListener('click', function() {
+                                window.location.href = '/max/grades/lesson/' + this.getAttribute('data-lesson-id');
+                            });
+                        });
+                    });
+                }
+                document.addEventListener('DOMContentLoaded', function() {
+                    var today = new Date().toISOString().split('T')[0];
+                    document.getElementById('date-picker').value = today;
+                    loadLessons();
+                    document.getElementById('date-picker').addEventListener('change', loadLessons);
+                    var facultyFilter = document.getElementById('faculty-filter');
+                    if (facultyFilter) facultyFilter.addEventListener('change', loadLessons);
+                    document.getElementById('back-btn').addEventListener('click', function() {
+                        window.location.href = '/max/grades/dashboard';
+                    });
+                });
+            ]]>
+            </script>
+        </t>
+    </template>
+
+    <!-- Оценки -->
+    <template id="max_grades_lesson_students_page" name="Lesson Students Page">
+        <t t-call="web.html_container">
+            <t t-set="title">Оценки</t>
+            <t t-set="head">
+                <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet"/>
+                <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>
+            </t>
+            <div style="padding: 12px 8px;">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <h5 t-out="lesson.subject_id.name or ''"></h5>
+                    <button class="btn btn-outline-secondary btn-sm" id="back-to-lessons-btn">
+                        <i class="fa fa-arrow-left"></i>
+                    </button>
+                </div>
+                <p class="text-muted small mb-2" t-out="lesson.batch_id.name or ''"></p>
+                <div class="list-group mb-3" id="students-container">
+                    <t t-foreach="students" t-as="student">
+                        <div class="student-row d-flex align-items-start" t-att-data-student-id="student['id']">
+                            <t t-out="student['avatar_html']"/>
+                            <div class="flex-grow-1 ps-2">
+                                <div class="d-flex justify-content-between">
+                                    <strong t-out="student['name'] or ''"></strong>
+                                    <select class="form-select attend-select" style="width: 140px; height: 28px; font-size: 14px; padding: 2px;">
+                                        <option value="">-</option>
+                                        <t t-foreach="attend_types" t-as="attend_type">
+                                            <option t-att-value="attend_type.id" t-out="attend_type.name"/>
+                                        </t>
+                                    </select>
+                                </div>
+                                <div class="d-flex gap-1 mt-1">
+                                    <select class="form-select grade-select" style="width: 50px; height: 28px; font-size: 14px; padding: 2px;"></select>
+                                    <select class="form-select grade-select" style="width: 50px; height: 28px; font-size: 14px; padding: 2px;"></select>
+                                    <select class="form-select grade-select" style="width: 50px; height: 28px; font-size: 14px; padding: 2px;"></select>
+                                </div>
+                            </div>
+                        </div>
+                    </t>
+                </div>
+                <button class="btn btn-primary w-100" id="save-grades-btn">Сохранить оценки</button>
+            </div>
+            <script>
+            <![CDATA[
+                function getCsrfToken() {
+                    var cookieValue = document.cookie
+                        .split('; ')
+                        .find(function(row) { return row.startsWith('csrf_token='); });
+                    return cookieValue ? cookieValue.split('=')[1] : '';
+                }
+                function fillGradeSelects() {
+                    document.querySelectorAll('.grade-select').forEach(function(select) {
+                        var html = '<option value="">-</option>';
+                        [5,4,3,2].forEach(function(v) {
+                            html += '<option>&nbsp;&nbsp;' + v + '</option>';
+                        });
+                        select.innerHTML = html;
+                    });
+                }
+                function saveGrades() {
+                    var grades = [];
+                    document.querySelectorAll('.student-row').forEach(function(row) {
+                        var selects = row.querySelectorAll('.grade-select');
+                        var attendSelect = row.querySelector('.attend-select');
+                        grades.push({
+                            student_id: parseInt(row.dataset.studentId),
+                            attendance_type_id: attendSelect ? (attendSelect.value || false) : false,
+                            grade_1: selects[0] ? (selects[0].value || null) : null,
+                            grade_2: selects[1] ? (selects[1].value || null) : null,
+                            grade_3: selects[2] ? (selects[2].value || null) : null
+                        });
+                    });
+                    var lessonId = window.location.pathname.match(/\/max\/grades\/lesson\/(\d+)/);
+                    if (!lessonId) return;
+                    fetch('/max/grades/lesson/' + lessonId[1] + '/grades', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': getCsrfToken()
+                        },
+                        body: JSON.stringify({grades: grades})
+                    })
+                    .then(function(r) { return r.json(); })
+                    .then(function(result) {
+                        alert(result.success ? 'Сохранено!' : 'Ошибка: ' + result.error);
+                    });
+                }
+                document.addEventListener('DOMContentLoaded', function() {
+                    fillGradeSelects();
+                    var saveBtn = document.getElementById('save-grades-btn');
+                    if (saveBtn) saveBtn.addEventListener('click', saveGrades);
+                    document.getElementById('back-to-lessons-btn').addEventListener('click', function() {
+                        window.location.href = '/max/grades/lessons';
+                    });
+                });
+            ]]>
+            </script>
+        </t>
+    </template>
+</odoo>
