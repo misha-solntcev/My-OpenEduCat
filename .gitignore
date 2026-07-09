@@ -32,3 +32,5 @@ openeducat_attendance/backup_subject_grades/
 
 .trae/rules/git-commit-message.md
 .trae/rules/git-commit-message.md
+
+**/node_modules/
