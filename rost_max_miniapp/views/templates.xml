@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <template id="spa_page" name="SPA Page">
+        <html>
+            <head>
+                <meta charset="utf-8"/>
+                <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"/>
+                <title>Школа РОСТ</title>
+            </head>
+            <body>
+                <div id="root"></div>
+                <script src="/rost_max_miniapp/static/src/bundle/index.js?v=3"></script>
+            </body>
+        </html>
+    </template>
+</odoo>

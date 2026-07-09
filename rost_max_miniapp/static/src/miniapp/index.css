@@ -1,0 +1,32 @@
+/* Сброс дефолтных отступов и растягивание на весь экран */
+html, body, #root {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100vh;
+  height: 100dvh;
+  background-color: var(--background-surface-ground);
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+*, *:before, *:after {
+  box-sizing: inherit;
+}
+
+/* 1. Обеспечиваем достаточно места для текста во всех инпутах */
+input {
+  line-height: 1.4 !important; /* Увеличиваем высоту строки, чтобы "хвостики" букв помещались */
+}
+
+/* 2. Исправляем баг автозаполнения Chrome (Autofill) */
+input:-webkit-autofill,
+input:-webkit-autofill:hover, 
+input:-webkit-autofill:focus,
+textarea:-webkit-autofill,
+textarea:-webkit-autofill:hover,
+textarea:-webkit-autofill:focus {
+  /* Принудительно сохраняем правильный размер шрифта и высоту строки при автозаполнении */
+  font-size: inherit !important;
+  line-height: 1.4 !important;
+}
