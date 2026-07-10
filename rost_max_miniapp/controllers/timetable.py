@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-import json
 from odoo import http
 from odoo.http import request
 from odoo import fields
@@ -16,41 +15,36 @@ class RostMaxTimetableController(http.Controller):
         """API: аутентификация. GET возвращает SPA, POST - login"""
         if request.httprequest.method == 'POST':
             try:
-                body = json.loads(request.httprequest.data.decode('utf-8'))
+                body = request.get_json_data()
             except Exception:
-                return request.make_response(
-                    json.dumps({"error": "Invalid JSON"}),
-                    headers=[('Content-Type', 'application/json')]
+                return request.make_json_response(
+                    {"error": "Invalid JSON"}, status=400
                 )
 
             email = body.get('email')
             password = body.get('password')
 
             if not email or not password:
-                return request.make_response(
-                    json.dumps({"error": "Email и пароль обязательны"}),
-                    headers=[('Content-Type', 'application/json')]
+                return request.make_json_response(
+                    {"error": "Email и пароль обязательны"}, status=400
                 )
 
             try:
                 credential = {'login': email, 'password': password, 'type': 'password'}
                 auth_info = request.session.authenticate(request.db, credential)
                 if not auth_info.get('uid'):
-                    return request.make_response(
-                        json.dumps({"error": "Неверные учетные данные"}),
-                        headers=[('Content-Type', 'application/json')]
+                    return request.make_json_response(
+                        {"error": "Неверные учетные данные"}, status=400
                     )
                 request.session['is_timetable_user'] = True
                 user = request.env['res.users'].browse(auth_info['uid'])
                 is_admin = user.has_group('base.group_system')
-                return request.make_response(
-                    json.dumps({"success": True, "user_name": user.name, "is_admin": is_admin}),
-                    headers=[('Content-Type', 'application/json')]
+                return request.make_json_response(
+                    {"success": True, "user_name": user.name, "is_admin": is_admin}
                 )
             except Exception:
-                return request.make_response(
-                    json.dumps({"error": "Ошибка аутентификации"}),
-                    headers=[('Content-Type', 'application/json')]
+                return request.make_json_response(
+                    {"error": "Ошибка аутентификации"}, status=500
                 )
 
         # GET - рендерим SPA (React router покажет LoginPage)
@@ -124,7 +118,7 @@ class RostMaxTimetableController(http.Controller):
 
         lessons = self._get_user_timetable(user, date, faculty_id).sudo()
 
-        return request.make_response(json.dumps({
+        return request.make_json_response({
             "date": date_str,
             "is_admin": is_admin,
             "lessons": [
@@ -137,16 +131,15 @@ class RostMaxTimetableController(http.Controller):
                 }
                 for l in lessons
             ]
-        }), headers=[('Content-Type', 'application/json')])
+        })
 
     @http.route("/rost_max/api/lesson/<int:lesson_id>/students", type="http", auth="public", methods=["GET"])
     def api_lesson_students(self, lesson_id):
         """API: список учеников урока с аватарками, оценками и посещаемостью"""
         sheet = request.env['op.attendance.sheet'].browse(lesson_id)
         if not sheet.exists():
-            return request.make_response(
-                json.dumps({"lesson": None, "attendance_types": [], "students": []}),
-                headers=[('Content-Type', 'application/json')]
+            return request.make_json_response(
+                {"lesson": None, "attendance_types": [], "students": []}
             )
 
         attend_types = request.env['op.attendance.type'].search([])
@@ -200,31 +193,26 @@ class RostMaxTimetableController(http.Controller):
             "timing": sheet.timing or '',
         }
 
-        return request.make_response(
-            json.dumps({
-                "lesson": lesson,
-                "attendance_types": attendance_types,
-                "students": students,
-            }),
-            headers=[('Content-Type', 'application/json')]
-        )
+        return request.make_json_response({
+            "lesson": lesson,
+            "attendance_types": attendance_types,
+            "students": students,
+        })
 
     @http.route("/rost_max/api/lesson/<int:lesson_id>/update", type="http", auth="public", methods=["POST"], cors="*", csrf=False)
     def api_update_lesson_student(self, lesson_id, **kw):
         """API: сохранение оценки и/или отметки посещаемости ученика в строке посещаемости"""
         try:
-            body = json.loads(request.httprequest.data.decode('utf-8'))
+            body = request.get_json_data()
         except Exception:
-            return request.make_response(
-                json.dumps({"error": "Invalid JSON"}),
-                headers=[('Content-Type', 'application/json')]
+            return request.make_json_response(
+                {"error": "Invalid JSON"}, status=400
             )
 
         student_id = body.get('student_id')
         if not student_id:
-            return request.make_response(
-                json.dumps({"error": "student_id обязателен"}),
-                headers=[('Content-Type', 'application/json')]
+            return request.make_json_response(
+                {"error": "student_id обязателен"}, status=400
             )
 
         line = request.env['op.attendance.line'].sudo().search([
@@ -232,9 +220,8 @@ class RostMaxTimetableController(http.Controller):
             ('student_id', '=', int(student_id)),
         ], limit=1)
         if not line:
-            return request.make_response(
-                json.dumps({"error": "Строка посещаемости не найдена"}),
-                headers=[('Content-Type', 'application/json')]
+            return request.make_json_response(
+                {"error": "Строка посещаемости не найдена"}, status=404
             )
 
         vals = {}
@@ -255,20 +242,17 @@ class RostMaxTimetableController(http.Controller):
         if vals:
             line.write(vals)
 
-        return request.make_response(
-            json.dumps({"success": True}),
-            headers=[('Content-Type', 'application/json')]
-        )
+        return request.make_json_response({"success": True})
 
     @http.route("/rost_max/api/faculties", type="http", auth="public", methods=["GET"])
     def api_faculties(self):
         """API: список учителей (только для админа)"""
         user = request.env.user
         if not user.has_group('base.group_system'):
-            return request.make_response(json.dumps({"faculties": []}), headers=[('Content-Type', 'application/json')])
+            return request.make_json_response({"faculties": []})
 
         faculties = request.env['op.faculty'].search([], order='last_name,first_name')
-        return request.make_response(json.dumps({
+        return request.make_json_response({
             "faculties": [
                 {
                     "id": f.id,
@@ -276,4 +260,4 @@ class RostMaxTimetableController(http.Controller):
                 }
                 for f in faculties
             ]
-        }), headers=[('Content-Type', 'application/json')])
+        })
