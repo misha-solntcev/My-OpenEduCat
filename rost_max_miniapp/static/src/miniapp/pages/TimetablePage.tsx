@@ -23,11 +23,47 @@ interface FacultiesResponse {
   faculties: Faculty[];
 }
 
+// Выбор фильтров (дата + преподаватель) храним в рамках сессии:
+// sessionStorage живёт при reload и переходах по history внутри одной вкладки,
+// но сбрасывается при закрытии миниаппа. Этим возврат из журнала урока
+// (полная навигация по URL) попадает в уже настроенный список занятий.
+const TIMETABLE_FILTERS_KEY = 'rost_max_timetable_filters';
+
+function loadFilters(): { date: string; selectedFaculty: number | null } {
+  const fallback = {
+    date: new Date().toISOString().split('T')[0],
+    selectedFaculty: null as number | null,
+  };
+  try {
+    const saved = sessionStorage.getItem(TIMETABLE_FILTERS_KEY);
+    if (!saved) return fallback;
+    const parsed = JSON.parse(saved);
+    return {
+      date: typeof parsed.date === 'string' && parsed.date ? parsed.date : fallback.date,
+      selectedFaculty:
+        parsed.selectedFaculty === undefined || parsed.selectedFaculty === null
+          ? null
+          : Number(parsed.selectedFaculty),
+    };
+  } catch {
+    return fallback;
+  }
+}
+
+function saveFilters(date: string, selectedFaculty: number | null) {
+  try {
+    sessionStorage.setItem(TIMETABLE_FILTERS_KEY, JSON.stringify({ date, selectedFaculty }));
+  } catch {
+    // sessionStorage может быть недоступен (приватный режим) — игнорируем
+  }
+}
+
 export const TimetablePage: React.FC = () => {
-  const [date, setDate] = React.useState(new Date().toISOString().split('T')[0]);
+  const initial = loadFilters();
+  const [date, setDate] = React.useState(initial.date);
   const [lessons, setLessons] = React.useState<Lesson[]>([]);
   const [faculties, setFaculties] = React.useState<Faculty[]>([]);
-  const [selectedFaculty, setSelectedFaculty] = React.useState<number | null>(null);
+  const [selectedFaculty, setSelectedFaculty] = React.useState<number | null>(initial.selectedFaculty);
   const [isAdmin, setIsAdmin] = React.useState(false);
   const [loading, setLoading] = React.useState(false);
 
@@ -41,6 +77,12 @@ export const TimetablePage: React.FC = () => {
       })
       .catch(() => { });
   }, []);
+
+  // Сохраняем выбор фильтров в рамках сессии, чтобы при возврате из журнала
+  // урока (полная навигация по URL) список занятий открывался уже настроенным.
+  React.useEffect(() => {
+    saveFilters(date, selectedFaculty);
+  }, [date, selectedFaculty]);
 
   const loadLessons = React.useCallback(async () => {
     setLoading(true);
