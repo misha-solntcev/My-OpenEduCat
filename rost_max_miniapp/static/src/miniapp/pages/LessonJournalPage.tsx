@@ -82,23 +82,55 @@ export const LessonJournalPage: React.FC<LessonJournalPageProps> = ({ lessonId, 
       .finally(() => setLoading(false));
   }, [lessonId]);
 
-  const cycleGrade = (student: Student) => {
+  const cycleGrade = async (student: Student) => {
     const current = student.grade != null ? String(student.grade) : '';
     const idx = GRADES.indexOf(current);
     const next = GRADES[(idx + 1) % GRADES.length];
     const nextVal = next === '' ? null : Number(next);
 
+    const prevGrade = student.grade;
+
+    // Оптимистичное обновление: сразу рисуем новую оценку
     setStudents(prev => prev.map(s => s.id === student.id ? { ...s, grade: nextVal } : s));
-    apiPost(`/rost_max/api/lesson/${lessonId}/update`, { student_id: student.id, grade: nextVal });
+
+    try {
+      const res = await apiPost<{ success?: boolean; error?: string }>(
+        `/rost_max/api/lesson/${lessonId}/update`,
+        { student_id: student.id, grade: nextVal }
+      );
+      if (res.error) {
+        throw new Error(res.error);
+      }
+    } catch (err) {
+      // Откат при ошибке бэкенда/сети — возвращаем прежнюю оценку
+      setStudents(prev => prev.map(s => s.id === student.id ? { ...s, grade: prevGrade } : s));
+      alert('Не удалось сохранить оценку: ' + (err instanceof Error ? err.message : 'ошибка сети'));
+    }
   };
 
-  const cycleAttendance = (student: Student) => {
+  const cycleAttendance = async (student: Student) => {
     if (!attendanceTypes.length) return;
     const curIdx = attendanceTypes.findIndex(t => t.id === student.attendance_type_id);
     const nextType = attendanceTypes[(curIdx + 1) % attendanceTypes.length];
 
+    const prevAttendanceId = student.attendance_type_id;
+
+    // Оптимистичное обновление: сразу рисуем новую отметку
     setStudents(prev => prev.map(s => s.id === student.id ? { ...s, attendance_type_id: nextType.id } : s));
-    apiPost(`/rost_max/api/lesson/${lessonId}/update`, { student_id: student.id, attendance_type_id: nextType.id });
+
+    try {
+      const res = await apiPost<{ success?: boolean; error?: string }>(
+        `/rost_max/api/lesson/${lessonId}/update`,
+        { student_id: student.id, attendance_type_id: nextType.id }
+      );
+      if (res.error) {
+        throw new Error(res.error);
+      }
+    } catch (err) {
+      // Откат при ошибке бэкенда/сети — возвращаем прежнюю отметку
+      setStudents(prev => prev.map(s => s.id === student.id ? { ...s, attendance_type_id: prevAttendanceId } : s));
+      alert('Не удалось изменить отметку посещаемости: ' + (err instanceof Error ? err.message : 'ошибка сети'));
+    }
   };
 
   const headerTitle = lesson ? (lesson.subject || lessonTitle) : lessonTitle;

@@ -1,9 +1,13 @@
 import React from 'react';
 import { CellAction, CellList, Typography, Flex } from '@maxhub/max-ui';
 
-export const DashboardPage: React.FC = () => {
+interface DashboardPageProps {
+  onNavigate: (to: string) => void;
+}
+
+export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
   const openTimetable = () => {
-    window.location.href = '/rost_max/timetable';
+    onNavigate('/rost_max/timetable');
   };
 
   return (

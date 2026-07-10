@@ -9,7 +9,11 @@ interface LoginResponse {
   is_admin?: boolean;
 }
 
-export const LoginPage: React.FC = () => {
+interface LoginPageProps {
+  onSuccess: () => void;
+}
+
+export const LoginPage: React.FC<LoginPageProps> = ({ onSuccess }) => {
   const [email, setEmail] = React.useState('');
   const [password, setPassword] = React.useState('');
   const [error, setError] = React.useState<string | null>(null);
@@ -29,7 +33,7 @@ export const LoginPage: React.FC = () => {
       if (data.error) {
         setError(data.error);
       } else {
-        window.location.href = '/rost_max/dashboard';
+        onSuccess();
       }
     } catch {
       setError('Ошибка соединения с сервером');

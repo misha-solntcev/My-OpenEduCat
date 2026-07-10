@@ -78,6 +78,11 @@ class RostMaxTimetableController(http.Controller):
         """Страница журнала урока - рендерит SPA"""
         return request.render('rost_max_miniapp.spa_page')
 
+    @http.route("/rost_max/modules", type="http", auth="public")
+    def modules_page(self):
+        """Страница модулей - рендерит тот же SPA (клиентский роутер покажет экран)"""
+        return request.render('rost_max_miniapp.spa_page')
+
     def _get_user_timetable(self, user, date, faculty_id=None):
         """Получить timetable для пользователя по дате и факультету (админ)"""
         is_admin = user.has_group('base.group_system')
@@ -136,11 +141,27 @@ class RostMaxTimetableController(http.Controller):
     @http.route("/rost_max/api/lesson/<int:lesson_id>/students", type="http", auth="public", methods=["GET"])
     def api_lesson_students(self, lesson_id):
         """API: список учеников урока с аватарками, оценками и посещаемостью"""
-        sheet = request.env['op.attendance.sheet'].browse(lesson_id)
+        user = request.env.user
+        sheet = request.env['op.attendance.sheet'].sudo().browse(lesson_id)
         if not sheet.exists():
             return request.make_json_response(
                 {"lesson": None, "attendance_types": [], "students": []}
             )
+
+        # IDOR-защита: закрытый урок отдаём только админу либо тому, у кого
+        # он реально есть в расписании (студент своей группы / преподаватель).
+        # Гость (public_user) в allowed_sheets не попадёт -> 403.
+        is_admin = user.has_group('base.group_system')
+        if not is_admin:
+            allowed_sheets = self._get_user_timetable(user, sheet.attendance_date).sudo()
+            if sheet not in allowed_sheets:
+                _logger.warning(
+                    "Security access violation: User %s (ID %s) attempted to view unauthorized lesson ID %s",
+                    user.login, user.id, lesson_id,
+                )
+                return request.make_json_response(
+                    {"error": "Доступ к уроку запрещен"}, status=403
+                )
 
         attend_types = request.env['op.attendance.type'].search([])
         attendance_types = [{"id": at.id, "name": at.name} for at in attend_types]
@@ -202,6 +223,35 @@ class RostMaxTimetableController(http.Controller):
     @http.route("/rost_max/api/lesson/<int:lesson_id>/update", type="http", auth="public", methods=["POST"], cors="*", csrf=False)
     def api_update_lesson_student(self, lesson_id, **kw):
         """API: сохранение оценки и/или отметки посещаемости ученика в строке посещаемости"""
+        # Ручная валидация CSRF для JSON POST: системный валидатор Odoo для
+        # http-роутов ищет токен только в query/form-data, а фронт шлёт его
+        # в заголовке X-CSRF-Token (JSON-тело не парсится до проверки).
+        csrf_token = request.httprequest.headers.get('X-CSRF-Token')
+        if not request.validate_csrf(csrf_token):
+            return request.make_json_response({"error": "CSRF validation failed"}, status=400)
+
+        user = request.env.user
+        sheet = request.env['op.attendance.sheet'].sudo().browse(lesson_id)
+        if not sheet.exists():
+            return request.make_json_response({"error": "Урок не найден"}, status=404)
+
+        # Защита от фальсификации оценок: писать может только админ либо
+        # преподаватель, назначенный вести этот урок. Гость/студент/чужой
+        # преподаватель получают 403.
+        is_admin = user.has_group('base.group_system')
+        if not is_admin:
+            faculty = request.env['op.faculty'].sudo().search([
+                ('partner_id', '=', user.partner_id.id)
+            ], limit=1)
+            if not faculty or sheet.faculty_id != faculty:
+                _logger.warning(
+                    "Security write violation: User %s (ID %s) attempted to write grades on unauthorized lesson ID %s",
+                    user.login, user.id, lesson_id,
+                )
+                return request.make_json_response(
+                    {"error": "У вас нет прав для изменения оценок этого урока"}, status=403
+                )
+
         try:
             body = request.get_json_data()
         except Exception:

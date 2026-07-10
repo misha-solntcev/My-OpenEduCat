@@ -11,6 +11,12 @@ export async function apiGet<T>(url: string): Promise<T> {
   const res = await fetch(url, {
     headers: { 'X-CSRF-TOKEN': getCsrfToken() },
   });
+
+  if (res.status === 401 || res.status === 403) {
+    window.location.href = '/rost_max/login';
+    throw new Error('Session expired');
+  }
+
   return res.json();
 }
 
@@ -23,5 +29,11 @@ export async function apiPost<T>(url: string, data: unknown): Promise<T> {
     },
     body: JSON.stringify(data),
   });
+
+  if (res.status === 401 || res.status === 403) {
+    window.location.href = '/rost_max/login';
+    throw new Error('Session expired');
+  }
+
   return res.json();
 }

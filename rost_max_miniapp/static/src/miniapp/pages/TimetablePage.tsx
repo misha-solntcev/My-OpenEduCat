@@ -19,6 +19,10 @@ interface TimetableResponse {
   lessons: Lesson[];
 }
 
+interface TimetablePageProps {
+  onOpenLesson: (lessonId: number) => void;
+}
+
 interface FacultiesResponse {
   faculties: Faculty[];
 }
@@ -58,7 +62,7 @@ function saveFilters(date: string, selectedFaculty: number | null) {
   }
 }
 
-export const TimetablePage: React.FC = () => {
+export const TimetablePage: React.FC<TimetablePageProps> = ({ onOpenLesson }) => {
   const initial = loadFilters();
   const [date, setDate] = React.useState(initial.date);
   const [lessons, setLessons] = React.useState<Lesson[]>([]);
@@ -101,7 +105,7 @@ export const TimetablePage: React.FC = () => {
   React.useEffect(() => { loadLessons(); }, [loadLessons]);
 
   const openLesson = (lessonId: number) => {
-    window.location.href = `/rost_max/lesson/${lessonId}`;
+    onOpenLesson(lessonId);
   };
 
   return (

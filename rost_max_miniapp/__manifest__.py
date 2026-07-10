@@ -6,11 +6,6 @@
     'summary': 'Мини-приложение для MAX с расписанием занятий',
     'depends': ['web', 'openeducat_core'],
     'data': ['views/templates.xml'],
-    'assets': {
-        'web.assets_frontend': [
-            '/rost_max_miniapp/static/src/bundle/index.js',
-        ],
-    },
     'installable': True,
     'application': True,
     'auto_install': False,
