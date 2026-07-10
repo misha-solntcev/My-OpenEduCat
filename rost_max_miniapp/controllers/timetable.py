@@ -158,19 +158,25 @@ class RostMaxTimetableController(http.Controller):
             if not student:
                 continue
 
-            # Аватар: приоритет у student_avatar строки посещаемости, иначе avatar_1920 ученика
+            # Аватар: отдаём относительный URL на встроенный роутинг Odoo
+            # /web/image/<model>/<id>/<field>/<W>x<H> вместо base64-строки.
+            # Odoo сам ресайзит картинку на лету до 128x128, кеширует ответ
+            # (Cache-Control) и отдаёт с корректным Content-Type — браузер/WebView
+            # не качает бинарь заново. Бинарь из БД в JSON больше не тащим
+            # (экономим RAM/CPU и режем размер ответа в разы).
+            # Наличие картинки проверяем search() БЕЗ выгрузки BLOB:
+            # search фильтрует по ir.rule и делает EXISTS в SQL, не читая
+            # бинарное поле в память процесса. URL формируем только для
+            # залогиненного юзера — иначе /web/image вернёт 404 и <img>
+            # покажет broken-image вместо инициалов.
             avatar = ''
-            avatar_data = ln.student_avatar or student.avatar_1920
-            if avatar_data:
-                try:
-                    data = avatar_data.decode('utf-8') if isinstance(avatar_data, bytes) else str(avatar_data)
-                    data = data.strip()
-                    if data:
-                        # PD94bWwg — это base64 от '<?xml' (SVG), иначе считаем PNG
-                        mime = 'svg+xml' if data.startswith('PD94bWwg') else 'png'
-                        avatar = 'data:image/%s;base64,%s' % (mime, data)
-                except Exception:
-                    avatar = ''
+            if request.session.uid:
+                if request.env['op.attendance.line'].search(
+                        [('id', '=', ln.id), ('student_avatar', '!=', False)], limit=1):
+                    avatar = '/web/image/op.attendance.line/%s/student_avatar/128x128' % ln.id
+                elif request.env['op.student'].search(
+                        [('id', '=', student.id), ('avatar_1920', '!=', False)], limit=1):
+                    avatar = '/web/image/op.student/%s/avatar_1920/128x128' % student.id
 
             last = student.last_name or ''
             first = student.first_name or ''
