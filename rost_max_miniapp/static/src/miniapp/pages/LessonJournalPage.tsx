@@ -1,12 +1,12 @@
 import React from 'react';
-import { Flex, Typography } from '@maxhub/max-ui';
+import { Flex, Typography, IconButton, Avatar } from '@maxhub/max-ui';
 import { apiGet, apiPost } from '../api';
+import { initialsOf } from '../utils/initials';
 
 interface Student {
   id: number;
   name: string;
   avatar: string; // data:image/...;base64,... или '' (тогда показываем инициалы)
-  initials: string;
   grade: number | null;
   attendance_type_id: number | null;
 }
@@ -38,29 +38,69 @@ interface LessonJournalPageProps {
 // Цикл оценок: пусто → 5 → 4 → 3 → 2 → пусто
 const GRADES = ['', '5', '4', '3', '2'];
 
-// Цвета-заглушки для аватаров без фото (хеш от ID, как в старой версии)
-const AVATAR_COLORS = ['#007aff', '#34c759', '#ff3b30', '#ff9500', '#5856d6', '#ff2d55'];
-
-function avatarColor(id: number): string {
-  return AVATAR_COLORS[id % AVATAR_COLORS.length];
-}
-
 // Цвет отметки посещаемости по названию типа
 function attendanceColor(name?: string): string {
-  if (!name) return 'var(--text-muted)';
+  if (!name) return 'var(--text-secondary)';
   const n = name.toLowerCase();
-  if (n.includes('присутств') || n.includes('был') || n.includes('есть') || n.includes('да')) return '#34c759';
-  if (n.includes('отсутств') || n.includes('нет') || n.includes('не ')) return '#ff3b30';
-  if (n.includes('опозд')) return '#ff9500';
-  return 'var(--brand-default, #007aff)';
+  if (n.includes('присутств') || n.includes('был') || n.includes('есть') || n.includes('да')) return 'var(--background-accent-positive)';
+  if (n.includes('отсутств') || n.includes('нет') || n.includes('не ')) return 'var(--background-accent-negative)';
+  if (n.includes('опозд')) return 'var(--background-accent-attention-primary)';
+  return 'var(--icon-themed)';
 }
 
 function gradeColor(grade: number | null): string {
-  if (grade == null) return 'var(--text-muted)';
-  if (grade >= 3.5) return '#34c759';
-  if (grade >= 2.5) return '#ff9500';
-  return '#ff3b30';
+  if (grade == null) return 'var(--text-secondary)';
+  if (grade >= 3.5) return 'var(--background-accent-positive)';
+  if (grade >= 2.5) return 'var(--background-accent-attention-primary)';
+  return 'var(--background-accent-negative)';
 }
+
+interface JournalButtonProps {
+  value: string;
+  active: boolean;
+  activeColor: string;
+  onClick: () => void;
+  title?: string;
+  height?: number;
+  minWidth?: number;
+  fontSize?: number;
+  padding?: string;
+  whiteSpace?: string;
+}
+
+// Единая кнопка оценки/посещаемости. Акцентный цвет передаём через inline
+// CSS-переменную --jb-color (см. .rm-journal-btn--active в index.css), чтобы
+// color-mix мог сделать валидный полупрозрачный фон (конкатенация `${color}18`
+// с var() не работает — баг до рефактора).
+const JournalButton: React.FC<JournalButtonProps> = ({
+  value,
+  active,
+  activeColor,
+  onClick,
+  title,
+  height = 34,
+  minWidth = 34,
+  fontSize = 15,
+  padding,
+  whiteSpace,
+}) => (
+  <button
+    type="button"
+    onClick={onClick}
+    title={title}
+    className={`rm-journal-btn ${active ? 'rm-journal-btn--active' : ''}`}
+    style={{
+      height,
+      minWidth,
+      fontSize,
+      padding: padding ?? '0',
+      whiteSpace,
+      ...(active ? ({ ['--jb-color' as string]: activeColor } as React.CSSProperties) : null),
+    }}
+  >
+    {value}
+  </button>
+);
 
 export const LessonJournalPage: React.FC<LessonJournalPageProps> = ({ lessonId, lessonTitle, onBack }) => {
   const [lesson, setLesson] = React.useState<LessonInfo | null>(null);
@@ -137,17 +177,19 @@ export const LessonJournalPage: React.FC<LessonJournalPageProps> = ({ lessonId, 
   const headerSubtitle = lesson ? [lesson.batch, lesson.timing].filter(Boolean).join(' · ') : '';
 
   const header = (
-    <Flex direction="column" gap={2} style={{ padding: '12px 16px', borderBottom: '1px solid var(--border-neutral-subtle)', backgroundColor: 'var(--background-surface-card)', flexShrink: 0 }}>
+    <Flex direction="column" gap={2} style={{ padding: '12px 16px', borderBottom: '1px solid var(--stroke-separator-secondary)', backgroundColor: 'var(--background-surface-card)', flexShrink: 0 }}>
       <Flex align="center" gap={12}>
-        <button onClick={onBack} style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer', color: '#007aff', padding: '4px 8px 4px 0' }}>
-          ⬅
-        </button>
-        <Typography.Title level={4} style={{ margin: 0, fontWeight: 700 }}>
+        <IconButton appearance="themed" mode="tertiary" onClick={onBack}>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M15 18l-6-6 6-6" />
+          </svg>
+        </IconButton>
+        <Typography.Title variant="small-strong" style={{ margin: 0, fontWeight: 700 }}>
           {headerTitle}
         </Typography.Title>
       </Flex>
       {headerSubtitle && (
-        <Typography.Label variant="secondary" size="s" style={{ marginLeft: '36px' }}>
+        <Typography.Label variant="small-strong" style={{ marginLeft: '36px', color: 'var(--text-secondary)' }}>
           {headerSubtitle}
         </Typography.Label>
       )}
@@ -158,7 +200,7 @@ export const LessonJournalPage: React.FC<LessonJournalPageProps> = ({ lessonId, 
   if (loading) {
     content = (
       <Flex align="center" justify="center" style={{ flex: 1, minHeight: '200px' }}>
-        <div style={{ color: 'var(--text-muted)' }}>Загрузка...</div>
+        <div style={{ color: 'var(--text-secondary)' }}>Загрузка...</div>
       </Flex>
     );
   } else if (students.length === 0) {
@@ -167,19 +209,16 @@ export const LessonJournalPage: React.FC<LessonJournalPageProps> = ({ lessonId, 
         direction="column"
         align="center"
         justify="center"
+        className="rm-card rm-card--empty"
         style={{
-          padding: '40px 20px',
-          backgroundColor: 'var(--background-surface-card)',
-          borderRadius: '12px',
-          border: '1px solid var(--border-neutral-subtle)',
-          minHeight: '200px'
+          paddingBottom: '24px'
         }}
       >
         <div style={{ fontSize: '48px', marginBottom: '12px' }}>🍃</div>
         <Typography.Title style={{ margin: '0 0 4px 0', fontWeight: 600 }}>
           Ученики не найдены
         </Typography.Title>
-        <Typography.Body style={{ color: 'var(--text-muted)', textAlign: 'center' }}>
+        <Typography.Body style={{ color: 'var(--text-secondary)', textAlign: 'center' }}>
           Для этого урока ещё не сформирован список посещаемости.
         </Typography.Body>
       </Flex>
@@ -195,43 +234,22 @@ export const LessonJournalPage: React.FC<LessonJournalPageProps> = ({ lessonId, 
           return (
             <div
               key={student.id}
+              className="rm-card"
               style={{
-                backgroundColor: 'var(--background-surface-card)',
-                borderRadius: '12px',
                 padding: '12px 14px',
-                border: '1px solid var(--border-neutral-subtle)',
-                boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
-                width: '100%',
-                boxSizing: 'border-box',
               }}
             >
               <Flex align="center" gap={12} style={{ width: '100%', minWidth: 0 }}>
                 {/* Колонка 1: аватар (общий для двух строк) */}
-                {student.avatar ? (
-                  <img
+                <Avatar.Container
+                  size={40}
+                  form="squircle"                  
+                >
+                  <Avatar.Image
                     src={student.avatar}
-                    alt={student.name}
-                    style={{ width: 40, height: 40, borderRadius: '8px', objectFit: 'cover', flexShrink: 0 }}
+                    fallback={<Avatar.Text>{initialsOf(student.name)}</Avatar.Text>}
                   />
-                ) : (
-                  <div
-                    style={{
-                      width: 40,
-                      height: 40,
-                      borderRadius: '8px',
-                      backgroundColor: avatarColor(student.id),
-                      color: '#fff',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontWeight: 700,
-                      fontSize: '15px',
-                      flexShrink: 0
-                    }}
-                  >
-                    {student.initials}
-                  </div>
-                )}
+                </Avatar.Container>
 
                 {/* Колонка 2: две строки */}
                 <Flex direction="column" gap={6} style={{ flex: 1, minWidth: 0 }}>
@@ -240,7 +258,7 @@ export const LessonJournalPage: React.FC<LessonJournalPageProps> = ({ lessonId, 
                     style={{
                       fontSize: '14px',
                       fontWeight: 600,
-                      color: 'var(--text-default)',
+                      color: 'var(--text-primary)',
                       overflow: 'hidden',
                       textOverflow: 'ellipsis',
                       whiteSpace: 'nowrap'
@@ -251,44 +269,24 @@ export const LessonJournalPage: React.FC<LessonJournalPageProps> = ({ lessonId, 
 
                   {/* Строка 2: оценка + посещаемость */}
                   <Flex align="center" gap={8} style={{ width: '100%' }}>
-                    <button
+                    <JournalButton
+                      value={gradeSet ? String(student.grade) : '—'}
+                      active={gradeSet}
+                      activeColor={gradeColor(student.grade)}
                       onClick={() => cycleGrade(student)}
-                      style={{
-                        width: '34px',
-                        height: '34px',
-                        borderRadius: '8px',
-                        border: `1px solid ${gradeSet ? gradeColor(student.grade) : 'var(--border-neutral-subtle)'}`,
-                        backgroundColor: gradeSet ? `${gradeColor(student.grade)}18` : 'transparent',
-                        color: gradeSet ? gradeColor(student.grade) : 'var(--text-muted)',
-                        fontWeight: 700,
-                        fontSize: '15px',
-                        cursor: 'pointer',
-                        flexShrink: 0
-                      }}
-                    >
-                      {gradeSet ? String(student.grade) : '—'}
-                    </button>
+                    />
 
-                    <button
+                    <JournalButton
+                      value={attSet ? attendanceType!.name : '—'}
+                      active={attSet}
+                      activeColor={attColor}
                       onClick={() => cycleAttendance(student)}
                       title="Нажмите, чтобы сменить отметку посещаемости"
-                      style={{
-                        height: '34px',
-                        minWidth: '34px',
-                        padding: '0 10px',
-                        borderRadius: '8px',
-                        border: `1px solid ${attSet ? attColor : 'var(--border-neutral-subtle)'}`,
-                        backgroundColor: attSet ? `${attColor}18` : 'transparent',
-                        color: attSet ? attColor : 'var(--text-muted)',
-                        fontWeight: 600,
-                        fontSize: '12px',
-                        cursor: 'pointer',
-                        whiteSpace: 'nowrap',
-                        flexShrink: 0
-                      }}
-                    >
-                      {attSet ? attendanceType!.name : '—'}
-                    </button>
+                      fontSize={12}
+                      minWidth={34}
+                      padding="0 10px"
+                      whiteSpace="nowrap"
+                    />
                   </Flex>
                 </Flex>
               </Flex>

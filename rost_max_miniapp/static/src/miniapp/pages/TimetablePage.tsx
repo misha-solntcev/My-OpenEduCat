@@ -1,6 +1,7 @@
 import React from 'react';
-import { Flex, Typography, Spinner } from '@maxhub/max-ui';
+import { Flex, Typography, Spinner, Dot } from '@maxhub/max-ui';
 import { apiGet } from '../api';
+import { getSavedFilters, saveFilters } from '../utils/storage';
 
 interface Lesson {
   id: number;
@@ -29,47 +30,12 @@ interface FacultiesResponse {
   faculties: Faculty[];
 }
 
-// Выбор фильтров (дата + преподаватель) храним в рамках сессии:
-// sessionStorage живёт при reload и переходах по history внутри одной вкладки,
-// но сбрасывается при закрытии миниаппа. Этим возврат из журнала урока
-// (полная навигация по URL) попадает в уже настроенный список занятий.
-const TIMETABLE_FILTERS_KEY = 'rost_max_timetable_filters';
-
-function loadFilters(): { date: string; selectedFaculty: number | null } {
-  const fallback = {
-    date: new Date().toISOString().split('T')[0],
-    selectedFaculty: null as number | null,
-  };
-  try {
-    const saved = sessionStorage.getItem(TIMETABLE_FILTERS_KEY);
-    if (!saved) return fallback;
-    const parsed = JSON.parse(saved);
-    return {
-      date: typeof parsed.date === 'string' && parsed.date ? parsed.date : fallback.date,
-      selectedFaculty:
-        parsed.selectedFaculty === undefined || parsed.selectedFaculty === null
-          ? null
-          : Number(parsed.selectedFaculty),
-    };
-  } catch {
-    return fallback;
-  }
-}
-
-function saveFilters(date: string, selectedFaculty: number | null) {
-  try {
-    sessionStorage.setItem(TIMETABLE_FILTERS_KEY, JSON.stringify({ date, selectedFaculty }));
-  } catch {
-    // sessionStorage может быть недоступен (приватный режим) — игнорируем
-  }
-}
-
 export const TimetablePage: React.FC<TimetablePageProps> = ({
   onOpenLesson,
   globalDate,
   onDateChange,
 }) => {
-  const initial = loadFilters();
+  const initial = getSavedFilters();
   const [lessons, setLessons] = React.useState<Lesson[]>([]);
   const [faculties, setFaculties] = React.useState<Faculty[]>([]);
   const [selectedFaculty, setSelectedFaculty] = React.useState<number | null>(initial.selectedFaculty);
@@ -91,7 +57,7 @@ export const TimetablePage: React.FC<TimetablePageProps> = ({
   // управляется из App.tsx и пишется туда же — чтобы Date Jumper на дашборде
   // и на расписании были синхронизированы).
   React.useEffect(() => {
-    saveFilters(globalDate, selectedFaculty);
+    saveFilters({ date: globalDate, selectedFaculty });
   }, [globalDate, selectedFaculty]);
 
   const loadLessons = React.useCallback(async () => {
@@ -118,34 +84,21 @@ export const TimetablePage: React.FC<TimetablePageProps> = ({
     <Flex direction="column" align="stretch" gap={12} style={{ width: '100%', height: '100%' }}>
       {/* Карточка с фильтрами */}
       <div
+        className="rm-card"
         style={{
-          backgroundColor: 'var(--background-surface-card)',
           padding: '14px',
-          borderRadius: '12px',
-          border: '1px solid var(--border-neutral-subtle)',
-          boxShadow: '0 2px 8px rgba(0,0,0,0.02)'
         }}
       >
         <Flex direction="column" align="stretch" gap={10}>
           {isAdmin && faculties.length > 0 && (
             <Flex direction="column" align="stretch" gap={4}>
-              <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 500, marginLeft: '4px' }}>
+              <span style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: 500, marginLeft: '4px' }}>
                 Преподаватель
               </span>
               <select
                 value={selectedFaculty || ''}
                 onChange={e => setSelectedFaculty(e.target.value ? parseInt(e.target.value) : null)}
-                style={{
-                  width: '100%',
-                  height: '38px',
-                  padding: '0 12px',
-                  borderRadius: '8px',
-                  border: '1px solid var(--border-neutral-default)',
-                  backgroundColor: 'var(--background-surface-card)',
-                  color: 'var(--text-default)',
-                  fontSize: '14px',
-                  outline: 'none'
-                }}
+                className="rm-select"
               >
                 <option value="">Все преподаватели</option>
                 {faculties.map(f => (
@@ -156,25 +109,14 @@ export const TimetablePage: React.FC<TimetablePageProps> = ({
           )}
 
           <Flex direction="column" align="stretch" gap={4}>
-            <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 500, marginLeft: '4px' }}>
+            <span style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: 500, marginLeft: '4px' }}>
               Дата занятий
             </span>
             <input
               type="date"
               value={globalDate}
               onChange={e => onDateChange(e.target.value)}
-              style={{
-                width: '100%',
-                height: '38px',
-                padding: '0 12px',
-                borderRadius: '8px',
-                border: '1px solid var(--border-neutral-default)',
-                backgroundColor: 'var(--background-surface-card)',
-                color: 'var(--text-default)',
-                fontSize: '14px',
-                outline: 'none',
-                fontFamily: 'inherit'
-              }}
+              className="rm-input"
             />
           </Flex>
         </Flex>
@@ -200,48 +142,39 @@ export const TimetablePage: React.FC<TimetablePageProps> = ({
             <div
               key={l.id}
               onClick={() => openLesson(l.id)}
-              style={{
-                backgroundColor: 'var(--background-surface-card)',
-                borderRadius: '12px',
-                padding: '14px 16px',
-                border: '1px solid var(--border-neutral-subtle)',
-                boxShadow: '0 1px 4px rgba(0,0,0,0.01)',
-                width: '100%',
-                boxSizing: 'border-box',
-                cursor: 'pointer'
-              }}
+              className="rm-card rm-card--tight"
             >
               <Flex direction="column" align="stretch" gap={4} style={{ width: '100%' }}>
                 <Flex align="center" gap={12} justify="space-between" style={{ width: '100%' }}>
                   <Flex align="center" gap={12}>
-                    <span style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-default)', minWidth: '40px' }}>
+                    <span style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)', minWidth: '40px' }}>
                       {l.timing ? l.timing.split(' - ')[0] || l.timing : ''}
                     </span>
-                    <div style={{ width: '3px', height: '20px', backgroundColor: '#007aff', borderRadius: '2px', flexShrink: 0 }} />
-                    <span style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text-default)' }}>
+                    <Dot appearance="themed" />
+                    <span style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text-primary)' }}>
                       {l.subject}
                     </span>
                   </Flex>
                   {/* Добавляем фиксированную ширину контейнеру и выравнивание space-between */}
                   <Flex align="center" justify="space-between" style={{ width: '40px', flexShrink: 0 }}>
-                    <div style={{ width: '3px', height: '20px', backgroundColor: '#007aff', borderRadius: '2px', flexShrink: 0 }} />
+                    <Dot appearance="themed" />
                     <div
                       style={{
-                        backgroundColor: 'var(--background-neutral-subtle)',
-                        color: 'var(--text-default)',
+                        backgroundColor: 'var(--background-surface-secondary)',
+                        color: 'var(--text-primary)',
                         padding: '4px 10px',
                         borderRadius: '8px',
                         fontSize: '12px',
                         fontWeight: 700,
                         whiteSpace: 'nowrap',
-                        border: '1px solid var(--border-neutral-subtle)',
+                        border: '1px solid var(--stroke-separator-secondary)',
                       }}
                     >
                       {l.batch}
                     </div>
                   </Flex>
                 </Flex>
-                <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
+                <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
                   👤 {l.faculty}
                 </span>
               </Flex>
@@ -253,20 +186,16 @@ export const TimetablePage: React.FC<TimetablePageProps> = ({
           direction="column"
           align="center"
           justify="center"
+          className="rm-card rm-card--empty"
           style={{
-            flex: 1,
-            padding: '40px 20px',
-            backgroundColor: 'var(--background-surface-card)',
-            borderRadius: '12px',
-            border: '1px solid var(--border-neutral-subtle)',
-            minHeight: '200px'
+            paddingBottom: '80px'
           }}
         >
           <div style={{ fontSize: '48px', marginBottom: '12px' }}>🍃</div>
           <Typography.Title style={{ margin: '0 0 4px 0', fontWeight: 600 }}>
             Занятий не найдено
           </Typography.Title>
-          <Typography.Body style={{ color: 'var(--text-muted)', textAlign: 'center' }}>
+          <Typography.Body style={{ color: 'var(--text-secondary)', textAlign: 'center' }}>
             На {globalDate} расписание отсутствует или все уроки отменены.
           </Typography.Body>
         </Flex>

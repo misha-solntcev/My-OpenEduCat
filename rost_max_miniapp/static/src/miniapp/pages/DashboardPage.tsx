@@ -1,6 +1,7 @@
 import React from 'react';
-import { Flex, Typography, Panel, Button, Spinner } from '@maxhub/max-ui';
-import { apiGet } from '../api';
+import { Flex, Typography, Panel, Button, Spinner, Avatar } from '@maxhub/max-ui';
+import { apiGet, apiPost } from '../api';
+import { initialsOf } from '../utils/initials';
 
 interface DashboardPageProps {
   onNavigate: (to: string) => void;
@@ -39,19 +40,6 @@ interface DashboardData {
   } | null;
 }
 
-// Мягкие тени — глубина без «грязи» на экране
-const cardShadow = '0 4px 12px rgba(0, 0, 0, 0.03), 0 1px 2px rgba(0, 0, 0, 0.04)';
-
-const baseCardStyle: React.CSSProperties = {
-  backgroundColor: 'var(--background-surface-card)',
-  borderRadius: '12px',
-  padding: '16px',
-  border: '1px solid var(--border-neutral-subtle)',
-  boxShadow: cardShadow,
-  width: '100%',
-  boxSizing: 'border-box',
-};
-
 interface MetricCardProps {
   icon: string;
   label: string;
@@ -61,38 +49,32 @@ interface MetricCardProps {
 
 const MetricCard: React.FC<MetricCardProps> = ({ icon, label, value, borderColor }) => (
   <div style={{
-    flex: 1,
-    backgroundColor: 'var(--background-surface-card)',
-    borderRadius: '12px',
-    padding: '16px 12px',
-    border: '1px solid var(--border-neutral-subtle)',
-    borderLeft: `4px solid ${borderColor}`,
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',     // центр по горизонтали
-    justifyContent: 'center', // центр по вертикали
-    textAlign: 'center',
-    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.01), 0 1px 2px rgba(0, 0, 0, 0.02)',
-    boxSizing: 'border-box',
-    minWidth: 0,
-    gap: '6px',
-  }}>
+  flex: 1,
+  borderLeft: `4px solid ${borderColor}`,
+  display: 'flex',
+  flexDirection: 'column',
+  alignItems: 'center',
+  justifyContent: 'center',
+  textAlign: 'center',
+  minWidth: 0,
+  gap: '6px',
+  }} className="rm-card rm-card--metric">
     <Flex align="center" gap={8}>
       <span style={{ fontSize: '18px' }}>{icon}</span>
-      <Typography.Label variant="small-strong" style={{ color: 'var(--text-muted)', fontWeight: 500 }}>
+      <Typography.Label variant="small-strong" style={{ color: 'var(--text-secondary)', fontWeight: 500 }}>
         {label}
       </Typography.Label>
     </Flex>
-    <Typography.Title variant="small-strong" style={{ margin: 0, fontWeight: 800, color: 'var(--text-default)' }}>
+    <Typography.Title variant="small-strong" style={{ margin: 0, fontWeight: 800, color: 'var(--text-primary)' }}>
       {value}
     </Typography.Title>
   </div>
 );
 
 // Цвета левых акцентов (по позиции карточки в сетке 2x2)
-const BLUE = '#007aff';
-const RED = '#ff3b30';
-const GREEN = '#34c759';
+const BLUE = 'var(--background-accent-themed)';
+const RED = 'var(--background-accent-negative)';
+const GREEN = 'var(--background-accent-positive)';
 const PURPLE = '#5856d6';
 
 export const DashboardPage: React.FC<DashboardPageProps> = ({
@@ -104,15 +86,10 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
   onDateChange,
 }) => {
   const role: 'admin' | 'teacher' | 'student' = isAdmin ? 'admin' : isTeacher ? 'teacher' : 'student';
-  const statusText = isAdmin ? 'Администратор школы' : isTeacher ? 'Преподаватель' : 'Ученик';
+  const statusText = isAdmin ? 'Администратор' : isTeacher ? 'Преподаватель' : 'Ученик';
 
-  // Инициалы для аватара (напр. "МС" из "Миша Солнцев")
-  const initials = (userName || (isAdmin ? 'ЗА' : isTeacher ? 'ПР' : 'УЧ'))
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map(w => w[0].toUpperCase())
-    .join('');
+  // Инициалы для аватара — единый формат (одна буква) для всех ролей
+  const initials = initialsOf(userName || (isAdmin ? 'Завуч' : isTeacher ? 'Преподаватель' : 'Ученик'));
 
   const [data, setData] = React.useState<DashboardData | null>(null);
   const [loading, setLoading] = React.useState(true);
@@ -132,27 +109,15 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
   return (
     <Flex direction="column" gap={16} style={{ width: '100%' }}>
       {/* 1. Профиль-карточка (вместо заголовка-роли) */}
-      <Flex align="center" gap={12} style={baseCardStyle}>
-        <div style={{
-          width: 44,
-          height: 44,
-          borderRadius: '50%',
-          backgroundColor: '#007aff',
-          color: '#ffffff',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          fontWeight: 700,
-          fontSize: '16px',
-          flexShrink: 0,
-        }}>
-          {initials}
-        </div>
+      <Flex align="center" gap={12} className="rm-card rm-card--dash">
+        <Avatar.Container size={40} form="squircle" >
+          <Avatar.Text>{initials}</Avatar.Text>
+        </Avatar.Container>
         <Flex direction="column" gap={2} style={{ minWidth: 0 }}>
-          <Typography.Title variant="small-strong" style={{ margin: 0, fontWeight: 700, color: 'var(--text-default)' }}>
+          <Typography.Title variant="small-strong" style={{ margin: 0, fontWeight: 700, color: 'var(--text-primary)' }}>
             {userName || (isAdmin ? 'Завуч' : isTeacher ? 'Преподаватель' : 'Ученик')}
           </Typography.Title>
-          <Typography.Label variant="small-strong" style={{ color: 'var(--text-muted)', fontWeight: 500 }}>
+          <Typography.Label variant="small-strong" style={{ color: 'var(--text-secondary)', fontWeight: 500 }}>
             {statusText}
           </Typography.Label>
         </Flex>
@@ -168,16 +133,16 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
         <>
           {/* 2. Баннер демо-режима (летние каникулы / выходной) */}
           {data.is_fallback && (
-            <div style={{ backgroundColor: 'var(--background-warning-subtle, #fffbe6)', padding: '10px 14px', borderRadius: '12px', border: '1px solid var(--border-warning-subtle, #ffe58f)', display: 'flex', gap: '8px', alignItems: 'center' }}>
-              <span style={{ fontSize: '16px' }}>🏖️</span>
-              <Typography.Body variant="small" style={{ color: 'var(--text-warning, #d46b08)', fontWeight: 500, lineHeight: '1.4' }}>
+            <div className="rm-card" style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+              <span style={{ fontSize: '16px', color: 'var(--background-accent-attention-primary)' }}>🏖️</span>
+              <Typography.Body variant="small" style={{ color: 'var(--background-accent-attention-primary)', fontWeight: 500, lineHeight: '1.4' }}>
                 Летние каникулы. Показываем архивные данные за последний учебный день: <strong>{data.fallback_date}</strong>
               </Typography.Body>
             </div>
           )}
 
           {/* 3. Компактный селектор даты */}
-          <Flex align="center" gap={10} style={{ ...baseCardStyle, padding: '10px 14px' }}>
+          <Flex align="center" gap={10} className="rm-card rm-card--dash" style={{ padding: '10px 14px' }}>
             <span style={{ fontSize: '18px' }}>📅</span>
             <input
               type="date"
@@ -187,7 +152,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                 flex: 1,
                 border: 'none',
                 backgroundColor: 'transparent',
-                color: 'var(--text-default)',
+                color: 'var(--text-primary)',
                 fontSize: '15px',
                 fontWeight: 600,
                 outline: 'none',
@@ -223,7 +188,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
 
           {/* 5. Админ: единственная уникальная кнопка действия */}
           {isAdmin && (
-            <Panel style={{ padding: '14px', borderRadius: '12px', border: '1px solid var(--border-neutral-subtle)', boxShadow: cardShadow }}>
+            <Panel className="rm-card rm-card--dash" style={{ padding: '14px', borderRadius: '12px', border: '1px solid var(--stroke-separator-secondary)' }}>
               <Button
                 stretched
                 style={{ height: '40px', fontSize: '13px', fontWeight: 600 }}
@@ -236,18 +201,10 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
 
           {/* 6. Выход — полноширинная красная кнопка */}
           <Button
+            appearance="negative"
+            stretched
             onClick={() => { window.location.href = '/rost_max/logout'; }}
-            style={{
-              width: '100%',
-              height: '42px',
-              borderRadius: '10px',
-              backgroundColor: 'rgba(255, 59, 48, 0.08)',
-              color: '#ff3b30',
-              border: 'none',
-              fontWeight: 600,
-              fontSize: '13px',
-              marginTop: '16px',
-            }}
+            style={{ height: '42px', borderRadius: '10px', fontWeight: 600, fontSize: '13px', marginTop: '16px' }}
           >
             🚪 Выйти из аккаунта
           </Button>

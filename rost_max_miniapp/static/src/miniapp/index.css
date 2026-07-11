@@ -48,3 +48,81 @@ textarea:-webkit-autofill:focus {
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(128, 128, 128, 0.6);
 }
+
+/* 4. Общая карточка (дублируется во всех экранах). Токены темозависимы:
+      в тёмной теме MAX цвета подхватываются автоматически. */
+.rm-card {
+  background-color: var(--background-surface-card);
+  border-radius: var(--size-border-radius-semantic-border-radius-card);
+  border: 1px solid var(--stroke-separator-secondary);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.02);
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* Плотная карточка (занятия / студенты): меньше паддинг + акцентная левая рамка */
+.rm-card--tight {
+  padding: 14px 16px;
+}
+
+/* Дашборд: чуть заметнее тень, чем у базовой карточки */
+.rm-card--dash {
+  padding: 16px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03), 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+/* Плотная карточка метрики (2x2): меньше паддинг + акцентная левая рамка */
+.rm-card--metric {
+  padding: 16px 12px;
+  border-left-width: 4px;
+}
+
+/* Пустое состояние: больше воздуха и минимальная высота */
+.rm-card--empty {
+  padding: 40px 20px;
+  min-height: 200px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+/* Кнопки журнала (оценка / посещаемость). Акцентный цвет передаётся
+   через inline-переменную --jb-color; полупрозрачный фон — через color-mix
+   (валидно для var(), в отличие от конкатенации ${color}18, которая
+   давала invalid и прозрачный фон). Если WebView не поддерживает color-mix,
+   фон остаётся transparent — поведение не ломается. */
+.rm-journal-btn {
+  border-radius: var(--size-border-radius-semantic-border-radius-card, 8px);
+  border: 1px solid var(--stroke-separator-secondary);
+  background-color: transparent;
+  color: var(--text-secondary);
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.rm-journal-btn--active {
+  border-color: var(--jb-color, var(--icon-themed));
+  background-color: color-mix(in srgb, var(--jb-color, var(--icon-themed)) 12%, transparent);
+  color: var(--jb-color, var(--icon-themed));
+}
+
+/* Поля фильтров расписания (дата / преподаватель). Токены темозависимы. */
+.rm-input,
+.rm-select {
+  width: 100%;
+  height: 38px;
+  padding: 0 12px;
+  border-radius: var(--size-border-radius-semantic-border-radius-card, 8px);
+  border: 1px solid var(--stroke-separator-primary);
+  background-color: var(--background-surface-card);
+  color: var(--text-primary);
+  font-size: 14px;
+  font-family: inherit;
+  outline: none;
+  box-sizing: border-box;
+}

@@ -5,6 +5,7 @@ import { LessonJournalPage } from './pages/LessonJournalPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { Layout } from './Layout';
 import { apiGet } from './api';
+import { getSavedFilters, saveFilters } from './utils/storage';
 
 interface UserInfo {
   user_name: string;
@@ -34,29 +35,13 @@ export default function App() {
   const [pathname, navigate] = useLocation();
   const [userInfo, setUserInfo] = React.useState<UserInfo | null>(null);
   const [userLoading, setUserLoading] = React.useState(true);
-  const [globalDate, setGlobalDate] = React.useState(() => {
-    try {
-      const saved = sessionStorage.getItem('rost_max_timetable_filters');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (typeof parsed.date === 'string' && parsed.date) return parsed.date;
-      }
-    } catch {}
-    return new Date().toISOString().split('T')[0];
-  });
+  const [globalDate, setGlobalDate] = React.useState(() => getSavedFilters().date);
 
   // Единая дата (Date Jumper): пишем и в state, и в sessionStorage, чтобы
-  // дашборд и расписание были синхронизированы, а выбор переживал reload.
+  // дашборд и расписание были синхронизованы, а выбор переживал reload.
   const handleDateChange = (newDate: string) => {
     setGlobalDate(newDate);
-    try {
-      const saved = sessionStorage.getItem('rost_max_timetable_filters');
-      const parsed = saved ? JSON.parse(saved) : {};
-      sessionStorage.setItem('rost_max_timetable_filters', JSON.stringify({
-        ...parsed,
-        date: newDate,
-      }));
-    } catch {}
+    saveFilters({ date: newDate });
   };
 
   // Загрузка профиля и ролей при старте (вне экрана логина)
@@ -92,7 +77,7 @@ export default function App() {
   if (userLoading) {
     return (
       <Layout title="Загрузка...">
-        <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>
+        <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-secondary)' }}>
           Загрузка профиля...
         </div>
       </Layout>
@@ -142,7 +127,7 @@ export default function App() {
         />
       )}
       {currentTab === 'modules' && (
-        <div style={{ padding: '40px 20px', textAlign: 'center', color: 'var(--text-muted)' }}>
+        <div style={{ padding: '40px 20px', textAlign: 'center', color: 'var(--text-secondary)' }}>
           Раздел «Модули» в разработке
         </div>
       )}

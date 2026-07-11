@@ -1,22 +1,5 @@
 import React from 'react';
-import { Flex, Typography } from '@maxhub/max-ui';
-
-const tabButtonStyle = (isActive: boolean) => ({
-  background: isActive ? 'rgba(0, 122, 255, 0.08)' : 'none',
-  border: 'none',
-  borderRadius: '12px',
-  padding: '6px 12px',
-  margin: '4px',
-  display: 'flex',
-  flexDirection: 'column' as const,
-  alignItems: 'center',
-  justifyContent: 'center',
-  gap: '2px',
-  height: 'calc(100% - 8px)',
-  color: isActive ? 'var(--brand-default, #007aff)' : 'var(--text-muted, #8e8e93)',
-  cursor: 'pointer',
-  transition: 'all 0.2s ease'
-});
+import { Flex, ToolButton } from '@maxhub/max-ui';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -68,7 +51,7 @@ export const Layout: React.FC<LayoutProps> = ({
             width: '100%',
             height: '64px', 
             backgroundColor: 'var(--background-surface-card)',
-            borderTop: '1px solid var(--border-neutral-subtle)',
+            borderTop: '1px solid var(--stroke-separator-secondary)',
             position: 'absolute',
             bottom: 0,
             left: 0,
@@ -78,18 +61,27 @@ export const Layout: React.FC<LayoutProps> = ({
             boxSizing: 'border-box'
           }}
         >
-          <button onClick={() => onTabChange('dashboard')} style={tabButtonStyle(currentTab === 'dashboard')}>
-            <div style={{ fontSize: '18px' }}>🏠</div>
-            <div style={{ fontSize: '11px' }}>Главная</div>
-          </button>
-          <button onClick={() => onTabChange('timetable')} style={tabButtonStyle(currentTab === 'timetable')}>
-            <div style={{ fontSize: '18px' }}>📅</div>
-            <div style={{ fontSize: '11px' }}>Расписание</div>
-          </button>
-          <button onClick={() => onTabChange('modules')} style={tabButtonStyle(currentTab === 'modules')}>
-            <div style={{ fontSize: '18px' }}>⚡</div>
-            <div style={{ fontSize: '11px' }}>Модули</div>
-          </button>
+          <ToolButton
+            icon={<span style={{ fontSize: '18px' }}>🏠</span>}
+            appearance={currentTab === 'dashboard' ? 'secondary' : 'default'}
+            onClick={() => onTabChange('dashboard')}
+          >
+            Главная
+          </ToolButton>
+          <ToolButton
+            icon={<span style={{ fontSize: '18px' }}>📅</span>}
+            appearance={currentTab === 'timetable' ? 'secondary' : 'default'}
+            onClick={() => onTabChange('timetable')}
+          >
+            Расписание
+          </ToolButton>
+          <ToolButton
+            icon={<span style={{ fontSize: '18px' }}>⚡</span>}
+            appearance={currentTab === 'modules' ? 'secondary' : 'default'}
+            onClick={() => onTabChange('modules')}
+          >
+            Модули
+          </ToolButton>
         </Flex>
       )}
     </Flex>

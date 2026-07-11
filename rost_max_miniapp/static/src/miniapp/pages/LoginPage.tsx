@@ -49,7 +49,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSuccess }) => {
       centeredY 
       style={{ 
         height: '100dvh', 
-        background: 'linear-gradient(135deg, var(--background-surface-ground) 0%, var(--background-neutral-subtle) 100%)',
+        background: 'linear-gradient(135deg, var(--background-surface-ground) 0%, var(--background-surface-secondary) 100%)',
         padding: '24px'
       }}
     >
@@ -58,27 +58,27 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSuccess }) => {
           width: '100%', 
           maxWidth: '360px', 
           backgroundColor: 'var(--background-surface-card)', 
-          borderRadius: '16px', 
+          borderRadius: '16px',
           padding: '32px 24px',
           boxShadow: '0 8px 24px rgba(0, 0, 0, 0.05)',
-          border: '1px solid var(--border-neutral-subtle)'
+          border: '1px solid var(--stroke-separator-secondary)'
         }}
       >
         <form onSubmit={handleLogin}>
           <Flex direction="column" gap={24}>
             <Flex direction="column" gap={8} align="center" style={{ textAlign: 'center' }}>
               <div style={{ fontSize: '40px', marginBottom: '8px' }}>🎓</div>
-              <Typography.Title level={2} style={{ margin: 0, fontWeight: 700, color: 'var(--text-default)' }}>
+              <Typography.Title variant="large-strong" style={{ margin: 0, fontWeight: 700, color: 'var(--text-primary)' }}>
                 Школа РОСТ
               </Typography.Title>
-              <Typography.Body size="small" style={{ color: 'var(--text-muted)' }}>
+              <Typography.Body variant="small" style={{ color: 'var(--text-secondary)' }}>
                 Войдите в свой аккаунт мини-приложения
               </Typography.Body>
             </Flex>
 
             <Flex direction="column" gap={14}>
               <Flex direction="column" gap={6}>
-                <label style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-muted)' }}>Email</label>
+                <label style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-secondary)' }}>Email</label>
                 <Input
                   placeholder="name@school.ru"
                   type="email"
@@ -90,7 +90,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSuccess }) => {
               </Flex>
               
               <Flex direction="column" gap={6}>
-                <label style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-muted)' }}>Пароль</label>
+                <label style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-secondary)' }}>Пароль</label>
                 <Input
                   placeholder="••••••••"
                   type="password"
@@ -105,10 +105,10 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSuccess }) => {
             {error && (
               <div 
                 style={{ 
-                  backgroundColor: 'var(--background-negative-subtle)', 
-                  padding: '10px 12px', 
+                  backgroundColor: 'var(--background-accent-negative)', 
+                  padding: '10px 12px',
                   borderRadius: '8px',
-                  border: '1px solid var(--border-negative-subtle)'
+                  border: '1px solid var(--stroke-negative)'
                 }}
               >
                 <Typography.Body style={{ color: 'var(--text-negative)', fontSize: '13px', lineHeight: '1.4' }}>
