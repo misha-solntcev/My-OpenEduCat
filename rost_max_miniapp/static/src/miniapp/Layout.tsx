@@ -2,17 +2,20 @@ import React from 'react';
 import { Flex, Typography } from '@maxhub/max-ui';
 
 const tabButtonStyle = (isActive: boolean) => ({
-  background: 'none',
+  background: isActive ? 'rgba(0, 122, 255, 0.08)' : 'none',
   border: 'none',
-  flex: 1,
+  borderRadius: '12px',
+  padding: '6px 12px',
+  margin: '4px',
   display: 'flex',
   flexDirection: 'column' as const,
   alignItems: 'center',
   justifyContent: 'center',
   gap: '2px',
-  height: '100%',
+  height: 'calc(100% - 8px)',
   color: isActive ? 'var(--brand-default, #007aff)' : 'var(--text-muted, #8e8e93)',
-  cursor: 'pointer'
+  cursor: 'pointer',
+  transition: 'all 0.2s ease'
 });
 
 interface LayoutProps {
@@ -40,23 +43,8 @@ export const Layout: React.FC<LayoutProps> = ({
         position: 'relative'
       }}
     >
-      {/* Верхний Header */}
-      <Flex 
-        align="center" 
-        justify="space-between"
-        style={{ 
-          padding: '12px 16px', 
-          backgroundColor: 'var(--background-surface-card)',
-          borderBottom: '1px solid var(--border-neutral-subtle)',
-          height: '56px',
-          flexShrink: 0
-        }}
-      >
-        <Typography.Title variant="small-strong" style={{ margin: 0, fontWeight: 600 }}>
-          {title}
-        </Typography.Title>
-        <div style={{ width: 32, height: 32, borderRadius: '50%', backgroundColor: 'var(--background-neutral-subtle)' }} />
-      </Flex>
+      {/* Верхний Header удалён: MAX-клиент сам показывает заголовок,
+          чтобы не было двойного хедера и экономить вертикальное место */}
 
       {/* Контентная зона со скроллом */}
       <div 
@@ -78,14 +66,16 @@ export const Layout: React.FC<LayoutProps> = ({
           align="center"
           style={{ 
             width: '100%',
-            height: '60px', 
+            height: '64px', 
             backgroundColor: 'var(--background-surface-card)',
             borderTop: '1px solid var(--border-neutral-subtle)',
             position: 'absolute',
             bottom: 0,
             left: 0,
             zIndex: 10,
-            boxShadow: '0 -4px 16px rgba(0, 0, 0, 0.06)'
+            boxShadow: '0 -4px 16px rgba(0, 0, 0, 0.06)',
+            padding: '0 8px',
+            boxSizing: 'border-box'
           }}
         >
           <button onClick={() => onTabChange('dashboard')} style={tabButtonStyle(currentTab === 'dashboard')}>

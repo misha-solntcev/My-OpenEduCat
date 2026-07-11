@@ -294,6 +294,138 @@ class RostMaxTimetableController(http.Controller):
 
         return request.make_json_response({"success": True})
 
+    @http.route("/rost_max/api/user/info", type="http", auth="public", methods=["GET"])
+    def api_user_info(self):
+        """API: получение информации о текущем пользователе и его ролях"""
+        if not request.session.uid:
+            return request.make_json_response({"error": "Unauthorized"}, status=401)
+
+        user = request.env.user
+        is_admin = user.has_group('base.group_system')
+
+        is_teacher = bool(request.env['op.faculty'].sudo().search([
+            ('partner_id', '=', user.partner_id.id)
+        ], limit=1))
+
+        is_student = bool(request.env['op.student'].sudo().search([
+            ('partner_id', '=', user.partner_id.id)
+        ], limit=1))
+
+        return request.make_json_response({
+            "user_name": user.name,
+            "is_admin": is_admin,
+            "is_teacher": is_teacher,
+            "is_student": is_student,
+        })
+
+    @http.route("/rost_max/api/dashboard_info", type="http", auth="public", methods=["GET"])
+    def api_dashboard_info(self, date=None, **kw):
+        """API: сбор статистики для дашборда с умным поиском даты"""
+        if not request.session.uid:
+            return request.make_json_response({"error": "Unauthorized"}, status=401)
+
+        user = request.env.user
+        is_admin = user.has_group('base.group_system')
+        faculty = request.env['op.faculty'].sudo().search([('partner_id', '=', user.partner_id.id)], limit=1)
+        student = request.env['op.student'].sudo().search([('partner_id', '=', user.partner_id.id)], limit=1)
+
+        # 1. Определение целевой даты
+        date_str = date or str(fields.Date.today())
+        date_val = fields.Date.from_string(date_str)
+        is_fallback = False
+        fallback_date = ""
+
+        # Проверяем, есть ли уроки на выбранную дату
+        sheets = self._get_user_timetable(user, date_val).sudo()
+        if not sheets:
+            # На выбранную дату уроков нет (лето/выходной). Ищем последний активный день в истории
+            domain = []
+            if not is_admin:
+                if faculty:
+                    domain.append(('faculty_id', '=', faculty.id))
+                elif student and student.batch_id:
+                    domain.append(('batch_id', '=', student.batch_id.id))
+                else:
+                    domain.append(('id', '=', 0))  # пустой результат
+
+            last_sheet = request.env['op.attendance.sheet'].sudo().search(domain, order='attendance_date desc', limit=1)
+            if last_sheet:
+                date_val = last_sheet.attendance_date
+                date_str = str(date_val)
+                is_fallback = True
+                fallback_date = date_str
+                sheets = self._get_user_timetable(user, date_val).sudo()
+
+        # 2. Расчет показателей на целевую дату
+        metrics = {}
+        next_lesson = None
+
+        if sheets:
+            # Сортируем уроки по времени, чтобы определить первый/ближайший
+            sorted_sheets = sheets.sorted(key=lambda s: s.timing or '')
+            first_sheet = sorted_sheets[0]
+            next_lesson = {
+                "id": first_sheet.id,
+                "subject": first_sheet.subject_id.name if first_sheet.subject_id else "Урок",
+                "batch": first_sheet.batch_id.name if first_sheet.batch_id else "",
+                "time": first_sheet.timing or "12:15 - 13:00",
+                "room": "Кабинет"
+            }
+
+        if is_admin:
+            lines = sheets.mapped('attendance_line')
+            total_lines = len(lines)
+            attendance_pct = 100.0
+            if total_lines > 0:
+                present = len(lines.filtered(lambda l: l.attendance_type_id and 'absent' not in (l.attendance_type_id.name or '').lower() and 'отсутств' not in (l.attendance_type_id.name or '').lower() and 'нет' not in (l.attendance_type_id.name or '').lower()))
+                attendance_pct = round((present / total_lines) * 100, 1)
+
+            unfilled = len(sheets.filtered(lambda s: any(not l.attendance_type_id for l in s.attendance_line)))
+            metrics = {
+                "active_lessons": len(sheets),
+                "unfilled_sheets": unfilled,
+                "attendance_pct": attendance_pct,
+                "total_students": len(lines.mapped('student_id')),
+                "pending_substitutes": 0
+            }
+        elif faculty:
+            lines = sheets.mapped('attendance_line')
+            total_lines = len(lines)
+            attendance_pct = 100.0
+            if total_lines > 0:
+                present = len(lines.filtered(lambda l: l.attendance_type_id and 'absent' not in (l.attendance_type_id.name or '').lower() and 'отсутств' not in (l.attendance_type_id.name or '').lower() and 'нет' not in (l.attendance_type_id.name or '').lower()))
+                attendance_pct = round((present / total_lines) * 100, 1)
+
+            graded = len(lines.filtered(lambda l: l.grade_1 > 0))
+            metrics = {
+                "total_lessons": len(sheets),
+                "completed_lessons": len(sheets.filtered(lambda s: any(l.attendance_type_id for l in s.attendance_line))),
+                "attendance_pct": attendance_pct,
+                "graded_count": graded
+            }
+        elif student:
+            # Для студента считаем общий GPA за всё время
+            all_grades = request.env['op.attendance.line'].sudo().search([
+                ('student_id', '=', student.id),
+                ('grade_1', '>', 0)
+            ]).mapped('grade_1')
+            gpa = round(sum(all_grades) / len(all_grades), 2) if all_grades else 4.5
+            metrics = {
+                "gpa": gpa,
+                "pending_homework": len(sheets)  # условная цифра уроков за день
+            }
+
+        return request.make_json_response({
+            "is_admin": is_admin,
+            "is_teacher": bool(faculty),
+            "is_student": bool(student),
+            "date": date_str,
+            "is_fallback": is_fallback,
+            "fallback_date": fallback_date,
+            "metrics": metrics,
+            "next_lesson": next_lesson
+        })
+
     @http.route("/rost_max/api/faculties", type="http", auth="public", methods=["GET"])
     def api_faculties(self):
         """API: список учителей (только для админа)"""

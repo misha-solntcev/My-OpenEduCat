@@ -4,6 +4,14 @@ import { TimetablePage } from './pages/TimetablePage';
 import { LessonJournalPage } from './pages/LessonJournalPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { Layout } from './Layout';
+import { apiGet } from './api';
+
+interface UserInfo {
+  user_name: string;
+  is_admin: boolean;
+  is_teacher: boolean;
+  is_student: boolean;
+}
 
 // Лёгкий клиентский роутер на HTML5 History API (без сторонних зависимостей).
 // pushState меняет URL без перезагрузки WebView; popstate ловит системную
@@ -24,6 +32,47 @@ function useLocation() {
 
 export default function App() {
   const [pathname, navigate] = useLocation();
+  const [userInfo, setUserInfo] = React.useState<UserInfo | null>(null);
+  const [userLoading, setUserLoading] = React.useState(true);
+  const [globalDate, setGlobalDate] = React.useState(() => {
+    try {
+      const saved = sessionStorage.getItem('rost_max_timetable_filters');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (typeof parsed.date === 'string' && parsed.date) return parsed.date;
+      }
+    } catch {}
+    return new Date().toISOString().split('T')[0];
+  });
+
+  // Единая дата (Date Jumper): пишем и в state, и в sessionStorage, чтобы
+  // дашборд и расписание были синхронизированы, а выбор переживал reload.
+  const handleDateChange = (newDate: string) => {
+    setGlobalDate(newDate);
+    try {
+      const saved = sessionStorage.getItem('rost_max_timetable_filters');
+      const parsed = saved ? JSON.parse(saved) : {};
+      sessionStorage.setItem('rost_max_timetable_filters', JSON.stringify({
+        ...parsed,
+        date: newDate,
+      }));
+    } catch {}
+  };
+
+  // Загрузка профиля и ролей при старте (вне экрана логина)
+  React.useEffect(() => {
+    if (pathname === '/rost_max/login') {
+      setUserLoading(false);
+      return;
+    }
+    apiGet<UserInfo>('/rost_max/api/user/info')
+      .then(setUserInfo)
+      .catch(() => {
+        // 401/403 -> api.ts уже редиректит на логин; здесь просто гасим
+        setUserInfo(null);
+      })
+      .finally(() => setUserLoading(false));
+  }, [pathname]);
 
   // Роутинг по URL (точное сопоставление экранов, без ложных совпадений)
   const lessonMatch = pathname.match(/\/rost_max\/lesson\/(\d+)/);
@@ -37,6 +86,17 @@ export default function App() {
 
   if (isLogin) {
     return <LoginPage onSuccess={() => navigate('/rost_max/dashboard')} />;
+  }
+
+  // Экран загрузки профиля (не на логине)
+  if (userLoading) {
+    return (
+      <Layout title="Загрузка...">
+        <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>
+          Загрузка профиля...
+        </div>
+      </Layout>
+    );
   }
 
   // Если открыт журнал урока — показываем его (без таб-бара)
@@ -60,12 +120,27 @@ export default function App() {
 
   return (
     <Layout
-      title={currentTab === 'timetable' ? 'Расписание' : 'Сервисы РОСТ'}
+      title={currentTab === 'timetable' ? 'Расписание' : currentTab === 'modules' ? 'Модули' : 'Главная'}
       currentTab={currentTab}
       onTabChange={handleTabChange}
     >
-      {currentTab === 'dashboard' && <DashboardPage onNavigate={navigate} />}
-      {currentTab === 'timetable' && <TimetablePage onOpenLesson={(id) => navigate(`/rost_max/lesson/${id}`)} />}
+      {currentTab === 'dashboard' && (
+        <DashboardPage
+          onNavigate={navigate}
+          isAdmin={userInfo?.is_admin ?? false}
+          isTeacher={userInfo?.is_teacher ?? false}
+          userName={userInfo?.user_name ?? ''}
+          globalDate={globalDate}
+          onDateChange={handleDateChange}
+        />
+      )}
+      {currentTab === 'timetable' && (
+        <TimetablePage
+          onOpenLesson={(id) => navigate(`/rost_max/lesson/${id}`)}
+          globalDate={globalDate}
+          onDateChange={handleDateChange}
+        />
+      )}
       {currentTab === 'modules' && (
         <div style={{ padding: '40px 20px', textAlign: 'center', color: 'var(--text-muted)' }}>
           Раздел «Модули» в разработке

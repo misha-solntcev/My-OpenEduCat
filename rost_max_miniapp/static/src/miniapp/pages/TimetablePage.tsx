@@ -21,6 +21,8 @@ interface TimetableResponse {
 
 interface TimetablePageProps {
   onOpenLesson: (lessonId: number) => void;
+  globalDate: string;
+  onDateChange: (date: string) => void;
 }
 
 interface FacultiesResponse {
@@ -62,9 +64,12 @@ function saveFilters(date: string, selectedFaculty: number | null) {
   }
 }
 
-export const TimetablePage: React.FC<TimetablePageProps> = ({ onOpenLesson }) => {
+export const TimetablePage: React.FC<TimetablePageProps> = ({
+  onOpenLesson,
+  globalDate,
+  onDateChange,
+}) => {
   const initial = loadFilters();
-  const [date, setDate] = React.useState(initial.date);
   const [lessons, setLessons] = React.useState<Lesson[]>([]);
   const [faculties, setFaculties] = React.useState<Faculty[]>([]);
   const [selectedFaculty, setSelectedFaculty] = React.useState<number | null>(initial.selectedFaculty);
@@ -82,16 +87,17 @@ export const TimetablePage: React.FC<TimetablePageProps> = ({ onOpenLesson }) =>
       .catch(() => { });
   }, []);
 
-  // Сохраняем выбор фильтров в рамках сессии, чтобы при возврате из журнала
-  // урока (полная навигация по URL) список занятий открывался уже настроенным.
+  // Сохраняем выбор преподавателя в рамках сессии (дата теперь единая,
+  // управляется из App.tsx и пишется туда же — чтобы Date Jumper на дашборде
+  // и на расписании были синхронизированы).
   React.useEffect(() => {
-    saveFilters(date, selectedFaculty);
-  }, [date, selectedFaculty]);
+    saveFilters(globalDate, selectedFaculty);
+  }, [globalDate, selectedFaculty]);
 
   const loadLessons = React.useCallback(async () => {
     setLoading(true);
     try {
-      let url = `/rost_max/api/timetable?date=${date}`;
+      let url = `/rost_max/api/timetable?date=${globalDate}`;
       if (selectedFaculty) url += `&faculty_id=${selectedFaculty}`;
       const data = await apiGet<TimetableResponse>(url);
       setLessons(data.lessons || []);
@@ -100,7 +106,7 @@ export const TimetablePage: React.FC<TimetablePageProps> = ({ onOpenLesson }) =>
     } finally {
       setLoading(false);
     }
-  }, [date, selectedFaculty]);
+  }, [globalDate, selectedFaculty]);
 
   React.useEffect(() => { loadLessons(); }, [loadLessons]);
 
@@ -155,8 +161,8 @@ export const TimetablePage: React.FC<TimetablePageProps> = ({ onOpenLesson }) =>
             </span>
             <input
               type="date"
-              value={date}
-              onChange={e => setDate(e.target.value)}
+              value={globalDate}
+              onChange={e => onDateChange(e.target.value)}
               style={{
                 width: '100%',
                 height: '38px',
@@ -261,7 +267,7 @@ export const TimetablePage: React.FC<TimetablePageProps> = ({ onOpenLesson }) =>
             Занятий не найдено
           </Typography.Title>
           <Typography.Body style={{ color: 'var(--text-muted)', textAlign: 'center' }}>
-            На {date} расписание отсутствует или все уроки отменены.
+            На {globalDate} расписание отсутствует или все уроки отменены.
           </Typography.Body>
         </Flex>
       )}
