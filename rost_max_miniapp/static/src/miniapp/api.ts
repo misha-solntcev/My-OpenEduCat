@@ -1,6 +1,12 @@
 // API-клиент для rost_max_miniapp
 
 function getCsrfToken(): string {
+  // Токен инъецируется сервером в window.csrf_token при рендере SPA
+  // (views/templates.xml) и обновляется после логина (поле csrf_token в
+  // ответе /rost_max/login). Fallback на куку на случай, если инъекция
+  // не сработала. Пустая строка -> бэкенд вернёт "CSRF validation failed".
+  const fromWindow = (window as unknown as { csrf_token?: string }).csrf_token;
+  if (fromWindow) return fromWindow;
   return document.cookie
     .split('; ')
     .find(r => r.startsWith('csrf_token='))

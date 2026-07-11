@@ -6,10 +6,18 @@
                 <meta charset="utf-8"/>
                 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"/>
                 <title>Школа РОСТ</title>
+                <!-- CSRF-токен текущей сессии: инъекция из Python-контекста Odoo.
+                     В изолированном SPA нет web-клиента Odoo, поэтому кука csrf_token
+                     не проставляется автоматически. t-esc экранирует значение, t-nocache
+                     запрещает кэшировать токен между юзерами. Бандл грузится ниже, так
+                     что window.csrf_token уже установлен к моменту первого fetch. -->
+                <script type="text/javascript">
+                    window.csrf_token = "<t t-nocache='1' t-esc='csrf_token'/>";
+                </script>
             </head>
             <body>
                 <div id="root"></div>
-                <script src="/rost_max_miniapp/static/src/bundle/index.js?v=19"></script>
+                <script src="/rost_max_miniapp/static/src/bundle/index.js?v=22"></script>
             </body>
         </html>
     </template>

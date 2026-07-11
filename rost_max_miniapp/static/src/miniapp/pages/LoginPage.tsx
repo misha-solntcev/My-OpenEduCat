@@ -7,6 +7,7 @@ interface LoginResponse {
   error?: string;
   user_name?: string;
   is_admin?: boolean;
+  csrf_token?: string;
 }
 
 interface LoginPageProps {
@@ -33,6 +34,12 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSuccess }) => {
       if (data.error) {
         setError(data.error);
       } else {
+        // Сессия отротирована (sid изменился) -> старый window.csrf_token из
+        // HTML больше невалиден. Обновляем токен из ответа, иначе первый POST
+        // (например сейв оценки) упадёт с "CSRF validation failed".
+        if (data.csrf_token) {
+          (window as unknown as { csrf_token?: string }).csrf_token = data.csrf_token;
+        }
         onSuccess();
       }
     } catch {

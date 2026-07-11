@@ -1,10 +1,26 @@
 # -*- coding: utf-8 -*-
+import secrets
 from odoo import http
 from odoo.http import request
 from odoo import fields
 import logging
 
 _logger = logging.getLogger(__name__)
+
+# Ключ сессии для нашего стабильного CSRF-токена (без o<timestamp>, в отличие
+# от session['csrf_token'] Odoo). Токен создаётся лениво и не меняется в рамках
+# сессии -> детерминированное сравнение на POST (без хрупкости time-suffixed
+# формата Odoo, который ломался при разнице времени рендера и отправки).
+CSRF_SESSION_KEY = 'spa_csrf_token'
+
+
+def _get_spa_csrf_token():
+    """Стабильный CSRF-токен SPA, хранящийся в сессии под нашим ключом."""
+    token = request.session.get(CSRF_SESSION_KEY)
+    if not token:
+        token = secrets.token_hex(32)  # 256-bit случайный secret
+        request.session[CSRF_SESSION_KEY] = token
+    return token
 
 
 class RostMaxTimetableController(http.Controller):
@@ -39,20 +55,31 @@ class RostMaxTimetableController(http.Controller):
                 request.session['is_timetable_user'] = True
                 user = request.env['res.users'].browse(auth_info['uid'])
                 is_admin = user.has_group('base.group_system')
-                return request.make_json_response(
-                    {"success": True, "user_name": user.name, "is_admin": is_admin}
-                )
+                # Сессия отротирована в authenticate() -> sid изменился и Odoo
+                # csrf_token сброшен. Отдаём наш стабильный токен SPA в JSON,
+                # чтобы фронт перезаписал window.csrf_token (первый POST update
+                # после логина иначе упал бы с "CSRF validation failed").
+                return request.make_json_response({
+                    "success": True,
+                    "user_name": user.name,
+                    "is_admin": is_admin,
+                    "csrf_token": _get_spa_csrf_token(),
+                })
             except Exception:
                 return request.make_json_response(
                     {"error": "Ошибка аутентификации"}, status=500
                 )
 
-        # GET - рендерим SPA (React router покажет LoginPage)
-        return request.render('rost_max_miniapp.spa_page')
+        # GET - рендерим SPA (React router покажет LoginPage).
+        # Явно передаём CSRF-токен: в голом SPA нет web-клиента Odoo, поэтому
+        # кука csrf_token не проставляется, а фронт читает window.csrf_token.
+        return request.render('rost_max_miniapp.spa_page',
+                               {'csrf_token': _get_spa_csrf_token()})
 
     @http.route("/rost_max/logout", type="http", auth="public", methods=["GET", "POST"])
     def logout(self):
         """Выход"""
+        request.session.pop(CSRF_SESSION_KEY, None)
         request.session.logout()
         return request.redirect('/rost_max/login')
 
@@ -66,22 +93,26 @@ class RostMaxTimetableController(http.Controller):
     @http.route("/rost_max/dashboard", type="http", auth="public")
     def dashboard_page(self):
         """Дашборд - рендерит SPA (React router покажет DashboardPage)"""
-        return request.render('rost_max_miniapp.spa_page')
+        return request.render('rost_max_miniapp.spa_page',
+                              {'csrf_token': _get_spa_csrf_token()})
 
     @http.route("/rost_max/timetable", type="http", auth="public")
     def timetable_page(self):
         """Страница расписания - рендерит SPA"""
-        return request.render('rost_max_miniapp.spa_page')
+        return request.render('rost_max_miniapp.spa_page',
+                              {'csrf_token': _get_spa_csrf_token()})
 
     @http.route("/rost_max/lesson/<int:lesson_id>", type="http", auth="public")
     def lesson_page(self, lesson_id):
         """Страница журнала урока - рендерит SPA"""
-        return request.render('rost_max_miniapp.spa_page')
+        return request.render('rost_max_miniapp.spa_page',
+                              {'csrf_token': _get_spa_csrf_token()})
 
     @http.route("/rost_max/modules", type="http", auth="public")
     def modules_page(self):
         """Страница модулей - рендерит тот же SPA (клиентский роутер покажет экран)"""
-        return request.render('rost_max_miniapp.spa_page')
+        return request.render('rost_max_miniapp.spa_page',
+                              {'csrf_token': _get_spa_csrf_token()})
 
     def _get_user_timetable(self, user, date, faculty_id=None):
         """Получить timetable для пользователя по дате и факультету (админ)"""
@@ -226,8 +257,12 @@ class RostMaxTimetableController(http.Controller):
         # Ручная валидация CSRF для JSON POST: системный валидатор Odoo для
         # http-роутов ищет токен только в query/form-data, а фронт шлёт его
         # в заголовке X-CSRF-Token (JSON-тело не парсится до проверки).
+        # Сравниваем напрямую с нашим стабильным токеном SPA (без o<timestamp>,
+        # хранится в сессии под spa_csrf_token). Токен не меняется между рендером
+        # и POST -> сравнение детерминированное и реально защищает от CSRF.
         csrf_token = request.httprequest.headers.get('X-CSRF-Token')
-        if not request.validate_csrf(csrf_token):
+        session_token = request.session.get(CSRF_SESSION_KEY)
+        if not session_token or not csrf_token or csrf_token != session_token:
             return request.make_json_response({"error": "CSRF validation failed"}, status=400)
 
         user = request.env.user
