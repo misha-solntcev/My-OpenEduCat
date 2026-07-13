@@ -128,17 +128,23 @@ class RostMaxTimetableController(http.Controller):
             # Гость - пустой результат
             return request.env['op.attendance.sheet'].browse()
         else:
-            faculty = request.env['op.faculty'].search([
+            faculty = request.env['op.faculty'].sudo().search([
                 ('partner_id', '=', user.partner_id.id)
             ], limit=1)
             if faculty:
                 domain.append(('faculty_id', '=', faculty.id))
             else:
-                student = request.env['op.student'].search([
+                student = request.env['op.student'].sudo().search([
                     ('partner_id', '=', user.partner_id.id)
                 ], limit=1)
-                if student and student.batch_id:
-                    domain.append(('batch_id', '=', student.batch_id.id))
+                # У op.student нет прямого batch_id — он через
+                # course_detail_ids (op.student.course.batch_id).
+                if student:
+                    batch = student.course_detail_ids.mapped('batch_id')[:1]
+                    if batch:
+                        domain.append(('batch_id', '=', batch.id))
+                    else:
+                        return request.env['op.attendance.sheet'].browse()
                 else:
                     return request.env['op.attendance.sheet'].browse()
 
@@ -378,10 +384,12 @@ class RostMaxTimetableController(http.Controller):
             if not is_admin:
                 if faculty:
                     domain.append(('faculty_id', '=', faculty.id))
-                elif student and student.batch_id:
-                    domain.append(('batch_id', '=', student.batch_id.id))
-                else:
-                    domain.append(('id', '=', 0))  # пустой результат
+                elif student:
+                    batch = student.course_detail_ids.mapped('batch_id')[:1]
+                    if batch:
+                        domain.append(('batch_id', '=', batch.id))
+                    else:
+                        domain.append(('id', '=', 0))  # пустой результат
 
             last_sheet = request.env['op.attendance.sheet'].sudo().search(domain, order='attendance_date desc', limit=1)
             if last_sheet:

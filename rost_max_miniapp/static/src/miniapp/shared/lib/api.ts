@@ -18,7 +18,10 @@ export async function apiGet<T>(url: string): Promise<T> {
     headers: { 'X-CSRF-TOKEN': getCsrfToken() },
   });
 
-  if (res.status === 401 || res.status === 403) {
+  if (res.status === 401) {
+    // Только 401 = реально нет сессии -> на логин. 403 (нет прав на
+    // конкретные данные) редиректом НЕ лечим: student с валидной сессией
+    // не должен вылетать на логин из-за ACL-ошибки бэкенда.
     window.location.href = '/rost_max/login';
     throw new Error('Session expired');
   }
@@ -36,7 +39,10 @@ export async function apiPost<T>(url: string, data: unknown): Promise<T> {
     body: JSON.stringify(data),
   });
 
-  if (res.status === 401 || res.status === 403) {
+  if (res.status === 401) {
+    // Только 401 = реально нет сессии -> на логин. 403 (нет прав на
+    // конкретные данные) редиректом НЕ лечим: student с валидной сессией
+    // не должен вылетать на логин из-за ACL-ошибки бэкенда.
     window.location.href = '/rost_max/login';
     throw new Error('Session expired');
   }
