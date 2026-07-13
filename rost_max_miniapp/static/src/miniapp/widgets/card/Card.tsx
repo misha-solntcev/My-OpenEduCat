@@ -1,45 +1,55 @@
 import React from 'react';
-import { Flex, Typography } from '@maxhub/max-ui';
+import { Flex, Typography, type FlexDirection, type FlexAlign, type FlexJustify } from '@maxhub/max-ui';
 
 // Нативный аналог «Card» (в MAX UI его нет; есть только Panel/Container/CellList).
 // Composable API как в shadcn/ui / MUI: Card + CardHeader/Title/Description/Content/Footer.
 // Все токены — из @maxhub/max-ui (темозависимы: светлая/тёмная темы подхватываются автоматически).
 
-type Align = 'start' | 'center' | 'end';
-
 interface CardProps {
   children?: React.ReactNode;
   bordered?: boolean;
+  media?: React.ReactNode;
+  text?: React.ReactNode;
   className?: string;
   style?: React.CSSProperties;
 }
 
-export const Card: React.FC<CardProps> = ({ children, bordered = true, className, style }) => (
-  <div
-    className={className}
-    style={{
-      backgroundColor: 'var(--background-surface-card)',
-      borderRadius: 'var(--size-border-radius-semantic-border-radius-card)',
-      border: bordered ? '1px solid var(--stroke-separator-secondary)' : 'none',
-      boxShadow: '0 1px 4px rgba(0, 0, 0, 0.02)',
-      padding: '16px',
-      boxSizing: 'border-box',
-      width: '100%',
-      ...style,
-    }}
-  >
-    {children}
-  </div>
-);
+export const Card: React.FC<CardProps> = ({ children, bordered = true, media, text, className, style }) => {
+  const body = text != null ? <Typography.Body variant="small">{text}</Typography.Body> : children;
+  return (
+    <div
+      className={className}
+      style={{
+        backgroundColor: 'var(--background-surface-card)',
+        borderRadius: 'var(--size-border-radius-semantic-border-radius-card)',
+        border: bordered ? '1px solid var(--stroke-separator-secondary)' : 'none',
+        boxShadow: '0 1px 4px rgba(0, 0, 0, 0.02)',
+        padding: '16px',
+        boxSizing: 'border-box',
+        width: '100%',
+        ...style,
+      }}
+    >
+      {media != null ? (
+        <Flex direction="row" align="center" gap={12} style={{ width: '100%' }}>
+          <span style={{ flexShrink: 0 }}>{media}</span>
+          <div style={{ minWidth: 0 }}>{body}</div>
+        </Flex>
+      ) : (
+        body
+      )}
+    </div>
+  );
+};
 
 interface CardHeaderProps {
   media?: React.ReactNode;
   title?: React.ReactNode;
   description?: React.ReactNode;
   action?: React.ReactNode;
-  direction?: 'horizontal' | 'vertical';
-  align?: Align;
-  justify?: Align;
+  direction?: FlexDirection;
+  align?: FlexAlign;
+  justify?: FlexJustify;
   className?: string;
 }
 
@@ -48,7 +58,7 @@ export const CardHeader: React.FC<CardHeaderProps> = ({
   title,
   description,
   action,
-  direction = 'horizontal',
+  direction = 'row',
   align = 'center',
   justify = 'start',
   className,
@@ -57,7 +67,7 @@ export const CardHeader: React.FC<CardHeaderProps> = ({
     direction={direction}
     align={align}
     justify={justify}
-    gap={direction === 'vertical' ? 8 : 12}
+    gap={direction === 'column' ? 8 : 12}
     className={className}
     style={{ marginBottom: description || action ? '12px' : 0, width: '100%' }}
   >
@@ -102,7 +112,7 @@ export const CardDescription: React.FC<{ children?: React.ReactNode; className?:
   </Typography.Body>
 );
 
-export const CardContent: React.FC<{ children?: React.ReactNode; className?: string; style?: React.CSSProperties; align?: Align }> = ({
+export const CardContent: React.FC<{ children?: React.ReactNode; className?: string; style?: React.CSSProperties; align?: FlexAlign }> = ({
   children,
   className,
   style,
