@@ -66,7 +66,7 @@ export const DashboardPage: React.FC<{ onNavigate: (to: string) => void }> = ({ 
   const m = data?.metrics ?? {};
 
   return (
-    <Flex direction="column" gap={16} style={{ width: '100%' }}>
+    <Flex direction="column" align="stretch" gap={16} style={{ width: '100%' }}>
       {/* 1. Профиль — нативная ячейка (Avatar + имя + роль) */}
       <CellList mode="island">
         <CellSimple
@@ -99,7 +99,9 @@ export const DashboardPage: React.FC<{ onNavigate: (to: string) => void }> = ({ 
           )}
 
           {/* 3. Компактный селектор даты */}
-          <DateJumper value={globalDate} onChange={setGlobalDate} />
+          <Flex direction="column" align="stretch">
+            <DateJumper value={globalDate} onChange={setGlobalDate} />
+          </Flex>
 
           {/* 4. Инфографика 2x2 (нативный Grid; цветной бордер метрик — позже через Card-вариант) */}
           <Grid cols={2} gap={12}>

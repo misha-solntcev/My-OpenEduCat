@@ -18,6 +18,5 @@ export const DateJumper: React.FC<DateJumperProps> = ({ value, onChange }) => (
     onChange={e => onChange(e.target.value)}
     iconBefore={<span style={{ fontSize: '18px' }}>📅</span>}
     mode="primary"
-    style={{ width: '100%' }}
   />
 );
