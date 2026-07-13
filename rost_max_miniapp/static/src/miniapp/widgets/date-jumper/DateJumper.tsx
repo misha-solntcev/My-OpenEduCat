@@ -17,17 +17,7 @@ export const DateJumper: React.FC<DateJumperProps> = ({ value, onChange }) => (
       type="date"
       value={value}
       onChange={e => onChange(e.target.value)}
-      className="rm-input"
-      style={{
-        flex: 1,
-        border: 'none',
-        backgroundColor: 'transparent',
-        color: 'var(--text-primary)',
-        fontSize: '15px',
-        fontWeight: 600,
-        outline: 'none',
-        fontFamily: 'inherit',
-      }}
+      className="rm-input rm-input--bare"
     />
   </Flex>
 );

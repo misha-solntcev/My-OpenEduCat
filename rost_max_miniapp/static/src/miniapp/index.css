@@ -126,3 +126,15 @@ textarea:-webkit-autofill:focus {
   outline: none;
   box-sizing: border-box;
 }
+
+/* Вариант «без обрамления» — для date-input внутри карточки (DateJumper):
+   прозрачный фон, нет рамки, чуть жирнее, заполняет ширину Flex-родителя. */
+.rm-input--bare {
+  flex: 1;
+  height: auto;
+  padding: 0;
+  border: none;
+  background-color: transparent;
+  font-size: 15px;
+  font-weight: 600;
+}
