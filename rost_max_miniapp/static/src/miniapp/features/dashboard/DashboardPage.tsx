@@ -1,5 +1,5 @@
 import React from 'react';
-import { Flex, Typography, Spinner, Avatar, Button, CellList, CellSimple, Grid } from '@maxhub/max-ui';
+import { Flex, Spinner, Avatar, Button, Grid } from '@maxhub/max-ui';
 import { apiGet } from '../../shared/lib';
 import { initialsOf } from '../../shared/lib';
 import { DateJumper } from '../../widgets/date-jumper';
@@ -68,17 +68,18 @@ export const DashboardPage: React.FC<{ onNavigate: (to: string) => void }> = ({ 
   return (
     <Flex direction="column" align="stretch" gap={16} style={{ width: '100%' }}>
       {/* 1. Профиль — нативная ячейка (Avatar + имя + роль) */}
-      <CellList mode="island">
-        <CellSimple
-          before={(
+      <Card>
+        <CardHeader
+          media={(
             <Avatar.Container size={40} form="squircle">
               <Avatar.Text>{initials}</Avatar.Text>
             </Avatar.Container>
           )}
           title={userName || roleFallback}
-          subtitle={statusText}
+          description={statusText}
         />
-      </CellList>
+      </Card>
+
 
       {loading && (
         <Flex align="center" justify="center" style={{ padding: '48px 0' }}>
@@ -88,14 +89,19 @@ export const DashboardPage: React.FC<{ onNavigate: (to: string) => void }> = ({ 
 
       {!loading && data && (
         <>
-          {/* 2. Баннер демо-режима (летние каникулы / выходной) — нативная ячейка */}
+          {/* 2. Баннер демо-режима (летние каникулы / выходной) — Card: media слева + text (сама в Typography.Body); поверхность выбираем снаружи */}
           {data.is_fallback && (
-            <CellList mode="island">
-              <CellSimple
-                before={<span style={{ fontSize: '24px' }}>🏖️</span>}
-                title={<Typography.Body variant="small" style={{ color: 'var(--background-accent-attention-primary)', fontWeight: 500, lineHeight: '1.4' }}>Летние каникулы. Показываем архивные данные за последний учебный день: <strong>{data.fallback_date}</strong></Typography.Body>}
-              />
-            </CellList>
+            <Card
+              media={<span style={{ fontSize: '24px' }}>🏖️</span>}
+              bordered={false}
+              style={{ backgroundColor: 'var(--background-accent-negative)', color: 'var(--text-primary-static)' }}
+              text={
+                <>
+                  Летние каникулы. Показываем архивные данные за последний учебный день:{' '}
+                  <strong>{data.fallback_date}</strong>
+                </>
+              }
+            />
           )}
 
           {/* 3. Компактный селектор даты */}
