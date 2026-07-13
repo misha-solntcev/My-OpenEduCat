@@ -1,5 +1,5 @@
 import React from 'react';
-import { Flex, Typography, Panel, Button, Spinner, Avatar } from '@maxhub/max-ui';
+import { Flex, Typography, Spinner, Avatar, Button, CellList, CellSimple } from '@maxhub/max-ui';
 import { apiGet } from '../../shared/lib';
 import { initialsOf } from '../../shared/lib';
 import { DateJumper } from '../../widgets/date-jumper';
@@ -80,8 +80,11 @@ export const DashboardPage: React.FC<{ onNavigate: (to: string) => void }> = ({ 
   const userName = userInfo?.user_name ?? '';
   const statusText = isAdmin ? 'Администратор' : isTeacher ? 'Преподаватель' : 'Ученик';
 
+  // Fallback-имя, когда userInfo.user_name пуст (анимная/незагруженная сессия)
+  const roleFallback = isAdmin ? 'Завуч' : isTeacher ? 'Преподаватель' : 'Ученик';
+
   // Инициалы для аватара — единый формат (одна буква) для всех ролей
-  const initials = initialsOf(userName || (isAdmin ? 'Завуч' : isTeacher ? 'Преподаватель' : 'Ученик'));
+  const initials = initialsOf(userName || roleFallback);
 
   const [data, setData] = React.useState<DashboardData | null>(null);
   const [loading, setLoading] = React.useState(true);
@@ -100,20 +103,18 @@ export const DashboardPage: React.FC<{ onNavigate: (to: string) => void }> = ({ 
 
   return (
     <Flex direction="column" gap={16} style={{ width: '100%' }}>
-      {/* 1. Профиль-карточка (вместо заголовка-роли) */}
-      <Flex align="center" gap={12} className="rm-card rm-card--dash">
-        <Avatar.Container size={40} form="squircle" >
-          <Avatar.Text>{initials}</Avatar.Text>
-        </Avatar.Container>
-        <Flex direction="column" gap={2} style={{ minWidth: 0 }}>
-          <Typography.Title variant="small-strong" style={{ margin: 0, fontWeight: 700, color: 'var(--text-primary)' }}>
-            {userName || (isAdmin ? 'Завуч' : isTeacher ? 'Преподаватель' : 'Ученик')}
-          </Typography.Title>
-          <Typography.Label variant="small-strong" style={{ color: 'var(--text-secondary)', fontWeight: 500 }}>
-            {statusText}
-          </Typography.Label>
-        </Flex>
-      </Flex>
+      {/* 1. Профиль — нативная ячейка (Avatar + имя + роль) */}
+      <CellList mode="island">
+        <CellSimple
+          before={(
+            <Avatar.Container size={40} form="squircle">
+              <Avatar.Text>{initials}</Avatar.Text>
+            </Avatar.Container>
+          )}
+          title={userName || roleFallback}
+          subtitle={statusText}
+        />
+      </CellList>
 
       {loading && (
         <Flex align="center" justify="center" style={{ padding: '48px 0' }}>
@@ -163,26 +164,27 @@ export const DashboardPage: React.FC<{ onNavigate: (to: string) => void }> = ({ 
 
           {/* 5. Админ: единственная уникальная кнопка действия */}
           {isAdmin && (
-            <Panel className="rm-card rm-card--dash" style={{ padding: '14px', borderRadius: '12px', border: '1px solid var(--stroke-separator-secondary)' }}>
-              <Button
-                stretched
-                style={{ height: '40px', fontSize: '13px', fontWeight: 600 }}
-                onClick={() => onNavigate('/rost_max/modules')}
-              >
-                📢 Объявление
-              </Button>
-            </Panel>
+            <Button
+              mode="primary"
+              appearance="themed"
+              stretched
+              iconBefore="📢"
+              onClick={() => onNavigate('/rost_max/modules')}
+            >
+              Объявление
+            </Button>
           )}
 
-          {/* 6. Выход — полноширинная красная кнопка */}
-          <Button
-            appearance="negative"
-            stretched
-            onClick={() => { window.location.href = '/rost_max/logout'; }}
-            style={{ height: '42px', borderRadius: '10px', fontWeight: 600, fontSize: '13px', marginTop: '16px' }}
-          >
-            🚪 Выйти из аккаунта
-          </Button>
+          {/* 6. Выход — destructive-кнопка (real navigation: Odoo сбрасывает сессию).
+              Без stretched — обёртка на всю ширину центрирует кнопку по горизонтали. */}
+          <Flex justify="center" style={{ width: '100%' }}>
+            <Button
+              appearance="negative"
+              onClick={() => { window.location.href = '/rost_max/logout'; }}
+            >
+              Выйти
+            </Button>
+          </Flex>
         </>
       )}
     </Flex>
