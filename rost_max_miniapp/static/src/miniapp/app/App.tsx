@@ -1,6 +1,7 @@
 import React from 'react';
 import { createBrowserRouter, RouterProvider, Outlet, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { useAppStore } from './store';
+import { today } from '../shared/lib';
 import { Layout } from '../shared/ui/Layout';
 import { TabBar } from '../widgets/tab-bar';
 import { LoginPageScreen } from '../pages/LoginPage';
@@ -57,9 +58,14 @@ const TabbedLayout: React.FC = () => {
 
 // После логина подгружаем профиль ДО перехода на дашборд. loadUserInfo — из
 // стора напрямую (вне React), навигация — через router.navigate (метод
-// объекта router, без useNavigate в модуле).
+// объекта router, без useNavigate в модуле). Сбрасываем дату и фильтр
+// преподавателя на дефолт — в новой сессии всегда today + без фильтра,
+// внутри сессии выбор хранится в sessionStorage.
 const handleLoginSuccess = async (router: ReturnType<typeof createBrowserRouter>) => {
   await useAppStore.getState().loadUserInfo();
+  const store = useAppStore.getState();
+  store.setGlobalDate(today());
+  store.setFilters({ selectedFaculty: null });
   router.navigate('/rost_max/dashboard');
 };
 

@@ -10,11 +10,13 @@ interface AppState {
   loadUserInfo: () => Promise<void>;
 
   // Единая дата (Date Jumper): синхронизирует дашборд и расписание,
-  // переживает reload через sessionStorage.
-  globalDate: string;
+  // переживает reload внутри сессии через sessionStorage. Источник правды —
+  // filters.date (см. ниже); globalDate здесь НЕ дублируется.
+  getGlobalDate: () => string;
   setGlobalDate: (date: string) => void;
 
   // Фильтры расписания (дата + преподаватель) — единая точка правды.
+  // globalDate вынесен (дубль устранён): дата = filters.date.
   filters: TimetableFilters;
   setFilters: (patch: Partial<TimetableFilters>) => void;
 }
@@ -31,18 +33,24 @@ export const useAppStore = create<AppState>((set, get) => ({
     try {
       const info = await apiGet<UserInfo>('/rost_max/api/user/info');
       set({ userInfo: info, userLoading: false });
-    } catch {
-      // 401/403 -> api.ts уже редиректит на логин; здесь просто гасим
+    } catch (e) {
+      // 401 -> api.ts редиректит на логин. 403 (нет прав на данные) НЕ
+      // редиректит (иначе student с валидной сессии вылетал бы на логин).
+      // Здесь просто гасим и логируем для дебага сетевых/неожиданных падений.
+      console.error('[store] loadUserInfo failed', e);
       set({ userInfo: null, userLoading: false });
     }
   },
 
-  globalDate: getSavedFilters().date,
-  setGlobalDate: (date: string) => {
-    set({ globalDate: date });
-    saveFilters({ date });
-  },
+  // Дата — производная от filters.date (single source of truth).
+  getGlobalDate: () => get().filters.date,
+  setGlobalDate: (date: string) => get().setFilters({ date }),
 
+  // При старте: читаем сохранённые фильтры; если sessionStorage пуст
+  // (новая сессия / закрытая вкладка), getSavedFilters() вернёт today.
+  // Внутри живой сессии (F5, переключение табов) сохранённая дата
+  // восстанавливается. Явный сброс на today при входе делает
+  // handleLoginSuccess (см. app/App.tsx).
   filters: getSavedFilters(),
   setFilters: (patch: Partial<TimetableFilters>) => {
     const next = { ...get().filters, ...patch };

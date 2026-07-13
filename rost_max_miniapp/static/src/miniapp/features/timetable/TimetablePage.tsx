@@ -26,7 +26,7 @@ interface FacultiesResponse {
 }
 
 export const TimetablePage: React.FC<{ onOpenLesson: (id: number) => void }> = ({ onOpenLesson }) => {
-  const globalDate = useAppStore(s => s.globalDate);
+  const globalDate = useAppStore(s => s.getGlobalDate());
   const setGlobalDate = useAppStore(s => s.setGlobalDate);
   const filters = useAppStore(s => s.filters);
   const setFilters = useAppStore(s => s.setFilters);

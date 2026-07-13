@@ -72,7 +72,7 @@ const PURPLE = '#5856d6';
 
 export const DashboardPage: React.FC<{ onNavigate: (to: string) => void }> = ({ onNavigate }) => {
   const userInfo = useAppStore(s => s.userInfo);
-  const globalDate = useAppStore(s => s.globalDate);
+  const globalDate = useAppStore(s => s.getGlobalDate());
   const setGlobalDate = useAppStore(s => s.setGlobalDate);
 
   const isAdmin = userInfo?.is_admin ?? false;

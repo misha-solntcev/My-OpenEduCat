@@ -17,7 +17,7 @@ export interface TimetableFilters {
   selectedFaculty: number | null;
 }
 
-function today(): string {
+export function today(): string {
   return new Date().toISOString().split('T')[0];
 }
 
