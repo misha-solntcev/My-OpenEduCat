@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter, useNavigate, useLocation } from 'react-router-dom';
+import { createBrowserRouter, RouterProvider, Outlet, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { useAppStore } from './store';
 import { Layout } from '../shared/ui/Layout';
 import { TabBar } from '../widgets/tab-bar';
@@ -7,36 +7,29 @@ import { LoginPageScreen } from '../pages/LoginPage';
 import { DashboardPageScreen } from '../pages/DashboardPage';
 import { TimetablePageScreen } from '../pages/TimetablePage';
 import { LessonJournalPageScreen } from '../pages/LessonJournalPage';
+import { ModulesPageScreen } from '../pages/ModulesPage';
 
-const AppRoutes: React.FC = () => {
-  const navigate = useNavigate();
+// Корневой layout под префиксом /rost_max: грузит профиль при старте и
+// рендерит дочерние роуты через <Outlet />.
+const RootLayout: React.FC = () => {
   const location = useLocation();
-  const userLoading = useAppStore(s => s.userLoading);
   const loadUserInfo = useAppStore(s => s.loadUserInfo);
 
-  // Загрузка профиля и ролей при старте (вне экрана логина)
   React.useEffect(() => {
-    if (location.pathname === '/rost_max/login') {
-      return;
+    if (location.pathname !== '/rost_max/login') {
+      loadUserInfo();
     }
-    loadUserInfo();
-  }, [location.pathname, loadUserInfo]);
+  }, [loadUserInfo]);
 
-  // Роутинг по URL
-  const lessonMatch = location.pathname.match(/\/rost_max\/lesson\/(\d+)/);
-  const lessonId = lessonMatch ? parseInt(lessonMatch[1]) : null;
-  const isLogin = location.pathname === '/rost_max/login';
-  const isDashboard = location.pathname === '/rost_max/dashboard';
-  const isModules = location.pathname === '/rost_max/modules';
-  const isLesson = lessonId !== null;
-  // Любой неизвестный путь (в т.ч. корень) трактуем как расписание
-  const isTimetable = !isLogin && !isDashboard && !isModules && !isLesson;
+  return <Outlet />;
+};
 
-  if (isLogin) {
-    return <LoginPageScreen onSuccess={() => navigate('/rost_max/dashboard')} />;
-  }
+// Макет для экранов с таб-баром (инкапсулирует загрузку профиля + TabBar)
+const TabbedLayout: React.FC = () => {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const userLoading = useAppStore(s => s.userLoading);
 
-  // Экран загрузки профиля (не на логине)
   if (userLoading) {
     return (
       <Layout>
@@ -47,49 +40,50 @@ const AppRoutes: React.FC = () => {
     );
   }
 
-  // Если открыт журнал урока — показываем его (без таб-бара)
-  if (isLesson) {
-    return (
-      <LessonJournalPageScreen
-        lessonId={lessonId}
-        lessonTitle="Журнал оценок"
-        onBack={() => navigate('/rost_max/timetable')}
-      />
-    );
-  }
-
-  // Обычная навигация через таб-бар
-  const currentTab = isTimetable ? 'timetable' : (isDashboard ? 'dashboard' : (isModules ? 'modules' : 'timetable'));
+  const isDashboard = location.pathname === '/rost_max/dashboard';
+  const isModules = location.pathname === '/rost_max/modules';
+  const currentTab = isDashboard ? 'dashboard' : isModules ? 'modules' : 'timetable';
 
   return (
     <Layout>
-      {currentTab === 'dashboard' && (
-        <DashboardPageScreen onNavigate={navigate} />
-      )}
-      {currentTab === 'timetable' && (
-        <TimetablePageScreen onOpenLesson={(id) => navigate(`/rost_max/lesson/${id}`)} />
-      )}
-      {currentTab === 'modules' && (
-        <div style={{ padding: '40px 20px', textAlign: 'center', color: 'var(--text-secondary)' }}>
-          Раздел «Модули» в разработке
-        </div>
-      )}
+      <Outlet />
       <TabBar
         currentTab={currentTab}
-        onTabChange={(tab: string) => {
-          if (tab === 'dashboard') navigate('/rost_max/dashboard');
-          else if (tab === 'modules') navigate('/rost_max/modules');
-          else navigate('/rost_max/timetable');
-        }}
+        onTabChange={(tab: string) => navigate(`/rost_max/${tab}`)}
       />
     </Layout>
   );
 };
 
+// После логина подгружаем профиль ДО перехода на дашборд. loadUserInfo — из
+// стора напрямую (вне React), навигация — через router.navigate (метод
+// объекта router, без useNavigate в модуле).
+const handleLoginSuccess = async (router: ReturnType<typeof createBrowserRouter>) => {
+  await useAppStore.getState().loadUserInfo();
+  router.navigate('/rost_max/dashboard');
+};
+
+const router = createBrowserRouter([
+  {
+    path: '/rost_max',
+    element: <RootLayout />,
+    children: [
+      // Корень /rost_max -> расписание (явный index, без catch-all '*')
+      { index: true, element: <Navigate to="timetable" replace /> },
+      { path: 'login', element: <LoginPageScreen onSuccess={() => handleLoginSuccess(router)} /> },
+      { path: 'lesson/:id', element: <LessonJournalPageScreen /> },
+      {
+        element: <TabbedLayout />,
+        children: [
+          { path: 'dashboard', element: <DashboardPageScreen onNavigate={(to) => router.navigate(to)} /> },
+          { path: 'timetable', element: <TimetablePageScreen onOpenLesson={(id) => router.navigate(`/rost_max/lesson/${id}`)} /> },
+          { path: 'modules', element: <ModulesPageScreen /> },
+        ],
+      },
+    ],
+  },
+]);
+
 export default function App() {
-  return (
-    <BrowserRouter>
-      <AppRoutes />
-    </BrowserRouter>
-  );
+  return <RouterProvider router={router} />;
 }

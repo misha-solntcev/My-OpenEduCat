@@ -23,6 +23,11 @@ export const useAppStore = create<AppState>((set, get) => ({
   userInfo: null,
   userLoading: true,
   loadUserInfo: async () => {
+    const { userInfo } = get();
+    // Если профиль уже загружен — не дублируем запрос (защита от повторных
+    // вызовов при переключении вкладок / ре-рендерах).
+    if (userInfo) return;
+    set({ userLoading: true });
     try {
       const info = await apiGet<UserInfo>('/rost_max/api/user/info');
       set({ userInfo: info, userLoading: false });

@@ -31,7 +31,6 @@ interface LessonResponse {
 
 interface LessonJournalPageProps {
   lessonId: number;
-  lessonTitle: string;
   onBack: () => void;
 }
 
@@ -102,7 +101,7 @@ const JournalButton: React.FC<JournalButtonProps> = ({
   </button>
 );
 
-export const LessonJournalPage: React.FC<LessonJournalPageProps> = ({ lessonId, lessonTitle, onBack }) => {
+export const LessonJournalPage: React.FC<LessonJournalPageProps> = ({ lessonId, onBack }) => {
   const [lesson, setLesson] = React.useState<LessonInfo | null>(null);
   const [students, setStudents] = React.useState<Student[]>([]);
   const [attendanceTypes, setAttendanceTypes] = React.useState<AttendanceType[]>([]);
@@ -173,7 +172,7 @@ export const LessonJournalPage: React.FC<LessonJournalPageProps> = ({ lessonId, 
     }
   };
 
-  const headerTitle = lesson ? (lesson.subject || lessonTitle) : lessonTitle;
+  const headerTitle = lesson ? (lesson.subject || 'Журнал оценок') : 'Журнал оценок';
   const headerSubtitle = lesson ? [lesson.batch, lesson.timing].filter(Boolean).join(' · ') : '';
 
   const header = (
