@@ -92,7 +92,7 @@ export const DashboardPage: React.FC<{ onNavigate: (to: string) => void }> = ({ 
           {data.is_fallback && (
             <CellList mode="island">
               <CellSimple
-                before={<span style={{ fontSize: '16px' }}>🏖️</span>}
+                before={<span style={{ fontSize: '24px' }}>🏖️</span>}
                 title={<Typography.Body variant="small" style={{ color: 'var(--background-accent-attention-primary)', fontWeight: 500, lineHeight: '1.4' }}>Летние каникулы. Показываем архивные данные за последний учебный день: <strong>{data.fallback_date}</strong></Typography.Body>}
               />
             </CellList>

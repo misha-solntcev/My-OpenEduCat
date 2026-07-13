@@ -60,12 +60,6 @@ textarea:-webkit-autofill:focus {
   box-sizing: border-box;
 }
 
-/* Дашборд: чуть заметнее тень, чем у базовой карточки */
-.rm-card--dash {
-  padding: 16px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03), 0 1px 2px rgba(0, 0, 0, 0.04);
-}
-
 /* Плотная карточка (занятия / студенты): меньше паддинг + акцентная левая рамка */
 .rm-card--tight {
   padding: 14px 16px;
@@ -105,8 +99,7 @@ textarea:-webkit-autofill:focus {
   color: var(--jb-color, var(--icon-themed));
 }
 
-/* Поля фильтров расписания (дата / преподаватель). Токены темозависимы. */
-.rm-input,
+/* Поле фильтра расписания (преподаватель). Токены темозависимы. */
 .rm-select {
   width: 100%;
   height: 38px;
@@ -119,16 +112,4 @@ textarea:-webkit-autofill:focus {
   font-family: inherit;
   outline: none;
   box-sizing: border-box;
-}
-
-/* Вариант «без обрамления» — для date-input внутри карточки (DateJumper):
-   прозрачный фон, нет рамки, чуть жирнее, заполняет ширину Flex-родителя. */
-.rm-input--bare {
-  flex: 1;
-  height: auto;
-  padding: 0;
-  border: none;
-  background-color: transparent;
-  font-size: 15px;
-  font-weight: 600;
 }
