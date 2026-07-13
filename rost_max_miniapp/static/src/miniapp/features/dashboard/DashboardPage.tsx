@@ -1,8 +1,9 @@
 import React from 'react';
-import { Flex, Typography, Spinner, Avatar, Button, CellList, CellSimple } from '@maxhub/max-ui';
+import { Flex, Typography, Spinner, Avatar, Button, CellList, CellSimple, Grid } from '@maxhub/max-ui';
 import { apiGet } from '../../shared/lib';
 import { initialsOf } from '../../shared/lib';
 import { DateJumper } from '../../widgets/date-jumper';
+import { Card, CardHeader, CardContent } from '../../widgets/card';
 import { useAppStore } from '../../app/store';
 
 interface DashboardData {
@@ -32,43 +33,6 @@ interface DashboardData {
     room: string;
   } | null;
 }
-
-interface MetricCardProps {
-  icon: string;
-  label: string;
-  value: React.ReactNode;
-  borderColor: string;
-}
-
-const MetricCard: React.FC<MetricCardProps> = ({ icon, label, value, borderColor }) => (
-  <div style={{
-  flex: 1,
-  borderLeft: `4px solid ${borderColor}`,
-  display: 'flex',
-  flexDirection: 'column',
-  alignItems: 'center',
-  justifyContent: 'center',
-  textAlign: 'center',
-  minWidth: 0,
-  gap: '6px',
-  }} className="rm-card rm-card--metric">
-    <Flex align="center" gap={8}>
-      <span style={{ fontSize: '18px' }}>{icon}</span>
-      <Typography.Label variant="small-strong" style={{ color: 'var(--text-secondary)', fontWeight: 500 }}>
-        {label}
-      </Typography.Label>
-    </Flex>
-    <Typography.Title variant="small-strong" style={{ margin: 0, fontWeight: 800, color: 'var(--text-primary)' }}>
-      {value}
-    </Typography.Title>
-  </div>
-);
-
-// Цвета левых акцентов (по позиции карточки в сетке 2x2)
-const BLUE = 'var(--background-accent-themed)';
-const RED = 'var(--background-accent-negative)';
-const GREEN = 'var(--background-accent-positive)';
-const PURPLE = '#5856d6';
 
 export const DashboardPage: React.FC<{ onNavigate: (to: string) => void }> = ({ onNavigate }) => {
   const userInfo = useAppStore(s => s.userInfo);
@@ -124,43 +88,76 @@ export const DashboardPage: React.FC<{ onNavigate: (to: string) => void }> = ({ 
 
       {!loading && data && (
         <>
-          {/* 2. Баннер демо-режима (летние каникулы / выходной) */}
+          {/* 2. Баннер демо-режима (летние каникулы / выходной) — нативная ячейка */}
           {data.is_fallback && (
-            <div className="rm-card" style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-              <span style={{ fontSize: '16px', color: 'var(--background-accent-attention-primary)' }}>🏖️</span>
-              <Typography.Body variant="small" style={{ color: 'var(--background-accent-attention-primary)', fontWeight: 500, lineHeight: '1.4' }}>
-                Летние каникулы. Показываем архивные данные за последний учебный день: <strong>{data.fallback_date}</strong>
-              </Typography.Body>
-            </div>
+            <CellList mode="island">
+              <CellSimple
+                before={<span style={{ fontSize: '16px' }}>🏖️</span>}
+                title={<Typography.Body variant="small" style={{ color: 'var(--background-accent-attention-primary)', fontWeight: 500, lineHeight: '1.4' }}>Летние каникулы. Показываем архивные данные за последний учебный день: <strong>{data.fallback_date}</strong></Typography.Body>}
+              />
+            </CellList>
           )}
 
           {/* 3. Компактный селектор даты */}
           <DateJumper value={globalDate} onChange={setGlobalDate} />
 
-          {/* 4. Инфографика 2x2 с левыми акцентами */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', width: '100%' }}>
+          {/* 4. Инфографика 2x2 (нативный Grid; цветной бордер метрик — позже через Card-вариант) */}
+          <Grid cols={2} gap={12}>
             {isAdmin ? (
               <>
-                <MetricCard icon="🏫" label="Сегодня уроков" value={m.active_lessons ?? 0} borderColor={BLUE} />
-                <MetricCard icon="⚠️" label="Нет журнала" value={m.unfilled_sheets ?? 0} borderColor={RED} />
-                <MetricCard icon="👥" label="Посещаемость" value={`${m.attendance_pct ?? 0}%`} borderColor={GREEN} />
-                <MetricCard icon="🧑‍🎓" label="Учеников" value={m.total_students ?? 0} borderColor={PURPLE} />
+                <Card>
+                  <CardHeader justify="center" media={<span style={{ fontSize: '18px' }}>🏫</span>} title="Сегодня уроков" />
+                  <CardContent align="center" style={{ fontSize: '20px', fontWeight: 800, color: 'var(--text-primary)' }}>{m.active_lessons ?? 0}</CardContent>
+                </Card>
+                <Card>
+                  <CardHeader justify="center" media={<span style={{ fontSize: '18px' }}>⚠️</span>} title="Нет журнала" />
+                  <CardContent align="center" style={{ fontSize: '20px', fontWeight: 800, color: 'var(--text-primary)' }}>{m.unfilled_sheets ?? 0}</CardContent>
+                </Card>
+                <Card>
+                  <CardHeader justify="center" media={<span style={{ fontSize: '18px' }}>👥</span>} title="Посещаемость" />
+                  <CardContent align="center" style={{ fontSize: '20px', fontWeight: 800, color: 'var(--text-primary)' }}>{`${m.attendance_pct ?? 0}%`}</CardContent>
+                </Card>
+                <Card>
+                  <CardHeader justify="center" media={<span style={{ fontSize: '18px' }}>🧑‍🎓</span>} title="Учеников" />
+                  <CardContent align="center" style={{ fontSize: '20px', fontWeight: 800, color: 'var(--text-primary)' }}>{m.total_students ?? 0}</CardContent>
+                </Card>
               </>
             ) : isTeacher ? (
               <>
-                <MetricCard icon="🏫" label="Мои уроки" value={m.total_lessons ?? 0} borderColor={BLUE} />
-                <MetricCard icon="✅" label="Проведено" value={m.completed_lessons ?? 0} borderColor={RED} />
-                <MetricCard icon="👥" label="Посещаемость" value={`${m.attendance_pct ?? 0}%`} borderColor={GREEN} />
-                <MetricCard icon="✍️" label="Выставлено оценок" value={m.graded_count ?? 0} borderColor={PURPLE} />
+                <Card>
+                  <CardHeader justify="center" media={<span style={{ fontSize: '18px' }}>🏫</span>} title="Мои уроки" />
+                  <CardContent align="center" style={{ fontSize: '20px', fontWeight: 800, color: 'var(--text-primary)' }}>{m.total_lessons ?? 0}</CardContent>
+                </Card>
+                <Card>
+                  <CardHeader justify="center" media={<span style={{ fontSize: '18px' }}>✅</span>} title="Проведено" />
+                  <CardContent align="center" style={{ fontSize: '20px', fontWeight: 800, color: 'var(--text-primary)' }}>{m.completed_lessons ?? 0}</CardContent>
+                </Card>
+                <Card>
+                  <CardHeader justify="center" media={<span style={{ fontSize: '18px' }}>👥</span>} title="Посещаемость" />
+                  <CardContent align="center" style={{ fontSize: '20px', fontWeight: 800, color: 'var(--text-primary)' }}>{`${m.attendance_pct ?? 0}%`}</CardContent>
+                </Card>
+                <Card>
+                  <CardHeader justify="center" media={<span style={{ fontSize: '18px' }}>✍️</span>} title="Выставлено оценок" />
+                  <CardContent align="center" style={{ fontSize: '20px', fontWeight: 800, color: 'var(--text-primary)' }}>{m.graded_count ?? 0}</CardContent>
+                </Card>
               </>
             ) : (
               <>
-                <MetricCard icon="⭐" label="Средний балл" value={(m.gpa ?? 0).toFixed(2)} borderColor={BLUE} />
-                <MetricCard icon="📝" label="Домашних задач" value={m.pending_homework ?? 0} borderColor={RED} />
-                <MetricCard icon="👥" label="Моя посещаемость" value={`${m.attendance_pct ?? 0}%`} borderColor={GREEN} />
+                <Card>
+                  <CardHeader justify="center" media={<span style={{ fontSize: '18px' }}>⭐</span>} title="Средний балл" />
+                  <CardContent align="center" style={{ fontSize: '20px', fontWeight: 800, color: 'var(--text-primary)' }}>{(m.gpa ?? 0).toFixed(2)}</CardContent>
+                </Card>
+                <Card>
+                  <CardHeader justify="center" media={<span style={{ fontSize: '18px' }}>📝</span>} title="Домашних задач" />
+                  <CardContent align="center" style={{ fontSize: '20px', fontWeight: 800, color: 'var(--text-primary)' }}>{m.pending_homework ?? 0}</CardContent>
+                </Card>
+                <Card>
+                  <CardHeader justify="center" media={<span style={{ fontSize: '18px' }}>👥</span>} title="Моя посещаемость" />
+                  <CardContent align="center" style={{ fontSize: '20px', fontWeight: 800, color: 'var(--text-primary)' }}>{`${m.attendance_pct ?? 0}%`}</CardContent>
+                </Card>
               </>
             )}
-          </div>
+          </Grid>
 
           {/* 5. Админ: единственная уникальная кнопка действия */}
           {isAdmin && (
