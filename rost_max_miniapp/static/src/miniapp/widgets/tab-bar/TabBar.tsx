@@ -18,7 +18,6 @@ const TABS = [
  */
 export const TabBar: React.FC<TabBarProps> = ({ currentTab, onTabChange }) => (
   <Flex
-    justify="space-around"
     align="center"
     style={{
       width: '100%',
@@ -32,6 +31,7 @@ export const TabBar: React.FC<TabBarProps> = ({ currentTab, onTabChange }) => (
       boxShadow: '0 -4px 16px rgba(0, 0, 0, 0.06)',
       padding: '0 8px',
       boxSizing: 'border-box',
+      justifyContent: 'space-around',
     }}
   >
     {TABS.map(tab => (
