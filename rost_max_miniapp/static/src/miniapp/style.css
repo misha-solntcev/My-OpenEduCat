@@ -146,6 +146,15 @@ textarea:-webkit-autofill:focus {
   font-size: 48px;
 }
 
+/* Аватарка в шторке массовой расстановки: цветной фон + squircle-форма.
+   MAX UI 0.1.14 скругляет только внутренний .AvatarContainer__content
+   (через mask-image для squircle / border-radius для circle), а внешний
+   контейнер остаётся квадратным. Поэтому фон кладём на __content,
+   чтобы маска/радиус его обрезали. */
+.rm-sheet-avatar .AvatarContainer__content__h8v {
+  background-color: var(--background-accent-themed);
+}
+
 /* Анимация появления bottom-sheet (массовая расстановка). */
 @keyframes rm-sheet-up {
   from { transform: translateY(100%); }

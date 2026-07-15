@@ -1,6 +1,7 @@
 import React from 'react';
 import { Flex, Typography, IconButton, Avatar } from '@maxhub/max-ui';
 import { apiGet, apiPost, initialsOf } from '../../lib';
+import { Users, Zap } from 'lucide-react';
 
 interface Student {
   id: number;
@@ -64,6 +65,7 @@ interface JournalButtonProps {
   fontSize?: number;
   padding?: string;
   whiteSpace?: string;
+  flex?: number;
 }
 
 // Единая кнопка оценки/посещаемости. Акцентный цвет передаём через inline
@@ -81,6 +83,7 @@ const JournalButton: React.FC<JournalButtonProps> = ({
   fontSize = 15,
   padding,
   whiteSpace,
+  flex,
 }) => (
   <button
     type="button"
@@ -93,6 +96,7 @@ const JournalButton: React.FC<JournalButtonProps> = ({
       fontSize,
       padding: padding ?? '0',
       whiteSpace,
+      flex,
       ...(active ? ({ ['--jb-color' as string]: activeColor } as React.CSSProperties) : null),
     }}
   >
@@ -204,6 +208,16 @@ export const LessonJournalPage: React.FC<LessonJournalPageProps> = ({ lessonId, 
     }
   };
 
+  // Цикл карусели для шторки (аналогично индивидуальным кнопкам)
+  const cycleBulkGrade = () => {
+    const idx = GRADES.indexOf(bulkGrade);
+    setBulkGrade(GRADES[(idx + 1) % GRADES.length]);
+  };
+  const cycleBulkAtt = () => {
+    if (!attendanceTypes.length) return;
+    setBulkAttIdx((bulkAttIdx + 1) % attendanceTypes.length);
+  };
+
   const headerTitle = lesson ? (lesson.subject || 'Журнал оценок') : 'Журнал оценок';
   const headerSubtitle = lesson ? [lesson.batch, lesson.timing].filter(Boolean).join(' · ') : '';
 
@@ -219,7 +233,7 @@ export const LessonJournalPage: React.FC<LessonJournalPageProps> = ({ lessonId, 
           {headerTitle}
         </Typography.Title>
         <IconButton appearance="themed" mode="tertiary" onClick={() => setSheetOpen(true)} title="Массово проставить оценки и посещаемость">
-          <span style={{ fontSize: '20px' }}>⚡</span>
+          <Zap size={20} color="currentColor" />
         </IconButton>
       </Flex>
       {headerSubtitle && (
@@ -331,7 +345,9 @@ export const LessonJournalPage: React.FC<LessonJournalPageProps> = ({ lessonId, 
     );
   }
 
-  // Bottom sheet: массовая расстановка оценки + посещаемости всему классу.
+
+  // Простая SVG-иконка группы людей (силуэты пользователей)
+  // Bottom sheet: массовая расстановка оценки + посещаемости всему классу.  
   // MAX UI v0.1.14 не имеет нативного sheet/modal -> кастомный fixed-оверлей
   // снизу. Закрытие по тапу на затемнение. Цикл кнопок тот же, что у
   // индивидуальных (GRADES / attendanceTypes).
@@ -359,72 +375,76 @@ export const LessonJournalPage: React.FC<LessonJournalPageProps> = ({ lessonId, 
           animation: 'rm-sheet-up 0.2s ease-out',
         }}
       >
-        <Flex direction="column" gap={16}>
-          <Flex align="center" justify="space-between">
-            <Typography.Title variant="small-strong" style={{ margin: 0, fontWeight: 700 }}>
-              Массово всему классу
-            </Typography.Title>
-            <IconButton appearance="themed" mode="tertiary" onClick={() => setSheetOpen(false)}>
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M18 6L6 18M6 6l12 12" />
-              </svg>
-            </IconButton>
-          </Flex>
-
-          {/* Оценка: цикл как у индивидуальной кнопки */}
-          <Flex direction="column" gap={8}>
-            <span style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-secondary)' }}>Оценка</span>
-            <Flex gap={8} wrap="wrap">
-              {GRADES.map(g => (
-                <JournalButton
-                  key={'g' + g}
-                  value={g === '' ? '—' : g}
-                  active={bulkGrade === g}
-                  activeColor={gradeColor(g === '' ? null : Number(g))}
-                  onClick={() => setBulkGrade(g)}
-                />
-              ))}
+        <Flex direction="column" gap={20}>
+          {/* Строка как на странице: аватарка (40px) слева + кнопки цикла справа */}
+          <Flex align="center" gap={12} style={{ width: '100%', minWidth: 0 }}>
+            {/* Нативный Avatar (паттерн из вики max-ui-avatar.md):
+                Container задаёт форму+цветной фон через inline style,
+                Avatar.Icon — иконка-заглушка (как в доке MAX). */}
+            <Avatar.Container size={48} form="squircle" className="rm-sheet-avatar" style={{ flexShrink: 0 }}>
+              <Avatar.Icon>
+                <Users size={22} color="var(--text-contrast-static)" />
+              </Avatar.Icon>
+            </Avatar.Container>
+            
+            <Flex align="center" gap={8} style={{ flex: 1, minWidth: 0 }}>
+              <JournalButton
+                value={bulkGrade === '' ? '—' : bulkGrade}
+                active={bulkGrade !== ''}
+                activeColor={gradeColor(bulkGrade === '' ? null : Number(bulkGrade))}
+                onClick={cycleBulkGrade}
+              />
+              <JournalButton
+                value={bulkAttIdx >= 0 ? attendanceTypes[bulkAttIdx].name : '—'}
+                active={bulkAttIdx >= 0}
+                activeColor={attendanceColor(bulkAttIdx >= 0 ? attendanceTypes[bulkAttIdx].name : undefined)}
+                onClick={cycleBulkAtt}
+                fontSize={12}
+                padding="0 10px"
+                whiteSpace="nowrap"
+              />
             </Flex>
           </Flex>
 
-          {/* Посещаемость: цикл по типам */}
-          <Flex direction="column" gap={8}>
-            <span style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-secondary)' }}>Посещаемость</span>
-            <Flex gap={8} wrap="wrap">
-              {attendanceTypes.map((t, i) => (
-                <JournalButton
-                  key={t.id}
-                  value={t.name}
-                  active={bulkAttIdx === i}
-                  activeColor={attendanceColor(t.name)}
-                  onClick={() => setBulkAttIdx(i)}
-                  fontSize={12}
-                  minWidth={34}
-                  padding="0 10px"
-                  whiteSpace="nowrap"
-                />
-              ))}
-            </Flex>
+          {/* Две кнопки действия: Отменить / Применить — на всю ширину */}
+          <Flex align="center" gap={12} style={{ width: '100%' }}>
+            <button
+              type="button"
+              onClick={() => setSheetOpen(false)}
+              disabled={bulkSaving}
+              style={{
+                flex: 1,
+                height: '44px',
+                borderRadius: '8px',
+                border: '1px solid var(--stroke-separator-secondary)',
+                fontWeight: 600,
+                fontSize: '15px',
+                cursor: bulkSaving ? 'not-allowed' : 'pointer',
+                backgroundColor: 'var(--background-accent-negative)',
+                color: 'var(--text-on-accent)',
+              }}
+            >
+              Отменить
+            </button>
+            <button
+              type="button"
+              onClick={applyBulk}
+              disabled={bulkSaving || (bulkGrade === '' && bulkAttIdx < 0)}
+              style={{
+                flex: 1,
+                height: '44px',
+                borderRadius: '8px',
+                border: 'none',
+                fontWeight: 600,
+                fontSize: '15px',
+                cursor: (bulkSaving || (bulkGrade === '' && bulkAttIdx < 0)) ? 'not-allowed' : 'pointer',
+                backgroundColor: 'var(--background-accent-themed)',
+                color: 'var(--text-on-accent)',
+              }}
+            >
+              {bulkSaving ? 'Применяем...' : 'Применить'}
+            </button>
           </Flex>
-
-          <button
-            type="button"
-            onClick={applyBulk}
-            disabled={bulkSaving || (bulkGrade === '' && bulkAttIdx < 0)}
-            style={{
-              width: '100%',
-              height: '44px',
-              borderRadius: '8px',
-              border: 'none',
-              fontWeight: 600,
-              fontSize: '15px',
-              cursor: (bulkSaving || (bulkGrade === '' && bulkAttIdx < 0)) ? 'not-allowed' : 'pointer',
-              backgroundColor: 'var(--background-accent-themed)',
-              color: 'var(--text-on-accent)',
-            }}
-          >
-            {bulkSaving ? 'Применяем...' : 'Применить ко всем'}
-          </button>
         </Flex>
       </div>
     </div>
