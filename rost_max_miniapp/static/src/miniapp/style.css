@@ -145,3 +145,9 @@ textarea:-webkit-autofill:focus {
 .rm-empty-icon {
   font-size: 48px;
 }
+
+/* Анимация появления bottom-sheet (массовая расстановка). */
+@keyframes rm-sheet-up {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}

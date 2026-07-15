@@ -334,6 +334,72 @@ class RostMaxTimetableController(http.Controller):
 
         return request.make_json_response({"success": True})
 
+    @http.route("/rost_max/api/lesson/<int:lesson_id>/bulk", type="http", auth="public", methods=["POST"], cors="*", csrf=False)
+    def api_bulk_lesson(self, lesson_id, **kw):
+        """API: массовая расстановка оценки и/или посещаемости всему классу.
+
+        Делегирует стандартным методам openeducat:
+        - action_mass_set_grade(context=set_grade) — проставляет оценку в
+          ПУСТЫЕ строки колонки grade_1 (существующие не трогает);
+          пустым строкам ставит 'Присутствует'.
+        - action_mass_set_attendance(context=set_name) — проставляет тип
+          посещаемости пустым строкам.
+        Оба метода висят на op.attendance.sheet и НЕ перезаписывают уже
+        заполненные значения (это поведение openeducat, менять не стали).
+        """
+        csrf_token = request.httprequest.headers.get('X-CSRF-Token')
+        session_token = request.session.get(CSRF_SESSION_KEY)
+        if not session_token or not csrf_token or csrf_token != session_token:
+            return request.make_json_response({"error": "CSRF validation failed"}, status=400)
+
+        user = request.env.user
+        sheet = request.env['op.attendance.sheet'].sudo().browse(lesson_id)
+        if not sheet.exists():
+            return request.make_json_response({"error": "Урок не найден"}, status=404)
+
+        # Те же права, что и в update: админ либо препод своего урока.
+        is_admin = user.has_group('base.group_system')
+        if not is_admin:
+            faculty = request.env['op.faculty'].sudo().search([
+                ('partner_id', '=', user.partner_id.id)
+            ], limit=1)
+            if not faculty or sheet.faculty_id != faculty:
+                _logger.warning(
+                    "Security write violation: User %s (ID %s) attempted bulk grades on unauthorized lesson ID %s",
+                    user.login, user.id, lesson_id,
+                )
+                return request.make_json_response(
+                    {"error": "У вас нет прав для изменения оценок этого урока"}, status=403
+                )
+
+        try:
+            body = request.get_json_data()
+        except Exception:
+            return request.make_json_response({"error": "Invalid JSON"}, status=400)
+
+        grade = body.get('grade')
+        attendance_type_name = body.get('attendance_type_name')
+
+        applied = {}
+        if grade not in (None, ''):
+            try:
+                grade_float = float(grade)
+            except (ValueError, TypeError):
+                return request.make_json_response({"error": "Некорректная оценка"}, status=400)
+            # mass_target_1 включён по умолчанию -> пишем в grade_1.
+            sheet.with_context(set_grade=grade_float).sudo().action_mass_set_grade()
+            applied['grade'] = grade_float
+
+        if attendance_type_name not in (None, ''):
+            sheet.with_context(set_name=attendance_type_name).sudo().action_mass_set_attendance()
+            applied['attendance_type_name'] = attendance_type_name
+
+        return request.make_json_response({
+            "success": True,
+            "applied": applied,
+            "sheet_state": sheet.state,
+        })
+
     @http.route("/rost_max/api/user/info", type="http", auth="public", methods=["GET"])
     def api_user_info(self):
         """API: получение информации о текущем пользователе и его ролях"""

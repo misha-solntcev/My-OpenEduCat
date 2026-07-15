@@ -105,8 +105,13 @@ export const LessonJournalPage: React.FC<LessonJournalPageProps> = ({ lessonId, 
   const [students, setStudents] = React.useState<Student[]>([]);
   const [attendanceTypes, setAttendanceTypes] = React.useState<AttendanceType[]>([]);
   const [loading, setLoading] = React.useState(true);
+  const [sheetOpen, setSheetOpen] = React.useState(false);
+  const [bulkGrade, setBulkGrade] = React.useState('');
+  const [bulkAttIdx, setBulkAttIdx] = React.useState(-1);
+  const [bulkSaving, setBulkSaving] = React.useState(false);
 
-  React.useEffect(() => {
+  const loadStudents = React.useCallback(() => {
+    setLoading(true);
     apiGet<LessonResponse>(`/rost_max/api/lesson/${lessonId}/students`)
       .then(data => {
         setLesson(data.lesson || null);
@@ -119,6 +124,8 @@ export const LessonJournalPage: React.FC<LessonJournalPageProps> = ({ lessonId, 
       })
       .finally(() => setLoading(false));
   }, [lessonId]);
+
+  React.useEffect(() => { loadStudents(); }, [loadStudents]);
 
   const cycleGrade = async (student: Student) => {
     const current = student.grade != null ? String(student.grade) : '';
@@ -171,6 +178,32 @@ export const LessonJournalPage: React.FC<LessonJournalPageProps> = ({ lessonId, 
     }
   };
 
+  const applyBulk = async () => {
+    if (bulkSaving) return;
+    const hasGrade = bulkGrade !== '';
+    const hasAtt = bulkAttIdx >= 0;
+    if (!hasGrade && !hasAtt) return;
+
+    setBulkSaving(true);
+    try {
+      const res = await apiPost<{ success?: boolean; error?: string }>(
+        `/rost_max/api/lesson/${lessonId}/bulk`,
+        {
+          grade: hasGrade ? Number(bulkGrade) : '',
+          attendance_type_name: hasAtt ? attendanceTypes[bulkAttIdx].name : '',
+        }
+      );
+      if (res.error) throw new Error(res.error);
+      setSheetOpen(false);
+      // Перезагружаем список, чтобы отразить массовые изменения
+      loadStudents();
+    } catch (err) {
+      alert('Не удалось применить массово: ' + (err instanceof Error ? err.message : 'ошибка сети'));
+    } finally {
+      setBulkSaving(false);
+    }
+  };
+
   const headerTitle = lesson ? (lesson.subject || 'Журнал оценок') : 'Журнал оценок';
   const headerSubtitle = lesson ? [lesson.batch, lesson.timing].filter(Boolean).join(' · ') : '';
 
@@ -182,9 +215,12 @@ export const LessonJournalPage: React.FC<LessonJournalPageProps> = ({ lessonId, 
             <path d="M15 18l-6-6 6-6" />
           </svg>
         </IconButton>
-        <Typography.Title variant="small-strong" style={{ margin: 0, fontWeight: 700 }}>
+        <Typography.Title variant="small-strong" style={{ margin: 0, fontWeight: 700, flex: 1 }}>
           {headerTitle}
         </Typography.Title>
+        <IconButton appearance="themed" mode="tertiary" onClick={() => setSheetOpen(true)} title="Массово проставить оценки и посещаемость">
+          <span style={{ fontSize: '20px' }}>⚡</span>
+        </IconButton>
       </Flex>
       {headerSubtitle && (
         <Typography.Label variant="small-strong" style={{ marginLeft: '36px', color: 'var(--text-secondary)' }}>
@@ -295,6 +331,105 @@ export const LessonJournalPage: React.FC<LessonJournalPageProps> = ({ lessonId, 
     );
   }
 
+  // Bottom sheet: массовая расстановка оценки + посещаемости всему классу.
+  // MAX UI v0.1.14 не имеет нативного sheet/modal -> кастомный fixed-оверлей
+  // снизу. Закрытие по тапу на затемнение. Цикл кнопок тот же, что у
+  // индивидуальных (GRADES / attendanceTypes).
+  const bulkSheet = sheetOpen && (
+    <div
+      onClick={() => setSheetOpen(false)}
+      style={{
+        position: 'fixed',
+        inset: 0,
+        backgroundColor: 'rgba(0,0,0,0.4)',
+        zIndex: 100,
+        display: 'flex',
+        alignItems: 'flex-end',
+      }}
+    >
+      <div
+        onClick={e => e.stopPropagation()}
+        style={{
+          width: '100%',
+          backgroundColor: 'var(--background-surface-card)',
+          borderTopLeftRadius: '16px',
+          borderTopRightRadius: '16px',
+          padding: '20px 16px calc(20px + env(safe-area-inset-bottom))',
+          boxSizing: 'border-box',
+          animation: 'rm-sheet-up 0.2s ease-out',
+        }}
+      >
+        <Flex direction="column" gap={16}>
+          <Flex align="center" justify="space-between">
+            <Typography.Title variant="small-strong" style={{ margin: 0, fontWeight: 700 }}>
+              Массово всему классу
+            </Typography.Title>
+            <IconButton appearance="themed" mode="tertiary" onClick={() => setSheetOpen(false)}>
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M18 6L6 18M6 6l12 12" />
+              </svg>
+            </IconButton>
+          </Flex>
+
+          {/* Оценка: цикл как у индивидуальной кнопки */}
+          <Flex direction="column" gap={8}>
+            <span style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-secondary)' }}>Оценка</span>
+            <Flex gap={8} wrap="wrap">
+              {GRADES.map(g => (
+                <JournalButton
+                  key={'g' + g}
+                  value={g === '' ? '—' : g}
+                  active={bulkGrade === g}
+                  activeColor={gradeColor(g === '' ? null : Number(g))}
+                  onClick={() => setBulkGrade(g)}
+                />
+              ))}
+            </Flex>
+          </Flex>
+
+          {/* Посещаемость: цикл по типам */}
+          <Flex direction="column" gap={8}>
+            <span style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-secondary)' }}>Посещаемость</span>
+            <Flex gap={8} wrap="wrap">
+              {attendanceTypes.map((t, i) => (
+                <JournalButton
+                  key={t.id}
+                  value={t.name}
+                  active={bulkAttIdx === i}
+                  activeColor={attendanceColor(t.name)}
+                  onClick={() => setBulkAttIdx(i)}
+                  fontSize={12}
+                  minWidth={34}
+                  padding="0 10px"
+                  whiteSpace="nowrap"
+                />
+              ))}
+            </Flex>
+          </Flex>
+
+          <button
+            type="button"
+            onClick={applyBulk}
+            disabled={bulkSaving || (bulkGrade === '' && bulkAttIdx < 0)}
+            style={{
+              width: '100%',
+              height: '44px',
+              borderRadius: '8px',
+              border: 'none',
+              fontWeight: 600,
+              fontSize: '15px',
+              cursor: (bulkSaving || (bulkGrade === '' && bulkAttIdx < 0)) ? 'not-allowed' : 'pointer',
+              backgroundColor: 'var(--background-accent-themed)',
+              color: 'var(--text-on-accent)',
+            }}
+          >
+            {bulkSaving ? 'Применяем...' : 'Применить ко всем'}
+          </button>
+        </Flex>
+      </div>
+    </div>
+  );
+
   return (
     <Flex direction="column" align="stretch" style={{ width: '100%', height: '100dvh' }}>
       {header}
@@ -318,6 +453,7 @@ export const LessonJournalPage: React.FC<LessonJournalPageProps> = ({ lessonId, 
           {content}
         </div>
       </div>
+      {bulkSheet}
     </Flex>
   );
 };
