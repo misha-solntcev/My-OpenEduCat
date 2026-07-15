@@ -67,7 +67,7 @@ interface JournalButtonProps {
 }
 
 // Единая кнопка оценки/посещаемости. Акцентный цвет передаём через inline
-// CSS-переменную --jb-color (см. .rm-journal-btn--active в index.css), чтобы
+// CSS-переменную --jb-color (см. .rm-journal-btn--active в style.css), чтобы
 // color-mix мог сделать валидный полупрозрачный фон (конкатенация `${color}18`
 // с var() не работает — баг до рефактора).
 const JournalButton: React.FC<JournalButtonProps> = ({
