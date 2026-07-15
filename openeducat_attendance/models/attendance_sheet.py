@@ -118,55 +118,6 @@ class OpAttendanceSheet(models.Model):
     def action_attendance_cancel(self): self.session_id.lecture_cancel()
     def action_attendance_edit(self): self.session_id.lecture_edit()
 
-
-
-    # def action_attendance_draft(self):
-    #     self.write({'state': 'draft'})
-
-    # def action_attendance_confirm(self):
-    #     self.write({'state': 'confirm'})
-
-    # # --- СИНХРОНИЗАЦИЯ СТАТУСОВ (Журнал -> Урок) ---
-    # def action_attendance_start(self):
-    #     """Генерация списка учеников при фактическом начале"""
-    #     for rec in self:
-    #         if not rec.attendance_line:
-    #             students = self.env['op.student'].sudo().search([
-    #                 ('course_detail_ids.course_id', '=', rec.session_id.course_id.id),
-    #                 ('course_detail_ids.batch_id', '=', rec.batch_id.id),
-    #                 ('active', '=', True)
-    #             ])
-    #             lines = [(0, 0, {'student_id': s.id, 'attendance_type_id': False}) for s in students]
-    #             rec.write({'attendance_line': lines})
-    #         rec.write({'state': 'start'})
-
-    # def action_attendance_done(self):        
-    #     self.write({'state': 'done'})                
-    #     for sheet in self:
-    #         if sheet.session_id and sheet.session_id.state != 'done':
-    #             sheet.session_id.write({'state': 'done'})        
-    #     self._transfer_grades_to_stats() 
-    #     return True
-
-    # def action_attendance_cancel(self):
-    #     for rec in self:
-    #         marks = rec.attendance_line.filtered(lambda l: l.grade_1 or l.grade_2 or l.grade_3)
-    #         if marks:
-    #             raise ValidationError(_("В журнале [%s] есть оценки. Удалите их перед отменой.") % rec.display_title)
-    #         rec.write({'state': 'cancel'})
-
-    # def action_attendance_edit(self):
-    #     """Кнопка 'Редактировать' в Журнале"""
-    #     self.write({'state': 'start'})
-    #     if self.session_id and self.session_id.state != 'start':
-    #         self.session_id.write({'state': 'start'})
-
-    # def action_attendance_confirm(self):
-    #     """Восстановление журнала"""
-    #     self.write({'state': 'confirm'})
-    #     if self.session_id and self.session_id.state != 'confirm':
-    #         self.session_id.write({'state': 'confirm'})
-
     # --- ВЫЧИСЛЯЕМЫЕ МЕТОДЫ ---
     @api.depends('session_id', 'register_id', 'attendance_date')
     def _compute_display_title(self):
