@@ -239,7 +239,9 @@ class RostMaxTimetableController(http.Controller):
                 "name": name,
                 "avatar": avatar,
                 "initials": initials,
-                "grade": ln.grade_1 or None,
+                "grade_1": ln.grade_1 or None,
+                "grade_2": ln.grade_2 or None,
+                "grade_3": ln.grade_3 or None,
                 "attendance_type_id": ln.attendance_type_id.id if ln.attendance_type_id else None,
             })
 
@@ -315,13 +317,18 @@ class RostMaxTimetableController(http.Controller):
             )
 
         vals = {}
-        grade = body.get('grade')
-        if grade is not None:
-            if grade == '' or grade is None:
-                vals['grade_1'] = 0.0
+        # Индивидуальные оценки по трём колонкам. Каждая колонка
+        # независима: пропущенная в теле не трогается (перезапись всегда,
+        # в отличие от bulk, который пишет только в пустые).
+        for gf in ('grade_1', 'grade_2', 'grade_3'):
+            g = body.get(gf)
+            if g is None:
+                continue
+            if g == '':
+                vals[gf] = 0.0
             else:
                 try:
-                    vals['grade_1'] = float(grade)
+                    vals[gf] = float(g)
                 except (ValueError, TypeError):
                     pass
 
@@ -378,6 +385,9 @@ class RostMaxTimetableController(http.Controller):
             return request.make_json_response({"error": "Invalid JSON"}, status=400)
 
         grade = body.get('grade')
+        grade_field = body.get('grade_field') or 'grade_1'
+        if grade_field not in ('grade_1', 'grade_2', 'grade_3'):
+            grade_field = 'grade_1'
         attendance_type_name = body.get('attendance_type_name')
 
         applied = {}
@@ -386,9 +396,18 @@ class RostMaxTimetableController(http.Controller):
                 grade_float = float(grade)
             except (ValueError, TypeError):
                 return request.make_json_response({"error": "Некорректная оценка"}, status=400)
-            # mass_target_1 включён по умолчанию -> пишем в grade_1.
+            # action_mass_set_grade пишет в колонки, отмеченные mass_target_*
+            # на самом sheet. Выставляем нужный флаг прямым write (без
+            # триггеров) и сбрасываем остальные, чтобы не задеть другие
+            # колонки. Пишет ТОЛЬКО в пустые строки выбранной колонки.
+            sheet.sudo().write({
+                'mass_target_1': grade_field == 'grade_1',
+                'mass_target_2': grade_field == 'grade_2',
+                'mass_target_3': grade_field == 'grade_3',
+            })
             sheet.with_context(set_grade=grade_float).sudo().action_mass_set_grade()
             applied['grade'] = grade_float
+            applied['grade_field'] = grade_field
 
         if attendance_type_name not in (None, ''):
             sheet.with_context(set_name=attendance_type_name).sudo().action_mass_set_attendance()
@@ -399,6 +418,68 @@ class RostMaxTimetableController(http.Controller):
             "applied": applied,
             "sheet_state": sheet.state,
         })
+
+    @http.route("/rost_max/api/lesson/<int:lesson_id>/clear", type="http", auth="public", methods=["POST"], cors="*", csrf=False)
+    def api_clear_lesson(self, lesson_id, **kw):
+        """API: массовый сброс оценок и/или посещаемости всего класса.
+
+        Делегирует методам на op.attendance.line (рядом с action_clear_line_data):
+        - action_clear_grades() — сбрасывает grade_1/2/3 в 0.0;
+        - action_clear_attendance() — сбрасывает attendance_type_id.
+        target управляет тем, что чистим: 'grades' | 'attendance' | 'all'.
+        """
+        csrf_token = request.httprequest.headers.get('X-CSRF-Token')
+        session_token = request.session.get(CSRF_SESSION_KEY)
+        if not session_token or not csrf_token or csrf_token != session_token:
+            return request.make_json_response({"error": "CSRF validation failed"}, status=400)
+
+        user = request.env.user
+        sheet = request.env['op.attendance.sheet'].sudo().browse(lesson_id)
+        if not sheet.exists():
+            return request.make_json_response({"error": "Урок не найден"}, status=404)
+
+        # Те же права, что и в update/bulk: админ либо препод своего урока.
+        is_admin = user.has_group('base.group_system')
+        if not is_admin:
+            faculty = request.env['op.faculty'].sudo().search([
+                ('partner_id', '=', user.partner_id.id)
+            ], limit=1)
+            if not faculty or sheet.faculty_id != faculty:
+                _logger.warning(
+                    "Security write violation: User %s (ID %s) attempted clear grades on unauthorized lesson ID %s",
+                    user.login, user.id, lesson_id,
+                )
+                return request.make_json_response(
+                    {"error": "У вас нет прав для изменения оценок этого урока"}, status=403
+                )
+
+        try:
+            body = request.get_json_data()
+        except Exception:
+            return request.make_json_response({"error": "Invalid JSON"}, status=400)
+
+        target = body.get('target')
+        valid = ('grades', 'attendance', 'all', 'grade_1', 'grade_2', 'grade_3')
+        if target not in valid:
+            return request.make_json_response(
+                {"error": "Некорректный target (ожидается grades|attendance|all|grade_1|grade_2|grade_3)"}, status=400
+            )
+
+        if target in ('grades', 'all'):
+            sheet.attendance_line.sudo().action_clear_grades()
+        elif target in ('grade_1', 'grade_2', 'grade_3'):
+            # Очистка одной колонки оценки: выставляем mass_target_* и зовём
+            # стандартный action_mass_clear_grades (пишет 0.0 во все отмеченные).
+            sheet.sudo().write({
+                'mass_target_1': target == 'grade_1',
+                'mass_target_2': target == 'grade_2',
+                'mass_target_3': target == 'grade_3',
+            })
+            sheet.sudo().action_mass_clear_grades()
+        if target in ('attendance', 'all'):
+            sheet.attendance_line.sudo().action_clear_attendance()
+
+        return request.make_json_response({"success": True, "target": target})
 
     @http.route("/rost_max/api/user/info", type="http", auth="public", methods=["GET"])
     def api_user_info(self):

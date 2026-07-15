@@ -176,3 +176,17 @@ class OpAttendanceLine(models.Model):
             'grade_3': 0.0,
             'remark': False,
         })
+
+    def action_clear_grades(self):
+        """Сброс всех оценок строки (grade_1/2/3) в 0.0."""
+        self.write({
+            'grade_1': 0.0,
+            'grade_2': 0.0,
+            'grade_3': 0.0,
+        })
+
+    def action_clear_attendance(self):
+        """Сброс отметки посещаемости строки."""
+        self.write({
+            'attendance_type_id': False,
+        })
