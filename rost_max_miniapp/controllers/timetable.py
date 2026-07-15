@@ -341,6 +341,85 @@ class RostMaxTimetableController(http.Controller):
 
         return request.make_json_response({"success": True})
 
+    @http.route("/rost_max/api/lesson/<int:lesson_id>/save", type="http", auth="public", methods=["POST"], cors="*", csrf=False)
+    def api_save_lesson(self, lesson_id, **kw):
+        """API: пакетное сохранение ВСЕГО буфера журнала урока за один запрос.
+
+        Фронт накапливает изменения локально (оценки grade_1/2/3 и
+        посещаемость по каждому ученику) и шлёт их разом кнопкой "Сохранить".
+        В отличие от /bulk (пишет только в пустые строки), здесь —
+        ПЕРЕЗАПИСЬ: каждая переданная колонка пишется как есть (0.0/null —
+        тоже валидное значение, т.е. ластик-сброс тоже проходит). Это и есть
+        механизм явного сохранения после локального редактирования.
+        """
+        csrf_token = request.httprequest.headers.get('X-CSRF-Token')
+        session_token = request.session.get(CSRF_SESSION_KEY)
+        if not session_token or not csrf_token or csrf_token != session_token:
+            return request.make_json_response({"error": "CSRF validation failed"}, status=400)
+
+        user = request.env.user
+        sheet = request.env['op.attendance.sheet'].sudo().browse(lesson_id)
+        if not sheet.exists():
+            return request.make_json_response({"error": "Урок не найден"}, status=404)
+
+        # Те же права, что и в update/bulk/clear: админ либо препод своего урока.
+        is_admin = user.has_group('base.group_system')
+        if not is_admin:
+            faculty = request.env['op.faculty'].sudo().search([
+                ('partner_id', '=', user.partner_id.id)
+            ], limit=1)
+            if not faculty or sheet.faculty_id != faculty:
+                _logger.warning(
+                    "Security write violation: User %s (ID %s) attempted save grades on unauthorized lesson ID %s",
+                    user.login, user.id, lesson_id,
+                )
+                return request.make_json_response(
+                    {"error": "У вас нет прав для изменения оценок этого урока"}, status=403
+                )
+
+        try:
+            body = request.get_json_data()
+        except Exception:
+            return request.make_json_response({"error": "Invalid JSON"}, status=400)
+
+        rows = body.get('students') or []
+        if not isinstance(rows, list):
+            return request.make_json_response({"error": "students должен быть массивом"}, status=400)
+
+        written = 0
+        for row in rows:
+            sid = row.get('student_id')
+            if not sid:
+                continue
+            line = request.env['op.attendance.line'].sudo().search([
+                ('attendance_id', '=', lesson_id),
+                ('student_id', '=', int(sid)),
+            ], limit=1)
+            if not line:
+                continue
+
+            vals = {}
+            for gf in ('grade_1', 'grade_2', 'grade_3'):
+                g = row.get(gf)
+                if g is None:
+                    continue
+                if g == '':
+                    vals[gf] = 0.0
+                else:
+                    try:
+                        vals[gf] = float(g)
+                    except (ValueError, TypeError):
+                        pass
+            att = row.get('attendance_type_id')
+            if att is not None:
+                vals['attendance_type_id'] = (int(att) if att != '' else False)
+
+            if vals:
+                line.write(vals)
+                written += 1
+
+        return request.make_json_response({"success": True, "written": written})
+
     @http.route("/rost_max/api/lesson/<int:lesson_id>/bulk", type="http", auth="public", methods=["POST"], cors="*", csrf=False)
     def api_bulk_lesson(self, lesson_id, **kw):
         """API: массовая расстановка оценки и/или посещаемости всему классу.

@@ -121,10 +121,12 @@ export const LessonJournalPage: React.FC<LessonJournalPageProps> = ({ lessonId, 
   const [attendanceTypes, setAttendanceTypes] = React.useState<AttendanceType[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [sheetOpen, setSheetOpen] = React.useState(false);
-  const [bulkGrades, setBulkGrades] = React.useState<Record<GradeField, string>>({ grade_1: '', grade_2: '', grade_3: '' });
-  const [bulkAttIdx, setBulkAttIdx] = React.useState(-1);
-  const [bulkSaving, setBulkSaving] = React.useState(false);
-  const [clearSaving, setClearSaving] = React.useState(false);
+  // dirty = есть несохранённые локальные изменения (буфер отличается от сервера)
+  const [dirty, setDirty] = React.useState(false);
+  const [saving, setSaving] = React.useState(false);
+  const [showExitBanner, setShowExitBanner] = React.useState(false);
+  // Режим массовой карусели: 'empty' (только пустые) | 'all' (перезапись всех)
+  const [bulkMode, setBulkMode] = React.useState<'empty' | 'all'>('empty');
 
   const loadStudents = React.useCallback(() => {
     setLoading(true);
@@ -133,6 +135,8 @@ export const LessonJournalPage: React.FC<LessonJournalPageProps> = ({ lessonId, 
         setLesson(data.lesson || null);
         setStudents(data.students || []);
         setAttendanceTypes(data.attendance_types || []);
+        // Свежие данные с сервера = буфер чистый
+        setDirty(false);
       })
       .catch(() => {
         setStudents([]);
@@ -143,130 +147,120 @@ export const LessonJournalPage: React.FC<LessonJournalPageProps> = ({ lessonId, 
 
   React.useEffect(() => { loadStudents(); }, [loadStudents]);
 
-  const cycleGradeField = async (student: Student, field: GradeField) => {
+  // Локальное изменение буфера (без обращения к серверу). Ставит dirty.
+  const patchStudent = (id: number, patch: Partial<Student>) => {
+    setStudents(prev => prev.map(s => s.id === id ? { ...s, ...patch } : s));
+    setDirty(true);
+  };
+
+  // Индивидуальная оценка/посещаемость в карточке: только меняем буфер.
+  const cycleGradeField = (student: Student, field: GradeField) => {
     const current = student[field] != null ? String(student[field]) : '';
     const idx = GRADES.indexOf(current);
     const next = GRADES[(idx + 1) % GRADES.length];
     const nextVal = next === '' ? null : Number(next);
-
-    const prevGrade = student[field];
-
-    // Оптимистичное обновление: сразу рисуем новую оценку
-    setStudents(prev => prev.map(s => s.id === student.id ? { ...s, [field]: nextVal } : s));
-
-    try {
-      const res = await apiPost<{ success?: boolean; error?: string }>(
-        `/rost_max/api/lesson/${lessonId}/update`,
-        { student_id: student.id, [field]: nextVal }
-      );
-      if (res.error) {
-        throw new Error(res.error);
-      }
-    } catch (err) {
-      // Откат при ошибке бэкенда/сети — возвращаем прежнюю оценку
-      setStudents(prev => prev.map(s => s.id === student.id ? { ...s, [field]: prevGrade } : s));
-      alert('Не удалось сохранить оценку: ' + (err instanceof Error ? err.message : 'ошибка сети'));
-    }
+    patchStudent(student.id, { [field]: nextVal });
   };
 
-  const cycleAttendance = async (student: Student) => {
+  const cycleAttendance = (student: Student) => {
     if (!attendanceTypes.length) return;
     const curIdx = attendanceTypes.findIndex(t => t.id === student.attendance_type_id);
     const nextType = attendanceTypes[(curIdx + 1) % attendanceTypes.length];
-
-    const prevAttendanceId = student.attendance_type_id;
-
-    // Оптимистичное обновление: сразу рисуем новую отметку
-    setStudents(prev => prev.map(s => s.id === student.id ? { ...s, attendance_type_id: nextType.id } : s));
-
-    try {
-      const res = await apiPost<{ success?: boolean; error?: string }>(
-        `/rost_max/api/lesson/${lessonId}/update`,
-        { student_id: student.id, attendance_type_id: nextType.id }
-      );
-      if (res.error) {
-        throw new Error(res.error);
-      }
-    } catch (err) {
-      // Откат при ошибке бэкенда/сети — возвращаем прежнюю отметку
-      setStudents(prev => prev.map(s => s.id === student.id ? { ...s, attendance_type_id: prevAttendanceId } : s));
-      alert('Не удалось изменить отметку посещаемости: ' + (err instanceof Error ? err.message : 'ошибка сети'));
-    }
+    patchStudent(student.id, { attendance_type_id: nextType.id });
   };
 
-  const applyBulk = async () => {
-    if (bulkSaving) return;
-    // Собираем непустые колонки оценок (каждая карусель — своя колонка)
-    const gradeVals: Record<GradeField, number | ''> = {
-      grade_1: bulkGrades.grade_1 !== '' ? Number(bulkGrades.grade_1) : '',
-      grade_2: bulkGrades.grade_2 !== '' ? Number(bulkGrades.grade_2) : '',
-      grade_3: bulkGrades.grade_3 !== '' ? Number(bulkGrades.grade_3) : '',
-    };
-    const hasGrade = gradeVals.grade_1 !== '' || gradeVals.grade_2 !== '' || gradeVals.grade_3 !== '';
-    const hasAtt = bulkAttIdx >= 0;
-    if (!hasGrade && !hasAtt) return;
-
-    setBulkSaving(true);
+  // Сохранение всего буфера на сервер одним запросом (/save, перезапись).
+  const saveAll = async () => {
+    if (saving || !dirty) return;
+    setSaving(true);
     try {
+      const payload = students.map(s => ({
+        student_id: s.id,
+        grade_1: s.grade_1,
+        grade_2: s.grade_2,
+        grade_3: s.grade_3,
+        attendance_type_id: s.attendance_type_id,
+      }));
       const res = await apiPost<{ success?: boolean; error?: string }>(
-        `/rost_max/api/lesson/${lessonId}/bulk`,
-        {
-          grade_1: gradeVals.grade_1,
-          grade_2: gradeVals.grade_2,
-          grade_3: gradeVals.grade_3,
-          attendance_type_name: hasAtt ? attendanceTypes[bulkAttIdx].name : '',
-        }
+        `/rost_max/api/lesson/${lessonId}/save`,
+        { students: payload }
       );
       if (res.error) throw new Error(res.error);
-      setSheetOpen(false);
-      // Перезагружаем список, чтобы отразить массовые изменения
+      setDirty(false);
+      // Перечитываем с сервера для консистентности (проверка, что записано)
       loadStudents();
     } catch (err) {
-      alert('Не удалось применить массово: ' + (err instanceof Error ? err.message : 'ошибка сети'));
+      // Сети нет или ошибка сервера: предупреждаем, dirty остаётся.
+      // (Офлайн-синхронизация через локальный стор — отдельная фича, позже.)
+      alert('Не удалось сохранить: ' + (err instanceof Error ? err.message : 'ошибка сети') + '. Изменения сохранены локально, повторите позже.');
     } finally {
-      setBulkSaving(false);
+      setSaving(false);
     }
   };
 
-  // Крутилка bulk-карусели конкретной колонки оценки (О1/О2/О3)
-  const cycleBulkGradeN = (field: GradeField) => {
-    const idx = GRADES.indexOf(bulkGrades[field]);
-    setBulkGrades(prev => ({ ...prev, [field]: GRADES[(idx + 1) % GRADES.length] }));
-  };
-
-  // Массовый сброс оценок и/или посещаемости всего класса.
-  // Делегирует методам op.attendance.line (action_clear_grades /
-  // action_clear_attendance) через эндпоинт /clear. target: 'grades' |
-  // 'attendance' | 'all' | 'grade_1' | 'grade_2' | 'grade_3' (одна колонка).
-  const clearBulk = async (target: GradeField | 'attendance' | 'all') => {
-    if (clearSaving) return;
-    const labels: Record<typeof target, string> = {
-      grade_1: 'оценки О1 всего класса',
-      grade_2: 'оценки О2 всего класса',
-      grade_3: 'оценки О3 всего класса',
-      attendance: 'посещаемость всего класса',
-      all: 'оценки и посещаемость всего класса',
-    };
-    if (!window.confirm(`Очистить ${labels[target]}? Действие необратимо.`)) return;
-
-    setClearSaving(true);
-    try {
-      const res = await apiPost<{ success?: boolean; error?: string }>(
-        `/rost_max/api/lesson/${lessonId}/clear`,
-        { target }
-      );
-      if (res.error) throw new Error(res.error);
-      setSheetOpen(false);
-      loadStudents();
-    } catch (err) {
-      alert('Не удалось очистить: ' + (err instanceof Error ? err.message : 'ошибка сети'));
-    } finally {
-      setClearSaving(false);
+  // Выход: если есть несохранённые правки — банер «Сохранить изменения?».
+  const handleBack = () => {
+    if (dirty) {
+      setShowExitBanner(true);
+    } else {
+      onBack();
     }
   };
-  const cycleBulkAtt = () => {
+  const exitSave = async () => {
+    setShowExitBanner(false);
+    await saveAll();
+    onBack();
+  };
+  const exitDiscard = () => {
+    setShowExitBanner(false);
+    setDirty(false);
+    onBack();
+  };
+
+  // Ластик колонки в шторке: локально сбрасывает колонку в буфере.
+  const clearLocal = (target: GradeField | 'attendance') => {
+    setStudents(prev => prev.map(s => {
+      if (target === 'attendance') return { ...s, attendance_type_id: null };
+      return { ...s, [target]: null };
+    }));
+    setDirty(true);
+  };
+  // Массовая карусель в шторке: мгновенно (как ластик) применяет
+  // выбранное значение ко ВСЕМ ученикам в локальном буфере.
+  // bulkMode: 'empty' — только пустые колонки; 'all' — перезапись всех.
+  // Список за ширмой перерисовывается сразу.
+  const bulkSetGrade = (field: GradeField, value: string) => {
+    const v = value === '' ? null : Number(value);
+    setStudents(prev => prev.map(s => {
+      if (bulkMode === 'empty' && s[field] != null) return s;
+      return { ...s, [field]: v };
+    }));
+    setDirty(true);
+  };
+  const bulkCycleGrade = (field: GradeField) => {
+    // курсор карусели: при 'empty' — первый пустой; при 'all' — первый вообще
+    const cursorSrc = bulkMode === 'empty'
+      ? students.find(s => s[field] == null)
+      : students[0];
+    const current = cursorSrc?.[field] != null ? String(cursorSrc[field]) : '';
+    const idx = GRADES.indexOf(current);
+    const next = GRADES[(idx + 1) % GRADES.length];
+    bulkSetGrade(field, next);
+  };
+  const bulkCycleAtt = () => {
     if (!attendanceTypes.length) return;
-    setBulkAttIdx((bulkAttIdx + 1) % attendanceTypes.length);
+    const cursorSrc = bulkMode === 'empty'
+      ? students.find(s => !s.attendance_type_id)
+      : students[0];
+    const curIdx = cursorSrc && cursorSrc.attendance_type_id != null
+      ? attendanceTypes.findIndex(t => t.id === cursorSrc.attendance_type_id)
+      : -1;
+    const nextType = attendanceTypes[(curIdx + 1) % attendanceTypes.length];
+    setStudents(prev => prev.map(s => {
+      if (bulkMode === 'empty' && s.attendance_type_id != null) return s;
+      return { ...s, attendance_type_id: nextType.id };
+    }));
+    setDirty(true);
   };
 
   const headerTitle = lesson ? (lesson.subject || 'Журнал оценок') : 'Журнал оценок';
@@ -275,7 +269,7 @@ export const LessonJournalPage: React.FC<LessonJournalPageProps> = ({ lessonId, 
   const header = (
     <Flex direction="column" gap={2} style={{ padding: '12px 16px', borderBottom: '1px solid var(--stroke-separator-secondary)', backgroundColor: 'var(--background-surface-card)', flexShrink: 0 }}>
       <Flex align="center" gap={12} style={{ width: '100%' }}>
-        <IconButton appearance="themed" mode="tertiary" onClick={onBack}>
+        <IconButton appearance="themed" mode="tertiary" onClick={handleBack}>
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M15 18l-6-6 6-6" />
           </svg>
@@ -439,6 +433,43 @@ export const LessonJournalPage: React.FC<LessonJournalPageProps> = ({ lessonId, 
         }}
       >
         <Flex direction="column" gap={20}>
+          {/* Режим массовой карусели: только пустые | перезапись всех */}
+          <Flex
+            align="center"
+            gap={4}
+            style={{
+              width: '100%',
+              padding: '4px',
+              borderRadius: '10px',
+              backgroundColor: 'var(--background-surface-raised)',
+            }}
+          >
+            {([
+              { mode: 'empty' as const, label: 'Только пустые' },
+              { mode: 'all' as const, label: 'Все' },
+            ]).map(({ mode, label }) => (
+              <button
+                key={mode}
+                type="button"
+                onClick={() => setBulkMode(mode)}
+                style={{
+                  flex: 1,
+                  height: '34px',
+                  borderRadius: '8px',
+                  border: 'none',
+                  fontWeight: 600,
+                  fontSize: '13px',
+                  cursor: 'pointer',
+                  backgroundColor: bulkMode === mode ? 'var(--background-surface-card)' : 'transparent',
+                  color: bulkMode === mode ? 'var(--text-primary)' : 'var(--text-secondary)',
+                  boxShadow: bulkMode === mode ? '0 1px 2px rgba(0,0,0,0.12)' : 'none',
+                }}
+              >
+                {label}
+              </button>
+            ))}
+          </Flex>
+
           {/* Сетка: аватар + для каждой колонки (О1/О2/О3/Посещ) — ластик
               сверху (иконка, без метки) и карусель снизу. Ластики выровнены
               над соответствующими оценками. Кнопки ластиков минимальной
@@ -455,8 +486,7 @@ export const LessonJournalPage: React.FC<LessonJournalPageProps> = ({ lessonId, 
               <Flex key={gf} direction="column" align="center" gap={6} style={{ flexShrink: 0, minWidth: 0 }}>
                 <button
                   type="button"
-                  onClick={() => clearBulk(gf)}
-                  disabled={clearSaving}
+                  onClick={() => clearLocal(gf)}
                   title={`Очистить ${GRADE_FIELD_LABELS[gf]} у всего класса`}
                   style={{
                     width: '34px',
@@ -466,7 +496,7 @@ export const LessonJournalPage: React.FC<LessonJournalPageProps> = ({ lessonId, 
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    cursor: clearSaving ? 'not-allowed' : 'pointer',
+                    cursor: 'pointer',
                     backgroundColor: 'var(--background-surface-card)',
                     color: 'var(--background-accent-negative)',
                   }}
@@ -474,11 +504,11 @@ export const LessonJournalPage: React.FC<LessonJournalPageProps> = ({ lessonId, 
                   <Eraser size={16} color="currentColor" />
                 </button>
                 <JournalButton
-                  value={bulkGrades[gf] === '' ? '—' : bulkGrades[gf]}
-                  active={bulkGrades[gf] !== ''}
-                  activeColor={gradeColor(bulkGrades[gf] === '' ? null : Number(bulkGrades[gf]))}
-                  onClick={() => cycleBulkGradeN(gf)}
-                  title={`Оценка ${GRADE_FIELD_LABELS[gf]}`}
+                  value={students[0]?.[gf] != null ? String(students[0]![gf]) : '—'}
+                  active={students[0]?.[gf] != null}
+                  activeColor={gradeColor(students[0]?.[gf] ?? null)}
+                  onClick={() => bulkCycleGrade(gf)}
+                  title={`Массово: оценка ${GRADE_FIELD_LABELS[gf]} (пустые)`}
                   minWidth={30}
                   padding="0 6px"
                 />
@@ -488,8 +518,7 @@ export const LessonJournalPage: React.FC<LessonJournalPageProps> = ({ lessonId, 
             <Flex direction="column" align="center" gap={6} style={{ flexShrink: 0, minWidth: 0 }}>
               <button
                 type="button"
-                onClick={() => clearBulk('attendance')}
-                disabled={clearSaving}
+                onClick={() => clearLocal('attendance')}
                 title="Очистить посещаемость у всего класса"
                 style={{
                   width: '34px',
@@ -499,7 +528,7 @@ export const LessonJournalPage: React.FC<LessonJournalPageProps> = ({ lessonId, 
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  cursor: clearSaving ? 'not-allowed' : 'pointer',
+                  cursor: 'pointer',
                   backgroundColor: 'var(--background-surface-card)',
                   color: 'var(--background-accent-negative)',
                 }}
@@ -507,10 +536,10 @@ export const LessonJournalPage: React.FC<LessonJournalPageProps> = ({ lessonId, 
                 <Eraser size={16} color="currentColor" />
               </button>
               <JournalButton
-                value={bulkAttIdx >= 0 ? attendanceTypes[bulkAttIdx].name : '—'}
-                active={bulkAttIdx >= 0}
-                activeColor={attendanceColor(bulkAttIdx >= 0 ? attendanceTypes[bulkAttIdx].name : undefined)}
-                onClick={cycleBulkAtt}
+                value={(() => { const f = students.find(s => !s.attendance_type_id); return f && f.attendance_type_id != null ? attendanceTypes.find(t => t.id === f.attendance_type_id)?.name ?? '—' : '—'; })()}
+                active={!!students.find(s => !s.attendance_type_id && s.attendance_type_id != null)}
+                activeColor={attendanceColor(students.find(s => !s.attendance_type_id && s.attendance_type_id != null) ? attendanceTypes.find(t => t.id === students.find(s => !s.attendance_type_id)!.attendance_type_id)?.name : undefined)}
+                onClick={bulkCycleAtt}
                 fontSize={12}
                 padding="0 10px"
                 whiteSpace="nowrap"
@@ -518,30 +547,14 @@ export const LessonJournalPage: React.FC<LessonJournalPageProps> = ({ lessonId, 
             </Flex>
           </Flex>
 
-          {/* Две кнопки действия: Отменить / Применить — на всю ширину */}
+          {/* Одна кнопка закрытия шторки. Массовые правки (карусели
+              и ластики) применяются к локальному буферу мгновенно,
+              список за ширмой перерисовывается сразу. Сохранение на
+              сервер — общей кнопкой «Сохранить» снизу экрана. */}
           <Flex align="center" gap={12} style={{ width: '100%' }}>
             <button
               type="button"
               onClick={() => setSheetOpen(false)}
-              disabled={bulkSaving}
-              style={{
-                flex: 1,
-                height: '44px',
-                borderRadius: '8px',
-                border: '1px solid var(--stroke-separator-secondary)',
-                fontWeight: 600,
-                fontSize: '15px',
-                cursor: bulkSaving ? 'not-allowed' : 'pointer',
-                backgroundColor: 'var(--background-accent-negative)',
-                color: 'var(--text-on-accent)',
-              }}
-            >
-              Отменить
-            </button>
-            <button
-              type="button"
-              onClick={applyBulk}
-              disabled={bulkSaving || (bulkGrades.grade_1 === '' && bulkGrades.grade_2 === '' && bulkGrades.grade_3 === '' && bulkAttIdx < 0)}
               style={{
                 flex: 1,
                 height: '44px',
@@ -549,12 +562,12 @@ export const LessonJournalPage: React.FC<LessonJournalPageProps> = ({ lessonId, 
                 border: 'none',
                 fontWeight: 600,
                 fontSize: '15px',
-                cursor: (bulkSaving || (bulkGrades.grade_1 === '' && bulkGrades.grade_2 === '' && bulkGrades.grade_3 === '' && bulkAttIdx < 0)) ? 'not-allowed' : 'pointer',
+                cursor: 'pointer',
                 backgroundColor: 'var(--background-accent-themed)',
                 color: 'var(--text-on-accent)',
               }}
             >
-              {bulkSaving ? 'Применяем...' : 'Применить'}
+              ОК
             </button>
           </Flex>
         </Flex>
@@ -575,7 +588,7 @@ export const LessonJournalPage: React.FC<LessonJournalPageProps> = ({ lessonId, 
           scrollbarColor: 'rgba(128, 128, 128, 0.4) transparent',
           backgroundColor: 'var(--background-surface-ground)',
           paddingTop: '16px',
-          paddingBottom: '24px'
+          paddingBottom: dirty ? '84px' : '24px' // место под панель «Сохранить»
         }}
       >
         {/* Горизонтальный паддинг — на внутреннюю обёртку, а НЕ на скролл-контейнер:
@@ -585,6 +598,114 @@ export const LessonJournalPage: React.FC<LessonJournalPageProps> = ({ lessonId, 
           {content}
         </div>
       </div>
+
+      {/* Нижняя фикс-панель «Сохранить» — только когда есть несохранённые правки */}
+      {dirty && (
+        <div
+          style={{
+            position: 'fixed',
+            left: 0,
+            right: 0,
+            bottom: 0,
+            padding: '12px 16px calc(12px + env(safe-area-inset-bottom))',
+            backgroundColor: 'var(--background-surface-card)',
+            borderTop: '1px solid var(--stroke-separator-secondary)',
+            zIndex: 90,
+          }}
+        >
+          <button
+            type="button"
+            onClick={saveAll}
+            disabled={saving}
+            style={{
+              width: '100%',
+              height: '46px',
+              borderRadius: '10px',
+              border: 'none',
+              fontWeight: 700,
+              fontSize: '16px',
+              cursor: saving ? 'not-allowed' : 'pointer',
+              backgroundColor: 'var(--background-accent-themed)',
+              color: 'var(--text-on-accent)',
+            }}
+          >
+            {saving ? 'Сохраняем...' : 'Сохранить'}
+          </button>
+        </div>
+      )}
+
+      {/* Банер при выходе с несохранёнными правками */}
+      {showExitBanner && (
+        <div
+          onClick={() => setShowExitBanner(false)}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            backgroundColor: 'rgba(0,0,0,0.5)',
+            zIndex: 200,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '16px',
+          }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{
+              width: '100%',
+              maxWidth: '360px',
+              backgroundColor: 'var(--background-surface-card)',
+              borderRadius: '16px',
+              padding: '20px 16px calc(16px + env(safe-area-inset-bottom))',
+              boxSizing: 'border-box',
+            }}
+          >
+            <div style={{ fontSize: '16px', fontWeight: 700, marginBottom: '16px', color: 'var(--text-primary)' }}>
+              Сохранить изменения?
+            </div>
+            <Flex direction="column" gap={10} style={{ width: '100%' }}>
+              <button
+                type="button"
+                onClick={exitSave}
+                disabled={saving}
+                style={{
+                  width: '100%', height: '46px', borderRadius: '10px', border: 'none',
+                  fontWeight: 700, fontSize: '16px', cursor: saving ? 'not-allowed' : 'pointer',
+                  backgroundColor: 'var(--background-accent-themed)', color: 'var(--text-on-accent)',
+                }}
+              >
+                {saving ? 'Сохраняем...' : 'Да, сохранить'}
+              </button>
+              <button
+                type="button"
+                onClick={exitDiscard}
+                disabled={saving}
+                style={{
+                  width: '100%', height: '46px', borderRadius: '10px',
+                  border: '1px solid var(--stroke-separator-secondary)', fontWeight: 600, fontSize: '16px',
+                  cursor: saving ? 'not-allowed' : 'pointer',
+                  backgroundColor: 'var(--background-surface-raised)', color: 'var(--text-primary)',
+                }}
+              >
+                Нет, не сохранять
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowExitBanner(false)}
+                disabled={saving}
+                style={{
+                  width: '100%', height: '46px', borderRadius: '10px', border: 'none',
+                  fontWeight: 600, fontSize: '16px', cursor: saving ? 'not-allowed' : 'pointer',
+                  backgroundColor: 'transparent', color: 'var(--text-secondary)',
+                }}
+              >
+                Остаться
+              </button>
+            </Flex>
+          </div>
+        </div>
+      )}
+
       {bulkSheet}
     </Flex>
   );
