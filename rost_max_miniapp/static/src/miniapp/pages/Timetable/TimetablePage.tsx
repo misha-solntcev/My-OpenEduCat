@@ -2,7 +2,7 @@ import React from 'react';
 import { Flex, Typography, Spinner, Dot, CellList, CellSimple } from '@maxhub/max-ui';
 import { useAppStore } from '../../lib/store';
 import { apiGet } from '../../lib';
-import { DateJumper } from '../../components/date-jumper';
+import { DateJumper } from '../../components/DateJumper';
 
 interface Lesson {
   id: number;

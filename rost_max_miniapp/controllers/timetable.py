@@ -225,8 +225,7 @@ class RostMaxTimetableController(http.Controller):
                 if request.env['op.attendance.line'].search(
                         [('id', '=', ln.id), ('student_avatar', '!=', False)], limit=1):
                     avatar = '/web/image/op.attendance.line/%s/student_avatar/128x128' % ln.id
-                elif request.env['op.student'].search(
-                        [('id', '=', student.id), ('avatar_1920', '!=', False)], limit=1):
+                elif student.avatar_1920:
                     avatar = '/web/image/op.student/%s/avatar_1920/128x128' % student.id
 
             last = student.last_name or ''

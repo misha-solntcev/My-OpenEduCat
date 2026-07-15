@@ -1,8 +1,8 @@
 import React from 'react';
 import { Flex, Spinner, Avatar, Button, Grid } from '@maxhub/max-ui';
 import { apiGet, initialsOf } from '../../lib';
-import { DateJumper } from '../../components/date-jumper';
-import { Card, CardHeader, CardContent } from '../../components/card';
+import { DateJumper } from '../../components/DateJumper';
+import { Card, CardHeader, CardContent } from '../../components/Card';
 import { useAppStore } from '../../lib/store';
 
 interface DashboardData {
