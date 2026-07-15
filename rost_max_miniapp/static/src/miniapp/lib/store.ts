@@ -1,7 +1,7 @@
 import { create } from 'zustand';
-import { apiGet } from '../shared/lib';
-import { getSavedFilters, saveFilters, type TimetableFilters } from '../shared/lib';
-import type { UserInfo } from '../entities/user';
+import { apiGet } from './api';
+import { getSavedFilters, saveFilters, type TimetableFilters } from './storage';
+import type { UserInfo } from './types';
 
 interface AppState {
   // Профиль и роли

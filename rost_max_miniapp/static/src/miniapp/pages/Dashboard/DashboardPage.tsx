@@ -1,10 +1,9 @@
 import React from 'react';
 import { Flex, Spinner, Avatar, Button, Grid } from '@maxhub/max-ui';
-import { apiGet } from '../../shared/lib';
-import { initialsOf } from '../../shared/lib';
-import { DateJumper } from '../../widgets/date-jumper';
-import { Card, CardHeader, CardContent } from '../../widgets/card';
-import { useAppStore } from '../../app/store';
+import { apiGet, initialsOf } from '../../lib';
+import { DateJumper } from '../../components/date-jumper';
+import { Card, CardHeader, CardContent } from '../../components/card';
+import { useAppStore } from '../../lib/store';
 
 interface DashboardData {
   is_admin: boolean;

@@ -1,6 +1,6 @@
 import React from 'react';
 import { Panel, Flex, Typography, Button, Input } from '@maxhub/max-ui';
-import { apiPost } from '../../shared/lib';
+import { apiPost } from '../../lib';
 
 interface LoginResponse {
   success?: boolean;

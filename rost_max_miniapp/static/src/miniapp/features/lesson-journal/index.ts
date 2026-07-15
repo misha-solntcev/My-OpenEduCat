@@ -1,1 +1,0 @@
-export { LessonJournalPage } from './LessonJournalPage';

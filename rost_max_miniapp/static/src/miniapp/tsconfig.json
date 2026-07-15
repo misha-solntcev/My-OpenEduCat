@@ -9,5 +9,5 @@
     "strict": false,
     "noEmit": true
   },
-  "include": ["app", "pages", "widgets", "features", "entities", "shared", "index.tsx", "vite-env.d.ts"]
+  "include": ["App.tsx", "main.tsx", "pages", "components", "lib", "index.css", "vite-env.d.ts"]
 }

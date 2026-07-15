@@ -3,12 +3,15 @@ import react from '@vitejs/plugin-react'
 
 export default defineConfig({
   plugins: [react()],
+  resolve: {
+    extensions: ['.tsx', '.ts', '.jsx', '.js', '.json'],
+  },
   base: '/rost_max_miniapp/static/src/bundle/',
   build: {
     outDir: '../bundle',
     emptyOutDir: true,
     rollupOptions: {
-      input: './index.tsx',
+      input: './main.tsx',
       output: {
         format: 'umd',
         entryFileNames: 'index.js',

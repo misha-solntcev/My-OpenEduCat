@@ -1,7 +1,6 @@
 import React from 'react';
 import { Flex, Typography, IconButton, Avatar } from '@maxhub/max-ui';
-import { apiGet, apiPost } from '../../shared/lib';
-import { initialsOf } from '../../shared/lib';
+import { apiGet, apiPost, initialsOf } from '../../lib';
 
 interface Student {
   id: number;

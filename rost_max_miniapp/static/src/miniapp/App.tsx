@@ -1,14 +1,14 @@
 import React from 'react';
 import { createBrowserRouter, RouterProvider, Outlet, Navigate, useNavigate, useLocation } from 'react-router-dom';
-import { useAppStore } from './store';
-import { today } from '../shared/lib';
-import { Layout } from '../shared/ui/Layout';
-import { TabBar } from '../widgets/tab-bar';
-import { LoginPageScreen } from '../pages/LoginPage';
-import { DashboardPageScreen } from '../pages/DashboardPage';
-import { TimetablePageScreen } from '../pages/TimetablePage';
-import { LessonJournalPageScreen } from '../pages/LessonJournalPage';
-import { ModulesPageScreen } from '../pages/ModulesPage';
+import { useAppStore } from './lib/store';
+import { today } from './lib';
+import { Layout } from './components/layout';
+import { TabBar } from './components/tab-bar';
+import { LoginPage } from './pages/Login';
+import { DashboardPage } from './pages/Dashboard';
+import { TimetablePage } from './pages/Timetable';
+import { LessonJournalPage } from './pages/LessonJournal';
+import { ModulesPage } from './pages/Modules';
 
 // Корневой layout под префиксом /rost_max: грузит профиль при старте и
 // рендерит дочерние роуты через <Outlet />.
@@ -76,14 +76,14 @@ const router = createBrowserRouter([
     children: [
       // Корень /rost_max -> расписание (явный index, без catch-all '*')
       { index: true, element: <Navigate to="timetable" replace /> },
-      { path: 'login', element: <LoginPageScreen onSuccess={() => handleLoginSuccess(router)} /> },
-      { path: 'lesson/:id', element: <LessonJournalPageScreen /> },
+      { path: 'login', element: <LoginPage onSuccess={() => handleLoginSuccess(router)} /> },
+      { path: 'lesson/:id', element: <LessonJournalPage /> },
       {
         element: <TabbedLayout />,
         children: [
-          { path: 'dashboard', element: <DashboardPageScreen onNavigate={(to) => router.navigate(to)} /> },
-          { path: 'timetable', element: <TimetablePageScreen onOpenLesson={(id) => router.navigate(`/rost_max/lesson/${id}`)} /> },
-          { path: 'modules', element: <ModulesPageScreen /> },
+          { path: 'dashboard', element: <DashboardPage onNavigate={(to) => router.navigate(to)} /> },
+          { path: 'timetable', element: <TimetablePage onOpenLesson={(id) => router.navigate(`/rost_max/lesson/${id}`)} /> },
+          { path: 'modules', element: <ModulesPage /> },
         ],
       },
     ],
