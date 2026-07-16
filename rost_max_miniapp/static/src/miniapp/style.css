@@ -21,7 +21,7 @@ input {
 
 /* 2. Исправляем баг автозаполнения Chrome (Autofill) */
 input:-webkit-autofill,
-input:-webkit-autofill:hover, 
+input:-webkit-autofill:hover,
 input:-webkit-autofill:focus,
 textarea:-webkit-autofill,
 textarea:-webkit-autofill:hover,
@@ -32,8 +32,8 @@ textarea:-webkit-autofill:focus {
 }
 
 /* 3. Скроллбар: делаем дорожку прозрачной, чтобы справа от ползунка не было
-      белой полосы (дефолтный белый track браузера на светлой теме).
-      Фон контейнера просвечивает сквозь прозрачную дорожку. */
+     белой полосы (дефолтный белый track браузера на светлой теме).
+     Фон контейнера просвечивает сквозь прозрачную дорожку. */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
@@ -50,7 +50,7 @@ textarea:-webkit-autofill:focus {
 }
 
 /* 4. Общая карточка (дублируется во всех экранах). Токены темозависимы:
-      в тёмной теме MAX цвета подхватываются автоматически. */
+     в тёмной теме MAX цвета подхватываются автоматически. */
 .rm-card {
   background-color: var(--background-surface-card);
   border-radius: var(--size-border-radius-semantic-border-radius-card);
@@ -81,6 +81,7 @@ textarea:-webkit-autofill:focus {
    (валидно для var(), в отличие от конкатенации ${color}18, которая
    давала invalid и прозрачный фон). Если WebView не поддерживает color-mix,
    фон остаётся transparent — поведение не ломается. */
+
 .rm-journal-btn {
   border-radius: var(--size-border-radius-semantic-border-radius-card, 8px);
   border: 1px solid var(--stroke-separator-secondary);

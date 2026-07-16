@@ -400,19 +400,22 @@ class RostMaxTimetableController(http.Controller):
 
             vals = {}
             for gf in ('grade_1', 'grade_2', 'grade_3'):
-                g = row.get(gf)
-                if g is None:
+                # Ключ ВСЕГДА прислан фронтом (полный буфер). null/'' = сброс
+                # в 0.0 (на чтении /students вернёт ln.grade_1 or None => «-»).
+                if gf not in row:
                     continue
-                if g == '':
+                g = row[gf]
+                if g is None or g == '':
                     vals[gf] = 0.0
                 else:
                     try:
                         vals[gf] = float(g)
                     except (ValueError, TypeError):
                         pass
-            att = row.get('attendance_type_id')
-            if att is not None:
-                vals['attendance_type_id'] = (int(att) if att != '' else False)
+            # attendance_type_id: ключ может быть прислан явно (в т.ч. null/'' = сброс)
+            if 'attendance_type_id' in row:
+                att = row['attendance_type_id']
+                vals['attendance_type_id'] = (int(att) if att not in (None, '') else False)
 
             if vals:
                 line.write(vals)

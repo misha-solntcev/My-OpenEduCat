@@ -125,8 +125,6 @@ export const LessonJournalPage: React.FC<LessonJournalPageProps> = ({ lessonId, 
   const [dirty, setDirty] = React.useState(false);
   const [saving, setSaving] = React.useState(false);
   const [showExitBanner, setShowExitBanner] = React.useState(false);
-  // Режим массовой карусели: 'empty' (только пустые) | 'all' (перезапись всех)
-  const [bulkMode, setBulkMode] = React.useState<'empty' | 'all'>('empty');
 
   const loadStudents = React.useCallback(() => {
     setLoading(true);
@@ -153,7 +151,8 @@ export const LessonJournalPage: React.FC<LessonJournalPageProps> = ({ lessonId, 
     setDirty(true);
   };
 
-  // Индивидуальная оценка/посещаемость в карточке: только меняем буфер.
+  // Индивидуальная оценка/посещаемость в карточке: тап крутит значение
+  // по кругу (5→4→3→2→пусто→5...), меняем только локальный буфер.
   const cycleGradeField = (student: Student, field: GradeField) => {
     const current = student[field] != null ? String(student[field]) : '';
     const idx = GRADES.indexOf(current);
@@ -167,6 +166,23 @@ export const LessonJournalPage: React.FC<LessonJournalPageProps> = ({ lessonId, 
     const curIdx = attendanceTypes.findIndex(t => t.id === student.attendance_type_id);
     const nextType = attendanceTypes[(curIdx + 1) % attendanceTypes.length];
     patchStudent(student.id, { attendance_type_id: nextType.id });
+  };
+
+  // Массовые аналоги для шторки: крутят значение у ВСЕГО класса (по базе
+  // students[0]), применяя bulkSetGrade/bulkSetAtt мгновенно. Поведение
+  // идентично карточке (tap-цикл), но перезаписывает колонку класса.
+  const cycleGradeFieldBulk = (field: GradeField) => {
+    const base = students[0]?.[field] != null ? String(students[0]![field]) : '';
+    const idx = GRADES.indexOf(base);
+    const next = GRADES[(idx + 1) % GRADES.length];
+    bulkSetGrade(field, next);
+  };
+  const cycleAttendanceBulk = () => {
+    if (!attendanceTypes.length) return;
+    const baseId = students[0]?.attendance_type_id;
+    const curIdx = attendanceTypes.findIndex(t => t.id === baseId);
+    const nextType = attendanceTypes[(curIdx + 1) % attendanceTypes.length];
+    bulkSetAtt(nextType.id);
   };
 
   // Сохранение всего буфера на сервер одним запросом (/save, перезапись).
@@ -218,48 +234,22 @@ export const LessonJournalPage: React.FC<LessonJournalPageProps> = ({ lessonId, 
   };
 
   // Ластик колонки в шторке: локально сбрасывает колонку в буфере.
-  const clearLocal = (target: GradeField | 'attendance') => {
-    setStudents(prev => prev.map(s => {
-      if (target === 'attendance') return { ...s, attendance_type_id: null };
-      return { ...s, [target]: null };
-    }));
+  // Общий ластик в шторке: сбрасывает ВСЕ оценки и посещаемость у всего класса.
+  const clearAll = () => {
+    setStudents(prev => prev.map(s => ({ ...s, grade_1: null, grade_2: null, grade_3: null, attendance_type_id: null })));
     setDirty(true);
   };
-  // Массовая карусель в шторке: мгновенно (как ластик) применяет
-  // выбранное значение ко ВСЕМ ученикам в локальном буфере.
-  // bulkMode: 'empty' — только пустые колонки; 'all' — перезапись всех.
-  // Список за ширмой перерисовывается сразу.
+  // Массовая замена в шторке: мгновенно применяет выбранное значение
+  // ко ВСЕМ ученикам в локальном буфере (перезапись колонки класса).
+  // Список за ширмой перерисовывается сразу. Тонкая правка по карточке — индивидуально.
   const bulkSetGrade = (field: GradeField, value: string) => {
-    const v = value === '' ? null : Number(value);
-    setStudents(prev => prev.map(s => {
-      if (bulkMode === 'empty' && s[field] != null) return s;
-      return { ...s, [field]: v };
-    }));
+    const v = value === '' || value === '-' ? null : Number(value);
+    setStudents(prev => prev.map(s => ({ ...s, [field]: v })));
     setDirty(true);
   };
-  const bulkCycleGrade = (field: GradeField) => {
-    // курсор карусели: при 'empty' — первый пустой; при 'all' — первый вообще
-    const cursorSrc = bulkMode === 'empty'
-      ? students.find(s => s[field] == null)
-      : students[0];
-    const current = cursorSrc?.[field] != null ? String(cursorSrc[field]) : '';
-    const idx = GRADES.indexOf(current);
-    const next = GRADES[(idx + 1) % GRADES.length];
-    bulkSetGrade(field, next);
-  };
-  const bulkCycleAtt = () => {
-    if (!attendanceTypes.length) return;
-    const cursorSrc = bulkMode === 'empty'
-      ? students.find(s => !s.attendance_type_id)
-      : students[0];
-    const curIdx = cursorSrc && cursorSrc.attendance_type_id != null
-      ? attendanceTypes.findIndex(t => t.id === cursorSrc.attendance_type_id)
-      : -1;
-    const nextType = attendanceTypes[(curIdx + 1) % attendanceTypes.length];
-    setStudents(prev => prev.map(s => {
-      if (bulkMode === 'empty' && s.attendance_type_id != null) return s;
-      return { ...s, attendance_type_id: nextType.id };
-    }));
+  // Массовая замена посещаемости: attId=null => сброс всех в «-».
+  const bulkSetAtt = (attId: number | null) => {
+    setStudents(prev => prev.map(s => ({ ...s, attendance_type_id: attId })));
     setDirty(true);
   };
 
@@ -433,118 +423,56 @@ export const LessonJournalPage: React.FC<LessonJournalPageProps> = ({ lessonId, 
         }}
       >
         <Flex direction="column" gap={20}>
-          {/* Режим массовой карусели: только пустые | перезапись всех */}
-          <Flex
-            align="center"
-            gap={4}
-            style={{
-              width: '100%',
-              padding: '4px',
-              borderRadius: '10px',
-              backgroundColor: 'var(--background-surface-raised)',
-            }}
-          >
-            {([
-              { mode: 'empty' as const, label: 'Только пустые' },
-              { mode: 'all' as const, label: 'Все' },
-            ]).map(({ mode, label }) => (
-              <button
-                key={mode}
-                type="button"
-                onClick={() => setBulkMode(mode)}
-                style={{
-                  flex: 1,
-                  height: '34px',
-                  borderRadius: '8px',
-                  border: 'none',
-                  fontWeight: 600,
-                  fontSize: '13px',
-                  cursor: 'pointer',
-                  backgroundColor: bulkMode === mode ? 'var(--background-surface-card)' : 'transparent',
-                  color: bulkMode === mode ? 'var(--text-primary)' : 'var(--text-secondary)',
-                  boxShadow: bulkMode === mode ? '0 1px 2px rgba(0,0,0,0.12)' : 'none',
-                }}
-              >
-                {label}
-              </button>
-            ))}
-          </Flex>
-
-          {/* Сетка: аватар + для каждой колонки (О1/О2/О3/Посещ) — ластик
-              сверху (иконка, без метки) и карусель снизу. Ластики выровнены
-              над соответствующими оценками. Кнопки ластиков минимальной
-              ширины, чтобы все 4 колонки + аватар влезали в одну строку
-              на ~375px без переноса. */}
-          <Flex align="flex-start" gap={8} wrap="wrap" style={{ width: '100%', minWidth: 0 }}>
-            <Avatar.Container size={48} form="squircle" className="rm-sheet-avatar" style={{ flexShrink: 0, marginTop: '34px' }}>
+          {/* Сетка: аватар (SVG Users) + для каждой колонки (О1/О2/О3/Посещ)
+              — кнопка-круг с tap-циклом (как на карточке ученика), но массово
+              (пишет всему классу). ОДИН общий ластик справа сбрасывает ВСЁ. */}
+          <Flex align="flex-start" gap={6} wrap="nowrap" style={{ width: '100%', minWidth: 0 }}>
+            <Avatar.Container size={44} form="squircle" className="rm-sheet-avatar" style={{ flexShrink: 0, marginTop: '0' }}>
               <Avatar.Icon>
-                <Users size={22} color="var(--text-contrast-static)" />
+                <Users size={20} color="var(--text-contrast-static)" />
               </Avatar.Icon>
             </Avatar.Container>
 
             {GRADE_FIELDS.map((gf) => (
-              <Flex key={gf} direction="column" align="center" gap={6} style={{ flexShrink: 0, minWidth: 0 }}>
-                <button
-                  type="button"
-                  onClick={() => clearLocal(gf)}
-                  title={`Очистить ${GRADE_FIELD_LABELS[gf]} у всего класса`}
-                  style={{
-                    width: '34px',
-                    height: '32px',
-                    borderRadius: '8px',
-                    border: '1px solid var(--stroke-separator-secondary)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    cursor: 'pointer',
-                    backgroundColor: 'var(--background-surface-card)',
-                    color: 'var(--background-accent-negative)',
-                  }}
-                >
-                  <Eraser size={16} color="currentColor" />
-                </button>
-                <JournalButton
-                  value={students[0]?.[gf] != null ? String(students[0]![gf]) : '—'}
-                  active={students[0]?.[gf] != null}
-                  activeColor={gradeColor(students[0]?.[gf] ?? null)}
-                  onClick={() => bulkCycleGrade(gf)}
-                  title={`Массово: оценка ${GRADE_FIELD_LABELS[gf]} (пустые)`}
-                  minWidth={30}
-                  padding="0 6px"
-                />
-              </Flex>
+              <JournalButton
+                key={gf}
+                value={students[0]?.[gf] != null ? String(students[0]![gf]) : '—'}
+                active={students[0]?.[gf] != null}
+                activeColor={gradeColor(students[0]?.[gf] != null ? students[0]![gf] : null)}
+                onClick={() => cycleGradeFieldBulk(gf)}
+                title={`Оценка ${GRADE_FIELD_LABELS[gf]} — нажмите, чтобы сменить у всего класса`}
+                minWidth={30}
+                padding="0 6px"
+              />
             ))}
 
-            <Flex direction="column" align="center" gap={6} style={{ flexShrink: 0, minWidth: 0 }}>
-              <button
-                type="button"
-                onClick={() => clearLocal('attendance')}
-                title="Очистить посещаемость у всего класса"
-                style={{
-                  width: '34px',
-                  height: '32px',
-                  borderRadius: '8px',
-                  border: '1px solid var(--stroke-separator-secondary)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  cursor: 'pointer',
-                  backgroundColor: 'var(--background-surface-card)',
-                  color: 'var(--background-accent-negative)',
-                }}
-              >
-                <Eraser size={16} color="currentColor" />
-              </button>
-              <JournalButton
-                value={(() => { const f = students.find(s => !s.attendance_type_id); return f && f.attendance_type_id != null ? attendanceTypes.find(t => t.id === f.attendance_type_id)?.name ?? '—' : '—'; })()}
-                active={!!students.find(s => !s.attendance_type_id && s.attendance_type_id != null)}
-                activeColor={attendanceColor(students.find(s => !s.attendance_type_id && s.attendance_type_id != null) ? attendanceTypes.find(t => t.id === students.find(s => !s.attendance_type_id)!.attendance_type_id)?.name : undefined)}
-                onClick={bulkCycleAtt}
-                fontSize={12}
-                padding="0 10px"
-                whiteSpace="nowrap"
-              />
-            </Flex>
+            <JournalButton
+              value={(() => { const s = students[0]; return s && s.attendance_type_id != null ? attendanceTypes.find(t => t.id === s.attendance_type_id)?.name ?? '—' : '—'; })()}
+              active={students[0]?.attendance_type_id != null}
+              activeColor={attendanceColor(students[0] ? attendanceTypes.find(t => t.id === students[0]!.attendance_type_id)?.name : undefined)}
+              onClick={() => cycleAttendanceBulk()}
+              title="Посещаемость — нажмите, чтобы сменить у всего класса"
+              fontSize={12}
+              minWidth={34}
+              padding="0 10px"
+              whiteSpace="nowrap"
+            />
+
+            <button
+              type="button"
+              onClick={() => clearAll()}
+              title="Сбросить всё (оценки и посещаемость) у всего класса"
+              style={{
+                width: '36px', height: '40px', borderRadius: '8px', flexShrink: 0,
+                marginLeft: 'auto',
+                border: '1px solid var(--stroke-separator-secondary)', cursor: 'pointer',
+                backgroundColor: 'var(--background-surface-card)',
+                color: 'var(--background-accent-negative)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}
+            >
+              <Eraser size={16} color="currentColor" />
+            </button>
           </Flex>
 
           {/* Одна кнопка закрытия шторки. Массовые правки (карусели
