@@ -92,6 +92,7 @@ const JournalButton: React.FC<JournalButtonProps> = ({
   height = 34,
   minWidth = 34,
   fontSize = 15,
+  lineHeight = 1,
   padding,
   whiteSpace,
   flex,
@@ -105,6 +106,7 @@ const JournalButton: React.FC<JournalButtonProps> = ({
       height,
       minWidth,
       fontSize,
+      lineHeight,
       padding: padding ?? '0',
       whiteSpace,
       flex,
@@ -441,7 +443,8 @@ export const LessonJournalPage: React.FC<LessonJournalPageProps> = ({ lessonId, 
                 activeColor={gradeColor(students[0]?.[gf] != null ? students[0]![gf] : null)}
                 onClick={() => cycleGradeFieldBulk(gf)}
                 title={`Оценка ${GRADE_FIELD_LABELS[gf]} — нажмите, чтобы сменить у всего класса`}
-                minWidth={30}
+                minWidth={38}
+                height={40}
                 padding="0 6px"
               />
             ))}
@@ -454,6 +457,7 @@ export const LessonJournalPage: React.FC<LessonJournalPageProps> = ({ lessonId, 
               title="Посещаемость — нажмите, чтобы сменить у всего класса"
               fontSize={12}
               minWidth={34}
+              height={40}
               padding="0 10px"
               whiteSpace="nowrap"
             />
