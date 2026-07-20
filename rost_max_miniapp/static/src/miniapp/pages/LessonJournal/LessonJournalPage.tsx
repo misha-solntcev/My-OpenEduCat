@@ -1,5 +1,5 @@
 import React from 'react';
-import { Flex, Typography, IconButton, Avatar } from '@maxhub/max-ui';
+import { Flex, Typography, IconButton, Avatar, Switch } from '@maxhub/max-ui';
 import { apiGet, apiPost, initialsOf } from '../../lib';
 import { Users, Zap, Eraser } from 'lucide-react';
 
@@ -124,6 +124,14 @@ export const LessonJournalPage: React.FC<LessonJournalPageProps> = ({ lessonId, 
   const [attendanceTypes, setAttendanceTypes] = React.useState<AttendanceType[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [sheetOpen, setSheetOpen] = React.useState(false);
+  // Режим массового выставления в шторке: true = перезаписать ВСЕ оценки/
+  // посещаемость класса, false = только ранее пустые строки.
+  const [overwriteAll, setOverwriteAll] = React.useState(false);
+  // Снимок студентов на момент открытия шторки (baseline). В режиме
+  // !overwriteAll трогаем только строки, что были пусты ДО открытия
+  // шторки — заполненные до этого остаются нетронутыми, а пустые
+  // (и те, что мы заполнили этим сеансом) крутятся по циклу дальше.
+  const baselineRef = React.useRef<Student[]>([]);
   // dirty = есть несохранённые локальные изменения (буфер отличается от сервера)
   const [dirty, setDirty] = React.useState(false);
   const [saving, setSaving] = React.useState(false);
@@ -171,18 +179,34 @@ export const LessonJournalPage: React.FC<LessonJournalPageProps> = ({ lessonId, 
     patchStudent(student.id, { attendance_type_id: nextType.id });
   };
 
-  // Массовые аналоги для шторки: крутят значение у ВСЕГО класса (по базе
-  // students[0]), применяя bulkSetGrade/bulkSetAtt мгновенно. Поведение
-  // идентично карточке (tap-цикл), но перезаписывает колонку класса.
+  // Массовые аналоги для шторки: крутят значение у ВСЕГО класса, применяя
+  // bulkSetGrade/bulkSetAtt мгновенно. Поведение идентично карточке (tap-цикл),
+  // но перезаписывает колонку класса. Базу цикла берём от ПЕРВОЙ строки,
+  // чья колонка пуста в baseline (при !overwriteAll) — чтобы кнопка шторки
+  // показывала и крутила реально изменяемое значение, а не students[0]
+  // (который может быть уже заполнен и заблокирован). Если все заполнены —
+  // берём students[0] (при !overwriteAll он не изменится, что корректно).
+  const firstEditable = (field: GradeField | 'attendance_type_id'): Student | undefined => {
+    if (!overwriteAll) {
+      const e = students.find(s => {
+        const base = baselineRef.current.find(b => b.id === s.id);
+        return !base || base[field] == null;
+      });
+      if (e) return e;
+    }
+    return students[0];
+  };
   const cycleGradeFieldBulk = (field: GradeField) => {
-    const base = students[0]?.[field] != null ? String(students[0]![field]) : '';
+    const ref = firstEditable(field);
+    const base = ref?.[field] != null ? String(ref![field]) : '';
     const idx = GRADES.indexOf(base);
     const next = GRADES[(idx + 1) % GRADES.length];
     bulkSetGrade(field, next);
   };
   const cycleAttendanceBulk = () => {
     if (!attendanceTypes.length) return;
-    const baseId = students[0]?.attendance_type_id;
+    const ref = firstEditable('attendance_type_id');
+    const baseId = ref?.attendance_type_id;
     const curIdx = attendanceTypes.findIndex(t => t.id === baseId);
     const nextType = attendanceTypes[(curIdx + 1) % attendanceTypes.length];
     bulkSetAtt(nextType.id);
@@ -245,14 +269,31 @@ export const LessonJournalPage: React.FC<LessonJournalPageProps> = ({ lessonId, 
   // Массовая замена в шторке: мгновенно применяет выбранное значение
   // ко ВСЕМ ученикам в локальном буфере (перезапись колонки класса).
   // Список за ширмой перерисовывается сразу. Тонкая правка по карточке — индивидуально.
+  // Режим overwriteAll (Switch в шторке): true = перезаписать всех,
+  // false = только строки, что были ПУСТЫ до открытия шторки (baseline).
+  // Заполненные до шторки остаются нетронутыми; пустые (и те, что мы
+  // заполнили этим сеансом) крутятся по циклу дальше.
   const bulkSetGrade = (field: GradeField, value: string) => {
     const v = value === '' || value === '-' ? null : Number(value);
-    setStudents(prev => prev.map(s => ({ ...s, [field]: v })));
+    setStudents(prev => prev.map(s => {
+      if (!overwriteAll) {
+        const base = baselineRef.current.find(b => b.id === s.id);
+        // трогаем только если в baseline эта колонка была пустой
+        if (!base || base[field] != null) return s;
+      }
+      return { ...s, [field]: v };
+    }));
     setDirty(true);
   };
   // Массовая замена посещаемости: attId=null => сброс всех в «-».
   const bulkSetAtt = (attId: number | null) => {
-    setStudents(prev => prev.map(s => ({ ...s, attendance_type_id: attId })));
+    setStudents(prev => prev.map(s => {
+      if (!overwriteAll) {
+        const base = baselineRef.current.find(b => b.id === s.id);
+        if (!base || base.attendance_type_id != null) return s;
+      }
+      return { ...s, attendance_type_id: attId };
+    }));
     setDirty(true);
   };
 
@@ -272,7 +313,7 @@ export const LessonJournalPage: React.FC<LessonJournalPageProps> = ({ lessonId, 
             {headerTitle}
           </Typography.Title>
         </div>
-        <IconButton appearance="themed" mode="tertiary" onClick={() => setSheetOpen(true)} title="Массово проставить оценки и посещаемость" style={{ flexShrink: 0 }}>
+        <IconButton appearance="themed" mode="tertiary" onClick={() => { baselineRef.current = students.map(s => ({ ...s })); setSheetOpen(true); }} title="Массово проставить оценки и посещаемость" style={{ flexShrink: 0 }}>
           <Zap size={20} color="currentColor" />
         </IconButton>
       </Flex>
@@ -426,9 +467,29 @@ export const LessonJournalPage: React.FC<LessonJournalPageProps> = ({ lessonId, 
         }}
       >
         <Flex direction="column" gap={20}>
+          {/* Режим массового выставления (Switch) + общий ластик — вверху
+              справа отдельной строкой. Switch ВКЛ = перезаписать всех, ВЫКЛ =
+              только строки, что были пусты до открытия шторки (baseline).
+              Ластик в том же визуальном языке, что Switch (IconButton). */}
+          <Flex align="center" justify="end" gap={10} style={{ width: '100%' }}>
+            <Switch
+              checked={overwriteAll}
+              onChange={(e) => setOverwriteAll(e.target.checked)}
+              aria-label="Перезаписывать заполненные оценки"
+            />
+            <IconButton
+              appearance="themed"
+              mode="tertiary"
+              onClick={() => clearAll()}
+              title="Сбросить всё (оценки и посещаемость) у всего класса"
+            >
+              <Eraser size={20} />
+            </IconButton>
+          </Flex>
+
           {/* Сетка: аватар (SVG Users) + для каждой колонки (О1/О2/О3/Посещ)
               — кнопка-круг с tap-циклом (как на карточке ученика), но массово
-              (пишет всему классу). ОДИН общий ластик справа сбрасывает ВСЁ. */}
+              (пишет всему классу). */}
           <Flex align="flex-start" gap={6} wrap="nowrap" style={{ width: '100%', minWidth: 0 }}>
             <Avatar.Container size={44} form="squircle" className="rm-sheet-avatar" style={{ flexShrink: 0, marginTop: '0' }}>
               <Avatar.Icon>
@@ -439,9 +500,9 @@ export const LessonJournalPage: React.FC<LessonJournalPageProps> = ({ lessonId, 
             {GRADE_FIELDS.map((gf) => (
               <JournalButton
                 key={gf}
-                value={students[0]?.[gf] != null ? String(students[0]![gf]) : '—'}
-                active={students[0]?.[gf] != null}
-                activeColor={gradeColor(students[0]?.[gf] != null ? students[0]![gf] : null)}
+                value={(() => { const r = firstEditable(gf); return r?.[gf] != null ? String(r![gf]) : '—'; })()}
+                active={(() => { const r = firstEditable(gf); return r?.[gf] != null; })()}
+                activeColor={(() => { const r = firstEditable(gf); return gradeColor(r?.[gf] != null ? r![gf] : null); })()}
                 onClick={() => cycleGradeFieldBulk(gf)}
                 title={`Оценка ${GRADE_FIELD_LABELS[gf]} — нажмите, чтобы сменить у всего класса`}
                 minWidth={38}
@@ -451,9 +512,9 @@ export const LessonJournalPage: React.FC<LessonJournalPageProps> = ({ lessonId, 
             ))}
 
             <JournalButton
-              value={(() => { const s = students[0]; return s && s.attendance_type_id != null ? attendanceTypes.find(t => t.id === s.attendance_type_id)?.name ?? '—' : '—'; })()}
-              active={students[0]?.attendance_type_id != null}
-              activeColor={attendanceColor(students[0] ? attendanceTypes.find(t => t.id === students[0]!.attendance_type_id)?.name : undefined)}
+              value={(() => { const r = firstEditable('attendance_type_id'); return r && r.attendance_type_id != null ? attendanceTypes.find(t => t.id === r.attendance_type_id)?.name ?? '—' : '—'; })()}
+              active={(() => { const r = firstEditable('attendance_type_id'); return r?.attendance_type_id != null; })()}
+              activeColor={(() => { const r = firstEditable('attendance_type_id'); return attendanceColor(r ? attendanceTypes.find(t => t.id === r.attendance_type_id)?.name : undefined); })()}
               onClick={() => cycleAttendanceBulk()}
               title="Посещаемость — нажмите, чтобы сменить у всего класса"
               fontSize={12}
@@ -462,22 +523,6 @@ export const LessonJournalPage: React.FC<LessonJournalPageProps> = ({ lessonId, 
               padding="0 10px"
               whiteSpace="nowrap"
             />
-
-            <button
-              type="button"
-              onClick={() => clearAll()}
-              title="Сбросить всё (оценки и посещаемость) у всего класса"
-              style={{
-                width: '36px', height: '40px', borderRadius: '8px', flexShrink: 0,
-                marginLeft: 'auto',
-                border: '1px solid var(--stroke-separator-secondary)', cursor: 'pointer',
-                backgroundColor: 'var(--background-surface-card)',
-                color: 'var(--background-accent-negative)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-              }}
-            >
-              <Eraser size={16} color="currentColor" />
-            </button>
           </Flex>
 
           {/* Одна кнопка закрытия шторки. Массовые правки (карусели
