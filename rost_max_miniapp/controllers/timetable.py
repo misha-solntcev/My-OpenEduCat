@@ -23,6 +23,45 @@ def _get_spa_csrf_token():
     return token
 
 
+def _check_spa_csrf():
+    """Ручная валидация CSRF для JSON POST (системный валидатор Odoo для
+    http-роутов ищет токен только в query/form-data, а фронт шлёт его в
+    заголовке X-CSRF-Token). Сравниваем с нашим стабильным токеном SPA.
+
+    Возвращает Response (400) при несовпадении, иначе None.
+    """
+    csrf_token = request.httprequest.headers.get('X-CSRF-Token')
+    session_token = request.session.get(CSRF_SESSION_KEY)
+    if not session_token or not csrf_token or csrf_token != session_token:
+        return request.make_json_response({"error": "CSRF validation failed"}, status=400)
+    return None
+
+
+def _check_lesson_write_access(sheet):
+    """Защита от фальсификации оценок: писать может только админ либо
+    преподаватель, назначенный вести этот урок. Гость/студент/чужой
+    преподаватель получают 403.
+
+    Возвращает Response (403) при отказе, иначе None.
+    """
+    user = request.env.user
+    is_admin = user.has_group('base.group_system')
+    if is_admin:
+        return None
+    faculty = request.env['op.faculty'].sudo().search([
+        ('partner_id', '=', user.partner_id.id)
+    ], limit=1)
+    if not faculty or sheet.faculty_id != faculty:
+        _logger.warning(
+            "Security write violation: User %s (ID %s) attempted to write grades on unauthorized lesson ID %s",
+            user.login, user.id, sheet.id,
+        )
+        return request.make_json_response(
+            {"error": "У вас нет прав для изменения оценок этого урока"}, status=403
+        )
+    return None
+
+
 class RostMaxTimetableController(http.Controller):
     """Мини-приложение для MAX: расписание занятий"""
 
@@ -258,124 +297,28 @@ class RostMaxTimetableController(http.Controller):
             "students": students,
         })
 
-    @http.route("/rost_max/api/lesson/<int:lesson_id>/update", type="http", auth="public", methods=["POST"], cors="*", csrf=False)
-    def api_update_lesson_student(self, lesson_id, **kw):
-        """API: сохранение оценки и/или отметки посещаемости ученика в строке посещаемости"""
-        # Ручная валидация CSRF для JSON POST: системный валидатор Odoo для
-        # http-роутов ищет токен только в query/form-data, а фронт шлёт его
-        # в заголовке X-CSRF-Token (JSON-тело не парсится до проверки).
-        # Сравниваем напрямую с нашим стабильным токеном SPA (без o<timestamp>,
-        # хранится в сессии под spa_csrf_token). Токен не меняется между рендером
-        # и POST -> сравнение детерминированное и реально защищает от CSRF.
-        csrf_token = request.httprequest.headers.get('X-CSRF-Token')
-        session_token = request.session.get(CSRF_SESSION_KEY)
-        if not session_token or not csrf_token or csrf_token != session_token:
-            return request.make_json_response({"error": "CSRF validation failed"}, status=400)
-
-        user = request.env.user
-        sheet = request.env['op.attendance.sheet'].sudo().browse(lesson_id)
-        if not sheet.exists():
-            return request.make_json_response({"error": "Урок не найден"}, status=404)
-
-        # Защита от фальсификации оценок: писать может только админ либо
-        # преподаватель, назначенный вести этот урок. Гость/студент/чужой
-        # преподаватель получают 403.
-        is_admin = user.has_group('base.group_system')
-        if not is_admin:
-            faculty = request.env['op.faculty'].sudo().search([
-                ('partner_id', '=', user.partner_id.id)
-            ], limit=1)
-            if not faculty or sheet.faculty_id != faculty:
-                _logger.warning(
-                    "Security write violation: User %s (ID %s) attempted to write grades on unauthorized lesson ID %s",
-                    user.login, user.id, lesson_id,
-                )
-                return request.make_json_response(
-                    {"error": "У вас нет прав для изменения оценок этого урока"}, status=403
-                )
-
-        try:
-            body = request.get_json_data()
-        except Exception:
-            return request.make_json_response(
-                {"error": "Invalid JSON"}, status=400
-            )
-
-        student_id = body.get('student_id')
-        if not student_id:
-            return request.make_json_response(
-                {"error": "student_id обязателен"}, status=400
-            )
-
-        line = request.env['op.attendance.line'].sudo().search([
-            ('attendance_id', '=', lesson_id),
-            ('student_id', '=', int(student_id)),
-        ], limit=1)
-        if not line:
-            return request.make_json_response(
-                {"error": "Строка посещаемости не найдена"}, status=404
-            )
-
-        vals = {}
-        # Индивидуальные оценки по трём колонкам. Каждая колонка
-        # независима: пропущенная в теле не трогается (перезапись всегда,
-        # в отличие от bulk, который пишет только в пустые).
-        for gf in ('grade_1', 'grade_2', 'grade_3'):
-            g = body.get(gf)
-            if g is None:
-                continue
-            if g == '':
-                vals[gf] = 0.0
-            else:
-                try:
-                    vals[gf] = float(g)
-                except (ValueError, TypeError):
-                    pass
-
-        attendance_type_id = body.get('attendance_type_id')
-        if attendance_type_id not in (None, ''):
-            vals['attendance_type_id'] = int(attendance_type_id)
-
-        if vals:
-            line.write(vals)
-
-        return request.make_json_response({"success": True})
-
     @http.route("/rost_max/api/lesson/<int:lesson_id>/save", type="http", auth="public", methods=["POST"], cors="*", csrf=False)
     def api_save_lesson(self, lesson_id, **kw):
         """API: пакетное сохранение ВСЕГО буфера журнала урока за один запрос.
 
         Фронт накапливает изменения локально (оценки grade_1/2/3 и
         посещаемость по каждому ученику) и шлёт их разом кнопкой "Сохранить".
-        В отличие от /bulk (пишет только в пустые строки), здесь —
         ПЕРЕЗАПИСЬ: каждая переданная колонка пишется как есть (0.0/null —
         тоже валидное значение, т.е. ластик-сброс тоже проходит). Это и есть
         механизм явного сохранения после локального редактирования.
         """
-        csrf_token = request.httprequest.headers.get('X-CSRF-Token')
-        session_token = request.session.get(CSRF_SESSION_KEY)
-        if not session_token or not csrf_token or csrf_token != session_token:
-            return request.make_json_response({"error": "CSRF validation failed"}, status=400)
+        csrf_err = _check_spa_csrf()
+        if csrf_err:
+            return csrf_err
 
         user = request.env.user
         sheet = request.env['op.attendance.sheet'].sudo().browse(lesson_id)
         if not sheet.exists():
             return request.make_json_response({"error": "Урок не найден"}, status=404)
 
-        # Те же права, что и в update/bulk/clear: админ либо препод своего урока.
-        is_admin = user.has_group('base.group_system')
-        if not is_admin:
-            faculty = request.env['op.faculty'].sudo().search([
-                ('partner_id', '=', user.partner_id.id)
-            ], limit=1)
-            if not faculty or sheet.faculty_id != faculty:
-                _logger.warning(
-                    "Security write violation: User %s (ID %s) attempted save grades on unauthorized lesson ID %s",
-                    user.login, user.id, lesson_id,
-                )
-                return request.make_json_response(
-                    {"error": "У вас нет прав для изменения оценок этого урока"}, status=403
-                )
+        access_err = _check_lesson_write_access(sheet)
+        if access_err:
+            return access_err
 
         try:
             body = request.get_json_data()
@@ -422,146 +365,6 @@ class RostMaxTimetableController(http.Controller):
                 written += 1
 
         return request.make_json_response({"success": True, "written": written})
-
-    @http.route("/rost_max/api/lesson/<int:lesson_id>/bulk", type="http", auth="public", methods=["POST"], cors="*", csrf=False)
-    def api_bulk_lesson(self, lesson_id, **kw):
-        """API: массовая расстановка оценки и/или посещаемости всему классу.
-
-        Делегирует стандартным методам openeducat:
-        - action_mass_set_grade(context=set_grade) — проставляет оценку в
-          ПУСТЫЕ строки колонки grade_1 (существующие не трогает);
-          пустым строкам ставит 'Присутствует'.
-        - action_mass_set_attendance(context=set_name) — проставляет тип
-          посещаемости пустым строкам.
-        Оба метода висят на op.attendance.sheet и НЕ перезаписывают уже
-        заполненные значения (это поведение openeducat, менять не стали).
-        """
-        csrf_token = request.httprequest.headers.get('X-CSRF-Token')
-        session_token = request.session.get(CSRF_SESSION_KEY)
-        if not session_token or not csrf_token or csrf_token != session_token:
-            return request.make_json_response({"error": "CSRF validation failed"}, status=400)
-
-        user = request.env.user
-        sheet = request.env['op.attendance.sheet'].sudo().browse(lesson_id)
-        if not sheet.exists():
-            return request.make_json_response({"error": "Урок не найден"}, status=404)
-
-        # Те же права, что и в update: админ либо препод своего урока.
-        is_admin = user.has_group('base.group_system')
-        if not is_admin:
-            faculty = request.env['op.faculty'].sudo().search([
-                ('partner_id', '=', user.partner_id.id)
-            ], limit=1)
-            if not faculty or sheet.faculty_id != faculty:
-                _logger.warning(
-                    "Security write violation: User %s (ID %s) attempted bulk grades on unauthorized lesson ID %s",
-                    user.login, user.id, lesson_id,
-                )
-                return request.make_json_response(
-                    {"error": "У вас нет прав для изменения оценок этого урока"}, status=403
-                )
-
-        try:
-            body = request.get_json_data()
-        except Exception:
-            return request.make_json_response({"error": "Invalid JSON"}, status=400)
-
-        grade = body.get('grade')
-        grade_field = body.get('grade_field') or 'grade_1'
-        if grade_field not in ('grade_1', 'grade_2', 'grade_3'):
-            grade_field = 'grade_1'
-        attendance_type_name = body.get('attendance_type_name')
-
-        applied = {}
-        if grade not in (None, ''):
-            try:
-                grade_float = float(grade)
-            except (ValueError, TypeError):
-                return request.make_json_response({"error": "Некорректная оценка"}, status=400)
-            # action_mass_set_grade пишет в колонки, отмеченные mass_target_*
-            # на самом sheet. Выставляем нужный флаг прямым write (без
-            # триггеров) и сбрасываем остальные, чтобы не задеть другие
-            # колонки. Пишет ТОЛЬКО в пустые строки выбранной колонки.
-            sheet.sudo().write({
-                'mass_target_1': grade_field == 'grade_1',
-                'mass_target_2': grade_field == 'grade_2',
-                'mass_target_3': grade_field == 'grade_3',
-            })
-            sheet.with_context(set_grade=grade_float).sudo().action_mass_set_grade()
-            applied['grade'] = grade_float
-            applied['grade_field'] = grade_field
-
-        if attendance_type_name not in (None, ''):
-            sheet.with_context(set_name=attendance_type_name).sudo().action_mass_set_attendance()
-            applied['attendance_type_name'] = attendance_type_name
-
-        return request.make_json_response({
-            "success": True,
-            "applied": applied,
-            "sheet_state": sheet.state,
-        })
-
-    @http.route("/rost_max/api/lesson/<int:lesson_id>/clear", type="http", auth="public", methods=["POST"], cors="*", csrf=False)
-    def api_clear_lesson(self, lesson_id, **kw):
-        """API: массовый сброс оценок и/или посещаемости всего класса.
-
-        Делегирует методам на op.attendance.line (рядом с action_clear_line_data):
-        - action_clear_grades() — сбрасывает grade_1/2/3 в 0.0;
-        - action_clear_attendance() — сбрасывает attendance_type_id.
-        target управляет тем, что чистим: 'grades' | 'attendance' | 'all'.
-        """
-        csrf_token = request.httprequest.headers.get('X-CSRF-Token')
-        session_token = request.session.get(CSRF_SESSION_KEY)
-        if not session_token or not csrf_token or csrf_token != session_token:
-            return request.make_json_response({"error": "CSRF validation failed"}, status=400)
-
-        user = request.env.user
-        sheet = request.env['op.attendance.sheet'].sudo().browse(lesson_id)
-        if not sheet.exists():
-            return request.make_json_response({"error": "Урок не найден"}, status=404)
-
-        # Те же права, что и в update/bulk: админ либо препод своего урока.
-        is_admin = user.has_group('base.group_system')
-        if not is_admin:
-            faculty = request.env['op.faculty'].sudo().search([
-                ('partner_id', '=', user.partner_id.id)
-            ], limit=1)
-            if not faculty or sheet.faculty_id != faculty:
-                _logger.warning(
-                    "Security write violation: User %s (ID %s) attempted clear grades on unauthorized lesson ID %s",
-                    user.login, user.id, lesson_id,
-                )
-                return request.make_json_response(
-                    {"error": "У вас нет прав для изменения оценок этого урока"}, status=403
-                )
-
-        try:
-            body = request.get_json_data()
-        except Exception:
-            return request.make_json_response({"error": "Invalid JSON"}, status=400)
-
-        target = body.get('target')
-        valid = ('grades', 'attendance', 'all', 'grade_1', 'grade_2', 'grade_3')
-        if target not in valid:
-            return request.make_json_response(
-                {"error": "Некорректный target (ожидается grades|attendance|all|grade_1|grade_2|grade_3)"}, status=400
-            )
-
-        if target in ('grades', 'all'):
-            sheet.attendance_line.sudo().action_clear_grades()
-        elif target in ('grade_1', 'grade_2', 'grade_3'):
-            # Очистка одной колонки оценки: выставляем mass_target_* и зовём
-            # стандартный action_mass_clear_grades (пишет 0.0 во все отмеченные).
-            sheet.sudo().write({
-                'mass_target_1': target == 'grade_1',
-                'mass_target_2': target == 'grade_2',
-                'mass_target_3': target == 'grade_3',
-            })
-            sheet.sudo().action_mass_clear_grades()
-        if target in ('attendance', 'all'):
-            sheet.attendance_line.sudo().action_clear_attendance()
-
-        return request.make_json_response({"success": True, "target": target})
 
     @http.route("/rost_max/api/user/info", type="http", auth="public", methods=["GET"])
     def api_user_info(self):

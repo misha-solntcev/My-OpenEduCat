@@ -74,6 +74,7 @@ interface JournalButtonProps {
   height?: number;
   minWidth?: number;
   fontSize?: number;
+  lineHeight?: number;
   padding?: string;
   whiteSpace?: string;
   flex?: number;
