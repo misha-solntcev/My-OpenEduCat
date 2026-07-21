@@ -1,8 +1,8 @@
 import React from 'react';
-import { Flex, Spinner, Avatar, Button, Grid } from '@maxhub/max-ui';
+import { Flex, Spinner, Avatar, Button, Grid, CellList, CellSimple } from '@maxhub/max-ui';
 import { apiGet, initialsOf } from '../../lib';
 import { DateJumper } from '../../components/DateJumper';
-import { Card, CardHeader, CardContent } from '../../components/Card';
+import { Tile } from '../../components/Tile';
 import { useAppStore } from '../../lib/store';
 
 interface DashboardData {
@@ -67,18 +67,17 @@ export const DashboardPage: React.FC<{ onNavigate: (to: string) => void }> = ({ 
   return (
     <Flex direction="column" align="stretch" gap={16} style={{ width: '100%' }}>
       {/* 1. Профиль — нативная ячейка (Avatar + имя + роль) */}
-      <Card>
-        <CardHeader
-          media={(
+      <CellList mode="island">
+        <CellSimple
+          before={
             <Avatar.Container size={40} form="squircle">
               <Avatar.Text>{initials}</Avatar.Text>
             </Avatar.Container>
-          )}
+          }
           title={userName || roleFallback}
-          description={statusText}
+          subtitle={statusText}
         />
-      </Card>
-
+      </CellList>
 
       {loading && (
         <Flex align="center" justify="center" style={{ padding: '48px 0' }}>
@@ -88,13 +87,13 @@ export const DashboardPage: React.FC<{ onNavigate: (to: string) => void }> = ({ 
 
       {!loading && data && (
         <>
-          {/* 2. Баннер демо-режима (летние каникулы / выходной) — Card: media слева + text (сама в Typography.Body); поверхность выбираем снаружи */}
+          {/* 2. Баннер демо-режима (летние каникулы / выходной) — кастомный
+              цветной фон (negative), аналога в MAX UI нет. */}
           {data.is_fallback && (
-            <Card
-              media={<span style={{ fontSize: '24px' }}>🏖️</span>}
-              bordered={false}
-              style={{ backgroundColor: 'var(--background-accent-negative)', color: 'var(--text-primary-static)' }}
-              text={
+            <CellSimple
+              className="rm-banner-fallback"
+              before={<span style={{ fontSize: '24px' }}>🏖️</span>}
+              title={
                 <>
                   Летние каникулы. Показываем архивные данные за последний учебный день:{' '}
                   <strong>{data.fallback_date}</strong>
@@ -104,64 +103,29 @@ export const DashboardPage: React.FC<{ onNavigate: (to: string) => void }> = ({ 
           )}
 
           {/* 3. Компактный селектор даты */}
-          <Flex direction="column" align="stretch">
-            <DateJumper value={globalDate} onChange={setGlobalDate} />
-          </Flex>
+          <DateJumper value={globalDate} onChange={setGlobalDate} />
 
-          {/* 4. Инфографика 2x2 (нативный Grid; цветной бордер метрик — позже через Card-вариант) */}
+          {/* 4. Инфографика 2x2 (нативный Grid + Tile метрик) */}
           <Grid cols={2} gap={12}>
             {isAdmin ? (
               <>
-                <Card>
-                  <CardHeader justify="center" media={<span style={{ fontSize: '18px' }}>🏫</span>} title="Сегодня уроков" />
-                  <CardContent align="center" style={{ fontSize: '20px', fontWeight: 800, color: 'var(--text-primary)' }}>{m.active_lessons ?? 0}</CardContent>
-                </Card>
-                <Card>
-                  <CardHeader justify="center" media={<span style={{ fontSize: '18px' }}>⚠️</span>} title="Нет журнала" />
-                  <CardContent align="center" style={{ fontSize: '20px', fontWeight: 800, color: 'var(--text-primary)' }}>{m.unfilled_sheets ?? 0}</CardContent>
-                </Card>
-                <Card>
-                  <CardHeader justify="center" media={<span style={{ fontSize: '18px' }}>👥</span>} title="Посещаемость" />
-                  <CardContent align="center" style={{ fontSize: '20px', fontWeight: 800, color: 'var(--text-primary)' }}>{`${m.attendance_pct ?? 0}%`}</CardContent>
-                </Card>
-                <Card>
-                  <CardHeader justify="center" media={<span style={{ fontSize: '18px' }}>🧑‍🎓</span>} title="Учеников" />
-                  <CardContent align="center" style={{ fontSize: '20px', fontWeight: 800, color: 'var(--text-primary)' }}>{m.total_students ?? 0}</CardContent>
-                </Card>
+                <Tile icon="🏫" label="Сегодня уроков" value={m.active_lessons ?? 0} />
+                <Tile icon="⚠️" label="Нет журнала" value={m.unfilled_sheets ?? 0} />
+                <Tile icon="👥" label="Посещаемость" value={`${m.attendance_pct ?? 0}%`} />
+                <Tile icon="🧑‍🎓" label="Учеников" value={m.total_students ?? 0} />
               </>
             ) : isTeacher ? (
               <>
-                <Card>
-                  <CardHeader justify="center" media={<span style={{ fontSize: '18px' }}>🏫</span>} title="Мои уроки" />
-                  <CardContent align="center" style={{ fontSize: '20px', fontWeight: 800, color: 'var(--text-primary)' }}>{m.total_lessons ?? 0}</CardContent>
-                </Card>
-                <Card>
-                  <CardHeader justify="center" media={<span style={{ fontSize: '18px' }}>✅</span>} title="Проведено" />
-                  <CardContent align="center" style={{ fontSize: '20px', fontWeight: 800, color: 'var(--text-primary)' }}>{m.completed_lessons ?? 0}</CardContent>
-                </Card>
-                <Card>
-                  <CardHeader justify="center" media={<span style={{ fontSize: '18px' }}>👥</span>} title="Посещаемость" />
-                  <CardContent align="center" style={{ fontSize: '20px', fontWeight: 800, color: 'var(--text-primary)' }}>{`${m.attendance_pct ?? 0}%`}</CardContent>
-                </Card>
-                <Card>
-                  <CardHeader justify="center" media={<span style={{ fontSize: '18px' }}>✍️</span>} title="Выставлено оценок" />
-                  <CardContent align="center" style={{ fontSize: '20px', fontWeight: 800, color: 'var(--text-primary)' }}>{m.graded_count ?? 0}</CardContent>
-                </Card>
+                <Tile icon="🏫" label="Мои уроки" value={m.total_lessons ?? 0} />
+                <Tile icon="✅" label="Проведено" value={m.completed_lessons ?? 0} />
+                <Tile icon="👥" label="Посещаемость" value={`${m.attendance_pct ?? 0}%`} />
+                <Tile icon="✍️" label="Выставлено оценок" value={m.graded_count ?? 0} />
               </>
             ) : (
               <>
-                <Card>
-                  <CardHeader justify="center" media={<span style={{ fontSize: '18px' }}>⭐</span>} title="Средний балл" />
-                  <CardContent align="center" style={{ fontSize: '20px', fontWeight: 800, color: 'var(--text-primary)' }}>{(m.gpa ?? 0).toFixed(2)}</CardContent>
-                </Card>
-                <Card>
-                  <CardHeader justify="center" media={<span style={{ fontSize: '18px' }}>📝</span>} title="Домашних задач" />
-                  <CardContent align="center" style={{ fontSize: '20px', fontWeight: 800, color: 'var(--text-primary)' }}>{m.pending_homework ?? 0}</CardContent>
-                </Card>
-                <Card>
-                  <CardHeader justify="center" media={<span style={{ fontSize: '18px' }}>👥</span>} title="Моя посещаемость" />
-                  <CardContent align="center" style={{ fontSize: '20px', fontWeight: 800, color: 'var(--text-primary)' }}>{`${m.attendance_pct ?? 0}%`}</CardContent>
-                </Card>
+                <Tile icon="⭐" label="Средний балл" value={(m.gpa ?? 0).toFixed(2)} />
+                <Tile icon="📝" label="Домашних задач" value={m.pending_homework ?? 0} />
+                <Tile icon="👥" label="Моя посещаемость" value={`${m.attendance_pct ?? 0}%`} />
               </>
             )}
           </Grid>
@@ -179,8 +143,7 @@ export const DashboardPage: React.FC<{ onNavigate: (to: string) => void }> = ({ 
             </Button>
           )}
 
-          {/* 6. Выход — destructive-кнопка (real navigation: Odoo сбрасывает сессию).
-              Без stretched — обёртка на всю ширину центрирует кнопку по горизонтали. */}
+          {/* 6. Выход — destructive-кнопка (real navigation: Odoo сбрасывает сессию). */}
           <Flex justify="center" style={{ width: '100%' }}>
             <Button
               appearance="negative"

@@ -75,7 +75,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSuccess }) => {
           <Flex direction="column" gap={24}>
             <Flex direction="column" gap={8} align="center" style={{ textAlign: 'center' }}>
               <div style={{ fontSize: '40px', marginBottom: '8px' }}>🎓</div>
-              <Typography.Title variant="large-strong" style={{ margin: 0, fontWeight: 700, color: 'var(--text-primary)' }}>
+              <Typography.Title variant="large-strong" style={{ color: 'var(--text-primary)' }}>
                 Школа РОСТ
               </Typography.Title>
               <Typography.Body variant="small" style={{ color: 'var(--text-secondary)' }}>

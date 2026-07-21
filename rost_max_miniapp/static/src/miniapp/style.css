@@ -60,12 +60,6 @@ textarea:-webkit-autofill:focus {
   box-sizing: border-box;
 }
 
-/* Плотная карточка (занятия / студенты): меньше паддинг + акцентная левая рамка */
-.rm-card--tight {
-  padding: 14px 16px;
-}
-
-/* Пустое состояние: больше воздуха и минимальная высота */
 .rm-card--empty {
   padding: 40px 20px;
   min-height: 200px;
@@ -74,6 +68,11 @@ textarea:-webkit-autofill:focus {
   align-items: center;
   justify-content: center;
   text-align: center;
+}
+
+/* Строка студента в журнале: компактный паддинг поверх базовой .rm-card */
+.rm-card--row {
+  padding: 12px 14px;
 }
 
 /* Кнопки журнала (оценка / посещаемость). Акцентный цвет передаётся
@@ -160,4 +159,15 @@ textarea:-webkit-autofill:focus {
 @keyframes rm-sheet-up {
   from { transform: translateY(100%); }
   to { transform: translateY(0); }
+}
+
+/* Демо-баннер (летние каникулы / выходной) на дашборде: цветной фон
+   negative — аналога в MAX UI CellSimple нет. Токен темозависим. */
+.rm-banner-fallback {
+  background-color: var(--background-accent-negative);
+  color: var(--text-primary-static);
+}
+.rm-banner-fallback .rm-typography,
+.rm-banner-fallback [class*="Typography"] {
+  color: var(--text-primary-static);
 }

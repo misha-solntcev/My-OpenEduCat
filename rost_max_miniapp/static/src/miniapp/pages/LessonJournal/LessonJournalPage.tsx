@@ -1,31 +1,12 @@
 import React from 'react';
-import { Flex, Typography, IconButton, Avatar, Switch } from '@maxhub/max-ui';
-import { apiGet, apiPost, initialsOf } from '../../lib';
-import { Users, Zap, Eraser } from 'lucide-react';
+import { Flex, Typography, IconButton, Button } from '@maxhub/max-ui';
+import { apiGet, apiPost } from '../../lib';
+import type { Student, AttendanceType } from '../../lib/types';
+import type { GradeField } from '../../lib/colors';
+import { StudentRow } from '../../components/StudentRow';
+import { BulkSheet } from '../../components/BulkSheet';
+import { Zap } from 'lucide-react';
 
-interface Student {
-  id: number;
-  name: string;
-  avatar: string; // data:image/...;base64,... или '' (тогда показываем инициалы)
-  grade_1: number | null;
-  grade_2: number | null;
-  grade_3: number | null;
-  attendance_type_id: number | null;
-}
-
-// Колонки оценок (соответствуют полям модели op.attendance.line)
-type GradeField = 'grade_1' | 'grade_2' | 'grade_3';
-const GRADE_FIELDS: GradeField[] = ['grade_1', 'grade_2', 'grade_3'];
-const GRADE_FIELD_LABELS: Record<GradeField, string> = {
-  grade_1: 'О1',
-  grade_2: 'О2',
-  grade_3: 'О3',
-};
-
-interface AttendanceType {
-  id: number;
-  name: string;
-}
 
 interface LessonInfo {
   subject: string;
@@ -44,79 +25,6 @@ interface LessonJournalPageProps {
   lessonId: number;
   onBack: () => void;
 }
-
-// Цикл оценок: пусто → 5 → 4 → 3 → 2 → пусто
-const GRADES = ['', '5', '4', '3', '2'];
-
-// Цвет отметки посещаемости по названию типа
-function attendanceColor(name?: string): string {
-  if (!name) return 'var(--text-secondary)';
-  const n = name.toLowerCase();
-  if (n.includes('присутств') || n.includes('был') || n.includes('есть') || n.includes('да')) return 'var(--background-accent-positive)';
-  if (n.includes('отсутств') || n.includes('нет') || n.includes('не ')) return 'var(--background-accent-negative)';
-  if (n.includes('опозд')) return 'var(--background-accent-attention-primary)';
-  return 'var(--icon-themed)';
-}
-
-function gradeColor(grade: number | null): string {
-  if (grade == null) return 'var(--text-secondary)';
-  if (grade >= 3.5) return 'var(--background-accent-positive)';
-  if (grade >= 2.5) return 'var(--background-accent-attention-primary)';
-  return 'var(--background-accent-negative)';
-}
-
-interface JournalButtonProps {
-  value: string;
-  active: boolean;
-  activeColor: string;
-  onClick: () => void;
-  title?: string;
-  height?: number;
-  minWidth?: number;
-  fontSize?: number;
-  lineHeight?: number;
-  padding?: string;
-  whiteSpace?: string;
-  flex?: number;
-}
-
-// Единая кнопка оценки/посещаемости. Акцентный цвет передаём через inline
-// CSS-переменную --jb-color (см. .rm-journal-btn--active в style.css), чтобы
-// color-mix мог сделать валидный полупрозрачный фон (конкатенация `${color}18`
-// с var() не работает — баг до рефактора).
-const JournalButton: React.FC<JournalButtonProps> = ({
-  value,
-  active,
-  activeColor,
-  onClick,
-  title,
-  height = 34,
-  minWidth = 34,
-  fontSize = 15,
-  lineHeight = 1,
-  padding,
-  whiteSpace,
-  flex,
-}) => (
-  <button
-    type="button"
-    onClick={onClick}
-    title={title}
-    className={`rm-journal-btn ${active ? 'rm-journal-btn--active' : ''}`}
-    style={{
-      height,
-      minWidth,
-      fontSize,
-      lineHeight,
-      padding: padding ?? '0',
-      whiteSpace,
-      flex,
-      ...(active ? ({ ['--jb-color' as string]: activeColor } as React.CSSProperties) : null),
-    }}
-  >
-    {value}
-  </button>
-);
 
 export const LessonJournalPage: React.FC<LessonJournalPageProps> = ({ lessonId, onBack }) => {
   const [lesson, setLesson] = React.useState<LessonInfo | null>(null);
@@ -162,54 +70,14 @@ export const LessonJournalPage: React.FC<LessonJournalPageProps> = ({ lessonId, 
     setDirty(true);
   };
 
-  // Индивидуальная оценка/посещаемость в карточке: тап крутит значение
-  // по кругу (5→4→3→2→пусто→5...), меняем только локальный буфер.
-  const cycleGradeField = (student: Student, field: GradeField) => {
-    const current = student[field] != null ? String(student[field]) : '';
-    const idx = GRADES.indexOf(current);
-    const next = GRADES[(idx + 1) % GRADES.length];
-    const nextVal = next === '' ? null : Number(next);
-    patchStudent(student.id, { [field]: nextVal });
+  // Индивидуальная оценка/посещаемость в карточке: JournalButton сама крутит
+  // значение по кругу и отдаёт готовый next — здесь только применяем в буфер.
+  const cycleGradeField = (student: Student, field: GradeField, next: number | null) => {
+    patchStudent(student.id, { [field]: next });
   };
 
-  const cycleAttendance = (student: Student) => {
-    if (!attendanceTypes.length) return;
-    const curIdx = attendanceTypes.findIndex(t => t.id === student.attendance_type_id);
-    const nextType = attendanceTypes[(curIdx + 1) % attendanceTypes.length];
-    patchStudent(student.id, { attendance_type_id: nextType.id });
-  };
-
-  // Массовые аналоги для шторки: крутят значение у ВСЕГО класса, применяя
-  // bulkSetGrade/bulkSetAtt мгновенно. Поведение идентично карточке (tap-цикл),
-  // но перезаписывает колонку класса. Базу цикла берём от ПЕРВОЙ строки,
-  // чья колонка пуста в baseline (при !overwriteAll) — чтобы кнопка шторки
-  // показывала и крутила реально изменяемое значение, а не students[0]
-  // (который может быть уже заполнен и заблокирован). Если все заполнены —
-  // берём students[0] (при !overwriteAll он не изменится, что корректно).
-  const firstEditable = (field: GradeField | 'attendance_type_id'): Student | undefined => {
-    if (!overwriteAll) {
-      const e = students.find(s => {
-        const base = baselineRef.current.find(b => b.id === s.id);
-        return !base || base[field] == null;
-      });
-      if (e) return e;
-    }
-    return students[0];
-  };
-  const cycleGradeFieldBulk = (field: GradeField) => {
-    const ref = firstEditable(field);
-    const base = ref?.[field] != null ? String(ref![field]) : '';
-    const idx = GRADES.indexOf(base);
-    const next = GRADES[(idx + 1) % GRADES.length];
-    bulkSetGrade(field, next);
-  };
-  const cycleAttendanceBulk = () => {
-    if (!attendanceTypes.length) return;
-    const ref = firstEditable('attendance_type_id');
-    const baseId = ref?.attendance_type_id;
-    const curIdx = attendanceTypes.findIndex(t => t.id === baseId);
-    const nextType = attendanceTypes[(curIdx + 1) % attendanceTypes.length];
-    bulkSetAtt(nextType.id);
+  const cycleAttendance = (student: Student, next: number | null) => {
+    patchStudent(student.id, { attendance_type_id: next });
   };
 
   // Сохранение всего буфера на сервер одним запросом (/save, перезапись).
@@ -266,36 +134,50 @@ export const LessonJournalPage: React.FC<LessonJournalPageProps> = ({ lessonId, 
     setStudents(prev => prev.map(s => ({ ...s, grade_1: null, grade_2: null, grade_3: null, attendance_type_id: null })));
     setDirty(true);
   };
-  // Массовая замена в шторке: мгновенно применяет выбранное значение
-  // ко ВСЕМ ученикам в локальном буфере (перезапись колонки класса).
-  // Список за ширмой перерисовывается сразу. Тонкая правка по карточке — индивидуально.
-  // Режим overwriteAll (Switch в шторке): true = перезаписать всех,
-  // false = только строки, что были ПУСТЫ до открытия шторки (baseline).
-  // Заполненные до шторки остаются нетронутыми; пустые (и те, что мы
-  // заполнили этим сеансом) крутятся по циклу дальше.
-  const bulkSetGrade = (field: GradeField, value: string) => {
-    const v = value === '' || value === '-' ? null : Number(value);
-    setStudents(prev => prev.map(s => {
+  // База цикла шторки: первая строка, чья колонка ПУСТА в baseline
+    // (при !overwriteAll) — чтобы массовая кнопка крутила реально изменяемое
+    // (пустое) значение. Если все заполнены — берём students[0].
+    const firstEditable = (field: GradeField | 'attendance_type_id'): Student | undefined => {
       if (!overwriteAll) {
-        const base = baselineRef.current.find(b => b.id === s.id);
-        // трогаем только если в baseline эта колонка была пустой
-        if (!base || base[field] != null) return s;
+        const e = students.find(s => {
+          const base = baselineRef.current.find(b => b.id === s.id);
+          return !base || base[field] == null;
+        });
+        if (e) return e;
       }
-      return { ...s, [field]: v };
-    }));
-    setDirty(true);
-  };
-  // Массовая замена посещаемости: attId=null => сброс всех в «-».
-  const bulkSetAtt = (attId: number | null) => {
-    setStudents(prev => prev.map(s => {
-      if (!overwriteAll) {
-        const base = baselineRef.current.find(b => b.id === s.id);
-        if (!base || base.attendance_type_id != null) return s;
-      }
-      return { ...s, attendance_type_id: attId };
-    }));
-    setDirty(true);
-  };
+      return students[0];
+    };
+
+    // Массовая замена в шторке: мгновенно применяет выбранное значение
+    // ко ВСЕМ ученикам в локальном буфере (перезапись колонки класса).
+    // Список за ширмой перерисовывается сразу. Тонкая правка по карточке — индивидуально.
+    // Режим overwriteAll (Switch в шторке): true = перезаписать всех,
+    // false = только строки, что были ПУСТЫ до открытия шторки (baseline).
+    // Заполненные до шторки остаются нетронутыми; пустые (и те, что мы
+    // заполнили этим сеансом) крутятся по циклу дальше.
+    const bulkSetGrade = (field: GradeField, value: string) => {
+      const v = value === '' || value === '-' ? null : Number(value);
+      setStudents(prev => prev.map(s => {
+        if (!overwriteAll) {
+          const base = baselineRef.current.find(b => b.id === s.id);
+          // трогаем только если в baseline эта колонка была пустой
+          if (!base || base[field] != null) return s;
+        }
+        return { ...s, [field]: v };
+      }));
+      setDirty(true);
+    };
+    // Массовая замена посещаемости: attId=null => сброс всех в «-».
+    const bulkSetAtt = (attId: number | null) => {
+      setStudents(prev => prev.map(s => {
+        if (!overwriteAll) {
+          const base = baselineRef.current.find(b => b.id === s.id);
+          if (!base || base.attendance_type_id != null) return s;
+        }
+        return { ...s, attendance_type_id: attId };
+      }));
+      setDirty(true);
+    };
 
   const headerTitle = lesson ? (lesson.subject || 'Журнал оценок') : 'Журнал оценок';
   const headerSubtitle = lesson ? [lesson.batch, lesson.timing].filter(Boolean).join(' · ') : '';
@@ -309,7 +191,7 @@ export const LessonJournalPage: React.FC<LessonJournalPageProps> = ({ lessonId, 
           </svg>
         </IconButton>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <Typography.Title variant="small-strong" style={{ margin: 0, fontWeight: 700 }}>
+          <Typography.Title variant="small-strong">
             {headerTitle}
           </Typography.Title>
         </div>
@@ -344,7 +226,7 @@ export const LessonJournalPage: React.FC<LessonJournalPageProps> = ({ lessonId, 
         }}
       >
         <div style={{ fontSize: '48px', marginBottom: '12px' }}>🍃</div>
-        <Typography.Title style={{ margin: '0 0 4px 0', fontWeight: 600 }}>
+        <Typography.Title>
           Ученики не найдены
         </Typography.Title>
         <Typography.Body style={{ color: 'var(--text-secondary)', textAlign: 'center' }}>
@@ -355,83 +237,15 @@ export const LessonJournalPage: React.FC<LessonJournalPageProps> = ({ lessonId, 
   } else {
     content = (
       <Flex direction="column" gap={12} style={{ width: '100%' }}>
-        {students.map((student) => {
-          const attendanceType = attendanceTypes.find(t => t.id === student.attendance_type_id);
-          const attColor = attendanceColor(attendanceType?.name);
-          const gradeFields: { field: GradeField; value: number | null }[] = [
-            { field: 'grade_1', value: student.grade_1 },
-            { field: 'grade_2', value: student.grade_2 },
-            { field: 'grade_3', value: student.grade_3 },
-          ];
-          const attSet = !!attendanceType;
-          return (
-            <div
-              key={student.id}
-              className="rm-card"
-              style={{
-                padding: '12px 14px',
-              }}
-            >
-              <Flex align="center" gap={12} style={{ width: '100%', minWidth: 0 }}>
-                {/* Колонка 1: аватар (общий для двух строк) */}
-                <Avatar.Container
-                  size={40}
-                  form="squircle"
-                >
-                  <Avatar.Image
-                    src={student.avatar}
-                    fallback={<Avatar.Text>{initialsOf(student.name)}</Avatar.Text>}
-                  />
-                </Avatar.Container>
-
-                {/* Колонка 2: две строки */}
-                <Flex direction="column" gap={6} style={{ flex: 1, minWidth: 0 }}>
-                  {/* Строка 1: ФИО без нумерации */}
-                  <span
-                    style={{
-                      fontSize: '14px',
-                      fontWeight: 600,
-                      color: 'var(--text-primary)',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap'
-                    }}
-                  >
-                    {student.name}
-                  </span>
-
-                  {/* Строка 2: три оценки + посещаемость */}
-                  <Flex align="center" gap={6} wrap="wrap" style={{ width: '100%' }}>
-                    {gradeFields.map(({ field, value }) => (
-                      <JournalButton
-                        key={field}
-                        value={value != null ? String(value) : '—'}
-                        active={value != null}
-                        activeColor={gradeColor(value)}
-                        onClick={() => cycleGradeField(student, field)}
-                        title={`Оценка ${GRADE_FIELD_LABELS[field]}`}
-                        minWidth={30}
-                        padding="0 6px"
-                      />
-                    ))}
-
-                    <JournalButton
-                      value={attSet ? attendanceType!.name : '—'}
-                      active={attSet}
-                      activeColor={attColor}
-                      onClick={() => cycleAttendance(student)}
-                      title="Нажмите, чтобы сменить отметку посещаемости"
-                      fontSize={12}
-                      minWidth={34}
-                      padding="0 10px"
-                      whiteSpace="nowrap"
-                    />
-                  </Flex>
-                </Flex>
-              </Flex>
-            </div>
-          );
-        })}
+        {students.map((student) => (
+          <StudentRow
+            key={student.id}
+            student={student}
+            attendanceTypes={attendanceTypes}
+            onCycleGrade={cycleGradeField}
+            onCycleAttendance={cycleAttendance}
+          />
+        ))}
       </Flex>
     );
   }
@@ -441,117 +255,7 @@ export const LessonJournalPage: React.FC<LessonJournalPageProps> = ({ lessonId, 
   // Bottom sheet: массовая расстановка оценки + посещаемости всему классу.  
   // MAX UI v0.1.14 не имеет нативного sheet/modal -> кастомный fixed-оверлей
   // снизу. Закрытие по тапу на затемнение. Цикл кнопок тот же, что у
-  // индивидуальных (GRADES / attendanceTypes).
-  const bulkSheet = sheetOpen && (
-    <div
-      onClick={() => setSheetOpen(false)}
-      style={{
-        position: 'fixed',
-        inset: 0,
-        backgroundColor: 'rgba(0,0,0,0.4)',
-        zIndex: 100,
-        display: 'flex',
-        alignItems: 'flex-end',
-      }}
-    >
-      <div
-        onClick={e => e.stopPropagation()}
-        style={{
-          width: '100%',
-          backgroundColor: 'var(--background-surface-card)',
-          borderTopLeftRadius: '16px',
-          borderTopRightRadius: '16px',
-          padding: '20px 16px calc(20px + env(safe-area-inset-bottom))',
-          boxSizing: 'border-box',
-          animation: 'rm-sheet-up 0.2s ease-out',
-        }}
-      >
-        <Flex direction="column" gap={20}>
-          {/* Режим массового выставления (Switch) + общий ластик — вверху
-              справа отдельной строкой. Switch ВКЛ = перезаписать всех, ВЫКЛ =
-              только строки, что были пусты до открытия шторки (baseline).
-              Ластик в том же визуальном языке, что Switch (IconButton). */}
-          <Flex align="center" justify="end" gap={10} style={{ width: '100%' }}>
-            <Switch
-              checked={overwriteAll}
-              onChange={(e) => setOverwriteAll(e.target.checked)}
-              aria-label="Перезаписывать заполненные оценки"
-            />
-            <IconButton
-              appearance="themed"
-              mode="tertiary"
-              onClick={() => clearAll()}
-              title="Сбросить всё (оценки и посещаемость) у всего класса"
-            >
-              <Eraser size={20} />
-            </IconButton>
-          </Flex>
-
-          {/* Сетка: аватар (SVG Users) + для каждой колонки (О1/О2/О3/Посещ)
-              — кнопка-круг с tap-циклом (как на карточке ученика), но массово
-              (пишет всему классу). */}
-          <Flex align="flex-start" gap={6} wrap="nowrap" style={{ width: '100%', minWidth: 0 }}>
-            <Avatar.Container size={44} form="squircle" className="rm-sheet-avatar" style={{ flexShrink: 0, marginTop: '0' }}>
-              <Avatar.Icon>
-                <Users size={20} color="var(--text-contrast-static)" />
-              </Avatar.Icon>
-            </Avatar.Container>
-
-            {GRADE_FIELDS.map((gf) => (
-              <JournalButton
-                key={gf}
-                value={(() => { const r = firstEditable(gf); return r?.[gf] != null ? String(r![gf]) : '—'; })()}
-                active={(() => { const r = firstEditable(gf); return r?.[gf] != null; })()}
-                activeColor={(() => { const r = firstEditable(gf); return gradeColor(r?.[gf] != null ? r![gf] : null); })()}
-                onClick={() => cycleGradeFieldBulk(gf)}
-                title={`Оценка ${GRADE_FIELD_LABELS[gf]} — нажмите, чтобы сменить у всего класса`}
-                minWidth={38}
-                height={40}
-                padding="0 6px"
-              />
-            ))}
-
-            <JournalButton
-              value={(() => { const r = firstEditable('attendance_type_id'); return r && r.attendance_type_id != null ? attendanceTypes.find(t => t.id === r.attendance_type_id)?.name ?? '—' : '—'; })()}
-              active={(() => { const r = firstEditable('attendance_type_id'); return r?.attendance_type_id != null; })()}
-              activeColor={(() => { const r = firstEditable('attendance_type_id'); return attendanceColor(r ? attendanceTypes.find(t => t.id === r.attendance_type_id)?.name : undefined); })()}
-              onClick={() => cycleAttendanceBulk()}
-              title="Посещаемость — нажмите, чтобы сменить у всего класса"
-              fontSize={12}
-              minWidth={34}
-              height={40}
-              padding="0 10px"
-              whiteSpace="nowrap"
-            />
-          </Flex>
-
-          {/* Одна кнопка закрытия шторки. Массовые правки (карусели
-              и ластики) применяются к локальному буферу мгновенно,
-              список за ширмой перерисовывается сразу. Сохранение на
-              сервер — общей кнопкой «Сохранить» снизу экрана. */}
-          <Flex align="center" gap={12} style={{ width: '100%' }}>
-            <button
-              type="button"
-              onClick={() => setSheetOpen(false)}
-              style={{
-                flex: 1,
-                height: '44px',
-                borderRadius: '8px',
-                border: 'none',
-                fontWeight: 600,
-                fontSize: '15px',
-                cursor: 'pointer',
-                backgroundColor: 'var(--background-accent-themed)',
-                color: 'var(--text-on-accent)',
-              }}
-            >
-              ОК
-            </button>
-          </Flex>
-        </Flex>
-      </div>
-    </div>
-  );
+  // BulkSheet вынесен в отдельный компонент components/BulkSheet.
 
   return (
     <Flex direction="column" align="stretch" style={{ width: '100%', height: '100dvh' }}>
@@ -591,24 +295,16 @@ export const LessonJournalPage: React.FC<LessonJournalPageProps> = ({ lessonId, 
             zIndex: 90,
           }}
         >
-          <button
-            type="button"
+          <Button
+            stretched
+            size="large"
+            mode="primary"
+            appearance="themed"
+            loading={saving}
             onClick={saveAll}
-            disabled={saving}
-            style={{
-              width: '100%',
-              height: '46px',
-              borderRadius: '10px',
-              border: 'none',
-              fontWeight: 700,
-              fontSize: '16px',
-              cursor: saving ? 'not-allowed' : 'pointer',
-              backgroundColor: 'var(--background-accent-themed)',
-              color: 'var(--text-on-accent)',
-            }}
           >
-            {saving ? 'Сохраняем...' : 'Сохранить'}
-          </button>
+            Сохранить
+          </Button>
         </div>
       )}
 
@@ -642,49 +338,51 @@ export const LessonJournalPage: React.FC<LessonJournalPageProps> = ({ lessonId, 
               Сохранить изменения?
             </div>
             <Flex direction="column" gap={10} style={{ width: '100%' }}>
-              <button
-                type="button"
+              <Button
+                stretched
+                size="large"
+                mode="primary"
+                appearance="themed"
+                loading={saving}
                 onClick={exitSave}
-                disabled={saving}
-                style={{
-                  width: '100%', height: '46px', borderRadius: '10px', border: 'none',
-                  fontWeight: 700, fontSize: '16px', cursor: saving ? 'not-allowed' : 'pointer',
-                  backgroundColor: 'var(--background-accent-themed)', color: 'var(--text-on-accent)',
-                }}
               >
-                {saving ? 'Сохраняем...' : 'Да, сохранить'}
-              </button>
-              <button
-                type="button"
+                Да, сохранить
+              </Button>
+              <Button
+                stretched
+                size="large"
+                mode="secondary"
+                loading={saving}
                 onClick={exitDiscard}
-                disabled={saving}
-                style={{
-                  width: '100%', height: '46px', borderRadius: '10px',
-                  border: '1px solid var(--stroke-separator-secondary)', fontWeight: 600, fontSize: '16px',
-                  cursor: saving ? 'not-allowed' : 'pointer',
-                  backgroundColor: 'var(--background-surface-raised)', color: 'var(--text-primary)',
-                }}
               >
                 Нет, не сохранять
-              </button>
-              <button
-                type="button"
+              </Button>
+              <Button
+                stretched
+                size="large"
+                mode="tertiary"
                 onClick={() => setShowExitBanner(false)}
-                disabled={saving}
-                style={{
-                  width: '100%', height: '46px', borderRadius: '10px', border: 'none',
-                  fontWeight: 600, fontSize: '16px', cursor: saving ? 'not-allowed' : 'pointer',
-                  backgroundColor: 'transparent', color: 'var(--text-secondary)',
-                }}
               >
                 Остаться
-              </button>
+              </Button>
             </Flex>
           </div>
         </div>
       )}
 
-      {bulkSheet}
+      {sheetOpen && (
+        <BulkSheet
+          students={students}
+          attendanceTypes={attendanceTypes}
+          overwriteAll={overwriteAll}
+          onOverwriteAllChange={setOverwriteAll}
+          firstEditable={firstEditable}
+          onBulkGrade={bulkSetGrade}
+          onBulkAtt={bulkSetAtt}
+          onClearAll={clearAll}
+          onClose={() => setSheetOpen(false)}
+        />
+      )}
     </Flex>
   );
 };

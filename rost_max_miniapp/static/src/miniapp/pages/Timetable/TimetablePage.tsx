@@ -132,7 +132,7 @@ export const TimetablePage: React.FC<{ onOpenLesson: (id: number) => void }> = (
             disabled
             before={<span className="rm-empty-icon">🍃</span>}
             title={
-              <Typography.Title style={{ margin: 0, fontWeight: 600 }}>
+              <Typography.Title variant="small-strong">
                 Занятий не найдено
               </Typography.Title>
             }
