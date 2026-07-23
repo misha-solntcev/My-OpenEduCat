@@ -3,8 +3,8 @@ import type { Student, AttendanceType } from '@/lib/types';
 import type { GradeField } from '@/lib/colors';
 
 interface UseBulkSheetReturn {
-  overwriteAll: boolean;
-  setOverwriteAll: (v: boolean) => void;
+  overwriteFilled: boolean;
+  setOverwriteFilled: (v: boolean) => void;
   baselineRef: React.MutableRefObject<Student[]>;
   firstEditable: (field: GradeField | 'attendance_type_id') => Student | undefined;
   bulkSetGrade: (field: GradeField, value: number | null) => void;
@@ -14,7 +14,7 @@ interface UseBulkSheetReturn {
 
 /**
  * Хук логики массовой шторки (BulkSheet):
- * - overwriteAll (перезаписывать заполненные / только пустые)
+ * - overwriteFilled (перезаписывать заполненные / только пустые)
  * - baselineRef (снимок студентов на момент открытия шторки)
  * - firstEditable (поиск первой редактируемой строки для базового значения кнопки)
  * - bulkSetGrade / bulkSetAtt / clearAll (массовые действия над буфером)
@@ -22,21 +22,21 @@ interface UseBulkSheetReturn {
 export function useBulkSheet(
   students: Student[],
   attendanceTypes: AttendanceType[],
-  overwriteAllInit: boolean,
+  overwriteFilledInit: boolean,
   // Колбэки для синхронизации с родительским состоянием (буфер студентов)
   onBulkGrade: (field: GradeField, value: number | null) => void,
   onBulkAtt: (attId: number | null) => void,
   onClearAll: () => void
 ): UseBulkSheetReturn {
-  const [overwriteAll, setOverwriteAll] = React.useState(overwriteAllInit);
+  const [overwriteFilled, setOverwriteFilled] = React.useState(overwriteFilledInit);
   const baselineRef = React.useRef<Student[]>([]);
 
   React.useEffect(() => {
-    setOverwriteAll(overwriteAllInit);
-  }, [overwriteAllInit]);
+    setOverwriteFilled(overwriteFilledInit);
+  }, [overwriteFilledInit]);
 
   const firstEditable = (field: GradeField | 'attendance_type_id'): Student | undefined => {
-    if (!overwriteAll) {
+    if (!overwriteFilled) {
       const e = students.find(s => {
         const base = baselineRef.current.find(b => b.id === s.id);
         return !base || base[field] == null;
@@ -59,8 +59,8 @@ export function useBulkSheet(
   };
 
   return {
-    overwriteAll,
-    setOverwriteAll,
+    overwriteFilled,
+    setOverwriteFilled,
     baselineRef,
     firstEditable,
     bulkSetGrade,

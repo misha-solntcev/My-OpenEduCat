@@ -171,3 +171,111 @@ textarea:-webkit-autofill:focus {
 .rm-banner-fallback [class*="Typography"] {
   color: var(--text-primary-static);
 }
+
+/* ===== НОВЫЕ КОМПОНЕНТЫ (P3) ===== */
+
+/* SaveBar — нижняя фиксированная панель "Сохранить" */
+.rm-save-bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
+  background-color: var(--background-surface-card);
+  border-top: 1px solid var(--stroke-separator-secondary);
+  z-index: 90;
+}
+
+/* ExitBanner — overlay + карточка */
+.rm-exit-banner-overlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0,0,0,0.5);
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.rm-exit-banner-card {
+  width: 100%;
+  max-width: 360px;
+  background-color: var(--background-surface-card);
+  border-radius: 16px;
+  padding: 20px 16px calc(16px + env(safe-area-inset-bottom));
+  box-sizing: border-box;
+}
+
+.rm-exit-banner-title {
+  font-size: 16px;
+  font-weight: 700;
+  margin-bottom: 16px;
+  color: var(--text-primary);
+}
+
+/* LessonHeader — шапка журнала */
+.rm-lesson-header {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--stroke-separator-secondary);
+  background-color: var(--background-surface-card);
+  flex-shrink: 0;
+}
+
+.rm-lesson-header-title {
+  flex: 1;
+  min-width: 0;
+}
+
+.rm-lesson-header-subtitle {
+  margin-left: 36px;
+  color: var(--text-secondary);
+}
+
+/* BulkSheet — шторка массовой расстановки */
+.rm-bulk-sheet-overlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0,0,0,0.4);
+  z-index: 100;
+  display: flex;
+  align-items: flex-end;
+}
+
+.rm-bulk-sheet-card {
+  width: 100%;
+  background-color: var(--background-surface-card);
+  border-top-left-radius: 16px;
+  border-top-right-radius: 16px;
+  padding: 20px 16px calc(20px + env(safe-area-inset-bottom));
+  box-sizing: border-box;
+  animation: rm-sheet-up 0.2s ease-out;
+}
+
+.rm-bulk-sheet-avatar {
+  flex-shrink: 0;
+  margin-top: 0;
+}
+
+/* SaveBar внутри LessonJournalPage — уже через .rm-save-bar */
+
+/* EmptyState — уже через .rm-card--empty */
+
+/* LessonJournalPage — скролл-контейнер и контент */
+.rm-journal-scroll {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(128, 128, 128, 0.4) transparent;
+  background-color: var(--background-surface-ground);
+  padding-top: 16px;
+}
+
+.rm-journal-content {
+  padding-left: 16px;
+  padding-right: 16px;
+}
+
+/* Dirty padding bottom уже через inline style (dirty ? '84px' : '24px') */

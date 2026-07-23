@@ -51,8 +51,8 @@ export const LessonJournalPage: React.FC<LessonJournalPageProps> = ({ lessonId, 
   };
 
   const {
-    overwriteAll,
-    setOverwriteAll,
+    overwriteFilled,
+    setOverwriteFilled,
     baselineRef,
     firstEditable,
     // useBulkSheet внутри вызывает наши bulkSetGrade/bulkSetAtt/clearAll
@@ -114,20 +114,8 @@ export const LessonJournalPage: React.FC<LessonJournalPageProps> = ({ lessonId, 
   return (
     <Flex direction="column" align="stretch" style={{ width: '100%', height: '100dvh' }}>
       {header}
-      <div
-        style={{
-          flex: 1,
-          overflowY: 'auto',
-          overflowX: 'hidden',
-          WebkitOverflowScrolling: 'touch',
-          scrollbarWidth: 'thin',
-          scrollbarColor: 'rgba(128, 128, 128, 0.4) transparent',
-          backgroundColor: 'var(--background-surface-ground)',
-          paddingTop: '16px',
-          paddingBottom: dirty ? '84px' : '24px'
-        }}
-      >
-        <div style={{ paddingLeft: '16px', paddingRight: '16px' }}>
+      <div className="rm-journal-scroll" style={{ paddingBottom: dirty ? '84px' : '24px' }}>
+        <div className="rm-journal-content">
           {content}
         </div>
       </div>
@@ -146,8 +134,8 @@ export const LessonJournalPage: React.FC<LessonJournalPageProps> = ({ lessonId, 
         <BulkSheet
           students={students}
           attendanceTypes={attendanceTypes}
-          overwriteAll={overwriteAll}
-          onOverwriteAllChange={setOverwriteAll}
+          overwriteFilled={overwriteFilled}
+          onOverwriteFilledChange={setOverwriteFilled}
           firstEditable={firstEditable}
           onBulkGrade={bulkSetGrade}
           onBulkAtt={bulkSetAtt}

@@ -19,16 +19,7 @@ export const LessonHeader: React.FC<LessonHeaderProps> = ({
     : '';
 
   return (
-    <Flex
-      direction="column"
-      gap={2}
-      style={{
-        padding: '12px 16px',
-        borderBottom: '1px solid var(--stroke-separator-secondary)',
-        backgroundColor: 'var(--background-surface-card)',
-        flexShrink: 0,
-      }}
-    >
+    <div className="rm-lesson-header">
       <Flex align="center" gap={12} style={{ width: '100%' }}>
         <IconButton appearance="themed" mode="tertiary" onClick={onBack}>
           <svg
@@ -44,7 +35,7 @@ export const LessonHeader: React.FC<LessonHeaderProps> = ({
             <path d="M15 18l-6-6 6-6" />
           </svg>
         </IconButton>
-        <div style={{ flex: 1, minWidth: 0 }}>
+        <div className="rm-lesson-header-title">
           <Typography.Title variant="small-strong">
             {headerTitle}
           </Typography.Title>
@@ -60,10 +51,10 @@ export const LessonHeader: React.FC<LessonHeaderProps> = ({
         </IconButton>
       </Flex>
       {headerSubtitle && (
-        <Typography.Label variant="small-strong" style={{ marginLeft: '36px', color: 'var(--text-secondary)' }}>
+        <Typography.Label variant="small-strong" className="rm-lesson-header-subtitle">
           {headerSubtitle}
         </Typography.Label>
       )}
-    </Flex>
+    </div>
   );
 };

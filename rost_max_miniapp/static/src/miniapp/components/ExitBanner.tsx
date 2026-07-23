@@ -23,31 +23,12 @@ export const ExitBanner: React.FC<ExitBannerProps> = ({
   if (!visible) return null;
 
   return (
-    <div
-      onClick={onClose}
-      style={{
-        position: 'fixed',
-        inset: 0,
-        backgroundColor: 'rgba(0,0,0,0.5)',
-        zIndex: 200,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '16px',
-      }}
-    >
+    <div className="rm-exit-banner-overlay" onClick={onClose}>
       <div
         onClick={e => e.stopPropagation()}
-        style={{
-          width: '100%',
-          maxWidth: '360px',
-          backgroundColor: 'var(--background-surface-card)',
-          borderRadius: '16px',
-          padding: '20px 16px calc(16px + env(safe-area-inset-bottom))',
-          boxSizing: 'border-box',
-        }}
+        className="rm-exit-banner-card"
       >
-        <div style={{ fontSize: '16px', fontWeight: 700, marginBottom: '16px', color: 'var(--text-primary)' }}>
+        <div className="rm-exit-banner-title">
           Сохранить изменения?
         </div>
         <Flex direction="column" gap={10} style={{ width: '100%' }}>
