@@ -1,10 +1,11 @@
 import React from 'react';
-import { Flex, Typography, IconButton, Button } from '@maxhub/max-ui';
+import { Flex, Typography, Button } from '@maxhub/max-ui';
 import { StudentRow } from '@/components/StudentRow';
 import { BulkSheet } from '@/components/BulkSheet';
+import { ExitBanner } from '@/components/ExitBanner';
+import { LessonHeader } from '@/components/LessonHeader';
 import { useLessonJournal } from '@/hooks/useLessonJournal';
 import { useBulkSheet } from '@/hooks/useBulkSheet';
-import { Zap } from 'lucide-react';
 import type { GradeField } from '@/lib/colors';
 
 interface LessonJournalPageProps {
@@ -65,32 +66,17 @@ export const LessonJournalPage: React.FC<LessonJournalPageProps> = ({ lessonId, 
 
   const [sheetOpen, setSheetOpen] = React.useState(false);
 
-  const headerTitle = lesson ? (lesson.subject || 'Журнал оценок') : 'Журнал оценок';
-  const headerSubtitle = lesson ? [lesson.batch, lesson.timing].filter(Boolean).join(' · ') : '';
+  const onOpenBulkSheet = () => {
+    baselineRef.current = students.map(s => ({ ...s }));
+    setSheetOpen(true);
+  };
 
   const header = (
-    <Flex direction="column" gap={2} style={{ padding: '12px 16px', borderBottom: '1px solid var(--stroke-separator-secondary)', backgroundColor: 'var(--background-surface-card)', flexShrink: 0 }}>
-      <Flex align="center" gap={12} style={{ width: '100%' }}>
-        <IconButton appearance="themed" mode="tertiary" onClick={handleBack}>
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M15 18l-6-6 6-6" />
-          </svg>
-        </IconButton>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <Typography.Title variant="small-strong">
-            {headerTitle}
-          </Typography.Title>
-        </div>
-        <IconButton appearance="themed" mode="tertiary" onClick={() => { baselineRef.current = students.map(s => ({ ...s })); setSheetOpen(true); }} title="Массово проставить оценки и посещаемость" style={{ flexShrink: 0 }}>
-          <Zap size={20} color="currentColor" />
-        </IconButton>
-      </Flex>
-      {headerSubtitle && (
-        <Typography.Label variant="small-strong" style={{ marginLeft: '36px', color: 'var(--text-secondary)' }}>
-          {headerSubtitle}
-        </Typography.Label>
-      )}
-    </Flex>
+    <LessonHeader
+      lesson={lesson}
+      onBack={handleBack}
+      onOpenBulkSheet={onOpenBulkSheet}
+    />
   );
 
   let content: React.ReactNode;
@@ -183,66 +169,13 @@ export const LessonJournalPage: React.FC<LessonJournalPageProps> = ({ lessonId, 
       </div>
       )}
 
-      {showExitBanner && (
-        <div
-          onClick={() => setShowExitBanner(false)}
-          style={{
-            position: 'fixed',
-            inset: 0,
-            backgroundColor: 'rgba(0,0,0,0.5)',
-            zIndex: 200,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '16px',
-          }}
-        >
-          <div
-            onClick={e => e.stopPropagation()}
-            style={{
-              width: '100%',
-              maxWidth: '360px',
-              backgroundColor: 'var(--background-surface-card)',
-              borderRadius: '16px',
-              padding: '20px 16px calc(16px + env(safe-area-inset-bottom))',
-              boxSizing: 'border-box',
-            }}
-          >
-            <div style={{ fontSize: '16px', fontWeight: 700, marginBottom: '16px', color: 'var(--text-primary)' }}>
-              Сохранить изменения?
-            </div>
-            <Flex direction="column" gap={10} style={{ width: '100%' }}>
-              <Button
-                stretched
-                size="large"
-                mode="primary"
-                appearance="themed"
-                loading={saving}
-                onClick={exitSave}
-              >
-                Да, сохранить
-              </Button>
-              <Button
-                stretched
-                size="large"
-                mode="secondary"
-                loading={saving}
-                onClick={exitDiscard}
-              >
-                Нет, не сохранять
-              </Button>
-              <Button
-                stretched
-                size="large"
-                mode="tertiary"
-                onClick={() => setShowExitBanner(false)}
-              >
-                Остаться
-              </Button>
-            </Flex>
-          </div>
-        </div>
-      )}
+      <ExitBanner
+        visible={showExitBanner}
+        onClose={() => setShowExitBanner(false)}
+        onSave={exitSave}
+        onDiscard={exitDiscard}
+        saving={saving}
+      />
 
       {sheetOpen && (
         <BulkSheet

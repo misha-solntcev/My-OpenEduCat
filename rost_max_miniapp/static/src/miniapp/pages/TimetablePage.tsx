@@ -1,6 +1,6 @@
 import React from 'react';
 import { Flex, Typography, Spinner, Dot, CellList, CellSimple } from '@maxhub/max-ui';
-import { useAppStore } from '@/lib/store';
+import { useAppStore, selectGlobalDate, setGlobalDate } from '@/lib/store';
 import { apiGet } from '@/lib';
 import { DateJumper } from '@/components/DateJumper';
 
@@ -26,8 +26,8 @@ interface FacultiesResponse {
 }
 
 export const TimetablePage: React.FC<{ onOpenLesson: (id: number) => void }> = ({ onOpenLesson }) => {
-  const globalDate = useAppStore(s => s.getGlobalDate());
-  const setGlobalDate = useAppStore(s => s.setGlobalDate);
+  const globalDate = useAppStore(selectGlobalDate);
+  // setGlobalDate используется в DateJumper ниже
   const filters = useAppStore(s => s.filters);
   const setFilters = useAppStore(s => s.setFilters);
   const selectedFaculty = filters.selectedFaculty;

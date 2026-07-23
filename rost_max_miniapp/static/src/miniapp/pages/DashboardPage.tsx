@@ -3,7 +3,7 @@ import { Flex, Spinner, Avatar, Button, Grid, CellList, CellSimple } from '@maxh
 import { apiGet, initialsOf } from '@/lib';
 import { DateJumper } from '@/components/DateJumper';
 import { Tile } from '@/components/Tile';
-import { useAppStore } from '@/lib/store';
+import { useAppStore, selectGlobalDate, setGlobalDate } from '@/lib/store';
 
 interface DashboardData {
   is_admin: boolean;
@@ -35,8 +35,8 @@ interface DashboardData {
 
 export const DashboardPage: React.FC<{ onNavigate: (to: string) => void }> = ({ onNavigate }) => {
   const userInfo = useAppStore(s => s.userInfo);
-  const globalDate = useAppStore(s => s.getGlobalDate());
-  const setGlobalDate = useAppStore(s => s.setGlobalDate);
+  const globalDate = useAppStore(selectGlobalDate);
+  // setGlobalDate доступен через импорт и используется в DateJumper ниже
 
   const isAdmin = userInfo?.is_admin ?? false;
   const isTeacher = userInfo?.is_teacher ?? false;
