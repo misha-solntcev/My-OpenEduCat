@@ -1,17 +1,21 @@
 import React from 'react';
-import { createBrowserRouter, RouterProvider, Outlet, Navigate, useNavigate, useLocation } from 'react-router-dom';
+import { createBrowserRouter, RouterProvider, Outlet, Navigate, useNavigate, useLocation, useParams } from 'react-router-dom';
 import { useAppStore } from '@/lib/store';
 import { today } from '@/lib';
 import { Layout } from '@/components/Layout';
 import { TabBar } from '@/components/TabBar';
-import { LoginPage } from './pages/LoginPage';
-import { DashboardPage } from './pages/DashboardPage';
-import { TimetablePage } from './pages/TimetablePage';
-import { LessonJournalPage } from './pages/LessonJournalPage';
-import { ModulesPage } from './pages/ModulesPage';
+import { LoginPage } from '@/pages/LoginPage';
+import { DashboardPage } from '@/pages/DashboardPage';
+import { TimetablePage } from '@/pages/TimetablePage';
+import { LessonJournalPage } from '@/pages/LessonJournalPage';
+import { ModulesPage } from '@/pages/ModulesPage';
 
-// Корневой layout под префиксом /rost_max: грузит профиль при старте и
-// рендерит дочерние роуты через <Outlet />.
+// Обёртка для LessonJournalPage: достаёт lessonId из params и даёт onBack
+const LessonJournalPageWrapper: React.FC = () => {
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  return <LessonJournalPage lessonId={Number(id)} onBack={() => navigate('/rost_max/timetable')} />;
+};
 const RootLayout: React.FC = () => {
   const location = useLocation();
   const loadUserInfo = useAppStore(s => s.loadUserInfo);
@@ -77,7 +81,7 @@ const router = createBrowserRouter([
       // Корень /rost_max -> расписание (явный index, без catch-all '*')
       { index: true, element: <Navigate to="timetable" replace /> },
       { path: 'login', element: <LoginPage onSuccess={() => handleLoginSuccess(router)} /> },
-      { path: 'lesson/:id', element: <LessonJournalPage /> },
+      { path: 'lesson/:id', element: <LessonJournalPageWrapper /> },
       {
         element: <TabbedLayout />,
         children: [
