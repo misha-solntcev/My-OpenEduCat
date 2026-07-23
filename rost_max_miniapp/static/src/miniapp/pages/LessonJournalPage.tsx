@@ -1,9 +1,11 @@
 import React from 'react';
-import { Flex, Typography, Button } from '@maxhub/max-ui';
+import { Flex } from '@maxhub/max-ui';
 import { StudentRow } from '@/components/StudentRow';
 import { BulkSheet } from '@/components/BulkSheet';
 import { ExitBanner } from '@/components/ExitBanner';
 import { LessonHeader } from '@/components/LessonHeader';
+import { SaveBar } from '@/components/SaveBar';
+import { EmptyState } from '@/components/EmptyState';
 import { useLessonJournal } from '@/hooks/useLessonJournal';
 import { useBulkSheet } from '@/hooks/useBulkSheet';
 import type { GradeField } from '@/lib/colors';
@@ -88,23 +90,10 @@ export const LessonJournalPage: React.FC<LessonJournalPageProps> = ({ lessonId, 
     );
   } else if (students.length === 0) {
     content = (
-      <Flex
-        direction="column"
-        align="center"
-        justify="center"
-        className="rm-card rm-card--empty"
-        style={{
-          paddingBottom: '24px'
-        }}
-      >
-        <div style={{ fontSize: '48px', marginBottom: '12px' }}>🍃</div>
-        <Typography.Title>
-          Ученики не найдены
-        </Typography.Title>
-        <Typography.Body style={{ color: 'var(--text-secondary)', textAlign: 'center' }}>
-          Для этого урока ещё не сформирован список посещаемости.
-        </Typography.Body>
-      </Flex>
+      <EmptyState
+        title="Ученики не найдены"
+        subtitle="Для этого урока ещё не сформирован список посещаемости."
+      />
     );
   } else {
     content = (
@@ -143,31 +132,7 @@ export const LessonJournalPage: React.FC<LessonJournalPageProps> = ({ lessonId, 
         </div>
       </div>
 
-      {dirty && (
-        <div
-          style={{
-            position: 'fixed',
-            left: 0,
-            right: 0,
-            bottom: 0,
-            padding: '12px 16px calc(12px + env(safe-area-inset-bottom))',
-            backgroundColor: 'var(--background-surface-card)',
-            borderTop: '1px solid var(--stroke-separator-secondary)',
-            zIndex: 90,
-          }}
-        >
-        <Button
-          stretched
-          size="large"
-          mode="primary"
-          appearance="themed"
-          loading={saving}
-          onClick={saveAll}
-        >
-          Сохранить
-        </Button>
-      </div>
-      )}
+      <SaveBar saving={saving} onSave={saveAll} />
 
       <ExitBanner
         visible={showExitBanner}
