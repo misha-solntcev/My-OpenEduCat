@@ -53,13 +53,20 @@ const JournalButton: React.FC<JournalButtonProps> = ({
     activeColor = gradeColor(value);
   } else {
     const list = attendanceTypes ?? [];
-    const curIdx = list.findIndex(t => t.id === value);
-    const nextType = list[(curIdx + 1) % list.length];
-    next = nextType.id;
-    const cur = list.find(t => t.id === value);
-    text = cur?.name ?? '—';
-    active = value != null;
-    activeColor = attendanceColor(cur?.name);
+    if (list.length === 0) {
+      next = null;
+      text = '—';
+      active = false;
+      activeColor = 'var(--text-secondary)';
+    } else {
+      const curIdx = list.findIndex(t => t.id === value);
+      const nextType = list[(curIdx + 1) % list.length];
+      next = nextType.id;
+      const cur = list.find(t => t.id === value);
+      text = cur?.name ?? '—';
+      active = value != null;
+      activeColor = attendanceColor(cur?.name);
+    }
   }
 
   return (

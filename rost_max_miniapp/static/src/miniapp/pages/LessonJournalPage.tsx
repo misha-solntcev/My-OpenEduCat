@@ -155,15 +155,14 @@ export const LessonJournalPage: React.FC<LessonJournalPageProps> = ({ lessonId, 
     // false = только строки, что были ПУСТЫ до открытия шторки (baseline).
     // Заполненные до шторки остаются нетронутыми; пустые (и те, что мы
     // заполнили этим сеансом) крутятся по циклу дальше.
-    const bulkSetGrade = (field: GradeField, value: string) => {
-      const v = value === '' || value === '-' ? null : Number(value);
+    const bulkSetGrade = (field: GradeField, value: number | null) => {
       setStudents(prev => prev.map(s => {
         if (!overwriteAll) {
           const base = baselineRef.current.find(b => b.id === s.id);
           // трогаем только если в baseline эта колонка была пустой
           if (!base || base[field] != null) return s;
         }
-        return { ...s, [field]: v };
+        return { ...s, [field]: value };
       }));
       setDirty(true);
     };

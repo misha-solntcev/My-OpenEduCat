@@ -13,7 +13,7 @@ interface BulkSheetProps {
   // База цикла: первая релевантная строка (заполненная при !overwriteAll,
   // иначе students[0]). Считается в родителе, т.к. зависит от baselineRef.
   firstEditable: (field: GradeField | 'attendance_type_id') => Student | undefined;
-  onBulkGrade: (field: GradeField, value: string) => void;
+  onBulkGrade: (field: GradeField, value: number | null) => void;
   onBulkAtt: (attId: number | null) => void;
   onClearAll: () => void;
   onClose: () => void;
@@ -91,7 +91,7 @@ export const BulkSheet: React.FC<BulkSheetProps> = ({
               key={gf}
               kind="grade"
               value={firstEditable(gf)?.[gf] ?? null}
-              onCycle={(next) => onBulkGrade(gf, next == null ? '' : String(next))}
+              onCycle={(next) => onBulkGrade(gf, next)}
               title={`Оценка ${GRADE_FIELD_LABELS[gf]} — нажмите, чтобы сменить у всего класса`}
               minWidth={38}
               height={40}
