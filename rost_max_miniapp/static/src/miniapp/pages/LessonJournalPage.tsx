@@ -41,13 +41,13 @@ export const LessonJournalPage: React.FC<LessonJournalPageProps> = ({ lessonId, 
   // Логика массовой шторки вынесена в отдельный хук
   // Колбэки для синхронизации с локальным буфером (useLessonJournal)
   const bulkSetGrade = (field: GradeField, value: number | null) => {
-    bulkSetGradeLocal(field, value);
+    bulkSetGradeLocal(field, value, overwriteFilled, baselineRef);
   };
   const bulkSetAtt = (attId: number | null) => {
-    bulkSetAttLocal(attId);
+    bulkSetAttLocal(attId, overwriteFilled, baselineRef);
   };
   const clearAll = () => {
-    clearAllLocal();
+    clearAllLocal(overwriteFilled, baselineRef);
   };
 
   const {

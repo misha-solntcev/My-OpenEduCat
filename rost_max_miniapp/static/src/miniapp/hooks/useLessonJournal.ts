@@ -32,10 +32,10 @@ interface UseLessonJournalReturn {
   exitSave: () => Promise<void>;
   exitDiscard: () => void;
   loadStudents: () => void;
-  // Массовые операции для BulkSheet
-  bulkSetGrade: (field: GradeField, value: number | null) => void;
-  bulkSetAtt: (attId: number | null) => void;
-  clearAll: () => void;
+  // Массовые операции для BulkSheet (принимают overwriteFilled и baselineRef)
+  bulkSetGrade: (field: GradeField, value: number | null, overwriteFilled: boolean, baselineRef: React.MutableRefObject<Student[]>) => void;
+  bulkSetAtt: (attId: number | null, overwriteFilled: boolean, baselineRef: React.MutableRefObject<Student[]>) => void;
+  clearAll: (overwriteFilled: boolean, baselineRef: React.MutableRefObject<Student[]>) => void;
 }
 
 /**
@@ -132,18 +132,43 @@ export function useLessonJournal(lessonId: number, onBack: () => void): UseLesso
   };
 
   // Массовые операции для BulkSheet
-  const bulkSetGrade = (field: GradeField, value: number | null) => {
-    setStudents(prev => prev.map(s => ({ ...s, [field]: value })));
+  const bulkSetGrade = (field: GradeField, value: number | null, overwriteFilled: boolean, baselineRef: React.MutableRefObject<Student[]>) => {
+    setStudents(prev => prev.map(s => {
+      if (!overwriteFilled) {
+        const base = baselineRef.current.find(b => b.id === s.id);
+        if (base && base[field] != null) return s; // заполнено в baseline - не трогаем
+      }
+      return { ...s, [field]: value };
+    }));
     setDirty(true);
   };
 
-  const bulkSetAtt = (attId: number | null) => {
-    setStudents(prev => prev.map(s => ({ ...s, attendance_type_id: attId })));
+  const bulkSetAtt = (attId: number | null, overwriteFilled: boolean, baselineRef: React.MutableRefObject<Student[]>) => {
+    setStudents(prev => prev.map(s => {
+      if (!overwriteFilled) {
+        const base = baselineRef.current.find(b => b.id === s.id);
+        if (base && base.attendance_type_id != null) return s;
+      }
+      return { ...s, attendance_type_id: attId };
+    }));
     setDirty(true);
   };
 
-  const clearAll = () => {
-    setStudents(prev => prev.map(s => ({ ...s, grade_1: null, grade_2: null, grade_3: null, attendance_type_id: null })));
+  const clearAll = (overwriteFilled: boolean, baselineRef: React.MutableRefObject<Student[]>) => {
+    setStudents(prev => prev.map(s => {
+      if (!overwriteFilled) {
+        const base = baselineRef.current.find(b => b.id === s.id);
+        // если в baseline было заполнено - не трогаем, иначе чистим
+        const grades = !overwriteFilled && base ? {
+          grade_1: base.grade_1 != null ? base.grade_1 : null,
+          grade_2: base.grade_2 != null ? base.grade_2 : null,
+          grade_3: base.grade_3 != null ? base.grade_3 : null,
+          attendance_type_id: base.attendance_type_id != null ? base.attendance_type_id : null,
+        } : { grade_1: null, grade_2: null, grade_3: null, attendance_type_id: null };
+        return { ...s, ...grades };
+      }
+      return { ...s, grade_1: null, grade_2: null, grade_3: null, attendance_type_id: null };
+    }));
     setDirty(true);
   };
 

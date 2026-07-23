@@ -66,11 +66,18 @@ const TabbedLayout: React.FC = () => {
 // преподавателя на дефолт — в новой сессии всегда today + без фильтра,
 // внутри сессии выбор хранится в sessionStorage.
 const handleLoginSuccess = async (router: ReturnType<typeof createBrowserRouter>) => {
-  await useAppStore.getState().loadUserInfo();
-  const store = useAppStore.getState();
-  store.setGlobalDate(today());
-  store.setFilters({ selectedFaculty: null });
-  router.navigate('/rost_max/dashboard');
+  console.log('[handleLoginSuccess] Starting login flow...');
+  try {
+    await useAppStore.getState().loadUserInfo();
+    console.log('[handleLoginSuccess] User info loaded');
+    const store = useAppStore.getState();
+    store.setFilters({ date: today(), selectedFaculty: null });
+    console.log('[handleLoginSuccess] Store updated, navigating to dashboard...');
+    router.navigate('/rost_max/dashboard');
+    console.log('[handleLoginSuccess] Navigation called');
+  } catch (error) {
+    console.error('[handleLoginSuccess] Error:', error);
+  }
 };
 
 const router = createBrowserRouter([
