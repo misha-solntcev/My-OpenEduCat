@@ -72,9 +72,7 @@ export const BulkSheet: React.FC<BulkSheetProps> = ({
               value={firstEditable(gf)?.[gf] ?? null}
               onCycle={(next) => onBulkGrade(gf, next)}
               title={`Оценка ${GRADE_FIELD_LABELS[gf]} — нажмите, чтобы сменить у всего класса`}
-              minWidth={38}
-              height={40}
-              padding="0 6px"
+              variant="bulk-grade"
             />
           ))}
 
@@ -84,11 +82,7 @@ export const BulkSheet: React.FC<BulkSheetProps> = ({
             attendanceTypes={attendanceTypes}
             onCycle={(next) => onBulkAtt(next)}
             title="Посещаемость — нажмите, чтобы сменить у всего класса"
-            fontSize={12}
-            minWidth={34}
-            height={40}
-            padding="0 10px"
-            whiteSpace="nowrap"
+            variant="bulk-attendance"
           />
         </Flex>
 

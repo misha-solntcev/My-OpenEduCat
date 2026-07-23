@@ -47,8 +47,7 @@ export const StudentRow: React.FC<StudentRowProps> = ({
               value={student[field]}
               onCycle={(next) => onCycleGrade(student, field, next)}
               title={`Оценка ${GRADE_FIELD_LABELS[field]}`}
-              minWidth={30}
-              padding="0 6px"
+              variant="grade"
             />
           ))}
 
@@ -58,10 +57,7 @@ export const StudentRow: React.FC<StudentRowProps> = ({
             attendanceTypes={attendanceTypes}
             onCycle={(next) => onCycleAttendance(student, next)}
             title="Нажмите, чтобы сменить отметку посещаемости"
-            fontSize={12}
-            minWidth={34}
-            padding="0 10px"
-            whiteSpace="nowrap"
+            variant="attendance"
           />
         </Flex>
       </Flex>
