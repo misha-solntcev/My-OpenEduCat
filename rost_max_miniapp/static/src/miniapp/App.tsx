@@ -1,14 +1,14 @@
 import React from 'react';
 import { createBrowserRouter, RouterProvider, Outlet, Navigate, useNavigate, useLocation } from 'react-router-dom';
-import { useAppStore } from './lib/store';
-import { today } from './lib';
-import { Layout } from './components/Layout';
-import { TabBar } from './components/TabBar';
-import { LoginPage } from './pages/Login';
-import { DashboardPage } from './pages/Dashboard';
-import { TimetablePage } from './pages/Timetable';
-import { LessonJournalPage } from './pages/LessonJournal';
-import { ModulesPage } from './pages/Modules';
+import { useAppStore } from '@/lib/store';
+import { today } from '@/lib';
+import { Layout } from '@/components/Layout';
+import { TabBar } from '@/components/TabBar';
+import { LoginPage } from './pages/LoginPage';
+import { DashboardPage } from './pages/DashboardPage';
+import { TimetablePage } from './pages/TimetablePage';
+import { LessonJournalPage } from './pages/LessonJournalPage';
+import { ModulesPage } from './pages/ModulesPage';
 
 // Корневой layout под префиксом /rost_max: грузит профиль при старте и
 // рендерит дочерние роуты через <Outlet />.

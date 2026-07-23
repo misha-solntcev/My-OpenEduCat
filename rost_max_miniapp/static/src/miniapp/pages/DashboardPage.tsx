@@ -1,9 +1,9 @@
 import React from 'react';
 import { Flex, Spinner, Avatar, Button, Grid, CellList, CellSimple } from '@maxhub/max-ui';
-import { apiGet, initialsOf } from '../../lib';
-import { DateJumper } from '../../components/DateJumper';
-import { Tile } from '../../components/Tile';
-import { useAppStore } from '../../lib/store';
+import { apiGet, initialsOf } from '@/lib';
+import { DateJumper } from '@/components/DateJumper';
+import { Tile } from '@/components/Tile';
+import { useAppStore } from '@/lib/store';
 
 interface DashboardData {
   is_admin: boolean;

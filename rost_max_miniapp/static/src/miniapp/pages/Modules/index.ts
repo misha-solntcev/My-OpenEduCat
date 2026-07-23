@@ -1,1 +1,0 @@
-export { ModulesPage } from './ModulesPage';

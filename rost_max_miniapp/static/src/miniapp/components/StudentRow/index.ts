@@ -1,1 +1,0 @@
-export { StudentRow } from './StudentRow';

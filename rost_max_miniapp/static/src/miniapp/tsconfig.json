@@ -7,7 +7,13 @@
     "lib": ["ES2021", "DOM", "DOM.Iterable"],
     "types": ["react", "react-dom"],
     "strict": false,
-    "noEmit": true
+    "noEmit": true,
+    "paths": {
+      "@/*": ["./*"],
+      "@/components/*": ["./components/*"],
+      "@/lib/*": ["./lib/*"],
+      "@/pages/*": ["./pages/*"]
+    }
   },
   "include": ["App.tsx", "main.tsx", "pages", "components", "lib", "index.css", "vite-env.d.ts"]
 }

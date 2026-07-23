@@ -1,1 +1,0 @@
-export { TimetablePage } from './TimetablePage';

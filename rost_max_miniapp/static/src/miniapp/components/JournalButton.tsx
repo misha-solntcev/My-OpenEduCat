@@ -1,6 +1,6 @@
 import React from 'react';
-import { gradeColor, attendanceColor, GRADES } from '../../lib/colors';
-import type { AttendanceType } from '../../lib/types';
+import { gradeColor, attendanceColor, GRADES } from '@/lib/colors';
+import type { AttendanceType } from '@/lib/types';
 
 interface JournalButtonProps {
   kind: 'grade' | 'attendance';

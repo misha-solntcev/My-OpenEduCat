@@ -1,10 +1,9 @@
 import React from 'react';
 import { Flex, Avatar, Switch, IconButton, Button } from '@maxhub/max-ui';
 import { Users, Eraser } from 'lucide-react';
-import { JournalButton } from '../JournalButton';
-import { GRADE_FIELDS, GRADE_FIELD_LABELS } from '../../lib/colors';
-import type { Student, AttendanceType } from '../../lib/types';
-import type { GradeField } from '../../lib/colors';
+import { JournalButton } from '@/components/JournalButton';
+import { GRADE_FIELDS, GRADE_FIELD_LABELS, type GradeField } from '@/lib/colors';
+import type { Student, AttendanceType } from '@/lib/types';
 
 interface BulkSheetProps {
   students: Student[];

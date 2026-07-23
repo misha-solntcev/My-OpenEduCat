@@ -1,9 +1,9 @@
 import React from 'react';
 import { Flex, Avatar, EllipsisText } from '@maxhub/max-ui';
-import { JournalButton } from '../JournalButton';
-import { GRADE_FIELDS, GRADE_FIELD_LABELS } from '../../lib/colors';
-import { initialsOf } from '../../lib';
-import type { Student, AttendanceType, GradeField } from '../../lib/types';
+import { JournalButton } from '@/components/JournalButton';
+import { GRADE_FIELDS, GRADE_FIELD_LABELS, type GradeField } from '@/lib/colors';
+import { initialsOf } from '@/lib';
+import type { Student, AttendanceType } from '@/lib/types';
 
 interface StudentRowProps {
   student: Student;

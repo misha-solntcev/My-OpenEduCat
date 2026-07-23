@@ -1,10 +1,10 @@
 import React from 'react';
 import { Flex, Typography, IconButton, Button } from '@maxhub/max-ui';
-import { apiGet, apiPost } from '../../lib';
-import type { Student, AttendanceType } from '../../lib/types';
-import type { GradeField } from '../../lib/colors';
-import { StudentRow } from '../../components/StudentRow';
-import { BulkSheet } from '../../components/BulkSheet';
+import { apiGet, apiPost } from '@/lib';
+import type { Student, AttendanceType } from '@/lib/types';
+import type { GradeField } from '@/lib/colors';
+import { StudentRow } from '@/components/StudentRow';
+import { BulkSheet } from '@/components/BulkSheet';
 import { Zap } from 'lucide-react';
 
 
