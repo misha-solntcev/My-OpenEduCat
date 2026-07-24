@@ -43,14 +43,13 @@ export const LessonJournalPage: React.FC<LessonJournalPageProps> = ({ lessonId, 
     bulkSetAttLocal(attId, overwriteFilled, baselineRef);
   };
   const clearAll = () => {
-    clearAllLocal(overwriteFilled, baselineRef);
+    clearAllLocal();
   };
 
   const {
     overwriteFilled,
     setOverwriteFilled,
     baselineRef,
-    firstEditable,
     resetBaseline,
   } = useBulkSheet(
     students,
@@ -97,11 +96,9 @@ export const LessonJournalPage: React.FC<LessonJournalPageProps> = ({ lessonId, 
 
       {sheetOpen && (
         <BulkSheet
-          students={students}
           attendanceTypes={attendanceTypes}
           overwriteFilled={overwriteFilled}
           onOverwriteFilledChange={setOverwriteFilled}
-          firstEditable={firstEditable}
           onBulkGrade={bulkSetGrade}
           onBulkAtt={bulkSetAtt}
           onClearAll={clearAll}

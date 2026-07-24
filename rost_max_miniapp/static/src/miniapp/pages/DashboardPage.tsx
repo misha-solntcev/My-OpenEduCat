@@ -10,8 +10,6 @@ interface DashboardData {
   is_teacher: boolean;
   is_student: boolean;
   date: string;
-  is_fallback: boolean;
-  fallback_date: string;
   metrics: {
     active_lessons?: number;
     unfilled_sheets?: number;
@@ -87,21 +85,6 @@ export const DashboardPage: React.FC<{ onNavigate: (to: string) => void }> = ({ 
 
       {!loading && data && (
         <>
-          {/* 2. Баннер демо-режима (летние каникулы / выходной) — кастомный
-              цветной фон (negative), аналога в MAX UI нет. */}
-          {data.is_fallback && (
-            <CellSimple
-              className="rm-banner-fallback"
-              before={<span style={{ fontSize: '24px' }}>🏖️</span>}
-              title={
-                <>
-                  Летние каникулы. Показываем архивные данные за последний учебный день:{' '}
-                  <strong>{data.fallback_date}</strong>
-                </>
-              }
-            />
-          )}
-
           {/* 3. Компактный селектор даты */}
           <DateJumper value={globalDate} onChange={setGlobalDate} />
 

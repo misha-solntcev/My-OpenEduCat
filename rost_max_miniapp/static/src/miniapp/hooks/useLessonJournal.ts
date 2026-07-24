@@ -35,7 +35,7 @@ interface UseLessonJournalReturn {
   // Массовые операции для BulkSheet (принимают overwriteFilled и baselineRef)
   bulkSetGrade: (field: GradeField, value: number | null, overwriteFilled: boolean, baselineRef: React.MutableRefObject<Student[]>) => void;
   bulkSetAtt: (attId: number | null, overwriteFilled: boolean, baselineRef: React.MutableRefObject<Student[]>) => void;
-  clearAll: (overwriteFilled: boolean, baselineRef: React.MutableRefObject<Student[]>) => void;
+  clearAll: () => void;
 }
 
 /**
@@ -154,15 +154,23 @@ export function useLessonJournal(lessonId: number, onBack: () => void): UseLesso
     setDirty(true);
   };
 
-  const clearAll = (overwriteFilled: boolean, baselineRef: React.MutableRefObject<Student[]>) => {
-    setStudents(prev => prev.map(s => {
-      if (overwriteFilled) {
+  const clearAll = () => {
+    setStudents(prev => {
+      const next = prev.map(s => {
+        // Ластик всегда очищает всё, независимо от свитча
         return { ...s, grade_1: null, grade_2: null, grade_3: null, attendance_type_id: null };
-      }
-      const base = baselineRef.current.find(b => b.id === s.id);
-      return { ...s, ...(base ?? { grade_1: null, grade_2: null, grade_3: null, attendance_type_id: null }) };
-    }));
-    setDirty(true);
+      });
+      // dirty только если есть реальные изменения относительно текущего состояния
+      const hasChanges = next.some((s, i) => {
+        const o = prev[i];
+        return s.grade_1 !== o.grade_1
+          || s.grade_2 !== o.grade_2
+          || s.grade_3 !== o.grade_3
+          || s.attendance_type_id !== o.attendance_type_id;
+      });
+      if (hasChanges) setDirty(true);
+      return next;
+    });
   };
 
   return {

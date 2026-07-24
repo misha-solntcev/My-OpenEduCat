@@ -60,32 +60,6 @@ textarea:-webkit-autofill:focus {
   box-sizing: border-box;
 }
 
-/* ===== JournalButton variant tokens (CSS custom properties) ===== */
-/* Используются в JournalButton.tsx через inline style: var(--jb-grade-height) и т.д. */
-:root {
-  --jb-grade-height: 34px;
-  --jb-grade-min-width: 30px;
-  --jb-grade-font-size: 15px;
-  --jb-grade-padding: 0 6px;
-  
-  --jb-attendance-height: 34px;
-  --jb-attendance-min-width: 34px;
-  --jb-attendance-font-size: 12px;
-  --jb-attendance-padding: 0 10px;
-  --jb-attendance-white-space: nowrap;
-  
-  --jb-bulk-grade-height: 40px;
-  --jb-bulk-grade-min-width: 38px;
-  --jb-bulk-grade-font-size: 15px;
-  --jb-bulk-grade-padding: 0 6px;
-  
-  --jb-bulk-attendance-height: 40px;
-  --jb-bulk-attendance-min-width: 34px;
-  --jb-bulk-attendance-font-size: 12px;
-  --jb-bulk-attendance-padding: 0 10px;
-  --jb-bulk-attendance-white-space: nowrap;
-}
-
 .rm-card--empty {
   padding: 40px 20px;
   min-height: 200px;
@@ -185,17 +159,6 @@ textarea:-webkit-autofill:focus {
 @keyframes rm-sheet-up {
   from { transform: translateY(100%); }
   to { transform: translateY(0); }
-}
-
-/* Демо-баннер (летние каникулы / выходной) на дашборде: цветной фон
-   negative — аналога в MAX UI CellSimple нет. Токен темозависим. */
-.rm-banner-fallback {
-  background-color: var(--background-accent-negative);
-  color: var(--text-primary-static);
-}
-.rm-banner-fallback .rm-typography,
-.rm-banner-fallback [class*="Typography"] {
-  color: var(--text-primary-static);
 }
 
 /* ===== НОВЫЕ КОМПОНЕНТЫ (P3) ===== */

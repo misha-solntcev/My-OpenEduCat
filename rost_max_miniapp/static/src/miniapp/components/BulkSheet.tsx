@@ -1,17 +1,12 @@
-import React from 'react';
 import { Flex, Avatar, Switch, IconButton, Button } from '@maxhub/max-ui';
 import { Users, Eraser } from 'lucide-react';
 import { GradeColumns } from '@/components/GradeColumns';
-import type { Student, AttendanceType, GradeField } from '@/lib/types';
+import type { AttendanceType, GradeField } from '@/lib/types';
 
 interface BulkSheetProps {
-  students: Student[];
   attendanceTypes: AttendanceType[];
   overwriteFilled: boolean;
   onOverwriteFilledChange: (v: boolean) => void;
-  // База цикла: первая релевантная строка (заполненная при !overwriteFilled,
-  // иначе students[0]). Считается в родителе, т.к. зависит от baselineRef.
-  firstEditable: (field: GradeField | 'attendance_type_id') => Student | undefined;
   onBulkGrade: (field: GradeField, value: number | null) => void;
   onBulkAtt: (attId: number | null) => void;
   onClearAll: () => void;
@@ -25,7 +20,6 @@ export const BulkSheet: React.FC<BulkSheetProps> = ({
   attendanceTypes,
   overwriteFilled,
   onOverwriteFilledChange,
-  firstEditable,
   onBulkGrade,
   onBulkAtt,
   onClearAll,
@@ -47,7 +41,7 @@ export const BulkSheet: React.FC<BulkSheetProps> = ({
           <IconButton
             appearance="themed"
             mode="tertiary"
-            onClick={onClearAll}
+            onClick={e => { e.stopPropagation(); onClearAll(); }}
             title="Сбросить всё (оценки и посещаемость) у всего класса"
           >
             <Eraser size={20} />
@@ -66,13 +60,13 @@ export const BulkSheet: React.FC<BulkSheetProps> = ({
 
           <GradeColumns
             gradeValues={{
-              grade_1: firstEditable('grade_1')?.grade_1 ?? null,
-              grade_2: firstEditable('grade_2')?.grade_2 ?? null,
-              grade_3: firstEditable('grade_3')?.grade_3 ?? null,
+              grade_1: null,
+              grade_2: null,
+              grade_3: null,
             }}
             onCycleGrade={(field, next) => onBulkGrade(field, next)}
             gradeVariant="bulk-grade"
-            attendanceValue={firstEditable('attendance_type_id')?.attendance_type_id ?? null}
+            attendanceValue={null}
             onCycleAttendance={(next) => onBulkAtt(next)}
             attendanceVariant="bulk-attendance"
             attendanceTypes={attendanceTypes}
