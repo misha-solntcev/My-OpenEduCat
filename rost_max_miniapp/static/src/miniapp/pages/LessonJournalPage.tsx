@@ -1,5 +1,5 @@
 import React from 'react';
-import { Flex } from '@maxhub/max-ui';
+import { Flex } from '@vkontakte/vkui';
 import { BulkSheet } from '@/components/BulkSheet';
 import { LessonJournalContent } from '@/components/LessonJournalContent';
 import { LessonJournalToolbar } from '@/components/LessonJournalToolbar';

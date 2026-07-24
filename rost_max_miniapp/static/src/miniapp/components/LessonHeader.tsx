@@ -1,5 +1,5 @@
 import React from 'react';
-import { Flex, Typography, IconButton } from '@maxhub/max-ui';
+import { Flex, Title, Text, IconButton } from '@vkontakte/vkui';
 import { Zap } from 'lucide-react';
 
 interface LessonHeaderProps {
@@ -21,7 +21,7 @@ export const LessonHeader: React.FC<LessonHeaderProps> = ({
   return (
     <div className="rm-lesson-header">
       <Flex align="center" gap={12} style={{ width: '100%' }}>
-        <IconButton appearance="themed" mode="tertiary" onClick={onBack}>
+        <IconButton label="Назад" onClick={onBack}>
           <svg
             width="24"
             height="24"
@@ -36,24 +36,22 @@ export const LessonHeader: React.FC<LessonHeaderProps> = ({
           </svg>
         </IconButton>
         <div className="rm-lesson-header-title">
-          <Typography.Title variant="small-strong">
+          <Title level="3" weight="2">
             {headerTitle}
-          </Typography.Title>
+          </Title>
         </div>
         <IconButton
-          appearance="themed"
-          mode="tertiary"
+          label="Массово проставить оценки и посещаемость"
           onClick={onOpenBulkSheet}
-          title="Массово проставить оценки и посещаемость"
           style={{ flexShrink: 0 }}
         >
           <Zap size={20} color="currentColor" />
         </IconButton>
       </Flex>
       {headerSubtitle && (
-        <Typography.Label variant="small-strong" className="rm-lesson-header-subtitle">
+        <Text weight="2" className="rm-lesson-header-subtitle">
           {headerSubtitle}
-        </Typography.Label>
+        </Text>
       )}
     </div>
   );

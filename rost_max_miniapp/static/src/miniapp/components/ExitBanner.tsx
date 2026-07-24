@@ -1,5 +1,5 @@
 import React from 'react';
-import { Flex, Button } from '@maxhub/max-ui';
+import { Flex, Button } from '@vkontakte/vkui';
 
 interface ExitBannerProps {
   visible: boolean;
@@ -34,9 +34,9 @@ export const ExitBanner: React.FC<ExitBannerProps> = ({
         <Flex direction="column" gap={10} style={{ width: '100%' }}>
           <Button
             stretched
-            size="large"
+            size="l"
             mode="primary"
-            appearance="themed"
+            appearance="accent"
             loading={saving}
             onClick={onSave}
           >
@@ -44,7 +44,7 @@ export const ExitBanner: React.FC<ExitBannerProps> = ({
           </Button>
           <Button
             stretched
-            size="large"
+            size="l"
             mode="secondary"
             loading={saving}
             onClick={onDiscard}
@@ -53,7 +53,7 @@ export const ExitBanner: React.FC<ExitBannerProps> = ({
           </Button>
           <Button
             stretched
-            size="large"
+            size="l"
             mode="tertiary"
             onClick={onClose}
           >

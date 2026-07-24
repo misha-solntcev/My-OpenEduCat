@@ -1,5 +1,5 @@
 import React from 'react';
-import { Flex } from '@maxhub/max-ui';
+import { Flex } from '@vkontakte/vkui';
 
 interface LayoutProps {
   children: React.ReactNode;

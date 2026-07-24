@@ -1,5 +1,5 @@
 import React from 'react';
-import { Flex, Spinner, Avatar, Button, Grid, CellList, CellSimple } from '@maxhub/max-ui';
+import { Flex, Spinner, Avatar, Button, SimpleGrid, SimpleCell, Group } from '@vkontakte/vkui';
 import { apiGet, initialsOf } from '@/lib';
 import { DateJumper } from '@/components/DateJumper';
 import { Tile } from '@/components/Tile';
@@ -65,17 +65,15 @@ export const DashboardPage: React.FC<{ onNavigate: (to: string) => void }> = ({ 
   return (
     <Flex direction="column" align="stretch" gap={16} style={{ width: '100%' }}>
       {/* 1. Профиль — нативная ячейка (Avatar + имя + роль) */}
-      <CellList mode="island">
-        <CellSimple
-          before={
-            <Avatar.Container size={40} form="squircle">
-              <Avatar.Text>{initials}</Avatar.Text>
-            </Avatar.Container>
-          }
-          title={userName || roleFallback}
-          subtitle={statusText}
-        />
-      </CellList>
+      <Group header="Профиль">
+              <SimpleCell
+                before={
+                  <Avatar size={40} initials={initials} gradientColor="blue" />
+                }
+                title={userName || roleFallback}
+                subtitle={statusText}
+              />
+            </Group>
 
       {loading && (
         <Flex align="center" justify="center" style={{ padding: '48px 0' }}>
@@ -88,8 +86,8 @@ export const DashboardPage: React.FC<{ onNavigate: (to: string) => void }> = ({ 
           {/* 3. Компактный селектор даты */}
           <DateJumper value={globalDate} onChange={setGlobalDate} />
 
-          {/* 4. Инфографика 2x2 (нативный Grid + Tile метрик) */}
-          <Grid cols={2} gap={12}>
+          {/* 4. Инфографика 2x2 (SimpleGrid + Tile метрик) */}
+          <SimpleGrid cols={2} gap={12}>
             {isAdmin ? (
               <>
                 <Tile icon="🏫" label="Сегодня уроков" value={m.active_lessons ?? 0} />
@@ -111,15 +109,15 @@ export const DashboardPage: React.FC<{ onNavigate: (to: string) => void }> = ({ 
                 <Tile icon="👥" label="Моя посещаемость" value={`${m.attendance_pct ?? 0}%`} />
               </>
             )}
-          </Grid>
+          </SimpleGrid>
 
           {/* 5. Админ: единственная уникальная кнопка действия */}
           {isAdmin && (
             <Button
               mode="primary"
-              appearance="themed"
+              appearance="accent"
               stretched
-              iconBefore="📢"
+              before="📢"
               onClick={() => onNavigate('/rost_max/modules')}
             >
               Объявление

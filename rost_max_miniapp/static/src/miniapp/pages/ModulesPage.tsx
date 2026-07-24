@@ -1,5 +1,5 @@
 import React from 'react';
-import { Flex, Typography, Panel } from '@maxhub/max-ui';
+import { Flex, Panel, Title, Text } from '@vkontakte/vkui';
 
 /**
  * Экран «Модули» — точка расширения для будущих модулей мини-приложения
@@ -9,15 +9,15 @@ import { Flex, Typography, Panel } from '@maxhub/max-ui';
 export const ModulesPage: React.FC = () => {
   return (
     <Flex direction="column" align="stretch" gap={12} style={{ width: '100%' }}>
-      <Panel mode="secondary" style={{ padding: '24px', borderRadius: '16px' }}>
+      <Panel mode="card" style={{ padding: '24px', borderRadius: '16px' }}>
         <Flex direction="column" align="center" gap={12} style={{ textAlign: 'center' }}>
           <div style={{ fontSize: '48px' }}>⚡</div>
-          <Typography.Title variant="small-strong">
+          <Title level="3" weight="2">
             Модули
-          </Typography.Title>
-          <Typography.Body variant="small" style={{ color: 'var(--text-secondary)', margin: 0 }}>
+          </Title>
+          <Text weight="1" style={{ color: 'var(--text-secondary)', margin: 0 }}>
             Раздел в разработке. Здесь появятся дополнительные модули мини-приложения.
-          </Typography.Body>
+          </Text>
         </Flex>
       </Panel>
     </Flex>

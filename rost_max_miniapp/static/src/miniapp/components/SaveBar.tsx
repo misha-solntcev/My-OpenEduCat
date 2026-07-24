@@ -1,5 +1,5 @@
 import React from 'react';
-import { Button } from '@maxhub/max-ui';
+import { Button } from '@vkontakte/vkui';
 
 interface SaveBarProps {
   saving: boolean;
@@ -17,9 +17,9 @@ export const SaveBar: React.FC<SaveBarProps> = ({ saving, dirty, onSave }) => {
     <div className="rm-save-bar">
       <Button
         stretched
-        size="large"
+        size="l"
         mode="primary"
-        appearance="themed"
+        appearance="accent"
         loading={saving}
         onClick={onSave}
       >

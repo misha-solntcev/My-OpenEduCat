@@ -1,5 +1,5 @@
 import React from 'react';
-import { Panel, Flex, Typography, Button, Input } from '@maxhub/max-ui';
+import { Flex, Title, Text, Button, Input, Panel } from '@vkontakte/vkui';
 import { apiPost } from '@/lib';
 
 interface LoginResponse {
@@ -51,9 +51,8 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSuccess }) => {
 
   return (
     <Panel 
-      mode="secondary" 
-      centeredX 
-      centeredY 
+      mode="card" 
+      centered
       style={{ 
         height: '100dvh', 
         background: 'linear-gradient(135deg, var(--background-surface-ground) 0%, var(--background-surface-secondary) 100%)',
@@ -75,12 +74,12 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSuccess }) => {
           <Flex direction="column" gap={24}>
             <Flex direction="column" gap={8} align="center" style={{ textAlign: 'center' }}>
               <div style={{ fontSize: '40px', marginBottom: '8px' }}>🎓</div>
-              <Typography.Title variant="large-strong" style={{ color: 'var(--text-primary)' }}>
+              <Title level="1" weight="2" style={{ color: 'var(--text-primary)' }}>
                 Школа РОСТ
-              </Typography.Title>
-              <Typography.Body variant="small" style={{ color: 'var(--text-secondary)' }}>
+              </Title>
+              <Text weight="1" style={{ color: 'var(--text-secondary)' }}>
                 Войдите в свой аккаунт мини-приложения
-              </Typography.Body>
+              </Text>
             </Flex>
 
             <Flex direction="column" gap={14}>
@@ -118,9 +117,9 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSuccess }) => {
                   border: '1px solid var(--stroke-negative)'
                 }}
               >
-                <Typography.Body style={{ color: 'var(--text-negative)', fontSize: '13px', lineHeight: '1.4' }}>
+                <Text weight="1" style={{ color: 'var(--text-negative)', fontSize: '13px', lineHeight: '1.4' }}>
                   ⚠️ {error}
-                </Typography.Body>
+                </Text>
               </div>
             )}
 

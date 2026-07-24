@@ -1,5 +1,5 @@
 import React from 'react';
-import { Flex, Typography } from '@maxhub/max-ui';
+import { Flex, Title, Text } from '@vkontakte/vkui';
 
 interface TileProps {
   icon: string;
@@ -24,11 +24,11 @@ export const Tile: React.FC<TileProps> = ({ icon, label, value }) => (
     }}
   >
     <span style={{ fontSize: '18px' }}>{icon}</span>
-    <Typography.Label variant="small-strong" style={{ textAlign: 'center' }}>
+    <Text weight="2" style={{ textAlign: 'center' }}>
       {label}
-    </Typography.Label>
-    <Typography.Title variant="medium-strong" style={{ textAlign: 'center' }}>
+    </Text>
+    <Title level="3" weight="2" style={{ textAlign: 'center' }}>
       {value}
-    </Typography.Title>
+    </Title>
   </Flex>
 );

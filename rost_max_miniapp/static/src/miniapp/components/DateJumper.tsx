@@ -1,5 +1,5 @@
 import React from 'react';
-import { Input } from '@maxhub/max-ui';
+import { Input } from '@vkontakte/vkui';
 
 interface DateJumperProps {
   value: string;
@@ -9,14 +9,14 @@ interface DateJumperProps {
 /**
  * Единый селектор даты (Date Jumper). Используется на дашборде и расписании,
  * чтобы выбор даты был синхронизирован через общий стор (app/store.ts).
- * Нативный Input из @maxhub/max-ui (сам рисует карточку + iconBefore).
+ * Нативный Input из @vkontakte/vkui (сам рисует карточку + before).
  */
 export const DateJumper: React.FC<DateJumperProps> = ({ value, onChange }) => (
   <Input
     type="date"
     value={value}
     onChange={e => onChange(e.target.value)}
-    iconBefore={<span style={{ fontSize: '18px' }}>📅</span>}
-    mode="primary"
+    before={<span style={{ fontSize: '18px' }}>📅</span>}
+    mode="default"
   />
 );

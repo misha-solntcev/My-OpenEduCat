@@ -1,5 +1,5 @@
 import React from 'react';
-import { Flex } from '@maxhub/max-ui';
+import { Flex } from '@vkontakte/vkui';
 import { StudentRow } from '@/components/StudentRow';
 import { EmptyState } from '@/components/EmptyState';
 import type { Student, AttendanceType } from '@/lib/types';

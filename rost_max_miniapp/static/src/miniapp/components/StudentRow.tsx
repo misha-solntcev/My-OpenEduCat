@@ -1,5 +1,5 @@
 import React from 'react';
-import { Flex, Avatar, EllipsisText } from '@maxhub/max-ui';
+import { Flex, Avatar, EllipsisText } from '@vkontakte/vkui';
 import { GradeColumns } from '@/components/GradeColumns';
 import { initialsOf } from '@/lib';
 import type { Student, AttendanceType, GradeField } from '@/lib/types';
@@ -23,12 +23,11 @@ export const StudentRow: React.FC<StudentRowProps> = ({
   <div className="rm-card rm-card--row">
     <Flex align="center" gap={12} style={{ width: '100%', minWidth: 0 }}>
       {/* Колонка 1: аватар (общий для двух строк) */}
-      <Avatar.Container size={40} form="squircle">
-        <Avatar.Image
-          src={student.avatar}
-          fallback={<Avatar.Text>{initialsOf(student.name)}</Avatar.Text>}
-        />
-      </Avatar.Container>
+      <Avatar
+        size={40}
+        initials={initialsOf(student.name)}
+        src={student.avatar}
+      />
 
       {/* Колонка 2: две строки */}
       <Flex direction="column" gap={6} style={{ flex: 1, minWidth: 0 }}>

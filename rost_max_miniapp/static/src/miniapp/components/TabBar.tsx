@@ -1,48 +1,34 @@
 import React from 'react';
-import { Flex, ToolButton } from '@maxhub/max-ui';
+import { Tabbar, TabbarItem } from '@vkontakte/vkui';
+import { Icon28HomeOutline, Icon28CalendarOutline, Icon28GridLayoutOutline } from '@vkontakte/icons';
 
 interface TabBarProps {
   currentTab?: string;
   onTabChange: (tabId: string) => void;
 }
 
-const TABS = [
-  { id: 'dashboard', icon: '🏠', label: 'Главная' },
-  { id: 'timetable', icon: '📅', label: 'Расписание' },
-  { id: 'modules', icon: '⚡', label: 'Модули' },
-];
-
-/**
- * Нижний таб-бар приложения. Выделен из Layout, чтобы Layout остался чистой
- * обёрткой контента, а навигация жила в переиспользуемом виджете.
- */
 export const TabBar: React.FC<TabBarProps> = ({ currentTab, onTabChange }) => (
-  <Flex
-    align="center"
-    style={{
-      width: '100%',
-      height: '64px',
-      backgroundColor: 'var(--background-surface-card)',
-      borderTop: '1px solid var(--stroke-separator-secondary)',
-      position: 'absolute',
-      bottom: 0,
-      left: 0,
-      zIndex: 10,
-      boxShadow: '0 -4px 16px rgba(0, 0, 0, 0.06)',
-      padding: '0 8px',
-      boxSizing: 'border-box',
-      justifyContent: 'space-around',
-    }}
-  >
-    {TABS.map(tab => (
-      <ToolButton
-        key={tab.id}
-        icon={<span style={{ fontSize: '18px' }}>{tab.icon}</span>}
-        appearance={currentTab === tab.id ? 'secondary' : 'default'}
-        onClick={() => onTabChange(tab.id)}
-      >
-        {tab.label}
-      </ToolButton>
-    ))}
-  </Flex>
+  <Tabbar mode="horizontal">
+    <TabbarItem
+      label="Главная"
+      selected={currentTab === 'dashboard'}
+      onClick={() => onTabChange('dashboard')}
+    >
+      <Icon28HomeOutline />
+    </TabbarItem>
+    <TabbarItem
+      label="Расписание"
+      selected={currentTab === 'timetable'}
+      onClick={() => onTabChange('timetable')}
+    >
+      <Icon28CalendarOutline />
+    </TabbarItem>
+    <TabbarItem
+      label="Модули"
+      selected={currentTab === 'modules'}
+      onClick={() => onTabChange('modules')}
+    >
+      <Icon28GridLayoutOutline />
+    </TabbarItem>
+  </Tabbar>
 );

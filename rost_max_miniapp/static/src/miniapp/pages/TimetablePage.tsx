@@ -1,5 +1,5 @@
 import React from 'react';
-import { Flex, Typography, Spinner, Dot, CellList, CellSimple } from '@maxhub/max-ui';
+import { Flex, Headline, Text, Spinner, SimpleCell, Group } from '@vkontakte/vkui';
 import { useAppStore, selectGlobalDate, setGlobalDate } from '@/lib/store';
 import { apiGet } from '@/lib';
 import { DateJumper } from '@/components/DateJumper';
@@ -98,22 +98,22 @@ export const TimetablePage: React.FC<{ onOpenLesson: (id: number) => void }> = (
         </Flex>
       </Flex>
 
-      {/* Список занятий — нативный CellList (full-width: без боковых отступов, вписывается в 16px-обёртку страницы) */}
+      {/* Список занятий — нативный Group + SimpleCell (full-width: без боковых отступов, вписывается в 16px-обёртку страницы) */}
       {loading ? (
         <Flex style={{ padding: '24px 0' }} align="center" justify="center">
           <Spinner />
         </Flex>
       ) : lessons.length > 0 ? (
-        <CellList mode="island" style={{ flex: 1, width: '100%', paddingBottom: '80px' }}>
+        <Group header="Занятия" style={{ flex: 1, width: '100%', paddingBottom: '80px' }}>
           {lessons.map(l => (
-            <CellSimple
+            <SimpleCell
               key={l.id}
               onClick={() => openLesson(l.id)}
-              showChevron
+              chevron="always"
               before={l.timing ? l.timing.split(' - ')[0] || l.timing : ''}
-              title={
+              children={
                 <Flex align="center" gap={8}>
-                  <Dot appearance="themed" />
+                  <span>●</span>
                   {l.subject}
                 </Flex>
               }
@@ -125,24 +125,24 @@ export const TimetablePage: React.FC<{ onOpenLesson: (id: number) => void }> = (
               }
             />
           ))}
-        </CellList>
+        </Group>
       ) : (
-        <CellList mode="full-width" style={{ paddingBottom: '80px' }}>
-          <CellSimple
+        <Group header="Занятия" style={{ paddingBottom: '80px' }}>
+          <SimpleCell
             disabled
             before={<span className="rm-empty-icon">🍃</span>}
-            title={
-              <Typography.Title variant="small-strong">
+            children={
+              <Headline level="2" weight="2">
                 Занятий не найдено
-              </Typography.Title>
+              </Headline>
             }
             subtitle={
-              <Typography.Body style={{ color: 'var(--text-secondary)', textAlign: 'center' }}>
+              <Text weight="1" style={{ color: 'var(--text-secondary)', textAlign: 'center' }}>
                 На {globalDate} расписание отсутствует или все уроки отменены.
-              </Typography.Body>
+              </Text>
             }
           />
-        </CellList>
+        </Group>
       )}
     </Flex>
   );

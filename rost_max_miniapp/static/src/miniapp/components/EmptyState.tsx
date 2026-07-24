@@ -1,5 +1,5 @@
 import React from 'react';
-import { Flex, Typography } from '@maxhub/max-ui';
+import { Flex, Title, Text } from '@vkontakte/vkui';
 
 interface EmptyStateProps {
   icon?: string;
@@ -30,11 +30,11 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
     }}
   >
     <div style={{ fontSize: '48px', marginBottom: '12px' }}>{icon}</div>
-    <Typography.Title>
+    <Title level="3" weight="2">
       {title}
-    </Typography.Title>
-    <Typography.Body style={{ color: 'var(--text-secondary)', textAlign: 'center' }}>
+    </Title>
+    <Text weight="1" style={{ color: 'var(--text-secondary)', textAlign: 'center' }}>
       {subtitle}
-    </Typography.Body>
+    </Text>
   </Flex>
 );

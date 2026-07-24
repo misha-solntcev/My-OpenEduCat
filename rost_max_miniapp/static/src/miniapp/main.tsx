@@ -1,6 +1,6 @@
 import { createRoot } from 'react-dom/client';
-import { MaxUI } from '@maxhub/max-ui';
-import '@maxhub/max-ui/dist/styles.css';
+import { ConfigProvider, AdaptivityProvider } from '@vkontakte/vkui';
+import '@vkontakte/vkui/dist/vkui.css';
 import './style.css';
 import App from './App';
 
@@ -20,9 +20,11 @@ window.WebApp?.expand();
 window.WebApp?.ready();
 
 const Root = () => (
-  <MaxUI>
-    <App />
-  </MaxUI>
+  <ConfigProvider>
+    <AdaptivityProvider>
+      <App />
+    </AdaptivityProvider>
+  </ConfigProvider>
 );
 
 createRoot(document.getElementById('root')!).render(<Root />);
