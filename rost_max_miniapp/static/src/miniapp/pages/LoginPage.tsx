@@ -1,5 +1,16 @@
 import React from 'react';
-import { Flex, Title, Text, Button, Input, Panel } from '@vkontakte/vkui';
+import {
+  Panel,
+  Group,
+  FormItem,
+  FormLayoutGroup,
+  FormStatus,
+  Input,
+  Button,
+  Checkbox,
+  Link,
+  Flex,
+} from '@vkontakte/vkui';
 import { apiPost } from '@/lib';
 
 interface LoginResponse {
@@ -8,40 +19,80 @@ interface LoginResponse {
   user_name?: string;
   is_admin?: boolean;
   csrf_token?: string;
+  // 2FA fields
+  require_2fa?: boolean;
+  two_factor_enabled?: boolean;
 }
 
 interface LoginPageProps {
   onSuccess: () => void;
 }
 
+// Получаем CSRF токен из window (инъекция из templates.xml)
+const getCsrfToken = (): string => {
+  const fromWindow = (window as unknown as { csrf_token?: string }).csrf_token;
+  if (fromWindow) return fromWindow;
+  return document.cookie
+    .split('; ')
+    .find(r => r.startsWith('csrf_token='))
+    ?.split('=')[1] || '';
+};
+
 export const LoginPage: React.FC<LoginPageProps> = ({ onSuccess }) => {
-  const [email, setEmail] = React.useState('');
+  const [login, setLogin] = React.useState('');
   const [password, setPassword] = React.useState('');
+  const [totpCode, setTotpCode] = React.useState('');
   const [error, setError] = React.useState<string | null>(null);
   const [loading, setLoading] = React.useState(false);
+  const [step, setStep] = React.useState<'password' | 'totp'>('password');
+  const [totpTrusted, setTotpTrusted] = React.useState(false);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email || !password) {
-      setError('Заполните все поля');
-      return;
+    setError(null);
+
+    if (step === 'password') {
+      if (!login || !password) {
+        setError('Заполните все поля');
+        return;
+      }
+    } else {
+      if (!totpCode || totpCode.length !== 6) {
+        setError('Введите 6-значный код');
+        return;
+      }
     }
 
     setLoading(true);
-    setError(null);
+
     try {
-      const data = await apiPost<LoginResponse>('/rost_max/login', { email, password });
+      const csrfToken = getCsrfToken();
+      const payload = step === 'password'
+        ? { login, password, csrf_token: csrfToken }
+        : { totp_code: totpCode, trusted_device: totpTrusted, csrf_token: csrfToken };
+
+      const data = await apiPost<LoginResponse>(
+        step === 'password' ? '/rost_max/login' : '/rost_max/login/totp',
+        payload
+      );
+
       if (data.error) {
         setError(data.error);
-      } else {
-        // Сессия отротирована (sid изменился) -> старый window.csrf_token из
-        // HTML больше невалиден. Обновляем токен из ответа, иначе первый POST
-        // (например сейв оценки) упадёт с "CSRF validation failed".
-        if (data.csrf_token) {
-          (window as unknown as { csrf_token?: string }).csrf_token = data.csrf_token;
-        }
-        onSuccess();
+        return;
       }
+
+      // 2FA challenge
+      if (data.require_2fa || data.two_factor_enabled) {
+        setStep('totp');
+        setError(null);
+        return;
+      }
+
+      // Успешный логин
+      if (data.csrf_token) {
+        (window as unknown as { csrf_token?: string }).csrf_token = data.csrf_token;
+      }
+      onSuccess();
     } catch {
       setError('Ошибка соединения с сервером');
     } finally {
@@ -49,91 +100,136 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSuccess }) => {
     }
   };
 
+  const handleBackToPassword = () => {
+    setStep('password');
+    setTotpCode('');
+    setError(null);
+  };
+
+  const handleForgotPassword = (e: React.MouseEvent) => {
+    e.preventDefault();
+    // Редирект на Odoo reset password с возвратом в SPA
+    const redirect = encodeURIComponent(window.location.pathname + window.location.search);
+    window.location.href = `/web/reset_password?redirect=${redirect}`;
+  };
+
   return (
-    <Panel 
-      mode="card" 
-      centered
-      style={{ 
-        height: '100dvh', 
-        background: 'linear-gradient(135deg, var(--background-surface-ground) 0%, var(--background-surface-secondary) 100%)',
-        padding: '24px'
-      }}
-    >
-      <div 
-        style={{ 
-          width: '100%',
-          maxWidth: '360px',
-          backgroundColor: 'var(--background-surface-card)', 
-          borderRadius: '16px',
-          padding: '32px 24px',
-          boxShadow: '0 8px 24px rgba(0, 0, 0, 0.05)',
-          border: '1px solid var(--stroke-separator-secondary)'
-        }}
-      >
+    <Panel id="login" mode="card" centered nav="login">
+      <Group>
         <form onSubmit={handleLogin}>
-          <Flex direction="column" gap={24}>
-            <Flex direction="column" gap={8} align="center" style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: '40px', marginBottom: '8px' }}>🎓</div>
-              <Title level="1" weight="2" style={{ color: 'var(--text-primary)' }}>
-                Школа РОСТ
-              </Title>
-              <Text weight="1" style={{ color: 'var(--text-secondary)' }}>
-                Войдите в свой аккаунт мини-приложения
-              </Text>
-            </Flex>
 
-            <Flex direction="column" gap={14}>
-              <Flex direction="column" gap={6}>
-                <label style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-secondary)' }}>Email</label>
-                <Input
-                  placeholder="name@school.ru"
-                  type="email"
-                  value={email}
-                  onChange={e => setEmail((e.target as HTMLInputElement).value)}
-                  disabled={loading}
-                  style={{ width: '100%' }}
-                />
-              </Flex>
-              
-              <Flex direction="column" gap={6}>
-                <label style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-secondary)' }}>Пароль</label>
-                <Input
-                  placeholder="••••••••"
-                  type="password"
-                  value={password}
-                  onChange={e => setPassword((e.target as HTMLInputElement).value)}
-                  disabled={loading}
-                  style={{ width: '100%' }}
-                />
-              </Flex>
-            </Flex>
+          <FormLayoutGroup>
+            {step === 'password' && (
+              <>
+                <FormItem top="Email / Логин" htmlFor="login-input">
+                  <Input
+                    id="login-input"
+                    name="login"
+                    type="text"
+                    autoComplete="username"
+                    placeholder="name@rostschoolspb.ru"
+                    value={login}
+                    onChange={e => setLogin(e.target.value)}
+                    disabled={loading}
+                    autoFocus
+                  />
+                  <input type="hidden" name="type" value="password" />
+                  <input type="hidden" name="csrf_token" value={getCsrfToken()} />
+                </FormItem>
 
-            {error && (
-              <div 
-                style={{ 
-                  backgroundColor: 'var(--background-accent-negative)', 
-                  padding: '10px 12px',
-                  borderRadius: '8px',
-                  border: '1px solid var(--stroke-negative)'
-                }}
-              >
-                <Text weight="1" style={{ color: 'var(--text-negative)', fontSize: '13px', lineHeight: '1.4' }}>
-                  ⚠️ {error}
-                </Text>
-              </div>
+                <FormItem top="Пароль" htmlFor="password-input">
+                  <Input
+                    id="password-input"
+                    name="password"
+                    type="password"
+                    autoComplete="current-password"
+                    placeholder="••••••••"
+                    value={password}
+                    onChange={e => setPassword(e.target.value)}
+                    disabled={loading}
+                  />
+                </FormItem>
+
+                {error && (
+                <FormItem>
+                  <FormStatus mode="error" title="Ошибка входа">
+                    {error}
+                  </FormStatus>
+                </FormItem>
+              )}
+              </>
             )}
 
-            <Button 
-              type="submit"
-              mode="primary"
-              disabled={loading}
-              style={{ width: '100%', height: '44px', borderRadius: '8px', fontWeight: 600 }}
-            >
-              {loading ? 'Проверка данных...' : 'Войти'}
-            </Button>
-          </Flex>
+            {step === 'totp' && (
+              <>
+                <FormItem top="Код из приложения" htmlFor="totp-input">
+                  <Input
+                    id="totp-input"
+                    name="totp_code"
+                    type="text"
+                    autoComplete="one-time-code"
+                    inputMode="numeric"
+                    maxLength={6}
+                    placeholder="123456"
+                    value={totpCode}
+                    onChange={e => setTotpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                    disabled={loading}
+                    autoFocus
+                  />
+                </FormItem>
+
+                <FormItem>
+                  <Checkbox
+                    checked={totpTrusted}
+                    onChange={e => setTotpTrusted(e.target.checked)}
+                    description="Не спрашивать на этом устройстве (90 дней)"
+                  />
+                </FormItem>
+              </>
+            )}
+          </FormLayoutGroup>
+
+          {step === 'password' && (
+            <>
+              <FormItem>
+                <Button size="l" stretched mode="primary" type="submit" loading={loading}>
+                  Войти
+                </Button>
+              </FormItem>
+
+              <FormItem>
+                <Flex justify="center">
+                  <Link onClick={handleForgotPassword} noUnderline>
+                    Забыли пароль?
+                  </Link>
+                </Flex>
+              </FormItem>
+            </>
+          )}
+
+          {step === 'totp' && (
+            <>
+              <FormItem>
+                <Button size="l" stretched mode="primary" type="submit" loading={loading}>
+                  Подтвердить
+                </Button>
+              </FormItem>
+
+              <FormItem>
+                <Button
+                  size="l"
+                  stretched
+                  mode="secondary"
+                  type="button"
+                  onClick={handleBackToPassword}
+                >
+                  Назад
+                </Button>
+              </FormItem>
+            </>
+          )}
         </form>
-      </div>
+      </Group>
     </Panel>
   );
 };

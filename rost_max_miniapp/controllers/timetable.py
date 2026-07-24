@@ -1,9 +1,12 @@
 # -*- coding: utf-8 -*-
 import secrets
+import re
+import base64
 from odoo import http
 from odoo.http import request
 from odoo import fields
 import logging
+from odoo.exceptions import AccessDenied
 
 _logger = logging.getLogger(__name__)
 
@@ -12,6 +15,10 @@ _logger = logging.getLogger(__name__)
 # сессии -> детерминированное сравнение на POST (без хрупкости time-suffixed
 # формата Odoo, который ломался при разнице времени рендера и отправки).
 CSRF_SESSION_KEY = 'spa_csrf_token'
+
+# Trusted device cookie name (совпадает с auth_totp)
+TRUSTED_DEVICE_COOKIE = 'td_id'
+TRUSTED_DEVICE_AGE = 90 * 86400  # 90 days
 
 
 def _get_spa_csrf_token():
@@ -35,6 +42,40 @@ def _check_spa_csrf():
     if not session_token or not csrf_token or csrf_token != session_token:
         return request.make_json_response({"error": "CSRF validation failed"}, status=400)
     return None
+
+
+def _check_trusted_device(user):
+    """Проверяет, является ли текущее устройство доверенным для пользователя с 2FA."""
+    if not user.totp_enabled:
+        return True
+    key = request.cookies.get(TRUSTED_DEVICE_COOKIE)
+    if not key:
+        return False
+    return request.env['auth_totp.device']._check_credentials_for_uid(
+        scope="browser", key=key, uid=user.id
+    )
+
+
+def _generate_trusted_device_cookie(response, user):
+    """Генерирует и устанавливает cookie доверенного устройства."""
+    from datetime import datetime, timedelta
+    name = f"{request.httprequest.user_agent.browser.capitalize()} on {request.httprequest.user_agent.platform.capitalize()}"
+    if request.geoip.city.name:
+        name += f" ({request.geoip.city.name}, {request.geoip.country_name})"
+
+    key = request.env['auth_totp.device'].sudo()._generate(
+        "browser",
+        name,
+        datetime.now() + timedelta(seconds=TRUSTED_DEVICE_AGE)
+    )
+    response.set_cookie(
+        key=TRUSTED_DEVICE_COOKIE,
+        value=key,
+        max_age=TRUSTED_DEVICE_AGE,
+        httponly=True,
+        samesite='Lax'
+    )
+    return key
 
 
 def _check_lesson_write_access(sheet):
@@ -76,35 +117,75 @@ class RostMaxTimetableController(http.Controller):
                     {"error": "Invalid JSON"}, status=400
                 )
 
-            email = body.get('email')
+            login = body.get('login')
             password = body.get('password')
+            remember_me = body.get('remember_me', False)
+            # csrf_token валидируется через заголовок X-CSRF-Token в _check_spa_csrf для API роутов
+            # здесь для /rost_max/login используем свою проверку если нужно
 
-            if not email or not password:
+            if not login or not password:
                 return request.make_json_response(
                     {"error": "Email и пароль обязательны"}, status=400
                 )
 
             try:
-                credential = {'login': email, 'password': password, 'type': 'password'}
+                credential = {'login': login, 'password': password, 'type': 'password'}
                 auth_info = request.session.authenticate(request.db, credential)
                 if not auth_info.get('uid'):
                     return request.make_json_response(
                         {"error": "Неверные учетные данные"}, status=400
                     )
+
                 request.session['is_timetable_user'] = True
                 user = request.env['res.users'].browse(auth_info['uid'])
                 is_admin = user.has_group('base.group_system')
+
+                # Проверяем 2FA
+                if user.totp_enabled:
+                    # Проверяем доверенное устройство
+                    if _check_trusted_device(user):
+                        # Устройство доверено - пропускаем 2FA
+                        pass
+                    else:
+                        # Нужно 2FA - сохраняем pre_uid и возвращаем challenge
+                        request.session.pre_uid = auth_info['uid']
+                        return request.make_json_response({
+                            "success": False,
+                            "require_2fa": True,
+                            "two_factor_enabled": True,
+                            "user_name": user.name,
+                            "is_admin": is_admin,
+                        })
+
                 # Сессия отротирована в authenticate() -> sid изменился и Odoo
                 # csrf_token сброшен. Отдаём наш стабильный токен SPA в JSON,
                 # чтобы фронт перезаписал window.csrf_token (первый POST update
-                # после логина иначе упал бы с "CSRF validation failed").
-                return request.make_json_response({
+                # после логина иначе упадёт с "CSRF validation failed").
+                response_data = {
                     "success": True,
                     "user_name": user.name,
                     "is_admin": is_admin,
                     "csrf_token": _get_spa_csrf_token(),
-                })
+                }
+
+                response = request.make_json_response(response_data)
+
+                # Если remember_me - ставим долгую куку сессии (Odoo session уже имеет куку session_id)
+                # Для 2FA trusted device куку поставим при подтверждении кода
+
+                return response
+
+            except AccessDenied as e:
+                if e.args == AccessDenied().args:
+                    return request.make_json_response(
+                        {"error": "Неверные учетные данные"}, status=400
+                    )
+                else:
+                    return request.make_json_response(
+                        {"error": e.args[0]}, status=400
+                    )
             except Exception:
+                _logger.exception("Login error")
                 return request.make_json_response(
                     {"error": "Ошибка аутентификации"}, status=500
                 )
@@ -114,6 +195,77 @@ class RostMaxTimetableController(http.Controller):
         # кука csrf_token не проставляется, а фронт читает window.csrf_token.
         return request.render('rost_max_miniapp.spa_page',
                                {'csrf_token': _get_spa_csrf_token()})
+
+    @http.route("/rost_max/login/totp", type="http", auth="public", methods=["POST"], cors="*", csrf=False)
+    def login_totp(self, **kw):
+        """API: проверка 2FA кода (TOTP)."""
+        try:
+            body = request.get_json_data()
+        except Exception:
+            return request.make_json_response({"error": "Invalid JSON"}, status=400)
+
+        totp_code = body.get('totp_code')
+        trusted_device = body.get('trusted_device', False)
+        # csrf_token валидируется через заголовок X-CSRF-Token в _check_spa_csrf для API
+
+        if not totp_code:
+            return request.make_json_response(
+                {"error": "Код обязателен"}, status=400
+            )
+
+        # Удаляем пробелы из кода
+        totp_code = re.sub(r'\s', '', totp_code)
+
+        # Получаем пользователя из pre_uid (установлен при первом логине)
+        pre_uid = request.session.get('pre_uid')
+        if not pre_uid:
+            return request.make_json_response(
+                {"error": "Сессия истекла, войдите снова"}, status=400
+            )
+
+        user = request.env['res.users'].browse(pre_uid)
+        if not user.exists():
+            return request.make_json_response(
+                {"error": "Пользователь не найден"}, status=400
+            )
+
+        try:
+            # Проверяем TOTP код
+            with user._assert_can_auth(user=user.id):
+                user._totp_check(int(totp_code))
+        except AccessDenied as e:
+            return request.make_json_response(
+                {"error": str(e)}, status=400
+            )
+        except ValueError:
+            return request.make_json_response(
+                {"error": "Неверный формат кода"}, status=400
+            )
+
+        # 2FA успешно - финализируем сессию
+        request.session.finalize(request.env)
+        request.update_env(user=request.session.uid)
+        request.update_context(**request.session.context)
+
+        is_admin = user.has_group('base.group_system')
+
+        # Если запрошено доверенное устройство - генерируем куку
+        response_data = {
+            "success": True,
+            "user_name": user.name,
+            "is_admin": is_admin,
+            "csrf_token": _get_spa_csrf_token(),
+        }
+
+        response = request.make_json_response(response_data)
+
+        if trusted_device:
+            _generate_trusted_device_cookie(response, user)
+
+        # Очищаем pre_uid
+        request.session.pop('pre_uid', None)
+
+        return response
 
     @http.route("/rost_max/logout", type="http", auth="public", methods=["GET", "POST"])
     def logout(self):
