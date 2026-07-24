@@ -1,9 +1,8 @@
 import React from 'react';
 import { Flex, Avatar, Switch, IconButton, Button } from '@maxhub/max-ui';
 import { Users, Eraser } from 'lucide-react';
-import { JournalButton } from '@/components/JournalButton';
-import { GRADE_FIELDS, GRADE_FIELD_LABELS, type GradeField } from '@/lib/colors';
-import type { Student, AttendanceType } from '@/lib/types';
+import { GradeColumns } from '@/components/GradeColumns';
+import type { Student, AttendanceType, GradeField } from '@/lib/types';
 
 interface BulkSheetProps {
   students: Student[];
@@ -65,24 +64,20 @@ export const BulkSheet: React.FC<BulkSheetProps> = ({
             </Avatar.Icon>
           </Avatar.Container>
 
-          {GRADE_FIELDS.map((gf) => (
-            <JournalButton
-              key={gf}
-              kind="grade"
-              value={firstEditable(gf)?.[gf] ?? null}
-              onCycle={(next) => onBulkGrade(gf, next)}
-              title={`Оценка ${GRADE_FIELD_LABELS[gf]} — нажмите, чтобы сменить у всего класса`}
-              variant="bulk-grade"
-            />
-          ))}
-
-          <JournalButton
-            kind="attendance"
-            value={firstEditable('attendance_type_id')?.attendance_type_id ?? null}
+          <GradeColumns
+            gradeValues={{
+              grade_1: firstEditable('grade_1')?.grade_1 ?? null,
+              grade_2: firstEditable('grade_2')?.grade_2 ?? null,
+              grade_3: firstEditable('grade_3')?.grade_3 ?? null,
+            }}
+            onCycleGrade={(field, next) => onBulkGrade(field, next)}
+            gradeVariant="bulk-grade"
+            attendanceValue={firstEditable('attendance_type_id')?.attendance_type_id ?? null}
+            onCycleAttendance={(next) => onBulkAtt(next)}
+            attendanceVariant="bulk-attendance"
             attendanceTypes={attendanceTypes}
-            onCycle={(next) => onBulkAtt(next)}
-            title="Посещаемость — нажмите, чтобы сменить у всего класса"
-            variant="bulk-attendance"
+            gradeTitlePrefix="Оценка"
+            attendanceTitle="Посещаемость — нажмите, чтобы сменить у всего класса"
           />
         </Flex>
 

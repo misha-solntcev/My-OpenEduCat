@@ -1,23 +1,27 @@
 import React from 'react';
-import { gradeColor, attendanceColor, GRADES } from '@/lib/colors';
+import { 
+  cycleGrade, 
+  cycleAttendance, 
+  getGradeDisplay, 
+  getAttendanceDisplay,
+  getGradeColor,
+  getAttendanceColor 
+} from '@/lib/cycle';
 import type { AttendanceType } from '@/lib/types';
 
 type JournalButtonVariant = 
-  | 'grade'           // оценка в строке студента (30px minWidth, padding 0 6px)
-  | 'attendance'      // посещаемость в строке студента (12px font, 34px minWidth)
-  | 'bulk-grade'      // оценка в шторке (38px minWidth, 40px height)
-  | 'bulk-attendance'; // посещаемость в шторке (12px font, 34px minWidth, 40px height)
+  | 'grade'           
+  | 'attendance'      
+  | 'bulk-grade'      
+  | 'bulk-attendance'; 
 
 interface JournalButtonProps {
   kind: 'grade' | 'attendance';
   value: number | null;
-  // Нужны только для kind="attendance": список типов посещаемости для цикла и отображения имени
   attendanceTypes?: AttendanceType[];
   onCycle: (next: number | null) => void;
   title?: string;
-  // Вариант визуального представления (заменяет кучу стилевых пропсов)
   variant?: JournalButtonVariant;
-  // Переопределения (опционально, для нестандартных случаев)
   height?: number;
   minWidth?: number;
   fontSize?: number;
@@ -27,47 +31,36 @@ interface JournalButtonProps {
   flex?: number;
 }
 
-// Варианты по умолчанию
-const VARIANT_DEFAULTS: Record<JournalButtonVariant, Partial<JournalButtonProps>> = {
+// CSS custom property map for each variant
+const VARIANT_CSS_VARS: Record<JournalButtonVariant, Record<string, string>> = {
   'grade': {
-    height: 34,
-    minWidth: 30,
-    fontSize: 15,
-    lineHeight: 1,
-    padding: '0 6px',
+    '--jb-height': 'var(--jb-grade-height)',
+    '--jb-min-width': 'var(--jb-grade-min-width)',
+    '--jb-font-size': 'var(--jb-grade-font-size)',
+    '--jb-padding': 'var(--jb-grade-padding)',
   },
   'attendance': {
-    height: 34,
-    minWidth: 34,
-    fontSize: 12,
-    lineHeight: 1,
-    padding: '0 10px',
-    whiteSpace: 'nowrap',
+    '--jb-height': 'var(--jb-attendance-height)',
+    '--jb-min-width': 'var(--jb-attendance-min-width)',
+    '--jb-font-size': 'var(--jb-attendance-font-size)',
+    '--jb-padding': 'var(--jb-attendance-padding)',
+    '--jb-white-space': 'var(--jb-attendance-white-space)',
   },
   'bulk-grade': {
-    height: 40,
-    minWidth: 38,
-    fontSize: 15,
-    lineHeight: 1,
-    padding: '0 6px',
+    '--jb-height': 'var(--jb-bulk-grade-height)',
+    '--jb-min-width': 'var(--jb-bulk-grade-min-width)',
+    '--jb-font-size': 'var(--jb-bulk-grade-font-size)',
+    '--jb-padding': 'var(--jb-bulk-grade-padding)',
   },
   'bulk-attendance': {
-    height: 40,
-    minWidth: 34,
-    fontSize: 12,
-    lineHeight: 1,
-    padding: '0 10px',
-    whiteSpace: 'nowrap',
+    '--jb-height': 'var(--jb-bulk-attendance-height)',
+    '--jb-min-width': 'var(--jb-bulk-attendance-min-width)',
+    '--jb-font-size': 'var(--jb-bulk-attendance-font-size)',
+    '--jb-padding': 'var(--jb-bulk-attendance-padding)',
+    '--jb-white-space': 'var(--jb-bulk-attendance-white-space)',
   },
 };
 
-// Самодостаточная кнопка-карусель оценки/посещаемости.
-// Сама крутит значение по кругу (GRADES для оценок, attendanceTypes для
-// посещаемости), сама считает активность и акцентный цвет, отдаёт родителю
-// уже готовое следующее значение через onCycle(next: number|null).
-// Акцентный цвет передаём через inline CSS-переменную --jb-color
-// (см. .rm-journal-btn--active в style.css), чтобы color-mix мог сделать
-// валидный полупрозрачный фон.
 const JournalButton: React.FC<JournalButtonProps> = ({
   kind,
   value,
@@ -75,7 +68,6 @@ const JournalButton: React.FC<JournalButtonProps> = ({
   onCycle,
   title,
   variant,
-  // Переопределения
   height,
   minWidth,
   fontSize,
@@ -84,48 +76,21 @@ const JournalButton: React.FC<JournalButtonProps> = ({
   whiteSpace,
   flex,
 }) => {
-  // Определяем вариант по умолчанию на основе kind
   const defaultVariant: JournalButtonVariant = kind === 'grade' ? 'grade' : 'attendance';
   const v = variant ?? defaultVariant;
-  const defaults = VARIANT_DEFAULTS[v];
+  const cssVars = VARIANT_CSS_VARS[v];
 
-  // Применяем дефолты варианта, затем переопределения из пропсов
-  const finalHeight = height ?? defaults.height;
-  const finalMinWidth = minWidth ?? defaults.minWidth;
-  const finalFontSize = fontSize ?? defaults.fontSize;
-  const finalLineHeight = lineHeight ?? defaults.lineHeight;
-  const finalPadding = padding ?? defaults.padding;
-  const finalWhiteSpace = whiteSpace ?? defaults.whiteSpace;
-
-  let text: string;
-  let active: boolean;
-  let activeColor: string;
-  let next: number | null;
-
-  if (kind === 'grade') {
-    const idx = GRADES.indexOf(value != null ? String(value) : '');
-    const nextRaw = GRADES[(idx + 1) % GRADES.length];
-    next = nextRaw === '' ? null : Number(nextRaw);
-    text = value != null ? String(value) : '—';
-    active = value != null;
-    activeColor = gradeColor(value);
-  } else {
-    const list = attendanceTypes ?? [];
-    if (list.length === 0) {
-      next = null;
-      text = '—';
-      active = false;
-      activeColor = 'var(--text-secondary)';
-    } else {
-      const curIdx = list.findIndex(t => t.id === value);
-      const nextType = list[(curIdx + 1) % list.length];
-      next = nextType.id;
-      const cur = list.find(t => t.id === value);
-      text = cur?.name ?? '—';
-      active = value != null;
-      activeColor = attendanceColor(cur?.name);
-    }
-  }
+  const list = attendanceTypes ?? [];
+  const next = kind === 'grade'
+    ? cycleGrade(value)
+    : cycleAttendance(value, list);
+  const text = kind === 'grade'
+    ? getGradeDisplay(value)
+    : getAttendanceDisplay(value, list);
+  const active = value != null;
+  const activeColor = kind === 'grade'
+    ? getGradeColor(value)
+    : getAttendanceColor(list.find(t => t.id === value)?.name);
 
   return (
     <button
@@ -134,12 +99,12 @@ const JournalButton: React.FC<JournalButtonProps> = ({
       title={title}
       className={`rm-journal-btn ${active ? 'rm-journal-btn--active' : ''}`}
       style={{
-        height: finalHeight,
-        minWidth: finalMinWidth,
-        fontSize: finalFontSize,
-        lineHeight: finalLineHeight,
-        padding: finalPadding ?? '0',
-        whiteSpace: finalWhiteSpace,
+        height: height ? `${height}px` : cssVars['--jb-height'],
+        minWidth: minWidth ? `${minWidth}px` : cssVars['--jb-min-width'],
+        fontSize: fontSize ? `${fontSize}px` : cssVars['--jb-font-size'],
+        lineHeight,
+        padding: padding ?? cssVars['--jb-padding'],
+        whiteSpace: whiteSpace ?? cssVars['--jb-white-space'],
         flex,
         ...(active ? ({ ['--jb-color' as string]: activeColor } as React.CSSProperties) : null),
       }}

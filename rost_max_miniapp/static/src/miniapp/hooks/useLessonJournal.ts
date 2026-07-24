@@ -156,18 +156,11 @@ export function useLessonJournal(lessonId: number, onBack: () => void): UseLesso
 
   const clearAll = (overwriteFilled: boolean, baselineRef: React.MutableRefObject<Student[]>) => {
     setStudents(prev => prev.map(s => {
-      if (!overwriteFilled) {
-        const base = baselineRef.current.find(b => b.id === s.id);
-        // если в baseline было заполнено - не трогаем, иначе чистим
-        const grades = !overwriteFilled && base ? {
-          grade_1: base.grade_1 != null ? base.grade_1 : null,
-          grade_2: base.grade_2 != null ? base.grade_2 : null,
-          grade_3: base.grade_3 != null ? base.grade_3 : null,
-          attendance_type_id: base.attendance_type_id != null ? base.attendance_type_id : null,
-        } : { grade_1: null, grade_2: null, grade_3: null, attendance_type_id: null };
-        return { ...s, ...grades };
+      if (overwriteFilled) {
+        return { ...s, grade_1: null, grade_2: null, grade_3: null, attendance_type_id: null };
       }
-      return { ...s, grade_1: null, grade_2: null, grade_3: null, attendance_type_id: null };
+      const base = baselineRef.current.find(b => b.id === s.id);
+      return { ...s, ...(base ?? { grade_1: null, grade_2: null, grade_3: null, attendance_type_id: null }) };
     }));
     setDirty(true);
   };

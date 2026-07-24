@@ -1,9 +1,8 @@
 import React from 'react';
 import { Flex, Avatar, EllipsisText } from '@maxhub/max-ui';
-import { JournalButton } from '@/components/JournalButton';
-import { GRADE_FIELDS, GRADE_FIELD_LABELS, type GradeField } from '@/lib/colors';
+import { GradeColumns } from '@/components/GradeColumns';
 import { initialsOf } from '@/lib';
-import type { Student, AttendanceType } from '@/lib/types';
+import type { Student, AttendanceType, GradeField } from '@/lib/types';
 
 interface StudentRowProps {
   student: Student;
@@ -38,28 +37,20 @@ export const StudentRow: React.FC<StudentRowProps> = ({
           {student.name}
         </EllipsisText>
 
-        {/* Строка 2: три оценки + посещаемость */}
-        <Flex align="center" gap={6} wrap="wrap" style={{ width: '100%' }}>
-          {GRADE_FIELDS.map((field) => (
-            <JournalButton
-              key={field}
-              kind="grade"
-              value={student[field]}
-              onCycle={(next) => onCycleGrade(student, field, next)}
-              title={`Оценка ${GRADE_FIELD_LABELS[field]}`}
-              variant="grade"
-            />
-          ))}
-
-          <JournalButton
-            kind="attendance"
-            value={student.attendance_type_id}
-            attendanceTypes={attendanceTypes}
-            onCycle={(next) => onCycleAttendance(student, next)}
-            title="Нажмите, чтобы сменить отметку посещаемости"
-            variant="attendance"
-          />
-        </Flex>
+        {/* Строка 2: три оценки + посещаемость через GradeColumns */}
+        <GradeColumns
+          gradeValues={{
+            grade_1: student.grade_1,
+            grade_2: student.grade_2,
+            grade_3: student.grade_3,
+          }}
+          onCycleGrade={(field, next) => onCycleGrade(student, field, next)}
+          gradeVariant="grade"
+          attendanceValue={student.attendance_type_id}
+          onCycleAttendance={(next) => onCycleAttendance(student, next)}
+          attendanceVariant="attendance"
+          attendanceTypes={attendanceTypes}
+        />
       </Flex>
     </Flex>
   </div>

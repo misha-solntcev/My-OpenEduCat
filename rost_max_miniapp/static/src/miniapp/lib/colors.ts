@@ -2,8 +2,8 @@
 // Выделено из LessonJournalPage, т.к. используется и в строке студента
 // (StudentRow), и в массовой сетке шторки.
 
-// Колонки оценок (соответствуют полям модели op.attendance.line)
-export type GradeField = 'grade_1' | 'grade_2' | 'grade_3';
+import type { GradeField } from './types';
+
 export const GRADE_FIELDS: GradeField[] = ['grade_1', 'grade_2', 'grade_3'];
 export const GRADE_FIELD_LABELS: Record<GradeField, string> = {
   grade_1: 'О1',

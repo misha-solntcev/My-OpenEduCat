@@ -10,6 +10,7 @@ interface UseBulkSheetReturn {
   bulkSetGrade: (field: GradeField, value: number | null) => void;
   bulkSetAtt: (attId: number | null) => void;
   clearAll: () => void;
+  resetBaseline: (students: Student[]) => void;
 }
 
 /**
@@ -18,6 +19,7 @@ interface UseBulkSheetReturn {
  * - baselineRef (снимок студентов на момент открытия шторки)
  * - firstEditable (поиск первой редактируемой строки для базового значения кнопки)
  * - bulkSetGrade / bulkSetAtt / clearAll (массовые действия над буфером)
+ * - resetBaseline (обновление снапшота baseline при открытии шторки)
  */
 export function useBulkSheet(
   students: Student[],
@@ -58,6 +60,10 @@ export function useBulkSheet(
     onClearAll();
   };
 
+  const resetBaseline = (newStudents: Student[]) => {
+    baselineRef.current = newStudents.map(s => ({ ...s }));
+  };
+
   return {
     overwriteFilled,
     setOverwriteFilled,
@@ -66,5 +72,6 @@ export function useBulkSheet(
     bulkSetGrade,
     bulkSetAtt,
     clearAll,
+    resetBaseline,
   };
 }

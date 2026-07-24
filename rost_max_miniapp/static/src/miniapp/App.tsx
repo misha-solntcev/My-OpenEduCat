@@ -9,12 +9,24 @@ import { DashboardPage } from '@/pages/DashboardPage';
 import { TimetablePage } from '@/pages/TimetablePage';
 import { LessonJournalPage } from '@/pages/LessonJournalPage';
 import { ModulesPage } from '@/pages/ModulesPage';
+import { ToastContainer } from '@/components/Toast';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 
 // Обёртка для LessonJournalPage: достаёт lessonId из params и даёт onBack
 const LessonJournalPageWrapper: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  return <LessonJournalPage lessonId={Number(id)} onBack={() => navigate('/rost_max/timetable')} />;
+  return (
+    <ErrorBoundary
+      fallback={
+        <div style={{ padding: '24px', textAlign: 'center', color: 'var(--text-secondary)' }}>
+          Ошибка загрузки журнала. <button onClick={() => window.location.reload()} style={{ marginLeft: '8px', color: 'var(--text-accent-themed)' }}>Обновить</button>
+        </div>
+      }
+    >
+      <LessonJournalPage lessonId={Number(id)} onBack={() => navigate('/rost_max/timetable')} />
+    </ErrorBoundary>
+  );
 };
 const RootLayout: React.FC = () => {
   const location = useLocation();
@@ -102,5 +114,10 @@ const router = createBrowserRouter([
 ]);
 
 export default function App() {
-  return <RouterProvider router={router} />;
+  return (
+    <>
+      <RouterProvider router={router} />
+      <ToastContainer />
+    </>
+  );
 }
