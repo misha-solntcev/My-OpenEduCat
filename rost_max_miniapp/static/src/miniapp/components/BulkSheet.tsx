@@ -1,5 +1,5 @@
 import { Flex, Avatar, Switch, IconButton, Button } from '@vkontakte/vkui';
-import { Users, Eraser } from 'lucide-react';
+import { Eraser } from 'lucide-react';
 import { GradeColumns } from '@/components/GradeColumns';
 import type { AttendanceType, GradeField } from '@/lib/types';
 

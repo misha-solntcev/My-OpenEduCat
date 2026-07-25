@@ -1,5 +1,15 @@
 import React from 'react';
-import { Flex, Headline, Text, Spinner, SimpleCell, Group } from '@vkontakte/vkui';
+import {
+  Flex,
+  Headline,
+  Text,
+  Spinner,
+  SimpleCell,
+  Group,
+  Select,
+  FormLayoutGroup,
+  FormItem,
+} from '@vkontakte/vkui';
 import { useAppStore, selectGlobalDate, setGlobalDate } from '@/lib/store';
 import { apiGet } from '@/lib';
 import { DateJumper } from '@/components/DateJumper';
@@ -24,6 +34,8 @@ interface TimetableResponse {
 interface FacultiesResponse {
   faculties: Faculty[];
 }
+
+type SelectOption = { value: number; label: string };
 
 export const TimetablePage: React.FC<{ onOpenLesson: (id: number) => void }> = ({ onOpenLesson }) => {
   const globalDate = useAppStore(selectGlobalDate);
@@ -68,33 +80,34 @@ export const TimetablePage: React.FC<{ onOpenLesson: (id: number) => void }> = (
     onOpenLesson(lessonId);
   };
 
+  const facultyOptions: SelectOption[] = faculties.map(f => ({ value: f.id, label: f.name }));
+
   return (
     <Flex direction="column" align="stretch" gap={12} style={{ width: '100%', height: '100%' }}>
       {/* Фильтры: выбор учителя + выбор даты  */}
       <Flex direction="column" align="stretch" gap={10}>
         {isAdmin && faculties.length > 0 && (
           <Flex direction="column" align="stretch" gap={4}>
-            <span className="rm-field-label">
-              Учитель
-            </span>
-            <select
-              className="rm-select-native"
-              value={selectedFaculty || ''}
-              onChange={e => setFilters({ selectedFaculty: e.target.value ? parseInt(e.target.value) : null })}
-            >
-              <option value="">Все учителя</option>
-              {faculties.map(f => (
-                <option key={f.id} value={f.id}>{f.name}</option>
-              ))}
-            </select>
+            <FormLayoutGroup>
+              <FormItem top="Учитель">
+                <Select
+                  options={facultyOptions}
+                  placeholder="Все учителя"
+                  value={selectedFaculty}
+                  onChange={v => setFilters({ selectedFaculty: v ? Number(v) : null })}
+                  mode="default"
+                />
+              </FormItem>
+            </FormLayoutGroup>
           </Flex>
         )}
 
         <Flex direction="column" align="stretch" gap={4}>
-          <span className="rm-field-label">
-            Дата занятий
-          </span>
-          <DateJumper value={globalDate} onChange={setGlobalDate} />
+          <FormLayoutGroup>
+            <FormItem top="Дата занятий">
+              <DateJumper value={globalDate} onChange={setGlobalDate} />
+            </FormItem>
+          </FormLayoutGroup>
         </Flex>
       </Flex>
 
@@ -113,15 +126,24 @@ export const TimetablePage: React.FC<{ onOpenLesson: (id: number) => void }> = (
               before={l.timing ? l.timing.split(' - ')[0] || l.timing : ''}
               children={
                 <Flex align="center" gap={8}>
-                  <span>●</span>
+                  <span style={{ color: 'var(--text-accent-themed)' }}>●</span>
                   {l.subject}
                 </Flex>
               }
               subtitle={<span>👤 {l.faculty}</span>}
               after={
-                <div className="rm-batch-badge">
+                <span style={{
+                  backgroundColor: 'var(--background-surface-secondary)',
+                  color: 'var(--text-primary)',
+                  padding: '4px 10px',
+                  borderRadius: '8px',
+                  fontSize: '12px',
+                  fontWeight: 700,
+                  whiteSpace: 'nowrap',
+                  border: '1px solid var(--stroke-separator-secondary)',
+                }}>
                   {l.batch}
-                </div>
+                </span>
               }
             />
           ))}
@@ -130,7 +152,7 @@ export const TimetablePage: React.FC<{ onOpenLesson: (id: number) => void }> = (
         <Group header="Занятия" style={{ paddingBottom: '80px' }}>
           <SimpleCell
             disabled
-            before={<span className="rm-empty-icon">🍃</span>}
+            before={<span style={{ fontSize: '48px' }}>🍃</span>}
             children={
               <Headline level="2" weight="2">
                 Занятий не найдено
