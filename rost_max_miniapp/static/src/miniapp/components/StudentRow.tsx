@@ -1,5 +1,5 @@
 import React from 'react';
-import { Flex, Avatar, EllipsisText } from '@vkontakte/vkui';
+import { Flex, Avatar, EllipsisText, Panel } from '@vkontakte/vkui';
 import { GradeColumns } from '@/components/GradeColumns';
 import { initialsOf } from '@/lib';
 import type { Student, AttendanceType, GradeField } from '@/lib/types';
@@ -12,15 +12,14 @@ interface StudentRowProps {
 }
 
 // Строка списка учеников: аватар + ФИО (обрезается) + карусели оценок
-// и посещаемости. Карточка (.rm-card--row) задаётся снаружи через className.
-// Вся логика цикла и цвета инкапсулирована в JournalButton.
+// и посещаемости. Использует VKUI Panel вместо кастомного CSS.
 export const StudentRow: React.FC<StudentRowProps> = ({
   student,
   attendanceTypes,
   onCycleGrade,
   onCycleAttendance,
 }) => (
-  <div className="rm-card rm-card--row">
+  <Panel mode="card">
     <Flex align="center" gap={12} style={{ width: '100%', minWidth: 0 }}>
       {/* Колонка 1: аватар (общий для двух строк) */}
       <Avatar
@@ -52,5 +51,5 @@ export const StudentRow: React.FC<StudentRowProps> = ({
         />
       </Flex>
     </Flex>
-  </div>
+  </Panel>
 );

@@ -1,4 +1,4 @@
-import { Flex, Avatar, Switch, IconButton, Button } from '@vkontakte/vkui';
+import { Flex, Avatar, Switch, IconButton, Button, ModalCard, ButtonGroup } from '@vkontakte/vkui';
 import { Eraser } from 'lucide-react';
 import { GradeColumns } from '@/components/GradeColumns';
 import type { AttendanceType, GradeField } from '@/lib/types';
@@ -11,11 +11,11 @@ interface BulkSheetProps {
   onBulkAtt: (attId: number | null) => void;
   onClearAll: () => void;
   onClose: () => void;
+  open: boolean;
 }
 
 // Шторка массового проставления оценок/посещаемости всему классу.
-// Кнопки — те же самодостаточные JournalButton (kind+value+onCycle),
-// но onCycle пишет сразу всему классу через onBulkGrade/onBulkAtt.
+// Использует VKUI ModalCard вместо кастомного overlay + CSS-классов.
 export const BulkSheet: React.FC<BulkSheetProps> = ({
   attendanceTypes,
   overwriteFilled,
@@ -24,14 +24,32 @@ export const BulkSheet: React.FC<BulkSheetProps> = ({
   onBulkAtt,
   onClearAll,
   onClose,
-}) => (
-  <div className="rm-bulk-sheet-overlay" onClick={onClose}>
-    <div className="rm-bulk-sheet-card" onClick={e => e.stopPropagation()}>
+  open,
+}) => {
+  if (!open) return null;
+
+  return (
+    <ModalCard
+      open={open}
+      onClose={onClose}
+      title="Массовая расстановка"
+      dismissLabel="Закрыть"
+      size={400}
+      actions={
+        <ButtonGroup gap="m" mode="vertical" stretched>
+          <Button
+            size="l"
+            mode="primary"
+            appearance="accent"
+            onClick={onClose}
+          >
+            ОК
+          </Button>
+        </ButtonGroup>
+      }
+    >
       <Flex direction="column" gap={20}>
-        {/* Режим массового выставления (Switch) + общий ластик — вверху
-            справа отдельной строкой. Switch ВКЛ = перезаписать всех, ВЫКЛ =
-            только уже проставленные строки (baseline != null).
-            Ластик в том же визуальном языке, что Switch (IconButton). */}
+        {/* Режим массового выставления (Switch) + общий ластик — вверху справа отдельной строкой. */}
         <Flex align="center" justify="end" gap={10} style={{ width: '100%' }}>
           <Switch
             checked={overwriteFilled}
@@ -50,7 +68,7 @@ export const BulkSheet: React.FC<BulkSheetProps> = ({
             — кнопка-круг с tap-циклом (как на карточке ученика), но массово
             (пишет всему классу). */}
         <Flex align="start" gap={6} wrap="nowrap" style={{ width: '100%', minWidth: 0 }}>
-          <Avatar size={44} initials="👥" gradientColor="blue" className="rm-bulk-sheet-avatar" style={{ flexShrink: 0, marginTop: '0' }} />
+          <Avatar size={44} initials="👥" gradientColor="blue" style={{ flexShrink: 0, marginTop: 0 }} />
 
           <GradeColumns
             gradeValues={{
@@ -68,20 +86,7 @@ export const BulkSheet: React.FC<BulkSheetProps> = ({
             attendanceTitle="Посещаемость — нажмите, чтобы сменить у всего класса"
           />
         </Flex>
-
-        {/* Одна кнопка закрытия шторки. Массовые правки применяются к
-            локальному буферу мгновенно, список за ширмой перерисовывается
-            сразу. Сохранение на сервер — общей кнопкой «Сохранить». */}
-        <Button
-          stretched
-          size="l"
-          mode="primary"
-          appearance="accent"
-          onClick={onClose}
-        >
-          ОК
-        </Button>
       </Flex>
-    </div>
-  </div>
-);
+    </ModalCard>
+  );
+};

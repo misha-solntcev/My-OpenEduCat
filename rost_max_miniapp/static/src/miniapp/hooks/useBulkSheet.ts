@@ -1,6 +1,5 @@
 import React from 'react';
-import type { Student, AttendanceType } from '@/lib/types';
-import type { GradeField } from '@/lib/colors';
+import type { Student, AttendanceType, GradeField } from '@/lib/types';
 
 interface UseBulkSheetReturn {
   overwriteFilled: boolean;
@@ -26,7 +25,7 @@ export function useBulkSheet(
   // Колбэки для синхронизации с родительским состоянием (буфер студентов)
   onBulkGrade: (field: GradeField, value: number | null) => void,
   onBulkAtt: (attId: number | null) => void,
-  onClearAll: (students: Student[]) => void
+  onClearAll: () => void
 ): UseBulkSheetReturn {
   const [overwriteFilled, setOverwriteFilled] = React.useState(overwriteFilledInit);
   const baselineRef = React.useRef<Student[]>([]);

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Flex } from '@vkontakte/vkui';
+import { Box, Flex } from '@vkontakte/vkui';
 import { BulkSheet } from '@/components/BulkSheet';
 import { LessonJournalContent } from '@/components/LessonJournalContent';
 import { LessonJournalToolbar } from '@/components/LessonJournalToolbar';
@@ -82,17 +82,21 @@ export const LessonJournalPage: React.FC<LessonJournalPageProps> = ({ lessonId, 
         handleBack={handleBack}
       />
 
-      <div className="rm-journal-scroll" style={{ paddingBottom: dirty ? '84px' : '24px' }}>
-        <div className="rm-journal-content">
-          <LessonJournalContent
-            loading={loading}
-            students={students}
-            attendanceTypes={attendanceTypes}
-            onCycleGrade={cycleGradeField}
-            onCycleAttendance={cycleAttendance}
-          />
-        </div>
-      </div>
+      <Box
+        flexGrow={1}
+        overflowBlock="auto"
+        padding="xl"
+        paddingBlockEnd={dirty ? '84px' : '24px'}
+        style={{ WebkitOverflowScrolling: 'touch' }}
+      >
+        <LessonJournalContent
+          loading={loading}
+          students={students}
+          attendanceTypes={attendanceTypes}
+          onCycleGrade={cycleGradeField}
+          onCycleAttendance={cycleAttendance}
+        />
+      </Box>
 
       {sheetOpen && (
         <BulkSheet
@@ -103,6 +107,7 @@ export const LessonJournalPage: React.FC<LessonJournalPageProps> = ({ lessonId, 
           onBulkAtt={bulkSetAtt}
           onClearAll={clearAll}
           onClose={() => setSheetOpen(false)}
+          open={sheetOpen}
         />
       )}
     </Flex>

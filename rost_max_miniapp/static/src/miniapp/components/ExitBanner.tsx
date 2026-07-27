@@ -1,5 +1,5 @@
 import React from 'react';
-import { Flex, Button } from '@vkontakte/vkui';
+import { ModalCard, Button, ButtonGroup } from '@vkontakte/vkui';
 
 interface ExitBannerProps {
   visible: boolean;
@@ -11,7 +11,7 @@ interface ExitBannerProps {
 
 /**
  * Банер подтверждения выхода с несохранёнными изменениями.
- * Появляется поверх всего контента (fixed overlay).
+ * Использует VKUI ModalCard вместо кастомных CSS-классов.
  */
 export const ExitBanner: React.FC<ExitBannerProps> = ({
   visible,
@@ -23,17 +23,14 @@ export const ExitBanner: React.FC<ExitBannerProps> = ({
   if (!visible) return null;
 
   return (
-    <div className="rm-exit-banner-overlay" onClick={onClose}>
-      <div
-        onClick={e => e.stopPropagation()}
-        className="rm-exit-banner-card"
-      >
-        <div className="rm-exit-banner-title">
-          Сохранить изменения?
-        </div>
-        <Flex direction="column" gap={10} style={{ width: '100%' }}>
+    <ModalCard
+      open={visible}
+      onClose={onClose}
+      title="Сохранить изменения?"
+      size={360}
+      actions={
+        <ButtonGroup gap="m" mode="vertical" stretched>
           <Button
-            stretched
             size="l"
             mode="primary"
             appearance="accent"
@@ -43,7 +40,6 @@ export const ExitBanner: React.FC<ExitBannerProps> = ({
             Да, сохранить
           </Button>
           <Button
-            stretched
             size="l"
             mode="secondary"
             loading={saving}
@@ -52,15 +48,14 @@ export const ExitBanner: React.FC<ExitBannerProps> = ({
             Нет, не сохранять
           </Button>
           <Button
-            stretched
             size="l"
             mode="tertiary"
             onClick={onClose}
           >
             Остаться
           </Button>
-        </Flex>
-      </div>
-    </div>
+        </ButtonGroup>
+      }
+    />
   );
 };

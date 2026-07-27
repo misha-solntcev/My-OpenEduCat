@@ -1,5 +1,5 @@
 import React from 'react';
-import { Flex, Title, Text, IconButton } from '@vkontakte/vkui';
+import { PanelHeader, Title, Text, IconButton } from '@vkontakte/vkui';
 import { Zap } from 'lucide-react';
 
 interface LessonHeaderProps {
@@ -19,40 +19,12 @@ export const LessonHeader: React.FC<LessonHeaderProps> = ({
     : '';
 
   return (
-    <div className="rm-lesson-header">
-      <Flex align="center" gap={12} style={{ width: '100%' }}>
-        <IconButton label="Назад" onClick={onBack}>
-          <svg
-            width="24"
-            height="24"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <path d="M15 18l-6-6 6-6" />
-          </svg>
-        </IconButton>
-        <div className="rm-lesson-header-title">
-          <Title level="3" weight="2">
-            {headerTitle}
-          </Title>
-        </div>
-        <IconButton
-          label="Массово проставить оценки и посещаемость"
-          onClick={onOpenBulkSheet}
-          style={{ flexShrink: 0 }}
-        >
-          <Zap size={20} color="currentColor" />
-        </IconButton>
-      </Flex>
-      {headerSubtitle && (
-        <Text weight="2" className="rm-lesson-header-subtitle">
-          {headerSubtitle}
-        </Text>
-      )}
-    </div>
+    <PanelHeader
+      before={<IconButton label="Назад" onClick={onBack}><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6" /></svg></IconButton>}
+      after={<IconButton label="Массово проставить оценки и посещаемость" onClick={onOpenBulkSheet}><Zap size={20} color="currentColor" /></IconButton>}
+    >
+      <Title level="3" weight="2">{headerTitle}</Title>
+      {headerSubtitle && <Text weight="2" inline>{headerSubtitle}</Text>}
+    </PanelHeader>
   );
 };

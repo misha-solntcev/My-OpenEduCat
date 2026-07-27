@@ -1,7 +1,6 @@
 import { createRoot } from 'react-dom/client';
 import { ConfigProvider, AdaptivityProvider } from '@vkontakte/vkui';
 import '@vkontakte/vkui/dist/vkui.css';
-import './style.css';
 import App from './App';
 
 // MAX Bridge: типы для WebView API

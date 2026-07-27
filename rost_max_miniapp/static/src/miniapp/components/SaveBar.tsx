@@ -1,5 +1,5 @@
 import React from 'react';
-import { Button } from '@vkontakte/vkui';
+import { Box, Button } from '@vkontakte/vkui';
 
 interface SaveBarProps {
   saving: boolean;
@@ -9,12 +9,25 @@ interface SaveBarProps {
 
 /**
  * Нижняя фиксированная панель «Сохранить» — показывается только когда есть несохранённые правки.
+ * Использует Box вместо inline-стилей и CSS-класса.
  */
 export const SaveBar: React.FC<SaveBarProps> = ({ saving, dirty, onSave }) => {
   if (!dirty) return null;
 
   return (
-    <div className="rm-save-bar">
+    <Box
+      position="fixed"
+      insetInlineStart={0}
+      insetInlineEnd={0}
+      insetBlockEnd={0}
+      padding="m"
+      paddingBlockEnd="calc(12px + env(safe-area-inset-bottom))"
+      style={{
+        backgroundColor: 'var(--background-surface-card)',
+        borderTop: '1px solid var(--stroke-separator-secondary)',
+        zIndex: 90,
+      }}
+    >
       <Button
         stretched
         size="l"
@@ -25,6 +38,6 @@ export const SaveBar: React.FC<SaveBarProps> = ({ saving, dirty, onSave }) => {
       >
         Сохранить
       </Button>
-    </div>
+    </Box>
   );
 };

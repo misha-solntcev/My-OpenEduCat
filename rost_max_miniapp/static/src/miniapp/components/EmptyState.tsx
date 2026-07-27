@@ -1,40 +1,29 @@
 import React from 'react';
-import { Flex, Title, Text } from '@vkontakte/vkui';
+import { Placeholder } from '@vkontakte/vkui';
 
 interface EmptyStateProps {
-  icon?: string;
+  icon?: React.ReactNode;
   title: string;
   subtitle: string;
-  className?: string;
-  style?: React.CSSProperties;
+  action?: React.ReactNode;
 }
 
 /**
  * Универсальное пустое состояние (нет данных).
+ * Использует VKUI Placeholder вместо кастомных CSS-классов.
  */
 export const EmptyState: React.FC<EmptyStateProps> = ({
   icon = '🍃',
   title,
   subtitle,
-  className,
-  style,
+  action,
 }) => (
-  <Flex
-    direction="column"
-    align="center"
-    justify="center"
-    className={`rm-card rm-card--empty ${className || ''}`}
-    style={{
-      paddingBottom: '24px',
-      ...style,
-    }}
+  <Placeholder
+    icon={icon}
+    title={title}
+    action={action}
+    stretched
   >
-    <div style={{ fontSize: '48px', marginBottom: '12px' }}>{icon}</div>
-    <Title level="3" weight="2">
-      {title}
-    </Title>
-    <Text weight="1" style={{ color: 'var(--text-secondary)', textAlign: 'center' }}>
-      {subtitle}
-    </Text>
-  </Flex>
+    {subtitle}
+  </Placeholder>
 );

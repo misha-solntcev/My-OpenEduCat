@@ -1,4 +1,5 @@
 import React from 'react';
+import { Button } from '@vkontakte/vkui';
 import { 
   cycleGrade, 
   cycleAttendance, 
@@ -13,7 +14,7 @@ type JournalButtonVariant =
   | 'grade'           
   | 'attendance'      
   | 'bulk-grade'      
-  | 'bulk-attendance'; 
+  | 'bulk-attendance';
 
 interface JournalButtonProps {
   kind: 'grade' | 'attendance';
@@ -104,12 +105,19 @@ const JournalButton: React.FC<JournalButtonProps> = ({
     ? getGradeColor(value)
     : getAttendanceColor(list.find(t => t.id === value)?.name);
 
+  // Определяем appearance и mode для Button
+    const isActive = active;
+    const appearance = isActive ? 'accent' : 'overlay';
+    const mode = isActive ? 'primary' : 'secondary';
+
   return (
-    <button
+    <Button
       type="button"
       onClick={() => onCycle(next)}
       title={title}
-      className={`rm-journal-btn ${active ? 'rm-journal-btn--active' : ''}`}
+      appearance={appearance}
+      mode={mode}
+      size={finalHeight >= 40 ? 'l' : 'm'}
       style={{
         height: finalHeight,
         minWidth: finalMinWidth,
@@ -118,11 +126,12 @@ const JournalButton: React.FC<JournalButtonProps> = ({
         padding: finalPadding,
         whiteSpace: finalWhiteSpace,
         flex,
-        ...(active ? ({ ['--jb-color' as string]: activeColor } as React.CSSProperties) : null),
+        // Для active кнопки передаём цвет через CSS-переменную
+        ...(isActive ? ({ ['--jb-color']: activeColor } as React.CSSProperties) : null),
       }}
     >
       {text}
-    </button>
+    </Button>
   );
 };
 
