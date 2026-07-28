@@ -1,5 +1,6 @@
 import React from 'react';
 import { PanelHeader, Title, Text, IconButton } from '@vkontakte/vkui';
+import { Icon28ChevronBack } from '@vkontakte/icons';
 import { Zap } from 'lucide-react';
 
 interface LessonHeaderProps {
@@ -20,7 +21,7 @@ export const LessonHeader: React.FC<LessonHeaderProps> = ({
 
   return (
     <PanelHeader
-      before={<IconButton label="Назад" onClick={onBack}><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6" /></svg></IconButton>}
+      before={<IconButton label="Назад" onClick={onBack}><Icon28ChevronBack /></IconButton>}
       after={<IconButton label="Массово проставить оценки и посещаемость" onClick={onOpenBulkSheet}><Zap size={20} color="currentColor" /></IconButton>}
     >
       <Title level="3" weight="2">{headerTitle}</Title>

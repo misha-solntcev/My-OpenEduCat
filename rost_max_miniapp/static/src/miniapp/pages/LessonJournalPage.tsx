@@ -34,7 +34,7 @@ export const LessonJournalPage: React.FC<LessonJournalPageProps> = ({ id, lesson
     bulkSetGrade: bulkSetGradeLocal,
     bulkSetAtt: bulkSetAttLocal,
     clearAll: clearAllLocal,
-  } = useLessonJournal(lessonId ?? 0, onBack);
+  } = useLessonJournal(lessonId, onBack);
 
   // Логика массовой шторки вынесена в отдельный хук
   const bulkSetGrade = (field: GradeField, value: number | null) => {

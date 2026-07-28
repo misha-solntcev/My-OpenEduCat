@@ -1,14 +1,14 @@
 import React from 'react';
-import { Flex } from '@vkontakte/vkui';
+import { Flex, Text } from '@vkontakte/vkui';
 import { StudentRow } from '@/components/StudentRow';
 import { EmptyState } from '@/components/EmptyState';
-import type { Student, AttendanceType } from '@/lib/types';
+import type { Student, AttendanceType, GradeField } from '@/lib/types';
 
 interface LessonJournalContentProps {
   loading: boolean;
   students: Student[];
   attendanceTypes: AttendanceType[];
-  onCycleGrade: (student: Student, field: string, next: number | null) => void;
+  onCycleGrade: (student: Student, field: GradeField, next: number | null) => void;
   onCycleAttendance: (student: Student, next: number | null) => void;
 }
 
@@ -23,7 +23,7 @@ export const LessonJournalContent: React.FC<LessonJournalContentProps> = ({
   if (loading) {
     return (
       <Flex align="center" justify="center" style={{ flex: 1, minHeight: '200px' }}>
-        <div style={{ color: 'var(--text-secondary)' }}>Загрузка...</div>
+        <Text weight="2" style={{ color: 'var(--vkui--color_text_secondary)' }}>Загрузка...</Text>
       </Flex>
     );
   }
