@@ -1,5 +1,5 @@
 import React from 'react';
-import { Flex, Spinner, Avatar, Button, SimpleGrid, SimpleCell, Group } from '@vkontakte/vkui';
+import { Panel, PanelHeader, Flex, Spinner, Avatar, Button, SimpleGrid, SimpleCell, Group } from '@vkontakte/vkui';
 import { apiGet, initialsOf } from '@/lib';
 import { DateJumper } from '@/components/DateJumper';
 import { Tile } from '@/components/Tile';
@@ -63,7 +63,9 @@ export const DashboardPage: React.FC<{ onNavigate: (to: string) => void }> = ({ 
   const m = data?.metrics ?? {};
 
   return (
-    <Flex direction="column" align="stretch" gap={16} style={{ width: '100%' }}>
+    <Panel id="dashboard-panel">
+      <PanelHeader>Главная</PanelHeader>
+      <Flex direction="column" align="stretch" gap={16} style={{ width: '100%' }}>
       {/* 1. Профиль — нативная ячейка (Avatar + имя + роль) */}
       <Group header="Профиль">
               <SimpleCell
@@ -136,5 +138,6 @@ export const DashboardPage: React.FC<{ onNavigate: (to: string) => void }> = ({ 
         </>
       )}
     </Flex>
+    </Panel>
   );
 };

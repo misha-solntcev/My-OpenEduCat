@@ -1,5 +1,7 @@
 import React from 'react';
 import {
+  Panel,
+  PanelHeader,
   Flex,
   Headline,
   Text,
@@ -83,7 +85,9 @@ export const TimetablePage: React.FC<{ onOpenLesson: (id: number) => void }> = (
   const facultyOptions: SelectOption[] = faculties.map(f => ({ value: f.id, label: f.name }));
 
   return (
-    <Flex direction="column" align="stretch" gap={12} style={{ width: '100%', height: '100%' }}>
+    <Panel id="timetable-panel">
+      <PanelHeader>Расписание</PanelHeader>
+      <Flex direction="column" align="stretch" gap={12} style={{ width: '100%', height: '100%' }}>
       {/* Фильтры: выбор учителя + выбор даты  */}
       <Flex direction="column" align="stretch" gap={10}>
         {isAdmin && faculties.length > 0 && (
@@ -167,5 +171,6 @@ export const TimetablePage: React.FC<{ onOpenLesson: (id: number) => void }> = (
         </Group>
       )}
     </Flex>
+    </Panel>
   );
 };

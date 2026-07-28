@@ -4,8 +4,6 @@ import {
   SplitLayout,
   SplitCol,  
   View,
-  PanelHeader,
-  Panel,  
   Epic,
   Tabbar,
   TabbarItem,  
@@ -43,10 +41,7 @@ export default function App() {
           
           {/* 1. Экран авторизации (без нижнего меню) */}
           <View id="login" activePanel="login-panel">
-            <Panel id="login-panel" mode="card">
-              <PanelHeader>Вход</PanelHeader>
-              <LoginPage />
-            </Panel>
+            <LoginPage />
           </View>
 
           {/* 2. Экран приложения с таббаром внутри Epic */}
@@ -81,24 +76,15 @@ export default function App() {
           >
             {/* Дочерние View внутри Epic. ID каждого View обязан совпадать с activeStory */}
             <View id="dashboard" activePanel="dashboard-panel">
-              <Panel id="dashboard-panel">
-                <PanelHeader>Главная</PanelHeader>
-                <DashboardPage onNavigate={(panel) => setActiveTab(panel as TabId)} />
-              </Panel>
+              <DashboardPage onNavigate={(panel) => setActiveTab(panel as TabId)} />
             </View>
 
             <View id="timetable" activePanel="timetable-panel">
-              <Panel id="timetable-panel">
-                <PanelHeader>Расписание</PanelHeader>
-                <TimetablePage onOpenLesson={() => setActiveTab('timetable')} />
-              </Panel>
+              <TimetablePage onOpenLesson={() => setActiveTab('timetable')} />
             </View>
 
             <View id="modules" activePanel="modules-panel">
-              <Panel id="modules-panel">
-                <PanelHeader>Модули</PanelHeader>
-                <ModulesPage />
-              </Panel>
+              <ModulesPage />
             </View>
           </Epic>
 

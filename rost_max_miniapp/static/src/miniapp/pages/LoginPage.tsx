@@ -1,5 +1,7 @@
 import React from 'react';
 import {
+  Panel,
+  PanelHeader,
   Group,
   FormItem,
   FormLayoutGroup,
@@ -117,8 +119,10 @@ export const LoginPage: React.FC<LoginPageProps> = () => {
   };
 
   return (
-    <Group>
-      <form onSubmit={handleLogin}>
+    <Panel id="login-panel" mode="card">
+      <PanelHeader>Вход</PanelHeader>
+      <Group>
+        <form onSubmit={handleLogin}>
 
         <FormLayoutGroup>
           {step === 'password' && (
@@ -232,5 +236,6 @@ export const LoginPage: React.FC<LoginPageProps> = () => {
         )}
       </form>
     </Group>
+    </Panel>
   );
 };
