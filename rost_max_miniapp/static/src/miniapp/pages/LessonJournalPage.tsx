@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Flex } from '@vkontakte/vkui';
+import { Box, Flex, Panel } from '@vkontakte/vkui';
 import { BulkSheet } from '@/components/BulkSheet';
 import { LessonJournalContent } from '@/components/LessonJournalContent';
 import { LessonJournalToolbar } from '@/components/LessonJournalToolbar';
@@ -8,11 +8,12 @@ import { useBulkSheet } from '@/hooks/useBulkSheet';
 import type { GradeField } from '@/lib/types';
 
 interface LessonJournalPageProps {
-  lessonId: number;
+  id: string;
+  lessonId: number | null;
   onBack: () => void;
 }
 
-export const LessonJournalPage: React.FC<LessonJournalPageProps> = ({ lessonId, onBack }) => {
+export const LessonJournalPage: React.FC<LessonJournalPageProps> = ({ id, lessonId, onBack }) => {
   // Основная бизнес-логика вынесена в хук
   const {
     lesson,
@@ -33,7 +34,7 @@ export const LessonJournalPage: React.FC<LessonJournalPageProps> = ({ lessonId, 
     bulkSetGrade: bulkSetGradeLocal,
     bulkSetAtt: bulkSetAttLocal,
     clearAll: clearAllLocal,
-  } = useLessonJournal(lessonId, onBack);
+  } = useLessonJournal(lessonId ?? 0, onBack);
 
   // Логика массовой шторки вынесена в отдельный хук
   const bulkSetGrade = (field: GradeField, value: number | null) => {
@@ -67,49 +68,56 @@ export const LessonJournalPage: React.FC<LessonJournalPageProps> = ({ lessonId, 
     setSheetOpen(true);
   };
 
+  // Если lessonId не передан (null) — показываем пустое состояние
+  if (lessonId === null) {
+    return <Panel id={id} />;
+  }
+
   return (
-    <Flex direction="column" align="stretch" style={{ width: '100%', height: '100dvh' }}>
-      <LessonJournalToolbar
-        lesson={lesson}
-        saving={saving}
-        dirty={dirty}
-        showExitBanner={showExitBanner}
-        setShowExitBanner={setShowExitBanner}
-        onOpenBulkSheet={onOpenBulkSheet}
-        onSave={saveAll}
-        exitSave={exitSave}
-        exitDiscard={exitDiscard}
-        handleBack={handleBack}
-      />
-
-      <Box
-        flexGrow={1}
-        overflowBlock="auto"
-        padding="xl"
-        paddingBlockEnd={dirty ? '84px' : '24px'}
-        style={{ WebkitOverflowScrolling: 'touch' }}
-      >
-        <LessonJournalContent
-          loading={loading}
-          students={students}
-          attendanceTypes={attendanceTypes}
-          onCycleGrade={cycleGradeField}
-          onCycleAttendance={cycleAttendance}
+    <Panel id={id}>
+      <Flex direction="column" align="stretch" style={{ width: '100%', height: '100dvh' }}>
+        <LessonJournalToolbar
+          lesson={lesson}
+          saving={saving}
+          dirty={dirty}
+          showExitBanner={showExitBanner}
+          setShowExitBanner={setShowExitBanner}
+          onOpenBulkSheet={onOpenBulkSheet}
+          onSave={saveAll}
+          exitSave={exitSave}
+          exitDiscard={exitDiscard}
+          handleBack={handleBack}
         />
-      </Box>
 
-      {sheetOpen && (
-        <BulkSheet
-          attendanceTypes={attendanceTypes}
-          overwriteFilled={overwriteFilled}
-          onOverwriteFilledChange={setOverwriteFilled}
-          onBulkGrade={bulkSetGrade}
-          onBulkAtt={bulkSetAtt}
-          onClearAll={clearAll}
-          onClose={() => setSheetOpen(false)}
-          open={sheetOpen}
-        />
-      )}
-    </Flex>
+        <Box
+          flexGrow={1}
+          overflowBlock="auto"
+          padding="xl"
+          paddingBlockEnd={dirty ? '84px' : '24px'}
+          style={{ WebkitOverflowScrolling: 'touch' }}
+        >
+          <LessonJournalContent
+            loading={loading}
+            students={students}
+            attendanceTypes={attendanceTypes}
+            onCycleGrade={cycleGradeField}
+            onCycleAttendance={cycleAttendance}
+          />
+        </Box>
+
+        {sheetOpen && (
+          <BulkSheet
+            attendanceTypes={attendanceTypes}
+            overwriteFilled={overwriteFilled}
+            onOverwriteFilledChange={setOverwriteFilled}
+            onBulkGrade={bulkSetGrade}
+            onBulkAtt={bulkSetAtt}
+            onClearAll={clearAll}
+            onClose={() => setSheetOpen(false)}
+            open={sheetOpen}
+          />
+        )}
+      </Flex>
+    </Panel>
   );
 };

@@ -45,7 +45,7 @@ interface UseLessonJournalReturn {
  * - обработка выхода с несохранёнными правками
  * - массовые операции для BulkSheet
  */
-export function useLessonJournal(lessonId: number, onBack: () => void): UseLessonJournalReturn {
+export function useLessonJournal(lessonId: number | null, onBack: () => void): UseLessonJournalReturn {
   const [lesson, setLesson] = React.useState<LessonInfo | null>(null);
   const [students, setStudents] = React.useState<Student[]>([]);
   const [attendanceTypes, setAttendanceTypes] = React.useState<AttendanceType[]>([]);
@@ -55,6 +55,13 @@ export function useLessonJournal(lessonId: number, onBack: () => void): UseLesso
   const [showExitBanner, setShowExitBanner] = React.useState(false);
 
   const loadStudents = React.useCallback(() => {
+    if (!lessonId) {
+      setLesson(null);
+      setStudents([]);
+      setAttendanceTypes([]);
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     apiGet<LessonResponse>(`/rost_max/api/lesson/${lessonId}/students`)
       .then(data => {

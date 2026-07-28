@@ -43,7 +43,12 @@ interface FacultiesResponse {
   faculties: Faculty[];
 }
 
-export const TimetablePage: React.FC<{ id: string; onOpenLesson: (id: number) => void }> = ({ id, onOpenLesson }) => {
+interface TimetablePageProps {
+  id: string;
+  onOpenLesson: (id: number) => void;
+}
+
+export const TimetablePage: React.FC<TimetablePageProps> = ({ id, onOpenLesson }) => {
   const globalDate = useAppStore(selectGlobalDate);
   const filters = useAppStore(s => s.filters);
   const setFilters = useAppStore(s => s.setFilters);
