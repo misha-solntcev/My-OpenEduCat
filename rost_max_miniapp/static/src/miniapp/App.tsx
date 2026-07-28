@@ -35,7 +35,7 @@ export default function App() {
 
   return (
     <SplitLayout>
-      <SplitCol width="100%" maxWidth="100%" stretchedOnMobile autoSpaced>
+      <SplitCol autoSpaced>
         {/* Root переключает глобальные независимые экраны (Авторизация vs Внутренняя зона) */}
         <Root activeView={activeView}>
           

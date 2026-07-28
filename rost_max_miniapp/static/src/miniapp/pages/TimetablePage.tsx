@@ -3,18 +3,24 @@ import {
   Panel,
   PanelHeader,
   Flex,
-  Headline,
   Text,
   Spinner,
   SimpleCell,
+  Box,
   Group,
-  Select,
-  FormLayoutGroup,
-  FormItem,
+  Badge,
+  Placeholder,
+  DateInput,
+  CustomSelect,
+  IconButton,
 } from '@vkontakte/vkui';
+import {
+  Icon20FilterOutline,
+  Icon56CalendarOutline,
+} from '@vkontakte/icons';
 import { useAppStore, selectGlobalDate, setGlobalDate } from '@/lib/store';
 import { apiGet } from '@/lib';
-import { DateJumper } from '@/components/DateJumper';
+
 
 interface Lesson {
   id: number;
@@ -37,11 +43,8 @@ interface FacultiesResponse {
   faculties: Faculty[];
 }
 
-type SelectOption = { value: number; label: string };
-
 export const TimetablePage: React.FC<{ id: string; onOpenLesson: (id: number) => void }> = ({ id, onOpenLesson }) => {
   const globalDate = useAppStore(selectGlobalDate);
-  // setGlobalDate используется в DateJumper ниже
   const filters = useAppStore(s => s.filters);
   const setFilters = useAppStore(s => s.setFilters);
   const selectedFaculty = filters.selectedFaculty;
@@ -50,6 +53,7 @@ export const TimetablePage: React.FC<{ id: string; onOpenLesson: (id: number) =>
   const [faculties, setFaculties] = React.useState<Faculty[]>([]);
   const [isAdmin, setIsAdmin] = React.useState(false);
   const [loading, setLoading] = React.useState(false);
+  const [showFilters, setShowFilters] = React.useState(false);
 
   React.useEffect(() => {
     apiGet<FacultiesResponse>('/rost_max/api/faculties')
@@ -59,7 +63,7 @@ export const TimetablePage: React.FC<{ id: string; onOpenLesson: (id: number) =>
           setIsAdmin(true);
         }
       })
-      .catch(() => { });
+      .catch(err => console.error('Failed to load faculties:', err));
   }, []);
 
   const loadLessons = React.useCallback(async () => {
@@ -78,99 +82,94 @@ export const TimetablePage: React.FC<{ id: string; onOpenLesson: (id: number) =>
 
   React.useEffect(() => { loadLessons(); }, [loadLessons]);
 
-  const openLesson = (lessonId: number) => {
-    onOpenLesson(lessonId);
+  const formatTime = (timing: string): string => {
+    if (!timing) return '';
+    const parts = timing.split(' - ');
+    return parts[0] || timing;
   };
 
-  const facultyOptions: SelectOption[] = faculties.map(f => ({ value: f.id, label: f.name }));
+  const formatDate = (dateStr: string): string => {
+    const date = new Date(dateStr);
+    return date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' });
+  };
+
+  const handleDateChange = (date: Date | null) => {
+    if (date) {
+      setGlobalDate(date.toISOString().split('T')[0]);
+    }
+  };
+
+  const facultyOptions = [
+    { value: null, label: 'Все учителя' },
+    ...faculties.map(f => ({ value: String(f.id), label: f.name })),
+  ];
 
   return (
-    <Panel id={id}>
-      <PanelHeader>Расписание</PanelHeader>
-      <Flex direction="column" align="stretch" gap={12} style={{ width: '100%', height: '100%' }}>
-      {/* Фильтры: выбор учителя + выбор даты  */}
-      <Flex direction="column" align="stretch" gap={10}>
-        {isAdmin && faculties.length > 0 && (
-          <Flex direction="column" align="stretch" gap={4}>
-            <FormLayoutGroup>
-              <FormItem top="Учитель">
-                <Select
-                  options={facultyOptions}
-                  placeholder="Все учителя"
-                  value={selectedFaculty}
-                  onChange={v => setFilters({ selectedFaculty: v ? Number(v) : null })}
-                  mode="default"
-                />
-              </FormItem>
-            </FormLayoutGroup>
-          </Flex>
-        )}
+      <Panel id={id}>
+        <PanelHeader
+          after={
+            <>
+              {isAdmin && (
+                <IconButton
+                  label="Фильтры"
+                  onClick={() => setShowFilters(!showFilters)}
+                >
+                  <Icon20FilterOutline />
+                </IconButton>
+              )}
+            </>
+          }
+        >
+          Расписание
+        </PanelHeader>
 
-        <Flex direction="column" align="stretch" gap={4}>
-          <FormLayoutGroup>
-            <FormItem top="Дата занятий">
-              <DateJumper value={globalDate} onChange={setGlobalDate} />
-            </FormItem>
-          </FormLayoutGroup>
-        </Flex>
-      </Flex>
+        <Box padding="m">
+          {showFilters && isAdmin && (
+            <Flex gap={4} justify="end">
+              <DateInput
+                mode="plain"
+                value={new Date(globalDate)}
+                onChange={handleDateChange}
+                size="s"
+                placeholder={formatDate(globalDate)}
+              />
+              <CustomSelect
+                selectType="plain"
+                options={facultyOptions}
+                value={selectedFaculty ? String(selectedFaculty) : null}
+                onChange={(_, v) => setFilters({ selectedFaculty: v ? Number(v) : null })}
+                placeholder="Выбрать учителя"
+              />
+            </Flex>
+          )}
 
-      {/* Список занятий — нативный Group + SimpleCell (full-width: без боковых отступов, вписывается в 16px-обёртку страницы) */}
-      {loading ? (
-        <Flex style={{ padding: '24px 0' }} align="center" justify="center">
-          <Spinner />
-        </Flex>
-      ) : lessons.length > 0 ? (
-        <Group header="Занятия" style={{ flex: 1, width: '100%', paddingBottom: '80px' }}>
-          {lessons.map(l => (
-            <SimpleCell
-              key={l.id}
-              onClick={() => openLesson(l.id)}
-              chevron="always"
-              before={l.timing ? l.timing.split(' - ')[0] || l.timing : ''}
-              children={
-                <Flex align="center" gap={8}>
-                  <span style={{ color: 'var(--text-accent-themed)' }}>●</span>
+          {loading ? (
+            <Flex style={{ padding: '24px 0' }} align="center" justify="center">
+              <Spinner />
+            </Flex>
+          ) : lessons.length > 0 ? (
+            <Group header="Занятия">
+              {lessons.map(l => (
+                <SimpleCell
+                  key={l.id}
+                  onClick={() => onOpenLesson(l.id)}
+                  before={formatTime(l.timing)}
+                  subtitle={`👤 ${l.faculty}`}
+                  after={<Badge mode="prominent">{l.batch}</Badge>}
+                >
                   {l.subject}
-                </Flex>
-              }
-              subtitle={<span>👤 {l.faculty}</span>}
-              after={
-                <span style={{
-                  backgroundColor: 'var(--background-surface-secondary)',
-                  color: 'var(--text-primary)',
-                  padding: '4px 10px',
-                  borderRadius: '8px',
-                  fontSize: '12px',
-                  fontWeight: 700,
-                  whiteSpace: 'nowrap',
-                  border: '1px solid var(--stroke-separator-secondary)',
-                }}>
-                  {l.batch}
-                </span>
-              }
-            />
-          ))}
-        </Group>
-      ) : (
-        <Group header="Занятия" style={{ paddingBottom: '80px' }}>
-          <SimpleCell
-            disabled
-            before={<span style={{ fontSize: '48px' }}>🍃</span>}
-            children={
-              <Headline level="2" weight="2">
-                Занятий не найдено
-              </Headline>
-            }
-            subtitle={
-              <Text weight="1" style={{ color: 'var(--text-secondary)', textAlign: 'center' }}>
-                На {globalDate} расписание отсутствует или все уроки отменены.
+                </SimpleCell>
+              ))}
+            </Group>
+          ) : (
+            <Placeholder icon={<Icon56CalendarOutline />}>
+              <Text weight="2" style={{ marginBottom: 8 }}>Занятий не найдено</Text>
+              <Text style={{ color: 'var(--vkui--color_text_secondary)' }}>
+                На {formatDate(globalDate)} расписание отсутствует или все уроки отменены.
               </Text>
-            }
-          />
-        </Group>
-      )}
-    </Flex>
-    </Panel>
-  );
-};
+            </Placeholder>
+          )}
+        </Box>
+      </Panel>
+    );
+  };
