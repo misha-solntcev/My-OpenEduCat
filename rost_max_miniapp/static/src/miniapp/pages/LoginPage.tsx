@@ -27,6 +27,7 @@ interface LoginResponse {
 }
 
 interface LoginPageProps {
+  id: string;
 }
 
 // Получаем CSRF токен из window (инъекция из templates.xml)
@@ -39,7 +40,7 @@ const getCsrfToken = (): string => {
     ?.split('=')[1] || '';
 };
 
-export const LoginPage: React.FC<LoginPageProps> = () => {
+export const LoginPage: React.FC<LoginPageProps> = ({ id }) => {
   const [login, setLogin] = React.useState('');
   const [password, setPassword] = React.useState('');
   const [totpCode, setTotpCode] = React.useState('');
@@ -119,12 +120,14 @@ export const LoginPage: React.FC<LoginPageProps> = () => {
   };
 
   return (
-    <Panel id="login-panel" mode="card">
+    <Panel id={id} mode="card">
       <PanelHeader>Вход</PanelHeader>
       <Group>
         <form onSubmit={handleLogin}>
+          <input type="hidden" name="type" value="password" />
+          <input type="hidden" name="csrf_token" value={getCsrfToken()} />
 
-        <FormLayoutGroup>
+          <FormLayoutGroup>
           {step === 'password' && (
             <>
               <FormItem top="Логин" htmlFor="login-input">
@@ -139,8 +142,6 @@ export const LoginPage: React.FC<LoginPageProps> = () => {
                   disabled={loading}
                   autoFocus
                 />
-                <input type="hidden" name="type" value="password" />
-                <input type="hidden" name="csrf_token" value={getCsrfToken()} />
               </FormItem>
 
               <FormItem top="Пароль" htmlFor="password-input">
@@ -157,12 +158,12 @@ export const LoginPage: React.FC<LoginPageProps> = () => {
               </FormItem>
 
               {error && (
-              <FormItem>
-                <FormStatus mode="error" title="Ошибка входа">
-                  {error}
-                </FormStatus>
-              </FormItem>
-            )}
+                <FormItem>
+                  <FormStatus mode="error" title="Ошибка входа">
+                    {error}
+                  </FormStatus>
+                </FormItem>
+              )}
             </>
           )}
 
@@ -188,8 +189,9 @@ export const LoginPage: React.FC<LoginPageProps> = () => {
                 <Checkbox
                   checked={totpTrusted}
                   onChange={e => setTotpTrusted(e.target.checked)}
-                  description="Не спрашивать на этом устройстве (90 дней)"
-                />
+                >
+                  Не спрашивать на этом устройстве (90 дней)
+                </Checkbox>
               </FormItem>
             </>
           )}

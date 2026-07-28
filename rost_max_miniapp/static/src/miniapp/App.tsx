@@ -41,7 +41,7 @@ export default function App() {
           
           {/* 1. Экран авторизации (без нижнего меню) */}
           <View id="login" activePanel="login-panel">
-            <LoginPage />
+            <LoginPage id="login-panel" />
           </View>
 
           {/* 2. Экран приложения с таббаром внутри Epic */}
@@ -76,15 +76,15 @@ export default function App() {
           >
             {/* Дочерние View внутри Epic. ID каждого View обязан совпадать с activeStory */}
             <View id="dashboard" activePanel="dashboard-panel">
-              <DashboardPage onNavigate={(panel) => setActiveTab(panel as TabId)} />
+              <DashboardPage id="dashboard-panel" onNavigate={(panel) => setActiveTab(panel as TabId)} />
             </View>
 
             <View id="timetable" activePanel="timetable-panel">
-              <TimetablePage onOpenLesson={() => setActiveTab('timetable')} />
+              <TimetablePage id="timetable-panel" onOpenLesson={() => setActiveTab('timetable')} />
             </View>
 
             <View id="modules" activePanel="modules-panel">
-              <ModulesPage />
+              <ModulesPage id="modules-panel" />
             </View>
           </Epic>
 

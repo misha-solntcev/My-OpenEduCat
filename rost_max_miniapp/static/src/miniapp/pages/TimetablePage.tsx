@@ -39,7 +39,7 @@ interface FacultiesResponse {
 
 type SelectOption = { value: number; label: string };
 
-export const TimetablePage: React.FC<{ onOpenLesson: (id: number) => void }> = ({ onOpenLesson }) => {
+export const TimetablePage: React.FC<{ id: string; onOpenLesson: (id: number) => void }> = ({ id, onOpenLesson }) => {
   const globalDate = useAppStore(selectGlobalDate);
   // setGlobalDate используется в DateJumper ниже
   const filters = useAppStore(s => s.filters);
@@ -85,7 +85,7 @@ export const TimetablePage: React.FC<{ onOpenLesson: (id: number) => void }> = (
   const facultyOptions: SelectOption[] = faculties.map(f => ({ value: f.id, label: f.name }));
 
   return (
-    <Panel id="timetable-panel">
+    <Panel id={id}>
       <PanelHeader>Расписание</PanelHeader>
       <Flex direction="column" align="stretch" gap={12} style={{ width: '100%', height: '100%' }}>
       {/* Фильтры: выбор учителя + выбор даты  */}

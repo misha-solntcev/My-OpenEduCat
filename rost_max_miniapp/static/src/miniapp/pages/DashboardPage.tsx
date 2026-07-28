@@ -31,7 +31,7 @@ interface DashboardData {
   } | null;
 }
 
-export const DashboardPage: React.FC<{ onNavigate: (to: string) => void }> = ({ onNavigate }) => {
+export const DashboardPage: React.FC<{ id: string; onNavigate: (to: string) => void }> = ({ id, onNavigate }) => {
   const userInfo = useAppStore(s => s.userInfo);
   const globalDate = useAppStore(selectGlobalDate);
   // setGlobalDate доступен через импорт и используется в DateJumper ниже
@@ -63,7 +63,7 @@ export const DashboardPage: React.FC<{ onNavigate: (to: string) => void }> = ({ 
   const m = data?.metrics ?? {};
 
   return (
-    <Panel id="dashboard-panel">
+    <Panel id={id}>
       <PanelHeader>Главная</PanelHeader>
       <Flex direction="column" align="stretch" gap={16} style={{ width: '100%' }}>
       {/* 1. Профиль — нативная ячейка (Avatar + имя + роль) */}

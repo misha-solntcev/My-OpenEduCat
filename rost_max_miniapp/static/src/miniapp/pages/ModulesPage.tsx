@@ -6,9 +6,9 @@ import { Panel, PanelHeader, Flex, Title, Text } from '@vkontakte/vkui';
  * (например, доп. разделы, настройки, отчёты). Пока заглушка: показываем
  * понятный пустой экран вместо инлайн-строки в роутере.
  */
-export const ModulesPage: React.FC = () => {
+export const ModulesPage: React.FC<{ id: string }> = ({ id }) => {
   return (
-    <Panel id="modules-panel">
+    <Panel id={id}>
       <PanelHeader>Модули</PanelHeader>
       <Flex direction="column" align="stretch" gap={12} style={{ width: '100%' }}>
         <Panel mode="card" style={{ padding: '24px', borderRadius: '16px' }}>
