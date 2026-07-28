@@ -1,123 +1,110 @@
 import React from 'react';
-import { createBrowserRouter, RouterProvider, Outlet, Navigate, useNavigate, useLocation, useParams } from 'react-router-dom';
-import { useAppStore } from '@/lib/store';
-import { today } from '@/lib';
-import { Layout } from '@/components/Layout';
-import { TabBar } from '@/components/TabBar';
+import {  
+  Root,  
+  SplitLayout,
+  SplitCol,  
+  View,
+  PanelHeader,
+  Panel,  
+  Epic,
+  Tabbar,
+  TabbarItem,  
+} from '@vkontakte/vkui';
+import { Icon28HomeOutline, Icon28CalendarOutline, Icon28GridLayoutOutline } from '@vkontakte/icons';
 import { LoginPage } from '@/pages/LoginPage';
 import { DashboardPage } from '@/pages/DashboardPage';
 import { TimetablePage } from '@/pages/TimetablePage';
-import { LessonJournalPage } from '@/pages/LessonJournalPage';
 import { ModulesPage } from '@/pages/ModulesPage';
 import { ToastContainer } from '@/components/Toast';
-import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { useAppStore } from '@/lib/store';
 
-// Обёртка для LessonJournalPage: достаёт lessonId из params и даёт onBack
-const LessonJournalPageWrapper: React.FC = () => {
-  const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
-  return (
-    <ErrorBoundary
-      fallback={
-        <div style={{ padding: '24px', textAlign: 'center', color: 'var(--text-secondary)' }}>
-          Ошибка загрузки журнала. <button onClick={() => window.location.reload()} style={{ marginLeft: '8px', color: 'var(--text-accent-themed)' }}>Обновить</button>
-        </div>
-      }
-    >
-      <LessonJournalPage lessonId={Number(id)} onBack={() => navigate('/rost_max/timetable')} />
-    </ErrorBoundary>
-  );
-};
-const RootLayout: React.FC = () => {
-  const location = useLocation();
-  const loadUserInfo = useAppStore(s => s.loadUserInfo);
-
-  React.useEffect(() => {
-    if (location.pathname !== '/rost_max/login') {
-      loadUserInfo();
-    }
-  }, [loadUserInfo]);
-
-  return <Outlet />;
-};
-
-// Макет для экранов с таб-баром (инкапсулирует загрузку профиля + TabBar)
-const TabbedLayout: React.FC = () => {
-  const location = useLocation();
-  const navigate = useNavigate();
-  const userLoading = useAppStore(s => s.userLoading);
-
-  if (userLoading) {
-    return (
-      <Layout>
-        <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-secondary)' }}>
-          Загрузка профиля...
-        </div>
-      </Layout>
-    );
-  }
-
-  const isDashboard = location.pathname === '/rost_max/dashboard';
-  const isModules = location.pathname === '/rost_max/modules';
-  const currentTab = isDashboard ? 'dashboard' : isModules ? 'modules' : 'timetable';
-
-  return (
-    <Layout>
-      <Outlet />
-      <TabBar
-        currentTab={currentTab}
-        onTabChange={(tab: string) => navigate(`/rost_max/${tab}`)}
-      />
-    </Layout>
-  );
-};
-
-// После логина подгружаем профиль ДО перехода на дашборд. loadUserInfo — из
-// стора напрямую (вне React), навигация — через router.navigate (метод
-// объекта router, без useNavigate в модуле). Сбрасываем дату и фильтр
-// преподавателя на дефолт — в новой сессии всегда today + без фильтра,
-// внутри сессии выбор хранится в sessionStorage.
-const handleLoginSuccess = async (router: ReturnType<typeof createBrowserRouter>) => {
-  console.log('[handleLoginSuccess] Starting login flow...');
-  try {
-    await useAppStore.getState().loadUserInfo();
-    console.log('[handleLoginSuccess] User info loaded');
-    const store = useAppStore.getState();
-    store.setFilters({ date: today(), selectedFaculty: null });
-    console.log('[handleLoginSuccess] Store updated, navigating to dashboard...');
-    router.navigate('/rost_max/dashboard');
-    console.log('[handleLoginSuccess] Navigation called');
-  } catch (error) {
-    console.error('[handleLoginSuccess] Error:', error);
-  }
-};
-
-const router = createBrowserRouter([
-  {
-    path: '/rost_max',
-    element: <RootLayout />,
-    children: [
-      // Корень /rost_max -> расписание (явный index, без catch-all '*')
-      { index: true, element: <Navigate to="timetable" replace /> },
-      { path: 'login', element: <LoginPage onSuccess={() => handleLoginSuccess(router)} /> },
-      { path: 'lesson/:id', element: <LessonJournalPageWrapper /> },
-      {
-        element: <TabbedLayout />,
-        children: [
-          { path: 'dashboard', element: <DashboardPage onNavigate={(to) => router.navigate(to)} /> },
-          { path: 'timetable', element: <TimetablePage onOpenLesson={(id) => router.navigate(`/rost_max/lesson/${id}`)} /> },
-          { path: 'modules', element: <ModulesPage /> },
-        ],
-      },
-    ],
-  },
-]);
+type TabId = 'dashboard' | 'timetable' | 'modules';
 
 export default function App() {
+  const authSuccess = useAppStore(s => s.authSuccess);
+  const userInfo = useAppStore(s => s.userInfo);
+  const [activeView, setActiveView] = React.useState<'login' | 'main'>('login');
+  const [activeTab, setActiveTab] = React.useState<TabId>('dashboard');
+
+  // Управляем глобальным переключением экранов
+  React.useEffect(() => {
+    if (authSuccess || userInfo) {
+      setActiveView('main');
+    } else {
+      setActiveView('login');
+    }
+  }, [authSuccess, userInfo]);
+
   return (
-    <>
-      <RouterProvider router={router} />
-      <ToastContainer />
-    </>
+    <SplitLayout>
+      <SplitCol width="100%" maxWidth="100%" stretchedOnMobile autoSpaced>
+        {/* Root переключает глобальные независимые экраны (Авторизация vs Внутренняя зона) */}
+        <Root activeView={activeView}>
+          
+          {/* 1. Экран авторизации (без нижнего меню) */}
+          <View id="login" activePanel="login-panel">
+            <Panel id="login-panel" mode="card">
+              <PanelHeader>Вход</PanelHeader>
+              <LoginPage />
+            </Panel>
+          </View>
+
+          {/* 2. Экран приложения с таббаром внутри Epic */}
+          <Epic
+            id="main"
+            activeStory={activeTab}
+            tabbar={
+              <Tabbar mode="horizontal">
+                <TabbarItem
+                  label="Главная"
+                  selected={activeTab === 'dashboard'}
+                  onClick={() => setActiveTab('dashboard')}
+                >
+                  <Icon28HomeOutline />
+                </TabbarItem>
+                <TabbarItem
+                  label="Расписание"
+                  selected={activeTab === 'timetable'}
+                  onClick={() => setActiveTab('timetable')}
+                >
+                  <Icon28CalendarOutline />
+                </TabbarItem>
+                <TabbarItem
+                  label="Модули"
+                  selected={activeTab === 'modules'}
+                  onClick={() => setActiveTab('modules')}
+                >
+                  <Icon28GridLayoutOutline />
+                </TabbarItem>
+              </Tabbar>
+            }
+          >
+            {/* Дочерние View внутри Epic. ID каждого View обязан совпадать с activeStory */}
+            <View id="dashboard" activePanel="dashboard-panel">
+              <Panel id="dashboard-panel">
+                <PanelHeader>Главная</PanelHeader>
+                <DashboardPage onNavigate={(panel) => setActiveTab(panel as TabId)} />
+              </Panel>
+            </View>
+
+            <View id="timetable" activePanel="timetable-panel">
+              <Panel id="timetable-panel">
+                <PanelHeader>Расписание</PanelHeader>
+                <TimetablePage onOpenLesson={() => setActiveTab('timetable')} />
+              </Panel>
+            </View>
+
+            <View id="modules" activePanel="modules-panel">
+              <Panel id="modules-panel">
+                <PanelHeader>Модули</PanelHeader>
+                <ModulesPage />
+              </Panel>
+            </View>
+          </Epic>
+
+        </Root>
+        <ToastContainer />
+      </SplitCol>
+    </SplitLayout>
   );
 }

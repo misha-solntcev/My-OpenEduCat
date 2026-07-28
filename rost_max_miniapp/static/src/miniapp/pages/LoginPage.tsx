@@ -1,6 +1,5 @@
 import React from 'react';
 import {
-  Panel,
   Group,
   FormItem,
   FormLayoutGroup,
@@ -12,6 +11,7 @@ import {
   Flex,
 } from '@vkontakte/vkui';
 import { apiPost } from '@/lib';
+import { useAppStore } from '@/lib/store';
 
 interface LoginResponse {
   success?: boolean;
@@ -25,7 +25,6 @@ interface LoginResponse {
 }
 
 interface LoginPageProps {
-  onSuccess: () => void;
 }
 
 // Получаем CSRF токен из window (инъекция из templates.xml)
@@ -38,7 +37,7 @@ const getCsrfToken = (): string => {
     ?.split('=')[1] || '';
 };
 
-export const LoginPage: React.FC<LoginPageProps> = ({ onSuccess }) => {
+export const LoginPage: React.FC<LoginPageProps> = () => {
   const [login, setLogin] = React.useState('');
   const [password, setPassword] = React.useState('');
   const [totpCode, setTotpCode] = React.useState('');
@@ -46,6 +45,9 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSuccess }) => {
   const [loading, setLoading] = React.useState(false);
   const [step, setStep] = React.useState<'password' | 'totp'>('password');
   const [totpTrusted, setTotpTrusted] = React.useState(false);
+
+  const setAuthSuccess = useAppStore(s => s.setAuthSuccess);
+  const loadUserInfo = useAppStore(s => s.loadUserInfo);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -88,11 +90,12 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSuccess }) => {
         return;
       }
 
-      // Успешный логин
+      // Успешный логин — загружаем профиль ПЕРЕД переключением на main
       if (data.csrf_token) {
         (window as unknown as { csrf_token?: string }).csrf_token = data.csrf_token;
       }
-      onSuccess();
+      await loadUserInfo();
+      setAuthSuccess(true);
     } catch {
       setError('Ошибка соединения с сервером');
     } finally {
@@ -114,122 +117,120 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSuccess }) => {
   };
 
   return (
-    <Panel id="login" mode="card" centered nav="login">
-      <Group>
-        <form onSubmit={handleLogin}>
+    <Group>
+      <form onSubmit={handleLogin}>
 
-          <FormLayoutGroup>
-            {step === 'password' && (
-              <>
-                <FormItem top="Email / Логин" htmlFor="login-input">
-                  <Input
-                    id="login-input"
-                    name="login"
-                    type="text"
-                    autoComplete="username"
-                    placeholder="name@rostschoolspb.ru"
-                    value={login}
-                    onChange={e => setLogin(e.target.value)}
-                    disabled={loading}
-                    autoFocus
-                  />
-                  <input type="hidden" name="type" value="password" />
-                  <input type="hidden" name="csrf_token" value={getCsrfToken()} />
-                </FormItem>
-
-                <FormItem top="Пароль" htmlFor="password-input">
-                  <Input
-                    id="password-input"
-                    name="password"
-                    type="password"
-                    autoComplete="current-password"
-                    placeholder="••••••••"
-                    value={password}
-                    onChange={e => setPassword(e.target.value)}
-                    disabled={loading}
-                  />
-                </FormItem>
-
-                {error && (
-                <FormItem>
-                  <FormStatus mode="error" title="Ошибка входа">
-                    {error}
-                  </FormStatus>
-                </FormItem>
-              )}
-              </>
-            )}
-
-            {step === 'totp' && (
-              <>
-                <FormItem top="Код из приложения" htmlFor="totp-input">
-                  <Input
-                    id="totp-input"
-                    name="totp_code"
-                    type="text"
-                    autoComplete="one-time-code"
-                    inputMode="numeric"
-                    maxLength={6}
-                    placeholder="123456"
-                    value={totpCode}
-                    onChange={e => setTotpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                    disabled={loading}
-                    autoFocus
-                  />
-                </FormItem>
-
-                <FormItem>
-                  <Checkbox
-                    checked={totpTrusted}
-                    onChange={e => setTotpTrusted(e.target.checked)}
-                    description="Не спрашивать на этом устройстве (90 дней)"
-                  />
-                </FormItem>
-              </>
-            )}
-          </FormLayoutGroup>
-
+        <FormLayoutGroup>
           {step === 'password' && (
             <>
-              <FormItem>
-                <Button size="l" stretched mode="primary" type="submit" loading={loading}>
-                  Войти
-                </Button>
+              <FormItem top="Логин" htmlFor="login-input">
+                <Input
+                  id="login-input"
+                  name="login"
+                  type="text"
+                  autoComplete="username"
+                  placeholder="name@rostschoolspb.ru"
+                  value={login}
+                  onChange={e => setLogin(e.target.value)}
+                  disabled={loading}
+                  autoFocus
+                />
+                <input type="hidden" name="type" value="password" />
+                <input type="hidden" name="csrf_token" value={getCsrfToken()} />
               </FormItem>
 
-              <FormItem>
-                <Flex justify="center">
-                  <Link onClick={handleForgotPassword} noUnderline>
-                    Забыли пароль?
-                  </Link>
-                </Flex>
+              <FormItem top="Пароль" htmlFor="password-input">
+                <Input
+                  id="password-input"
+                  name="password"
+                  type="password"
+                  autoComplete="current-password"
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={e => setPassword(e.target.value)}
+                  disabled={loading}
+                />
               </FormItem>
+
+              {error && (
+              <FormItem>
+                <FormStatus mode="error" title="Ошибка входа">
+                  {error}
+                </FormStatus>
+              </FormItem>
+            )}
             </>
           )}
 
           {step === 'totp' && (
             <>
-              <FormItem>
-                <Button size="l" stretched mode="primary" type="submit" loading={loading}>
-                  Подтвердить
-                </Button>
+              <FormItem top="Код из приложения" htmlFor="totp-input">
+                <Input
+                  id="totp-input"
+                  name="totp_code"
+                  type="text"
+                  autoComplete="one-time-code"
+                  inputMode="numeric"
+                  maxLength={6}
+                  placeholder="123456"
+                  value={totpCode}
+                  onChange={e => setTotpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                  disabled={loading}
+                  autoFocus
+                />
               </FormItem>
 
               <FormItem>
-                <Button
-                  size="l"
-                  stretched
-                  mode="secondary"
-                  type="button"
-                  onClick={handleBackToPassword}
-                >
-                  Назад
-                </Button>
+                <Checkbox
+                  checked={totpTrusted}
+                  onChange={e => setTotpTrusted(e.target.checked)}
+                  description="Не спрашивать на этом устройстве (90 дней)"
+                />
               </FormItem>
             </>
           )}
-        </form>
-      </Group>
-    </Panel>
+        </FormLayoutGroup>
+
+        {step === 'password' && (
+          <>
+            <FormItem>
+              <Button size="l" stretched mode="primary" type="submit" loading={loading}>
+                Войти
+              </Button>
+            </FormItem>
+
+            <FormItem>
+              <Flex justify="center">
+                <Link onClick={handleForgotPassword} noUnderline>
+                  Забыли пароль?
+                </Link>
+              </Flex>
+            </FormItem>
+          </>
+        )}
+
+        {step === 'totp' && (
+          <>
+            <FormItem>
+              <Button size="l" stretched mode="primary" type="submit" loading={loading}>
+                Подтвердить
+              </Button>
+            </FormItem>
+
+            <FormItem>
+              <Button
+                size="l"
+                stretched
+                mode="secondary"
+                type="button"
+                onClick={handleBackToPassword}
+              >
+                Назад
+              </Button>
+            </FormItem>
+          </>
+        )}
+      </form>
+    </Group>
   );
 };

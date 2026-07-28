@@ -9,6 +9,10 @@ interface AppState {
   userLoading: boolean;
   loadUserInfo: () => Promise<void>;
 
+  // Флаг успешного логина — триггерит переход login -> main
+  authSuccess: boolean;
+  setAuthSuccess: (v: boolean) => void;
+
   // Фильтры расписания (дата + преподаватель) — единая точка правды.
   filters: TimetableFilters;
   setFilters: (patch: Partial<TimetableFilters>) => void;
@@ -18,6 +22,8 @@ interface AppState {
 const useAppStore = create<AppState>((set, get) => ({
   userInfo: null,
   userLoading: true,
+  authSuccess: false,
+  setAuthSuccess: (v: boolean) => set({ authSuccess: v }),
   loadUserInfo: async () => {
     const { userInfo } = get();
     if (userInfo) return;

@@ -1,23 +1,63 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-    <template id="spa_page" name="SPA Page">
+    <template id="spa_page" name="SPA Page" doctype="html">
         <html>
             <head>
                 <meta charset="utf-8"/>
                 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"/>
                 <title>Школа РОСТ</title>
-                <!-- CSRF-токен текущей сессии: инъекция из Python-контекста Odoo.
-                     В изолированном SPA нет web-клиента Odoo, поэтому кука csrf_token
-                     не проставляется автоматически. t-esc экранирует значение, t-nocache
-                     запрещает кэшировать токен между юзерами. Бандл грузится ниже, так
-                     что window.csrf_token уже установлен к моменту первого fetch. -->
+
+                <!-- Content Security Policy for MAX WebView + VKUI -->
+                <meta http-equiv="Content-Security-Policy"
+                      content="default-src 'self' 'unsafe-inline' 'unsafe-eval' https: data: blob:;
+                               script-src 'self' 'unsafe-inline' 'unsafe-eval' https:;
+                               style-src 'self' 'unsafe-inline' https:;
+                               img-src 'self' https: data: blob:;
+                               connect-src 'self' https: wss:;
+                               font-src 'self' https: data:;"/>
+
+                <!-- MAX Bridge (must load before bundle) -->
+                <script src="https://st.max.ru/js/max-web-app.js"></script>
+
+                <!-- CSRF token from Odoo session -->
                 <script type="text/javascript">
                     window.csrf_token = "<t t-nocache='1' t-esc='csrf_token'/>";
+                </script>
+
+                <!-- Compiled CSS -->
+                <link rel="stylesheet" href="/rost_max_miniapp/static/src/bundle/styles.css"/>
+
+                <!-- Compiled JS (UMD format, no module) -->
+                <script defer="defer" src="/rost_max_miniapp/static/src/bundle/index.js"></script>
+
+                <!-- Error catcher for MAX WebView (no console) -->
+                <script>
+                  (function() {
+                    var root = document.getElementById('root');
+                    function showError(msg, stack) {
+                      if (!root) return;
+                      root.innerHTML = '<div style="padding:16px;color:#c00;font-family:monospace;font-size:12px;white-space:pre-wrap;text-align:left;">' +
+                        '<strong>JS Error:</strong> ' + (msg || 'unknown') +
+                        (stack ? '\n\nStack:\n' + stack : '') +
+                      '</div>';
+                      root.style.background = '#fff0f0';
+                      root.style.minHeight = '100vh';
+                    }
+                    window.addEventListener('error', function(e) {
+                      showError(e.message, e.error?.stack);
+                    });
+                    window.addEventListener('unhandledrejection', function(e) {
+                      showError(e.reason?.message || String(e.reason), e.reason?.stack);
+                    });
+                    // Check if root exists after DOM ready
+                    if (!document.getElementById('root')) {
+                      showError('Root element not found in DOM');
+                    }
+                  })();
                 </script>
             </head>
             <body>
                 <div id="root"></div>
-                <script src="/rost_max_miniapp/static/src/bundle/index.js?v=23"></script>
             </body>
         </html>
     </template>

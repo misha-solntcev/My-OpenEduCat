@@ -17,6 +17,7 @@ export default defineConfig({
   build: {
     outDir: '../bundle',
     emptyOutDir: true,
+    cssCodeSplit: false,
     rollupOptions: {
       input: './main.tsx',
       output: {
