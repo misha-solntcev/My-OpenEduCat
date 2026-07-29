@@ -1,3 +1,4 @@
+import React from 'react';
 import { Flex, Avatar, Switch, IconButton, Button, ModalCard, ButtonGroup } from '@vkontakte/vkui';
 import { Icon28DeleteOutline } from '@vkontakte/icons';
 import { GradeColumns } from '@/components/GradeColumns';
@@ -27,6 +28,20 @@ export const BulkSheet: React.FC<BulkSheetProps> = ({
   open,
 }) => {
   if (!open) return null;
+
+  // Локальное состояние шаблонных значений для кнопок в шторке (UI-only)
+  const [bulkGradeValues, setBulkGradeValues] = React.useState<Record<GradeField, number | null>>({
+    grade_1: null,
+    grade_2: null,
+    grade_3: null,
+  });
+  const [bulkAttendanceValue, setBulkAttendanceValue] = React.useState<number | null>(null);
+
+  // Сбросить локальные шаблоны при открытии шторки
+  React.useEffect(() => {
+    setBulkGradeValues({ grade_1: null, grade_2: null, grade_3: null });
+    setBulkAttendanceValue(null);
+  }, [open]);
 
   return (
     <ModalCard
@@ -68,18 +83,14 @@ export const BulkSheet: React.FC<BulkSheetProps> = ({
             — кнопка-круг с tap-циклом (как на карточке ученика), но массово
             (пишет всему классу). */}
         <Flex align="start" gap={6} wrap="nowrap">
-          <Avatar size={44} initials="👥" gradientColor="blue" />
+          <Avatar size={44} initials="👥" gradientColor="blue" style={{ flexShrink: 0, marginTop: 0 }} />
 
           <GradeColumns
-            gradeValues={{
-              grade_1: null,
-              grade_2: null,
-              grade_3: null,
-            }}
-            onCycleGrade={(field, next) => onBulkGrade(field, next)}
+            gradeValues={bulkGradeValues}
+            onCycleGrade={(field, next) => { onBulkGrade(field, next); setBulkGradeValues(p => ({ ...p, [field]: next })); }}
             gradeVariant="bulk-grade"
-            attendanceValue={null}
-            onCycleAttendance={(next) => onBulkAtt(next)}
+            attendanceValue={bulkAttendanceValue}
+            onCycleAttendance={(next) => { onBulkAtt(next); setBulkAttendanceValue(next); }}
             attendanceVariant="bulk-attendance"
             attendanceTypes={attendanceTypes}
             gradeTitlePrefix="Оценка"

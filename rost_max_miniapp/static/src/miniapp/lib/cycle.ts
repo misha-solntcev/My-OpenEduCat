@@ -3,7 +3,8 @@ import { GRADES } from './colors';
 
 /** Цикл оценок: пусто → 5 → 4 → 3 → 2 → пусто */
 export function cycleGrade(current: number | null): number | null {
-  const idx = GRADES.indexOf(current != null ? String(current) : '');
+  const currentStr = current != null ? String(current) : '';
+  const idx = GRADES.indexOf(currentStr as '' | '2' | '3' | '4' | '5');
   const nextRaw = GRADES[(idx + 1) % GRADES.length];
   return nextRaw === '' ? null : Number(nextRaw);
 }

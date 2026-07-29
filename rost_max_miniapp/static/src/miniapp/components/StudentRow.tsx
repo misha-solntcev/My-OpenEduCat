@@ -17,7 +17,7 @@ export const StudentRow: React.FC<StudentRowProps> = ({
   onCycleGrade,
   onCycleAttendance,
 }) => (
-  <Box mode="card" padding="m">
+  <Box padding="m">
     <Flex align="center" gap={12}>
       <Avatar
         size={40}

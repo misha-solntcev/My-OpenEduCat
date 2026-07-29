@@ -31,6 +31,8 @@ interface UseLessonJournalReturn {
   handleBack: () => void;
   exitSave: () => Promise<void>;
   exitDiscard: () => void;
+  loadStudents: () => void;
+  // Массовые операции для BulkSheet
   bulkSetGrade: (field: GradeField, value: number | null, overwriteFilled: boolean, baselineRef: React.MutableRefObject<Student[]>) => void;
   bulkSetAtt: (attId: number | null, overwriteFilled: boolean, baselineRef: React.MutableRefObject<Student[]>) => void;
   clearAll: () => void;
@@ -194,6 +196,7 @@ export function useLessonJournal(lessonId: number | null, onBack: () => void): U
     handleBack,
     exitSave,
     exitDiscard,
+    loadStudents,
     bulkSetGrade,
     bulkSetAtt,
     clearAll,
