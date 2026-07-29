@@ -20,6 +20,7 @@ export const LessonJournalPage: React.FC<LessonJournalPageProps> = ({ id, lesson
     students,
     attendanceTypes,
     loading,
+    error,
     dirty,
     saving,
     showExitBanner,
@@ -30,6 +31,7 @@ export const LessonJournalPage: React.FC<LessonJournalPageProps> = ({ id, lesson
     handleBack,
     exitSave,
     exitDiscard,
+    loadStudents,
     // Массовые операции для BulkSheet
     bulkSetGrade: bulkSetGradeLocal,
     bulkSetAtt: bulkSetAttLocal,
@@ -97,6 +99,8 @@ export const LessonJournalPage: React.FC<LessonJournalPageProps> = ({ id, lesson
         >
           <LessonJournalContent
             loading={loading}
+            error={error}
+            onRetry={loadStudents}
             students={students}
             attendanceTypes={attendanceTypes}
             onCycleGrade={cycleGradeField}

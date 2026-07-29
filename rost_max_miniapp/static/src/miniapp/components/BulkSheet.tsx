@@ -60,7 +60,7 @@ export const BulkSheet: React.FC<BulkSheetProps> = ({
             label="Сбросить всё (оценки и посещаемость) у всего класса"
             onClick={e => { e.stopPropagation(); onClearAll(); }}
           >
-            <Icon28DeleteOutline size={20} />
+            <Icon28DeleteOutline />
           </IconButton>
         </Flex>
 

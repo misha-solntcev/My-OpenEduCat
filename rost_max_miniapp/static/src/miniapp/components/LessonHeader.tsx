@@ -21,7 +21,7 @@ export const LessonHeader: React.FC<LessonHeaderProps> = ({
   return (
     <PanelHeader
       before={<IconButton label="Назад" onClick={onBack}><Icon28ChevronBack /></IconButton>}
-      after={<IconButton label="Массово проставить оценки и посещаемость" onClick={onOpenBulkSheet}><Icon28FlashOutline size={20} color="currentColor" /></IconButton>}
+      after={<IconButton label="Массово проставить оценки и посещаемость" onClick={onOpenBulkSheet}><Icon28FlashOutline /></IconButton>}
     >
       <Title level="3" weight="2">{headerTitle}</Title>
       {headerSubtitle && <Text weight="2" inline>{headerSubtitle}</Text>}

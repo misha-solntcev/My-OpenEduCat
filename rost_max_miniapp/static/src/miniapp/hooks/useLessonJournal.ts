@@ -20,6 +20,7 @@ interface UseLessonJournalReturn {
   students: Student[];
   attendanceTypes: AttendanceType[];
   loading: boolean;
+  error: string | null;
   dirty: boolean;
   saving: boolean;
   showExitBanner: boolean;
@@ -30,8 +31,6 @@ interface UseLessonJournalReturn {
   handleBack: () => void;
   exitSave: () => Promise<void>;
   exitDiscard: () => void;
-  loadStudents: () => void;
-  // Массовые операции для BulkSheet (принимают overwriteFilled и baselineRef)
   bulkSetGrade: (field: GradeField, value: number | null, overwriteFilled: boolean, baselineRef: React.MutableRefObject<Student[]>) => void;
   bulkSetAtt: (attId: number | null, overwriteFilled: boolean, baselineRef: React.MutableRefObject<Student[]>) => void;
   clearAll: () => void;
@@ -41,7 +40,7 @@ interface UseLessonJournalReturn {
  * Хук бизнес-логики журнала урока:
  * - загрузка учеников/типов посещаемости
  * - локальный буфер изменений (dirty-трекинг)
- * - сохранение на сервер
+ * - сохранение на сервер (через Toast, не alert)
  * - обработка выхода с несохранёнными правками
  * - массовые операции для BulkSheet
  */
@@ -50,6 +49,7 @@ export function useLessonJournal(lessonId: number | null, onBack: () => void): U
   const [students, setStudents] = React.useState<Student[]>([]);
   const [attendanceTypes, setAttendanceTypes] = React.useState<AttendanceType[]>([]);
   const [loading, setLoading] = React.useState(true);
+  const [error, setError] = React.useState<string | null>(null);
   const [dirty, setDirty] = React.useState(false);
   const [saving, setSaving] = React.useState(false);
   const [showExitBanner, setShowExitBanner] = React.useState(false);
@@ -60,9 +60,11 @@ export function useLessonJournal(lessonId: number | null, onBack: () => void): U
       setStudents([]);
       setAttendanceTypes([]);
       setLoading(false);
+      setError(null);
       return;
     }
     setLoading(true);
+    setError(null);
     apiGet<LessonResponse>(`/rost_max/api/lesson/${lessonId}/students`)
       .then(data => {
         setLesson(data.lesson || null);
@@ -73,6 +75,7 @@ export function useLessonJournal(lessonId: number | null, onBack: () => void): U
       .catch(() => {
         setStudents([]);
         setAttendanceTypes([]);
+        setError('Не удалось загрузить данные урока');
       })
       .finally(() => setLoading(false));
   }, [lessonId]);
@@ -109,9 +112,8 @@ export function useLessonJournal(lessonId: number | null, onBack: () => void): U
       );
       if (res.error) throw new Error(res.error);
       setDirty(false);
-      loadStudents();
-    } catch (err) {
-      alert('Не удалось сохранить: ' + (err instanceof Error ? err.message : 'ошибка сети') + '. Изменения сохранены локально, повторите позже.');
+    } catch {
+      setError('Не удалось сохранить. Изменения сохранены локально, повторите позже.');
     } finally {
       setSaving(false);
     }
@@ -137,12 +139,11 @@ export function useLessonJournal(lessonId: number | null, onBack: () => void): U
     onBack();
   };
 
-  // Массовые операции для BulkSheet
   const bulkSetGrade = (field: GradeField, value: number | null, overwriteFilled: boolean, baselineRef: React.MutableRefObject<Student[]>) => {
     setStudents(prev => prev.map(s => {
       if (!overwriteFilled) {
         const base = baselineRef.current.find(b => b.id === s.id);
-        if (base && base[field] != null) return s; // заполнено в baseline - не трогаем
+        if (base && base[field] != null) return s;
       }
       return { ...s, [field]: value };
     }));
@@ -162,11 +163,9 @@ export function useLessonJournal(lessonId: number | null, onBack: () => void): U
 
   const clearAll = () => {
     setStudents(prev => {
-      const next = prev.map(s => {
-        // Ластик всегда очищает всё, независимо от свитча
-        return { ...s, grade_1: null, grade_2: null, grade_3: null, attendance_type_id: null };
-      });
-      // dirty только если есть реальные изменения относительно текущего состояния
+      const next = prev.map(s => ({
+        ...s, grade_1: null, grade_2: null, grade_3: null, attendance_type_id: null,
+      }));
       const hasChanges = next.some((s, i) => {
         const o = prev[i];
         return s.grade_1 !== o.grade_1
@@ -184,6 +183,7 @@ export function useLessonJournal(lessonId: number | null, onBack: () => void): U
     students,
     attendanceTypes,
     loading,
+    error,
     dirty,
     saving,
     showExitBanner,
@@ -194,7 +194,6 @@ export function useLessonJournal(lessonId: number | null, onBack: () => void): U
     handleBack,
     exitSave,
     exitDiscard,
-    loadStudents,
     bulkSetGrade,
     bulkSetAtt,
     clearAll,
