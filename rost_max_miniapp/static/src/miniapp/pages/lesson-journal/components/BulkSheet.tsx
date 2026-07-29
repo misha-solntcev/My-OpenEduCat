@@ -1,8 +1,8 @@
 import React from 'react';
 import { Flex, Avatar, Switch, IconButton, Button, ModalCard, ButtonGroup } from '@vkontakte/vkui';
 import { Icon28DeleteOutline } from '@vkontakte/icons';
-import { GradeColumns } from '@/components/GradeColumns';
-import type { AttendanceType, GradeField } from '@/lib/types';
+import { GradeColumns } from './GradeColumns';
+import type { AttendanceType, GradeField } from '@/shared/lib/types';
 
 interface BulkSheetProps {
   attendanceTypes: AttendanceType[];

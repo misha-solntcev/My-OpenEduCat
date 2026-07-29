@@ -1,8 +1,8 @@
 import React from 'react';
 import { Flex } from '@vkontakte/vkui';
-import { JournalButton } from '@/components/JournalButton';
-import { GRADE_FIELDS } from '@/lib/colors';
-import type { GradeField, AttendanceType } from '@/lib/types';
+import { JournalButton } from './JournalButton';
+import { GRADE_FIELDS } from '@/shared/lib/colors';
+import type { GradeField, AttendanceType } from '@/shared/lib/types';
 
 interface GradeColumnsProps {
   gradeValues: Record<GradeField, number | null>;

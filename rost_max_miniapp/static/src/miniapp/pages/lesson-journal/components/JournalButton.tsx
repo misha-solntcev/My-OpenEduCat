@@ -5,8 +5,8 @@ import {
   cycleAttendance,
   getGradeDisplay,
   getAttendanceDisplay,
-} from '@/lib/cycle';
-import type { AttendanceType } from '@/lib/types';
+} from '@/shared/lib/cycle';
+import type { AttendanceType } from '@/shared/lib/types';
 
 type JournalButtonVariant = 'grade' | 'attendance' | 'bulk-grade' | 'bulk-attendance';
 

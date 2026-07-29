@@ -1,21 +1,21 @@
 import React from 'react';
-import {  
-  Root,  
+import { 
+  Root, 
   SplitLayout,
-  SplitCol,  
+  SplitCol, 
   View,
   Epic,
   Tabbar,
-  TabbarItem,  
+  TabbarItem, 
 } from '@vkontakte/vkui';
 import { Icon28HomeOutline, Icon28CalendarOutline, Icon28GridLayoutOutline } from '@vkontakte/icons';
-import { LoginPage } from '@/pages/LoginPage';
-import { DashboardPage } from '@/pages/DashboardPage';
-import { TimetablePage } from '@/pages/TimetablePage';
-import { ModulesPage } from '@/pages/ModulesPage';
-import { LessonJournalPage } from '@/pages/LessonJournalPage';
-import { ToastContainer } from '@/components/Toast';
-import { useAppStore } from '@/lib/store';
+import { LoginPage } from '@/pages/auth/LoginPage';
+import { DashboardPage } from '@/pages/dashboard/DashboardPage';
+import { TimetablePage } from '@/pages/timetable/TimetablePage';
+import { ModulesPage } from '@/pages/modules/ModulesPage';
+import { LessonJournalPage } from '@/pages/lesson-journal/LessonJournalPage';
+import { ToastContainer } from '@/shared/components/Toast';
+import { useAppStore } from '@/shared/lib/store';
 
 type TabId = 'dashboard' | 'timetable' | 'modules';
 

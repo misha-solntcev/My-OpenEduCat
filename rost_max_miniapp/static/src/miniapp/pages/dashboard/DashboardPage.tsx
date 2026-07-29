@@ -1,9 +1,9 @@
 import React from 'react';
 import { Panel, PanelHeader, Flex, Spinner, Avatar, Button, SimpleGrid, SimpleCell, Group } from '@vkontakte/vkui';
-import { apiGet, initialsOf } from '@/lib';
-import { DateJumper } from '@/components/DateJumper';
-import { Tile } from '@/components/Tile';
-import { useAppStore, selectGlobalDate, setGlobalDate } from '@/lib/store';
+import { apiGet, initialsOf } from '@/shared/lib';
+import { DateJumper } from '@/pages/timetable/components';
+import { Tile } from '@/pages/dashboard/components';
+import { useAppStore, selectGlobalDate, setGlobalDate } from '@/shared/lib/store';
 
 interface DashboardData {
   is_admin: boolean;

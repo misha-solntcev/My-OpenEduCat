@@ -1,5 +1,5 @@
 import React from 'react';
-import type { Student, AttendanceType, GradeField } from '@/lib/types';
+import type { Student, AttendanceType, GradeField } from '@/shared/lib/types';
 
 interface UseBulkSheetReturn {
   overwriteFilled: boolean;

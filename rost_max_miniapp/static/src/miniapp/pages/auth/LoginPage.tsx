@@ -12,8 +12,8 @@ import {
   Link,
   Flex,
 } from '@vkontakte/vkui';
-import { apiPost } from '@/lib';
-import { useAppStore } from '@/lib/store';
+import { apiPost } from '@/shared/lib';
+import { useAppStore } from '@/shared/lib/store';
 
 interface LoginResponse {
   success?: boolean;

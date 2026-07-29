@@ -1,7 +1,7 @@
 import React from 'react';
-import { SaveBar } from '@/components/SaveBar';
-import { ExitBanner } from '@/components/ExitBanner';
-import { LessonHeader } from '@/components/LessonHeader';
+import { SaveBar } from './SaveBar';
+import { ExitBanner } from '@/shared/components/ExitBanner';
+import { LessonHeader } from './LessonHeader';
 
 interface LessonJournalToolbarProps {
   lesson: { subject: string; batch: string; date: string; timing: string } | null;

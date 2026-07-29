@@ -18,8 +18,8 @@ import {
   Icon20FilterOutline,
   Icon56CalendarOutline,
 } from '@vkontakte/icons';
-import { useAppStore, selectGlobalDate, setGlobalDate } from '@/lib/store';
-import { apiGet } from '@/lib';
+import { useAppStore, selectGlobalDate, setGlobalDate } from '@/shared/lib/store';
+import { apiGet } from '@/shared/lib';
 
 
 interface Lesson {

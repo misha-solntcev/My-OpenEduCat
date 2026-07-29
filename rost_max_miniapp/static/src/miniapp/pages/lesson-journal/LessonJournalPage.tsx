@@ -1,10 +1,12 @@
 import React from 'react';
 import { Box, Flex, Panel } from '@vkontakte/vkui';
-import { BulkSheet } from '@/components/BulkSheet';
-import { LessonJournalContent } from '@/components/LessonJournalContent';
-import { LessonJournalToolbar } from '@/components/LessonJournalToolbar';
-import { useLessonJournal } from '@/hooks/useLessonJournal';
-import { useBulkSheet } from '@/hooks/useBulkSheet';
+import { 
+  BulkSheet, 
+  LessonJournalContent, 
+  LessonJournalToolbar,
+  useLessonJournal,
+  useBulkSheet
+} from '@/pages/lesson-journal';
 import type { GradeField } from '@/lib/types';
 
 interface LessonJournalPageProps {

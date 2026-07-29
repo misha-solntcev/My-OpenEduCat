@@ -4,10 +4,6 @@ import {
   PanelHeader,
   Flex,
 } from '@vkontakte/vkui';
-import {
-  Icon28CalendarOutline,
-  Icon28UsersOutline,
-} from '@vkontakte/icons';
 
 
 export const ModulesPage: React.FC<{ id: string }> = ({ id }) => {

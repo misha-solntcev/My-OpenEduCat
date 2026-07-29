@@ -1,8 +1,8 @@
 import React from 'react';
 import { Box, Flex, Avatar, EllipsisText } from '@vkontakte/vkui';
-import { GradeColumns } from '@/components/GradeColumns';
-import { initialsOf } from '@/lib';
-import type { Student, AttendanceType, GradeField } from '@/lib/types';
+import { GradeColumns } from './GradeColumns';
+import { initialsOf } from '@/shared/lib';
+import type { Student, AttendanceType, GradeField } from '@/shared/lib/types';
 
 interface StudentRowProps {
   student: Student;
