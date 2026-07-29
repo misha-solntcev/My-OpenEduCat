@@ -1,8 +1,7 @@
-// Цвета оценок и посещаемости + метаданные колонок.
-// Выделено из LessonJournalPage, т.к. используется и в строке студента
-// (StudentRow), и в массовой сетке шторки.
-
 import type { GradeField } from './types';
+
+// Цвета оценок и посещаемости + метаданные колонок.
+// Выделено из LessonJournalPage — используется в StudentRow и BulkSheet.
 
 export const GRADE_FIELDS: GradeField[] = ['grade_1', 'grade_2', 'grade_3'];
 export const GRADE_FIELD_LABELS: Record<GradeField, string> = {
@@ -12,7 +11,7 @@ export const GRADE_FIELD_LABELS: Record<GradeField, string> = {
 };
 
 // Цикл оценок: пусто → 5 → 4 → 3 → 2 → пусто
-export const GRADES = ['', '5', '4', '3', '2'];
+export const GRADES = ['', '5', '4', '3', '2'] as const;
 
 // Цвет отметки посещаемости по названию типа
 export function attendanceColor(name?: string): string {

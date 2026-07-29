@@ -1,7 +1,6 @@
 import React from 'react';
 import { PanelHeader, Title, Text, IconButton } from '@vkontakte/vkui';
-import { Icon28ChevronBack } from '@vkontakte/icons';
-import { Zap } from 'lucide-react';
+import { Icon28ChevronBack, Icon28FlashOutline } from '@vkontakte/icons';
 
 interface LessonHeaderProps {
   lesson: { subject?: string; batch?: string; timing?: string } | null;
@@ -22,7 +21,7 @@ export const LessonHeader: React.FC<LessonHeaderProps> = ({
   return (
     <PanelHeader
       before={<IconButton label="Назад" onClick={onBack}><Icon28ChevronBack /></IconButton>}
-      after={<IconButton label="Массово проставить оценки и посещаемость" onClick={onOpenBulkSheet}><Zap size={20} color="currentColor" /></IconButton>}
+      after={<IconButton label="Массово проставить оценки и посещаемость" onClick={onOpenBulkSheet}><Icon28FlashOutline size={20} color="currentColor" /></IconButton>}
     >
       <Title level="3" weight="2">{headerTitle}</Title>
       {headerSubtitle && <Text weight="2" inline>{headerSubtitle}</Text>}

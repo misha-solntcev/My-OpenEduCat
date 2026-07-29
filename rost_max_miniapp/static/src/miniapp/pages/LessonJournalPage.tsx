@@ -94,7 +94,6 @@ export const LessonJournalPage: React.FC<LessonJournalPageProps> = ({ id, lesson
           overflowBlock="auto"
           padding="xl"
           paddingBlockEnd={dirty ? '84px' : '24px'}
-          style={{ WebkitOverflowScrolling: 'touch' }}
         >
           <LessonJournalContent
             loading={loading}

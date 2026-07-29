@@ -1,5 +1,5 @@
 import React from 'react';
-import { Flex, Avatar, EllipsisText, Panel } from '@vkontakte/vkui';
+import { Box, Flex, Avatar, EllipsisText } from '@vkontakte/vkui';
 import { GradeColumns } from '@/components/GradeColumns';
 import { initialsOf } from '@/lib';
 import type { Student, AttendanceType, GradeField } from '@/lib/types';
@@ -11,31 +11,25 @@ interface StudentRowProps {
   onCycleAttendance: (student: Student, next: number | null) => void;
 }
 
-// Строка списка учеников: аватар + ФИО (обрезается) + карусели оценок
-// и посещаемости. Использует VKUI Panel вместо кастомного CSS.
 export const StudentRow: React.FC<StudentRowProps> = ({
   student,
   attendanceTypes,
   onCycleGrade,
   onCycleAttendance,
 }) => (
-  <Panel mode="card">
-    <Flex align="center" gap={12} style={{ width: '100%', minWidth: 0 }}>
-      {/* Колонка 1: аватар (общий для двух строк) */}
+  <Box mode="card" padding="m">
+    <Flex align="center" gap={12}>
       <Avatar
         size={40}
         initials={initialsOf(student.name)}
         src={student.avatar}
       />
 
-      {/* Колонка 2: две строки */}
       <Flex direction="column" gap={6} style={{ flex: 1, minWidth: 0 }}>
-        {/* Строка 1: ФИО без нумерации */}
-        <EllipsisText maxLines={1} style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)' }}>
+        <EllipsisText maxLines={1}>
           {student.name}
         </EllipsisText>
 
-        {/* Строка 2: три оценки + посещаемость через GradeColumns */}
         <GradeColumns
           gradeValues={{
             grade_1: student.grade_1,
@@ -51,5 +45,5 @@ export const StudentRow: React.FC<StudentRowProps> = ({
         />
       </Flex>
     </Flex>
-  </Panel>
+  </Box>
 );

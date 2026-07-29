@@ -11,28 +11,16 @@ interface UseBulkSheetReturn {
   resetBaseline: (students: Student[]) => void;
 }
 
-/**
- * Хук логики массовой шторки (BulkSheet):
- * - overwriteFilled (перезаписывать заполненные / только пустые)
- * - baselineRef (снимок студентов на момент открытия шторки)
- * - bulkSetGrade / bulkSetAtt / clearAll (массовые действия над буфером)
- * - resetBaseline (обновление снапшота baseline при открытии шторки)
- */
 export function useBulkSheet(
-  students: Student[],
-  attendanceTypes: AttendanceType[],
+  _students: Student[],
+  _attendanceTypes: AttendanceType[],
   overwriteFilledInit: boolean,
-  // Колбэки для синхронизации с родительским состоянием (буфер студентов)
   onBulkGrade: (field: GradeField, value: number | null) => void,
   onBulkAtt: (attId: number | null) => void,
   onClearAll: () => void
 ): UseBulkSheetReturn {
   const [overwriteFilled, setOverwriteFilled] = React.useState(overwriteFilledInit);
   const baselineRef = React.useRef<Student[]>([]);
-
-  React.useEffect(() => {
-    setOverwriteFilled(overwriteFilledInit);
-  }, [overwriteFilledInit]);
 
   const bulkSetGrade = (field: GradeField, value: number | null) => {
     onBulkGrade(field, value);

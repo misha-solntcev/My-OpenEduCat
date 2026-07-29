@@ -7,20 +7,14 @@ import type { GradeField, AttendanceType } from '@/lib/types';
 interface GradeColumnsProps {
   gradeValues: Record<GradeField, number | null>;
   onCycleGrade: (field: GradeField, next: number | null) => void;
-  gradeVariant: JournalButtonVariant;
+  gradeVariant: 'grade' | 'attendance' | 'bulk-grade' | 'bulk-attendance';
   attendanceValue?: number | null;
   onCycleAttendance?: (next: number | null) => void;
-  attendanceVariant?: JournalButtonVariant;
+  attendanceVariant?: 'grade' | 'attendance' | 'bulk-grade' | 'bulk-attendance';
   attendanceTypes?: AttendanceType[];
   gradeTitlePrefix?: string;
   attendanceTitle?: string;
 }
-
-type JournalButtonVariant = 
-  | 'grade'
-  | 'attendance'
-  | 'bulk-grade'
-  | 'bulk-attendance';
 
 /** Колонка с тремя оценками + посещаемостью (используется в StudentRow и BulkSheet) */
 export const GradeColumns: React.FC<GradeColumnsProps> = ({
@@ -34,7 +28,7 @@ export const GradeColumns: React.FC<GradeColumnsProps> = ({
   gradeTitlePrefix,
   attendanceTitle,
 }) => (
-  <Flex align="center" gap={6} wrap="wrap" style={{ width: '100%' }}>
+  <Flex gap={6} wrap="wrap">
     {GRADE_FIELDS.map((field) => (
       <JournalButton
         key={field}

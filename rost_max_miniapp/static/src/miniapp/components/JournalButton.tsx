@@ -1,20 +1,14 @@
 import React from 'react';
 import { Button } from '@vkontakte/vkui';
-import { 
-  cycleGrade, 
-  cycleAttendance, 
-  getGradeDisplay, 
+import {
+  cycleGrade,
+  cycleAttendance,
+  getGradeDisplay,
   getAttendanceDisplay,
-  getGradeColor,
-  getAttendanceColor 
 } from '@/lib/cycle';
 import type { AttendanceType } from '@/lib/types';
 
-type JournalButtonVariant = 
-  | 'grade'           
-  | 'attendance'      
-  | 'bulk-grade'      
-  | 'bulk-attendance';
+type JournalButtonVariant = 'grade' | 'attendance' | 'bulk-grade' | 'bulk-attendance';
 
 interface JournalButtonProps {
   kind: 'grade' | 'attendance';
@@ -23,47 +17,13 @@ interface JournalButtonProps {
   onCycle: (next: number | null) => void;
   title?: string;
   variant?: JournalButtonVariant;
-  height?: number;
-  minWidth?: number;
-  fontSize?: number;
-  lineHeight?: number;
-  padding?: string;
-  whiteSpace?: string;
-  flex?: number;
 }
 
-// Простые дефолты для каждого варианта (в пикселях/строках)
-const VARIANT_DEFAULTS: Record<JournalButtonVariant, Partial<JournalButtonProps>> = {
-  'grade': {
-    height: 34,
-    minWidth: 30,
-    fontSize: 15,
-    lineHeight: 1,
-    padding: '0 6px',
-  },
-  'attendance': {
-    height: 34,
-    minWidth: 34,
-    fontSize: 12,
-    lineHeight: 1,
-    padding: '0 10px',
-    whiteSpace: 'nowrap',
-  },
-  'bulk-grade': {
-    height: 40,
-    minWidth: 38,
-    fontSize: 15,
-    lineHeight: 1,
-    padding: '0 6px',
-  },
-  'bulk-attendance': {
-    height: 40,
-    minWidth: 34,
-    fontSize: 12,
-    lineHeight: 1,
-    padding: '0 10px',
-    whiteSpace: 'nowrap',
-  },
+const sizeByVariant: Record<JournalButtonVariant, 'm' | 'l'> = {
+  grade: 'm',
+  attendance: 'm',
+  'bulk-grade': 'l',
+  'bulk-attendance': 'l',
 };
 
 const JournalButton: React.FC<JournalButtonProps> = ({
@@ -73,26 +33,8 @@ const JournalButton: React.FC<JournalButtonProps> = ({
   onCycle,
   title,
   variant,
-  height,
-  minWidth,
-  fontSize,
-  lineHeight,
-  padding,
-  whiteSpace,
-  flex,
 }) => {
-  const defaultVariant: JournalButtonVariant = kind === 'grade' ? 'grade' : 'attendance';
-  const v = variant ?? defaultVariant;
-  const defaults = VARIANT_DEFAULTS[v];
-
-  // Применяем дефолты варианта, затем переопределения из пропсов
-  const finalHeight = height ?? defaults.height;
-  const finalMinWidth = minWidth ?? defaults.minWidth;
-  const finalFontSize = fontSize ?? defaults.fontSize;
-  const finalLineHeight = lineHeight ?? defaults.lineHeight;
-  const finalPadding = padding ?? defaults.padding;
-  const finalWhiteSpace = whiteSpace ?? defaults.whiteSpace;
-
+  const v = variant ?? (kind === 'grade' ? 'grade' : 'attendance');
   const list = attendanceTypes ?? [];
   const next = kind === 'grade'
     ? cycleGrade(value)
@@ -101,34 +43,18 @@ const JournalButton: React.FC<JournalButtonProps> = ({
     ? getGradeDisplay(value)
     : getAttendanceDisplay(value, list);
   const active = value != null;
-  const activeColor = kind === 'grade'
-    ? getGradeColor(value)
-    : getAttendanceColor(list.find(t => t.id === value)?.name);
-
-  // Определяем appearance и mode для Button
-    const isActive = active;
-    const appearance = isActive ? 'accent' : 'overlay';
-    const mode = isActive ? 'primary' : 'secondary';
+  const appearance = active ? 'accent' : 'overlay';
+  const mode = active ? 'primary' : 'secondary';
+  const size = sizeByVariant[v];
 
   return (
     <Button
       type="button"
       onClick={() => onCycle(next)}
       title={title}
-      appearance={appearance}
+      size={size}
       mode={mode}
-      size={finalHeight >= 40 ? 'l' : 'm'}
-      style={{
-        height: finalHeight,
-        minWidth: finalMinWidth,
-        fontSize: finalFontSize,
-        lineHeight: finalLineHeight,
-        padding: finalPadding,
-        whiteSpace: finalWhiteSpace,
-        flex,
-        // Для active кнопки передаём цвет через CSS-переменную
-        ...(isActive ? ({ ['--jb-color']: activeColor } as React.CSSProperties) : null),
-      }}
+      appearance={appearance}
     >
       {text}
     </Button>

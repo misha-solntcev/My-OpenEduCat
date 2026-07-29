@@ -1,5 +1,5 @@
 import { Flex, Avatar, Switch, IconButton, Button, ModalCard, ButtonGroup } from '@vkontakte/vkui';
-import { Eraser } from 'lucide-react';
+import { Icon28DeleteOutline } from '@vkontakte/icons';
 import { GradeColumns } from '@/components/GradeColumns';
 import type { AttendanceType, GradeField } from '@/lib/types';
 
@@ -50,7 +50,7 @@ export const BulkSheet: React.FC<BulkSheetProps> = ({
     >
       <Flex direction="column" gap={20}>
         {/* Режим массового выставления (Switch) + общий ластик — вверху справа отдельной строкой. */}
-        <Flex align="center" justify="end" gap={10} style={{ width: '100%' }}>
+        <Flex align="center" justify="end" gap={10}>
           <Switch
             checked={overwriteFilled}
             onChange={e => onOverwriteFilledChange(e.target.checked)}
@@ -60,15 +60,15 @@ export const BulkSheet: React.FC<BulkSheetProps> = ({
             label="Сбросить всё (оценки и посещаемость) у всего класса"
             onClick={e => { e.stopPropagation(); onClearAll(); }}
           >
-            <Eraser size={20} />
+            <Icon28DeleteOutline size={20} />
           </IconButton>
         </Flex>
 
         {/* Сетка: аватар (SVG Users) + для каждой колонки (О1/О2/О3/Посещ)
             — кнопка-круг с tap-циклом (как на карточке ученика), но массово
             (пишет всему классу). */}
-        <Flex align="start" gap={6} wrap="nowrap" style={{ width: '100%', minWidth: 0 }}>
-          <Avatar size={44} initials="👥" gradientColor="blue" style={{ flexShrink: 0, marginTop: 0 }} />
+        <Flex align="start" gap={6} wrap="nowrap">
+          <Avatar size={44} initials="👥" gradientColor="blue" />
 
           <GradeColumns
             gradeValues={{
