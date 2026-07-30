@@ -110,18 +110,21 @@ export const LessonJournalPage: React.FC<LessonJournalPageProps> = ({ id, lesson
           />
         </Box>
 
-        {sheetOpen && (
-          <BulkSheet
-            attendanceTypes={attendanceTypes}
-            overwriteFilled={overwriteFilled}
-            onOverwriteFilledChange={setOverwriteFilled}
-            onBulkGrade={bulkSetGrade}
-            onBulkAtt={bulkSetAtt}
-            onClearAll={clearAll}
-            onClose={() => setSheetOpen(false)}
-            open={sheetOpen}
-          />
-        )}
+        {/* 
+          Монтируем шторку всегда.
+          Благодаря VKUI v8 и наличию AppRoot она отрендерится через портал
+          и будет аккуратно анимироваться при открытии и закрытии.
+        */}
+        <BulkSheet
+          attendanceTypes={attendanceTypes}
+          overwriteFilled={overwriteFilled}
+          onOverwriteFilledChange={setOverwriteFilled}
+          onBulkGrade={bulkSetGrade}
+          onBulkAtt={bulkSetAtt}
+          onClearAll={clearAll}
+          onClose={() => setSheetOpen(false)}
+          open={sheetOpen}
+        />
       </Flex>
     </Panel>
   );

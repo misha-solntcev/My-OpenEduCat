@@ -33,26 +33,31 @@ export default function App() {
 
   const handleOpenLesson = (lessonId: number) => {
     setSelectedLessonId(lessonId);
-    setTimetableHistory(prev => [...prev, 'lesson-journal-panel']);
+    setActiveView('lesson-journal');
   };
 
   const handleTimetableBack = () => {
     if (timetableHistory.length > 1) {
       setTimetableHistory(prev => prev.slice(0, -1));
       setSelectedLessonId(null);
+    } else {
+      // Возвращаемся к табам
+      setActiveView('main');
+      setActiveTab('timetable');
+      setSelectedLessonId(null);
     }
   };
 
   const handleSwipeBackStart = (_activePanel: string) => {
-    // Блокируем свайп-бэк если есть несохраненные изменения в журнале
-    // (можно расширить через колбэк из LessonJournalPage)
     return undefined;
   };
 
   // Управляем глобальным переключением экранов
   React.useEffect(() => {
     if (authSuccess || userInfo) {
-      setActiveView('main');
+      if (activeView === 'login') {
+        setActiveView('main');
+      }
     } else {
       setActiveView('login');
     }
@@ -61,9 +66,9 @@ export default function App() {
   return (
     <SplitLayout>
       <SplitCol autoSpaced>
-        {/* Root переключает глобальные независимые экраны (Авторизация vs Внутренняя зона) */}
+        {/* Root переключает глобальные независимые экраны */}
         <Root activeView={activeView}>
-         
+       
           {/* 1. Экран авторизации (без нижнего меню) */}
           <View id="login" activePanel="login-panel">
             <LoginPage id="login-panel" />
@@ -104,7 +109,6 @@ export default function App() {
               <DashboardPage id="dashboard-panel" onNavigate={(panel) => setActiveTab(panel as TabId)} />
             </View>
 
-            {/* Вложенный View внутри таба "Расписание" для поддержки навигации в журнал урока */}
             <View
               id="timetable"
               activePanel={activeTimetablePanel}
@@ -113,13 +117,22 @@ export default function App() {
               onSwipeBackStart={handleSwipeBackStart}
             >
               <TimetablePage id="timetable-panel" onOpenLesson={handleOpenLesson} />
-              <LessonJournalPage id="lesson-journal-panel" lessonId={selectedLessonId} onBack={handleTimetableBack} />
             </View>
 
             <View id="modules" activePanel="modules-panel">
               <ModulesPage id="modules-panel" />
             </View>
           </Epic>
+
+          {/* 3. Журнал урока — отдельный View на уровне Root (вне Epic), 
+              чтобы модалки/шторки не перекрывались Tabbar'ом */}
+          <View id="lesson-journal" activePanel="lesson-journal-panel">
+            <LessonJournalPage 
+              id="lesson-journal-panel" 
+              lessonId={selectedLessonId} 
+              onBack={handleTimetableBack} 
+            />
+          </View>
 
         </Root>
         <ToastContainer />
