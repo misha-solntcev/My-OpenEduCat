@@ -149,7 +149,7 @@ export const TimetablePage: React.FC<TimetablePageProps> = ({ id, onOpenLesson }
           )}
 
           {loading ? (
-            <Flex style={{ padding: '24px 0' }} align="center" justify="center">
+            <Flex padding="m" align="center" justify="center">
               <Spinner />
             </Flex>
           ) : lessons.length > 0 ? (
@@ -168,8 +168,8 @@ export const TimetablePage: React.FC<TimetablePageProps> = ({ id, onOpenLesson }
             </Group>
           ) : (
             <Placeholder icon={<Icon56CalendarOutline />}>
-              <Text weight="2" style={{ marginBottom: 8 }}>Занятий не найдено</Text>
-              <Text style={{ color: 'var(--vkui--color_text_secondary)' }}>
+              <Text weight="2" marginBottom={2}>Занятий не найдено</Text>
+              <Text color="secondary">
                 На {formatDate(globalDate)} расписание отсутствует или все уроки отменены.
               </Text>
             </Placeholder>

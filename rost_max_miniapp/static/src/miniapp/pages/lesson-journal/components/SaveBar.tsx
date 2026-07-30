@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Button } from '@vkontakte/vkui';
+import { Panel, Button } from '@vkontakte/vkui';
 
 interface SaveBarProps {
   saving: boolean;
@@ -11,17 +11,14 @@ export const SaveBar: React.FC<SaveBarProps> = ({ saving, dirty, onSave }) => {
   if (!dirty) return null;
 
   return (
-    <Box
+    <Panel
       position="fixed"
       insetInlineStart={0}
       insetInlineEnd={0}
       insetBlockEnd={0}
+      mode="card"
       padding="m"
-      style={{
-        backgroundColor: 'var(--background-surface-card)',
-        borderTop: '1px solid var(--stroke-separator-secondary)',
-        zIndex: 90,
-      }}
+      style={{ borderTop: '1px solid var(--vkui--color_separator_secondary)', zIndex: 90 }}
     >
       <Button
         stretched
@@ -33,6 +30,6 @@ export const SaveBar: React.FC<SaveBarProps> = ({ saving, dirty, onSave }) => {
       >
         Сохранить
       </Button>
-    </Box>
+    </Panel>
   );
 };

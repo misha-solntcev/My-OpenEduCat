@@ -1,10 +1,8 @@
 import React from 'react';
-import { Panel, PanelHeader, Flex, Spinner, Avatar, Button, SimpleGrid, SimpleCell, Group } from '@vkontakte/vkui';
+import { Panel, PanelHeader, Flex, Spinner, Avatar, Button, SimpleGrid, SimpleCell, Group, DateInput } from '@vkontakte/vkui';
 import { apiGet, initialsOf } from '@/shared/lib';
-import { DateJumper } from '@/pages/timetable/components';
 import { Tile } from '@/pages/dashboard/components';
 import { useAppStore, selectGlobalDate, setGlobalDate } from '@/shared/lib/store';
-
 interface DashboardData {
   is_admin: boolean;
   is_teacher: boolean;
@@ -34,7 +32,12 @@ interface DashboardData {
 export const DashboardPage: React.FC<{ id: string; onNavigate: (to: string) => void }> = ({ id, onNavigate }) => {
   const userInfo = useAppStore(s => s.userInfo);
   const globalDate = useAppStore(selectGlobalDate);
-  // setGlobalDate доступен через импорт и используется в DateJumper ниже
+
+  const handleDateChange = (date: Date | null) => {
+    if (date) {
+      setGlobalDate(date.toISOString().split('T')[0]);
+    }
+  };
 
   const isAdmin = userInfo?.is_admin ?? false;
   const isTeacher = userInfo?.is_teacher ?? false;
@@ -65,7 +68,7 @@ export const DashboardPage: React.FC<{ id: string; onNavigate: (to: string) => v
   return (
     <Panel id={id}>
       <PanelHeader>Главная</PanelHeader>
-      <Flex direction="column" align="stretch" gap={16} style={{ width: '100%' }}>
+      <Flex direction="column" align="stretch" gap={16}>
       {/* 1. Профиль — нативная ячейка (Avatar + имя + роль) */}
       <Group header="Профиль">
               <SimpleCell
@@ -78,7 +81,7 @@ export const DashboardPage: React.FC<{ id: string; onNavigate: (to: string) => v
             </Group>
 
       {loading && (
-        <Flex align="center" justify="center" style={{ padding: '48px 0' }}>
+        <Flex align="center" justify="center" padding="xl">
           <Spinner />
         </Flex>
       )}
@@ -86,7 +89,13 @@ export const DashboardPage: React.FC<{ id: string; onNavigate: (to: string) => v
       {!loading && data && (
         <>
           {/* 3. Компактный селектор даты */}
-          <DateJumper value={globalDate} onChange={setGlobalDate} />
+          <DateInput
+            mode="plain"
+            value={new Date(globalDate)}
+            onChange={handleDateChange}
+            size="s"
+            placeholder={globalDate}
+          />
 
           {/* 4. Инфографика 2x2 (SimpleGrid + Tile метрик) */}
           <SimpleGrid cols={2} gap={12}>
@@ -127,7 +136,7 @@ export const DashboardPage: React.FC<{ id: string; onNavigate: (to: string) => v
           )}
 
           {/* 6. Выход — destructive-кнопка (real navigation: Odoo сбрасывает сессию). */}
-          <Flex justify="center" style={{ width: '100%' }}>
+          <Flex justify="center" width="100%">
             <Button
               appearance="negative"
               onClick={() => { window.location.href = '/rost_max/logout'; }}

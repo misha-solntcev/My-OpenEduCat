@@ -1,20 +1,16 @@
 import React from 'react';
-import { Box, Flex } from '@vkontakte/vkui';
+import { Box } from '@vkontakte/vkui';
 
 interface LayoutProps {
   children: React.ReactNode;
 }
 
-/**
- * Чистая обёртка контента приложения.
- * Использует VKUI Box/Flex с токенами вместо inline-стилей.
- */
 export const Layout: React.FC<LayoutProps> = ({ children }) => {
   return (
-    <Flex direction="column" height="100dvh" overflow="hidden" position="relative" style={{ backgroundColor: 'var(--background-surface-ground)' }}>
-      <Box flexGrow={1} overflowBlock="auto" padding="xl" paddingBlockEnd="80px" style={{ WebkitOverflowScrolling: 'touch' }}>
+    <Box style={{ backgroundColor: 'var(--vkui--color_background_surface_ground)', height: '100dvh', overflow: 'hidden' }}>
+      <Box flexGrow={1} overflow="auto" padding="xl" paddingBlockEnd="80px">
         {children}
       </Box>
-    </Flex>
+    </Box>
   );
 };

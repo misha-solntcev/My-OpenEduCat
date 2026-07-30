@@ -1,8 +1,8 @@
 import React from 'react';
-import { Flex, Text, Button } from '@vkontakte/vkui';
+import { Flex, Text, Button, Box } from '@vkontakte/vkui';
 import { StudentRow } from './StudentRow';
 import { EmptyState } from '@/shared/components';
-import type { Student, AttendanceType, GradeField } from '@/lib/types';
+import type { Student, AttendanceType, GradeField } from '@/shared/lib/types';
 
 interface LessonJournalContentProps {
   loading: boolean;
@@ -26,9 +26,9 @@ export const LessonJournalContent: React.FC<LessonJournalContentProps> = ({
 }) => {
   if (loading) {
     return (
-      <Flex align="center" justify="center" style={{ flex: 1, minHeight: '200px' }}>
+      <Box height="200px" display="flex" align="center" justify="center">
         <Text weight="2">Загрузка...</Text>
-      </Flex>
+      </Box>
     );
   }
 
@@ -52,7 +52,7 @@ export const LessonJournalContent: React.FC<LessonJournalContentProps> = ({
   }
 
   return (
-    <Flex direction="column" gap={12} style={{ width: '100%' }}>
+    <Flex direction="column" gap={12} width="100%">
       {students.map((student) => (
         <StudentRow
           key={student.id}

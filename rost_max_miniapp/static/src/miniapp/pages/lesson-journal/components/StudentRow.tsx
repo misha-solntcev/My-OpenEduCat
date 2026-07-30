@@ -25,7 +25,7 @@ export const StudentRow: React.FC<StudentRowProps> = ({
         src={student.avatar}
       />
 
-      <Flex direction="column" gap={6} style={{ flex: 1, minWidth: 0 }}>
+      <Flex direction="column" gap={6} flexGrow={1} minWidth={0}>
         <EllipsisText maxLines={1}>
           {student.name}
         </EllipsisText>

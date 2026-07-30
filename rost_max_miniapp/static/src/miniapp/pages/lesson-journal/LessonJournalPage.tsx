@@ -7,7 +7,7 @@ import {
   useLessonJournal,
   useBulkSheet
 } from '@/pages/lesson-journal';
-import type { GradeField } from '@/lib/types';
+import type { GradeField } from '@/shared/lib/types';
 
 interface LessonJournalPageProps {
   id: string;
@@ -79,7 +79,7 @@ export const LessonJournalPage: React.FC<LessonJournalPageProps> = ({ id, lesson
 
   return (
     <Panel id={id}>
-      <Flex direction="column" align="stretch" style={{ width: '100%', height: '100dvh' }}>
+      <Flex direction="column" align="stretch" height="100dvh" width="100%">
         <LessonJournalToolbar
           lesson={lesson}
           saving={saving}
@@ -97,7 +97,7 @@ export const LessonJournalPage: React.FC<LessonJournalPageProps> = ({ id, lesson
           flexGrow={1}
           overflowBlock="auto"
           padding="xl"
-          paddingBlockEnd={dirty ? '84px' : '24px'}
+          paddingBlockEnd={dirty ? 84 : 24}
         >
           <LessonJournalContent
             loading={loading}
