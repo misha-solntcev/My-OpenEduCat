@@ -33,12 +33,13 @@ declare global {
 }
 
 const Root = () => {
-  // Настройка темы и платформы на самом верхнем уровне приложения один раз
-  const maxTheme = window.WebApp?.theme === 'dark' ? 'dark' : 'light';
+  // Настройка платформы на самом верхнем уровне приложения один раз.
+  // colorScheme НЕ передаём — MAX Bridge не даёт тему.
+  // VKUI сам подхватит системную тему через CSS prefers-color-scheme + meta color-scheme.
   const maxPlatform = window.WebApp?.platform === 'ios' ? 'ios' : 'android';
 
   return (
-    <ConfigProvider colorScheme={maxTheme} platform={maxPlatform} isWebView={true}>
+    <ConfigProvider platform={maxPlatform} isWebView={true}>
       <AdaptivityProvider>
         <AppRoot mode="full">
           <App />

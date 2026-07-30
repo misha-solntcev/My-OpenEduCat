@@ -83,7 +83,7 @@ export const BulkSheet: React.FC<BulkSheetProps> = ({
             — кнопка-круг с tap-циклом (как на карточке ученика), но массово
             (пишет всему классу). */}
         <Flex align="start" gap={6} wrap="nowrap">
-          <Avatar size={44} initials="👥" gradientColor="blue" flexShrink={0} marginTop={0} />
+          <Avatar size={44} initials="👥" />
 
           <GradeColumns
             gradeValues={bulkGradeValues}
