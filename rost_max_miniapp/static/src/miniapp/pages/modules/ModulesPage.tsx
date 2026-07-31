@@ -10,7 +10,7 @@ import {
 
 export const ModulesPage: React.FC<{ id: string }> = ({ id }) => {
   return (
-    <Panel id={id} centered>
+    <Panel id={id} mode="card" centered >
       <PanelHeader>Песочница</PanelHeader>
       <Button size="s" mode="primary" onClick={() => alert('Hello, World!')}>
         Hello, World!

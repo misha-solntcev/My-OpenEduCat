@@ -1,16 +1,15 @@
 import React from 'react';
 import {
   Panel,
-  Box,
-  Group,
   FormItem,
   FormLayoutGroup,
   FormStatus,
   Input,
   Button,
+  ButtonGroup,
   Checkbox,
   Link,
-  Flex,
+  Footnote,
 } from '@vkontakte/vkui';
 import { apiPost } from '@/shared/lib/api';
 import { useAppStore } from '@/shared/lib/store';
@@ -122,9 +121,6 @@ export const LoginPage: React.FC<LoginPageProps> = ({ id }) => {
   return (
     <Panel id={id} mode="plain" centered>
       <form onSubmit={handleLogin}>
-        <input type="hidden" name="type" value="password" />
-        <input type="hidden" name="csrf_token" value={getCsrfToken()} />
-
         <FormLayoutGroup>
           {step === 'password' && (
             <>
@@ -198,39 +194,29 @@ export const LoginPage: React.FC<LoginPageProps> = ({ id }) => {
         {step === 'password' && (
           <>
             <FormItem>
-              <Button size="l" stretched mode="primary" type="submit" loading={loading}>
-                Войти
-              </Button>
-            </FormItem>
-
-            <FormItem>
-              <Link onClick={handleForgotPassword} noUnderline>
-                Забыли пароль?
-              </Link>
+              <ButtonGroup mode="vertical" stretched align="center">
+                <Button stretched size="l" mode="primary" type="submit" loading={loading}>
+                  Войти
+                </Button>
+                <Link onClick={handleForgotPassword} noUnderline>
+                  Забыли пароль?
+                </Link>
+              </ButtonGroup>
             </FormItem>
           </>
         )}
 
         {step === 'totp' && (
-          <>
-            <FormItem>
-              <Button size="l" stretched mode="primary" type="submit" loading={loading}>
+          <FormItem>
+            <ButtonGroup mode="vertical" stretched>
+              <Button size="l" mode="primary" type="submit" loading={loading}>
                 Подтвердить
               </Button>
-            </FormItem>
-
-            <FormItem>
-              <Button
-                size="l"
-                stretched
-                mode="secondary"
-                type="button"
-                onClick={handleBackToPassword}
-              >
+              <Button size="l" mode="secondary" type="button" onClick={handleBackToPassword}>
                 Назад
               </Button>
-            </FormItem>
-          </>
+            </ButtonGroup>
+          </FormItem>
         )}
       </form>
     </Panel>
