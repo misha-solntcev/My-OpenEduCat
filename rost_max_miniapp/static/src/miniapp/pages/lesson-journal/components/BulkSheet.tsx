@@ -1,5 +1,5 @@
 import React from 'react';
-import { Flex, Avatar, Switch, IconButton, ModalPage, ModalPageHeader, PanelHeaderClose, Button, ButtonGroup, unstable_ModalPageFooter as ModalPageFooter, AppRootPortal } from '@vkontakte/vkui';
+import { Flex, Avatar, Switch, IconButton, ModalPage, ModalPageHeader, PanelHeaderClose, Button, ButtonGroup, unstable_ModalPageFooter as ModalPageFooter, AppRootPortal, Box } from '@vkontakte/vkui';
 import { Icon28DeleteOutline } from '@vkontakte/icons';
 import { GradeColumns } from './GradeColumns';
 import type { AttendanceType, GradeField } from '@/shared/lib/types';
@@ -69,40 +69,42 @@ export const BulkSheet: React.FC<BulkSheetProps> = ({
         }
       >
         {/* Отступы внутри ModalPage задаются через контентный блок */}
-        <Flex direction="column" gap={20} style={{ padding: '16px 20px 24px' }}>
-        
-          {/* Панель настроек (Свитч перезаписи и Ластик) */}
-          <Flex align="center" justify="end" gap={10} style={{ width: '100%' }}>
-            <Switch
-              checked={overwriteFilled}
-              onChange={e => onOverwriteFilledChange(e.target.checked)}
-              aria-label="Перезаписывать заполненные оценки"
-            />
-            <IconButton
-              label="Сбросить всё (оценки и посещаемость) у всего класса"
-              onClick={e => { e.stopPropagation(); onClearAll(); }}
-            >
-              <Icon28DeleteOutline />
-            </IconButton>
-          </Flex>
+        <Box padding="m" paddingInline="l" paddingBlockEnd="xl">
+          <Flex direction="column" gap={20}>
 
-          {/* Интерактивная строка ввода для всего класса */}
-          <Flex align="start" gap={6} wrap="nowrap" style={{ width: '100%', minWidth: 0 }}>
-            <Avatar size={44} initials="👥" gradientColor="blue" style={{ flexShrink: 0 }} />
+            {/* Панель настроек (Свитч перезаписи и Ластик) */}
+            <Flex align="center" justify="end" gap={10} inlineSize="100%">
+              <Switch
+                checked={overwriteFilled}
+                onChange={e => onOverwriteFilledChange(e.target.checked)}
+                aria-label="Перезаписывать заполненные оценки"
+              />
+              <IconButton
+                label="Сбросить всё (оценки и посещаемость) у всего класса"
+                onClick={e => { e.stopPropagation(); onClearAll(); }}
+              >
+                <Icon28DeleteOutline />
+              </IconButton>
+            </Flex>
 
-            <GradeColumns
-              gradeValues={bulkGradeValues}
-              onCycleGrade={(field, next) => { onBulkGrade(field, next); setBulkGradeValues(p => ({ ...p, [field]: next })); }}
-              gradeVariant="bulk-grade"
-              attendanceValue={bulkAttendanceValue}
-              onCycleAttendance={(next) => { onBulkAtt(next); setBulkAttendanceValue(next); }}
-              attendanceVariant="bulk-attendance"
-              attendanceTypes={attendanceTypes}
-              gradeTitlePrefix="Оценка"
-              attendanceTitle="Посещаемость — нажмите, чтобы сменить у всего класса"
-            />
+            {/* Интерактивная строка ввода для всего класса */}
+            <Flex align="start" gap={6} wrap="nowrap" inlineSize="100%" minInlineSize={0}>
+              <Avatar size={44} initials="👥" gradientColor="blue" flexShrink={0} />
+
+              <GradeColumns
+                gradeValues={bulkGradeValues}
+                onCycleGrade={(field, next) => { onBulkGrade(field, next); setBulkGradeValues(p => ({ ...p, [field]: next })); }}
+                gradeVariant="bulk-grade"
+                attendanceValue={bulkAttendanceValue}
+                onCycleAttendance={(next) => { onBulkAtt(next); setBulkAttendanceValue(next); }}
+                attendanceVariant="bulk-attendance"
+                attendanceTypes={attendanceTypes}
+                gradeTitlePrefix="Оценка"
+                attendanceTitle="Посещаемость — нажмите, чтобы сменить у всего класса"
+              />
+            </Flex>
           </Flex>
-        </Flex>
+        </Box>
       </ModalPage>
     </AppRootPortal>
   );

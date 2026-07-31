@@ -1,5 +1,6 @@
 import React from 'react';
-import { apiGet, apiPost } from '@/shared/lib';
+import { apiGet } from '@/shared/lib/api';
+import { apiPost } from '@/shared/lib/api';
 import type { Student, AttendanceType, GradeField } from '@/shared/lib/types';
 
 interface LessonInfo {

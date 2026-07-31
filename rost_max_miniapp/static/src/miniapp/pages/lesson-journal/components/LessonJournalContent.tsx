@@ -1,7 +1,7 @@
 import React from 'react';
 import { Flex, Text, Button, Box } from '@vkontakte/vkui';
 import { StudentRow } from './StudentRow';
-import { EmptyState } from '@/shared/components';
+import { EmptyState } from '@/shared/components/EmptyState';
 import type { Student, AttendanceType, GradeField } from '@/shared/lib/types';
 
 interface LessonJournalContentProps {

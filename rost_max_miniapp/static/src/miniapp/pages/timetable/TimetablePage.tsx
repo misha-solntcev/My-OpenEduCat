@@ -19,7 +19,7 @@ import {
   Icon56CalendarOutline,
 } from '@vkontakte/icons';
 import { useAppStore, selectGlobalDate, setGlobalDate } from '@/shared/lib/store';
-import { apiGet } from '@/shared/lib';
+import { apiGet } from '@/shared/lib/api';
 
 
 interface Lesson {

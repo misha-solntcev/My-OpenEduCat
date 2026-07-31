@@ -10,7 +10,7 @@ interface TileProps {
 export const Tile: React.FC<TileProps> = ({ icon, label, value }) => (
   <Card>
     <Flex direction="column" align="center" gap={4} padding="m">
-      <span style={{ fontSize: '18px' }}>{icon}</span>
+      <Text weight="2" size="l">{icon}</Text>
       <Text weight="2" align="center">
         {label}
       </Text>

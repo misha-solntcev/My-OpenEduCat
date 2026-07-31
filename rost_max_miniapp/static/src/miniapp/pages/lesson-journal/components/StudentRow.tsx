@@ -1,7 +1,7 @@
 import React from 'react';
 import { Box, Flex, Avatar, EllipsisText } from '@vkontakte/vkui';
 import { GradeColumns } from './GradeColumns';
-import { initialsOf } from '@/shared/lib';
+import { initialsOf } from '@/shared/lib/initials';
 import type { Student, AttendanceType, GradeField } from '@/shared/lib/types';
 
 interface StudentRowProps {

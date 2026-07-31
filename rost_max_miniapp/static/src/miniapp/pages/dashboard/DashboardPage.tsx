@@ -1,7 +1,8 @@
 import React from 'react';
 import { Panel, PanelHeader, Flex, Spinner, Avatar, Button, SimpleGrid, SimpleCell, Group, DateInput } from '@vkontakte/vkui';
-import { apiGet, initialsOf } from '@/shared/lib';
-import { Tile } from '@/pages/dashboard/components';
+import { apiGet } from '@/shared/lib/api';
+import { initialsOf } from '@/shared/lib/initials';
+import { Tile } from '@/pages/dashboard/components/Tile';
 import { useAppStore, selectGlobalDate, setGlobalDate } from '@/shared/lib/store';
 interface DashboardData {
   is_admin: boolean;

@@ -12,7 +12,7 @@ import {
   Link,
   Flex,
 } from '@vkontakte/vkui';
-import { apiPost } from '@/shared/lib';
+import { apiPost } from '@/shared/lib/api';
 import { useAppStore } from '@/shared/lib/store';
 
 interface LoginResponse {
@@ -120,10 +120,10 @@ export const LoginPage: React.FC<LoginPageProps> = ({ id }) => {
   };
 
   return (
-    <Panel id={id} mode="card">      
-      <Flex direction="column" justify="center" align="center" style={{ minHeight: '100vh' }}>
-        <Box maxInlineSize={420} paddingInline="m">
-          <Group>
+      <Panel id={id} mode="plain">     
+        <Flex direction="column" justify="center" align="center" minBlockSize="100vh">
+          <Box maxInlineSize={420} paddingInline="m">
+          <Group mode="card">
             <form onSubmit={handleLogin}>
               <input type="hidden" name="type" value="password" />
               <input type="hidden" name="csrf_token" value={getCsrfToken()} />
@@ -160,7 +160,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ id }) => {
 
                     {error && (
                       <FormItem>
-                        <FormStatus mode="error" title="Ошибка входа">
+                        <FormStatus mode="error" title="Ошибка">
                           {error}
                         </FormStatus>
                       </FormItem>

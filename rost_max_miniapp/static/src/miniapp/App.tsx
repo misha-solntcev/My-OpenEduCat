@@ -22,7 +22,7 @@ type TabId = 'dashboard' | 'timetable' | 'modules';
 export default function App() {
   const authSuccess = useAppStore(s => s.authSuccess);
   const userInfo = useAppStore(s => s.userInfo);
-  const [activeView, setActiveView] = React.useState<'login' | 'main'>('login');
+  const [activeView, setActiveView] = React.useState<'login' | 'main' | 'lesson-journal'>('login');
   const [activeTab, setActiveTab] = React.useState<TabId>('dashboard');
 
   // Состояние для вложенной навигации внутри таба "Расписание"

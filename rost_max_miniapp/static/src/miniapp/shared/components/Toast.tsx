@@ -1,5 +1,5 @@
 import React from 'react';
-import { Snackbar, Box } from '@vkontakte/vkui';
+import { Snackbar, Text } from '@vkontakte/vkui';
 
 interface ToastProps {
   message: string;
@@ -14,29 +14,23 @@ export const Toast: React.FC<ToastProps> = ({ message, type = 'info', duration =
     return () => window.clearTimeout(timer);
   }, [duration, onClose]);
 
-  const backgroundColor = {
-    info: 'var(--vkui--color_background_surface_card)',
-    success: 'var(--vkui--color_background_accent_positive)',
-    error: 'var(--vkui--color_background_accent_negative)',
-    warning: 'var(--vkui--color_background_accent_attention_primary)',
-  }[type];
-
-  const color = {
-    info: 'var(--vkui--color_text_primary)',
-    success: 'var(--vkui--color_text_primary_static)',
-    error: 'var(--vkui--color_text_primary_static)',
-    warning: 'var(--vkui--color_text_primary_static)',
+  const appearance = {
+    info: 'neutral',
+    success: 'positive',
+    error: 'negative',
+    warning: 'accent',
   }[type];
 
   return (
     <Snackbar
       open={true}
       onClose={onClose}
+      onClosed={onClose}
       placement="bottom"
       duration={duration}
-      style={{ backgroundColor, color, borderRadius: '12px', padding: '12px 16px', minWidth: '280px', maxWidth: '90vw' } as React.CSSProperties}
+      appearance={appearance}
     >
-      {message}
+      <Text weight="1" color="primary">{message}</Text>
     </Snackbar>
   );
 };
@@ -104,7 +98,7 @@ export const ToastContainer: React.FC = () => {
   if (toasts.length === 0) return null;
 
   return (
-    <Box style={{ position: 'fixed', bottom: '90px', left: '50%', transform: 'translateX(-50%)', zIndex: 1000, display: 'flex', flexDirection: 'column', alignItems: 'center', pointerEvents: 'none', padding: '0 16px' }}>
+    <>
       {toasts.map(toast => (
         <Toast
           key={toast.id}
@@ -113,6 +107,6 @@ export const ToastContainer: React.FC = () => {
           onClose={() => removeToast(toast.id)}
         />
       ))}
-    </Box>
+    </>
   );
 };

@@ -29,7 +29,7 @@ export class ErrorBoundary extends React.Component<
         <Panel mode="card" padding="m">
           <Text weight="1" color="negative">Что-то пошло не так</Text>
           <Box marginTop="s">
-            <pre style={{ textAlign: 'left', fontSize: '11px', color: 'var(--vkui--color_text_secondary)', overflow: 'auto' }}>
+            <pre style={{ fontFamily: 'monospace', fontSize: '11px', overflow: 'auto', margin: 0 }}>
               {this.state.error?.message}
             </pre>
           </Box>

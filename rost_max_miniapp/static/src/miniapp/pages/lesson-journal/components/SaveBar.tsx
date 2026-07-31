@@ -18,7 +18,8 @@ export const SaveBar: React.FC<SaveBarProps> = ({ saving, dirty, onSave }) => {
       insetBlockEnd={0}
       mode="card"
       padding="m"
-      style={{ borderTop: '1px solid var(--vkui--color_separator_secondary)', zIndex: 90 }}
+      border="top"
+      style={{ zIndex: 90 }}
     >
       <Button
         stretched
