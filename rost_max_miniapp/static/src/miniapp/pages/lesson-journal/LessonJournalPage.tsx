@@ -107,12 +107,7 @@ export const LessonJournalPage: React.FC<LessonJournalPageProps> = ({ id, lesson
             onCycleAttendance={cycleAttendance}
           />
         </Box>
-
-        {/* 
-          Монтируем шторку всегда.
-          Благодаря VKUI v8 и наличию AppRoot она отрендерится через портал
-          и будет аккуратно анимироваться при открытии и закрытии.
-        */}
+        
         <BulkSheet
           attendanceTypes={attendanceTypes}
           overwriteFilled={overwriteFilled}

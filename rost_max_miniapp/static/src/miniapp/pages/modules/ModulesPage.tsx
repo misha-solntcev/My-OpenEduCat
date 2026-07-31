@@ -5,37 +5,22 @@ import {
   Button,
   Separator,
   Spacing,
+  Cell,
+  List,
 } from '@vkontakte/vkui';
+import { Icon28Settings, Icon28User } from '@vkontakte/icons';
 
 
 export const ModulesPage: React.FC<{ id: string }> = ({ id }) => {
   return (
     <Panel id={id} mode="card" centered >
-      <PanelHeader>Песочница</PanelHeader>
-      <Button size="s" mode="primary" onClick={() => alert('Hello, World!')}>
-        Hello, World!
-      </Button>
-      <Spacing />
+      <PanelHeader>Песочница</PanelHeader>      
       <Button mode="outline" size="m"  >
         Hello, World!
-      </Button>
-      <Spacing />
-      <Button size="l" >
-        Hello, World!
-      </Button>
-      <Separator size={"s"}/>
-      <Button size="m" >
-        Hello, World!
-      </Button>
-      <Separator size={"m"}/>
-      <Button size="m" >
-        Hello, World!
-      </Button>
-      <Separator size={"l"}/>
-      <Button size="m" >
-        Hello, World!
-      </Button>
-      <Separator size={"l"}/>      
+      </Button>     
+
+      <Separator size={"l"} />      
+
     </Panel>
   );
 };
