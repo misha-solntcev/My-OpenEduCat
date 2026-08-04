@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Flex, Avatar, EllipsisText } from '@vkontakte/vkui';
+import { Flex, Avatar, EllipsisText, Box } from '@vkontakte/vkui';
 import { GradeColumns } from './GradeColumns';
 import { initialsOf } from '@/shared/lib/initials';
 import type { Student, AttendanceType, GradeField } from '@/shared/lib/types';
@@ -25,7 +25,7 @@ export const StudentRow: React.FC<StudentRowProps> = ({
         src={student.avatar}
       />
 
-      <Flex direction="column" gap={6} flexGrow={1} minWidth={0}>
+      <Flex direction="column" gap={6} flexGrow={1} minInlineSize={0}>
         <EllipsisText maxLines={1}>
           {student.name}
         </EllipsisText>

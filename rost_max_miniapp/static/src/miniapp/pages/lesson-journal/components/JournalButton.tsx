@@ -17,6 +17,7 @@ interface JournalButtonProps {
   onCycle: (next: number | null) => void;
   title?: string;
   variant?: JournalButtonVariant;
+  size?: 'm' | 'l';
 }
 
 const sizeByVariant: Record<JournalButtonVariant, 'm' | 'l'> = {
@@ -33,6 +34,7 @@ const JournalButton: React.FC<JournalButtonProps> = ({
   onCycle,
   title,
   variant,
+  size: propSize,
 }) => {
   const v = variant ?? (kind === 'grade' ? 'grade' : 'attendance');
   const list = attendanceTypes ?? [];
@@ -43,9 +45,9 @@ const JournalButton: React.FC<JournalButtonProps> = ({
     ? getGradeDisplay(value)
     : getAttendanceDisplay(value, list);
   const active = value != null;
-  const appearance = active ? 'accent' : 'overlay';
-  const mode = active ? 'primary' : 'secondary';
-  const size = sizeByVariant[v];
+  const appearance = active ? 'accent' : 'neutral';
+  const mode = active ? 'primary' : 'tertiary';
+  const size = propSize ?? sizeByVariant[v];
 
   return (
     <Button
@@ -55,6 +57,7 @@ const JournalButton: React.FC<JournalButtonProps> = ({
       size={size}
       mode={mode}
       appearance={appearance}
+      style={{ minWidth: 'auto', padding: 0,  minInlineSize: 'auto', paddingInline: 0 }}
     >
       {text}
     </Button>

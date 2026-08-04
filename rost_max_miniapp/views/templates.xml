@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-    <template id="spa_page" name="SPA Page" doctype="html">
+    <template id="spa_page" name="SPA Page">
         <html>
             <head>
                 <meta charset="utf-8"/>

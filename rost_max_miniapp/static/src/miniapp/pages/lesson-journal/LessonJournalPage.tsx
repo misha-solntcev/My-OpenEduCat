@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Flex, Panel } from '@vkontakte/vkui';
+import { Box, Flex, Panel, Button } from '@vkontakte/vkui';
 import { BulkSheet } from '@/pages/lesson-journal/components/BulkSheet';
 import { LessonJournalContent } from '@/pages/lesson-journal/components/LessonJournalContent';
 import { LessonJournalToolbar } from '@/pages/lesson-journal/components/LessonJournalToolbar';
@@ -80,12 +80,9 @@ export const LessonJournalPage: React.FC<LessonJournalPageProps> = ({ id, lesson
       <Flex direction="column" align="stretch" height="100dvh" width="100%">
         <LessonJournalToolbar
           lesson={lesson}
-          saving={saving}
-          dirty={dirty}
           showExitBanner={showExitBanner}
           setShowExitBanner={setShowExitBanner}
           onOpenBulkSheet={onOpenBulkSheet}
-          onSave={saveAll}
           exitSave={exitSave}
           exitDiscard={exitDiscard}
           handleBack={handleBack}
@@ -107,7 +104,21 @@ export const LessonJournalPage: React.FC<LessonJournalPageProps> = ({ id, lesson
             onCycleAttendance={cycleAttendance}
           />
         </Box>
-        
+
+        {dirty && (
+          <Box position="sticky" insetBlockEnd={0} zIndex="popout" padding="m" paddingInline="l" border="top" background="content">
+            <Button
+              stretched
+              size="l"
+              mode="primary"
+              appearance="accent"
+              loading={saving}
+              onClick={saveAll}
+            >
+              Сохранить
+            </Button>
+          </Box>
+        )}
         <BulkSheet
           attendanceTypes={attendanceTypes}
           overwriteFilled={overwriteFilled}

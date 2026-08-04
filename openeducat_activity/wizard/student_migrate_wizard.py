@@ -15,7 +15,6 @@
 #
 #    You should have received a copy of the GNU Lesser General Public License
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#
 ###############################################################################
 
 from odoo import _, api, fields, models
@@ -63,9 +62,18 @@ class StudentMigrate(models.TransientModel):
                             record.course_to_id.parent_id:
                         raise ValidationError(_(
                             "Can't migrate, As selected courses don't share same parent course!")) # noqa
-            else:
-                raise ValidationError(
-                    _("Can't migrate, Proceed for new admission"))
+                else:
+                    raise ValidationError(
+                        _("Can't migrate, Proceed for new admission"))
+
+    def _get_academic_year_from_batch(self, batch):
+        """Find academic year that encompasses the batch dates."""
+        if not batch or not batch.start_date or not batch.end_date:
+            return False
+        return self.env['op.academic.year'].search([
+            ('start_date', '<=', batch.start_date),
+            ('end_date', '>=', batch.end_date)
+        ], limit=1)
 
     def student_migrate_forward(self):
         act_type = self.env.ref('openeducat_activity.op_activity_type_3')
@@ -80,8 +88,7 @@ class StudentMigrate(models.TransientModel):
                                 'type_id': act_type.id,
                                 'date': self.date,
                                 'description': _('Migration From {}'
-                                                 ' to Completed Course'.
-                                                 format(record.course_from_id.name)),
+                                                 ' to Completed Course'.format(record.course_from_id.name)),
                             }
                             self.env['op.activity'].create(activity_vals)
                 else:
@@ -102,11 +109,13 @@ class StudentMigrate(models.TransientModel):
                             student_course = self.env['op.student.course'].search(
                                 [('student_id', '=', student.id),
                                  ('course_id', '=', record.course_from_id.id)])
+                            ay = self._get_academic_year_from_batch(record.batch_id)
                             student_course.create({
                                 'student_id': student.id,
                                 'course_id': record.course_to_id.id,
                                 'batch_id': record.batch_id.id,
-                                'subject_ids': record.course_to_id.subject_ids.ids
+                                'subject_ids': record.course_to_id.subject_ids.ids,
+                                'academic_years_id': ay.id if ay else False
                             })
 
                             reg_id = self.env['op.subject.registration'].create({

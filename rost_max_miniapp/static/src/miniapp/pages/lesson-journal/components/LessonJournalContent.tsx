@@ -1,5 +1,5 @@
 import React from 'react';
-import { Flex, Text, Button, Box } from '@vkontakte/vkui';
+import { Flex, List, Text, Button } from '@vkontakte/vkui';
 import { StudentRow } from './StudentRow';
 import { EmptyState } from '@/shared/components/EmptyState';
 import type { Student, AttendanceType, GradeField } from '@/shared/lib/types';
@@ -26,9 +26,9 @@ export const LessonJournalContent: React.FC<LessonJournalContentProps> = ({
 }) => {
   if (loading) {
     return (
-      <Box height="200px" display="flex" align="center" justify="center">
+      <Flex height="200px" align="center" justify="center">
         <Text weight="2">Загрузка...</Text>
-      </Box>
+      </Flex>
     );
   }
 
@@ -52,7 +52,7 @@ export const LessonJournalContent: React.FC<LessonJournalContentProps> = ({
   }
 
   return (
-    <Flex direction="column" gap={12} width="100%">
+    <List gap={12} style={{width: '100%'}}>
       {students.map((student) => (
         <StudentRow
           key={student.id}
@@ -62,6 +62,6 @@ export const LessonJournalContent: React.FC<LessonJournalContentProps> = ({
           onCycleAttendance={onCycleAttendance}
         />
       ))}
-    </Flex>
+    </List>
   );
 };

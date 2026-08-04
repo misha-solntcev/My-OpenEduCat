@@ -46,7 +46,7 @@ class OpStudent(models.Model):
     _inherits = {"res.partner": "partner_id"}
     _order = "name"
     _parent_name = False
-    
+
     partner_id = fields.Many2one('res.partner', 'Partner', required=True, ondelete="cascade")
     user_id = fields.Many2one('res.users', 'User', ondelete="cascade")
     gr_no = fields.Char("Registration Number", size=20)
@@ -54,11 +54,40 @@ class OpStudent(models.Model):
     course_detail_ids = fields.One2many('op.student.course', 'student_id', 'Course Details', tracking=True)
     active = fields.Boolean(default=True)
 
+    # Student state for form view statusbar
+    state = fields.Selection([
+        ('draft', 'Draft'),
+        ('admission', 'Admission'),
+        ('studying', 'Studying'),
+        ('pass_out', 'Pass Out'),
+        ('alumni', 'Alumni')
+    ], string='Status', default='draft', tracking=True)
+
+    # Fields from database (matching actual DB columns)
+    birth_date = fields.Date('Birth Date')
+    mobile = fields.Char('Mobile')
+    email = fields.Char('Email')
+    street = fields.Char('Street')
+    street2 = fields.Char('Street2')
+    city = fields.Char('City')
+    state_id = fields.Many2one('res.country.state', 'State')
+    zip = fields.Char('ZIP')
+    country_id = fields.Many2one('res.country', 'Country')
+    emergency_contact = fields.Many2one('res.partner', 'Emergency Contact')
+    emergency_phone = fields.Char('Emergency Phone')
+    father_name = fields.Char("Father's Name")
+    father_occupation = fields.Char("Father's Occupation")
+    mother_name = fields.Char("Mother's Name")
+    mother_occupation = fields.Char("Mother's Occupation")
+    last_school = fields.Char('Last School')
+    last_class = fields.Char('Last Class')
+    library_card_id = fields.Many2one('op.library.card', 'Library Card')
+
     _sql_constraints = [(
         'unique_gr_no',
         'unique(gr_no)',
         'Registration Number must be unique per student!'
-    )]   
+    )]
 
     @api.model
     def get_import_templates(self):

@@ -4,11 +4,7 @@ import {
   PanelHeader,
   Button,
   Separator,
-  Spacing,
-  Cell,
-  List,
 } from '@vkontakte/vkui';
-import { Icon28Settings, Icon28User } from '@vkontakte/icons';
 
 
 export const ModulesPage: React.FC<{ id: string }> = ({ id }) => {

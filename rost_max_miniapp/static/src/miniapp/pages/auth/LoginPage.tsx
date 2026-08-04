@@ -9,7 +9,6 @@ import {
   ButtonGroup,
   Checkbox,
   Link,
-  Footnote,
 } from '@vkontakte/vkui';
 import { apiPost } from '@/shared/lib/api';
 import { useAppStore } from '@/shared/lib/store';

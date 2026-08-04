@@ -12,7 +12,6 @@ interface GradeColumnsProps {
   onCycleAttendance?: (next: number | null) => void;
   attendanceVariant?: 'grade' | 'attendance' | 'bulk-grade' | 'bulk-attendance';
   attendanceTypes?: AttendanceType[];
-  gradeTitlePrefix?: string;
   attendanceTitle?: string;
 }
 
@@ -25,18 +24,18 @@ export const GradeColumns: React.FC<GradeColumnsProps> = ({
   onCycleAttendance,
   attendanceVariant,
   attendanceTypes = [],
-  gradeTitlePrefix,
   attendanceTitle,
 }) => (
-  <Flex gap={6} wrap="wrap">
+  <Flex gap={4} wrap="wrap" minInlineSize={0}>
     {GRADE_FIELDS.map((field) => (
       <JournalButton
         key={field}
         kind="grade"
         value={gradeValues[field]}
         onCycle={(next) => onCycleGrade(field, next)}
-        title={`${gradeTitlePrefix ?? 'Оценка'} ${field === 'grade_1' ? 'О1' : field === 'grade_2' ? 'О2' : 'О3'}`}
+        title={`Оценка ${field === 'grade_1' ? 'О1' : field === 'grade_2' ? 'О2' : 'О3'}`}
         variant={gradeVariant}
+        size="s"
       />
     ))}
 
@@ -48,6 +47,7 @@ export const GradeColumns: React.FC<GradeColumnsProps> = ({
         onCycle={onCycleAttendance}
         title={attendanceTitle ?? 'Нажмите, чтобы сменить отметку посещаемости'}
         variant={attendanceVariant ?? 'attendance'}
+        size="s"
       />
     )}
   </Flex>
