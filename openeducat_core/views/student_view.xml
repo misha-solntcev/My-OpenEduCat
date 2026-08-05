@@ -154,14 +154,11 @@
                     <field name="name"/>
                     <field name="blood_group"/>
                     <newline/>
+                    <searchpanel string="Класс">
+                        <field name="active_course_id" string="Класс" select="multi" icon="fa-graduation-cap"/>
+                    </searchpanel>
                     <group expand="0" string="Group By...">
-                        <filter name="blood_group" string="Blood Group"
-                                domain="[]" context="{'group_by':'blood_group'}"/>
-                        <filter name="nationality" string="Nationality"
-                                domain="[]" context="{'group_by':'nationality'}"/>
-                        <filter name="language" string="Language"
-                                domain="[]" context="{'group_by':'lang'}"/>
-                        <filter name="current_course" string="Current Course"
+                        <filter name="current_course" string="Класс"
                                 domain="[]" context="{'group_by':'active_course_id'}"/>
                         <filter string="Archived" name="inactive" domain="[('active', '=', False)]"/>
                     </group>
@@ -196,6 +193,16 @@
                         <filter string="11 класс" name="filter_11_klass"
                                 domain="[('active_course_id', '=', 27)]"/>
                     </group>
+                    <searchpanel>
+                    <!-- Фильтр по классам -->
+                    <field name="active_course_id"
+                        expand="0"
+                        string="Класс"
+                        select="m"
+                        icon="fa-users"
+                        title="Фильтр по классам"
+                        enable_counters="1" />
+                </searchpanel>
                 </search>
             </field>
         </record>
