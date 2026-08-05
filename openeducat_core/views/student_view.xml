@@ -152,11 +152,9 @@
             <field name="arch" type="xml">
                 <search string="Student">
                     <field name="name"/>
-                    <field name="blood_group"/>
-                    <newline/>
-                    <searchpanel string="Класс">
-                        <field name="active_course_id" string="Класс" select="multi" icon="fa-graduation-cap"/>
-                    </searchpanel>
+                    <field name="active_course_id" string="Класс"/>
+                    
+                    
                     <group expand="0" string="Group By...">
                         <filter name="current_course" string="Класс"
                                 domain="[]" context="{'group_by':'active_course_id'}"/>
@@ -193,16 +191,9 @@
                         <filter string="11 класс" name="filter_11_klass"
                                 domain="[('active_course_id', '=', 27)]"/>
                     </group>
-                    <searchpanel>
-                    <!-- Фильтр по классам -->
-                    <field name="active_course_id"
-                        expand="0"
-                        string="Класс"
-                        select="m"
-                        icon="fa-users"
-                        title="Фильтр по классам"
-                        enable_counters="1" />
-                </searchpanel>
+                    <searchpanel string="Класс" >
+                        <field name="active_course_id" string="Класс" select="multi" icon="fa-graduation-cap" enable_counters="1" />
+                    </searchpanel>
                 </search>
             </field>
         </record>
