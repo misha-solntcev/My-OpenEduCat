@@ -113,14 +113,14 @@
                                             <div class="address_format">
                                                 <field name="city" placeholder="City" style="width: 40%"/>
                                                 <field name="state_id" class="oe_no_button" placeholder="State"
-                                                       style="width: 37%" options="{&quot;no_open&quot;: True}"/>
+                                                       style="width: 37%" options="{'no_open': True}"/>
                                                 <field name="zip" placeholder="ZIP" style="width: 20%"/>
                                             </div>
                                             <field name="country_id" placeholder="Country" class="oe_no_button"
-                                                   options="{&quot;no_open&quot;: True}"/>
+                                                   options="{'no_open': True}"/>
                                         </div>
                                         <field name="emergency_contact" context="{'show_address': 1}"
-                                               options="{&quot;always_reload&quot;: True}"/>
+                                               options="{'always_reload': True}"/>
                                     </group>
                                     <group>
                                         <field name="email"/>
@@ -165,34 +165,34 @@
                     </group>
                     <group expand="0" string="Filters">
                         <filter string="2025-2026" name="filter_ay_2025_2026"
-                                domain="[('course_detail_ids.academic_years_id.name', '=', '2025-2026')]"/>
+                                domain="[('course_detail_ids.academic_years_id', '=', 6), ('course_detail_ids.state', '=', 'running')]"/>
                         <filter string="2026-2027" name="filter_ay_2026_2027"
-                                domain="[('course_detail_ids.academic_years_id.name', '=', '2026-2027')]"/>                        
+                                domain="[('course_detail_ids.academic_years_id', '=', 8), ('course_detail_ids.state', '=', 'running')]"/>
 
                         <separator/>
 
                         <filter string="1 класс" name="filter_1_klass"
-                                domain="[('course_detail_ids.course_id.name', '=', '1 класс')]"/>
+                                domain="[('course_detail_ids.course_id', '=', 15)]"/>
                         <filter string="2 класс" name="filter_2_klass"
-                                domain="[('course_detail_ids.course_id.name', '=', '2 класс')]"/>
+                                domain="[('course_detail_ids.course_id', '=', 18)]"/>
                         <filter string="3 класс" name="filter_3_klass"
-                                domain="[('course_detail_ids.course_id.name', '=', '3 класс')]"/>
+                                domain="[('course_detail_ids.course_id', '=', 19)]"/>
                         <filter string="4 класс" name="filter_4_klass"
-                                domain="[('course_detail_ids.course_id.name', '=', '4 класс')]"/>
+                                domain="[('course_detail_ids.course_id', '=', 20)]"/>
                         <filter string="5 класс" name="filter_5_klass"
-                                domain="[('course_detail_ids.course_id.name', '=', '5 класс')]"/>
+                                domain="[('course_detail_ids.course_id', '=', 21)]"/>
                         <filter string="6 класс" name="filter_6_klass"
-                                domain="[('course_detail_ids.course_id.name', '=', '6 класс')]"/>
+                                domain="[('course_detail_ids.course_id', '=', 22)]"/>
                         <filter string="7 класс" name="filter_7_klass"
-                                domain="[('course_detail_ids.course_id.name', '=', '7 класс')]"/>
+                                domain="[('course_detail_ids.course_id', '=', 23)]"/>
                         <filter string="8 класс" name="filter_8_klass"
-                                domain="[('course_detail_ids.course_id.name', '=', '8 класс')]"/>
+                                domain="[('course_detail_ids.course_id', '=', 24)]"/>
                         <filter string="9 класс" name="filter_9_klass"
-                                domain="[('course_detail_ids.course_id.name', '=', '9 класс')]"/>
+                                domain="[('course_detail_ids.course_id', '=', 25)]"/>
                         <filter string="10 класс" name="filter_10_klass"
-                                domain="[('course_detail_ids.course_id.name', '=', '10 класс')]"/>
+                                domain="[('course_detail_ids.course_id', '=', 26)]"/>
                         <filter string="11 класс" name="filter_11_klass"
-                                domain="[('course_detail_ids.course_id.name', '=', '11 класс')]"/>                        
+                                domain="[('course_detail_ids.course_id', '=', 27)]"/>
                     </group>
                 </search>
             </field>

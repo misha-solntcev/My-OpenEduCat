@@ -1,22 +1,3 @@
-###############################################################################
-#
-#    OpenEduCat Inc
-#    Copyright (C) 2009-TODAY OpenEduCat Inc(<https://www.openeducat.org>).
-#
-#    This program is free software: you can redistribute it and/or modify
-#    it under the terms of the GNU Lesser General Public License as
-#    published by the Free Software Foundation, either version 3 of the
-#    License, or (at your option) any later version.
-#
-#    This program is distributed in the hope that it will be useful,
-#    but WITHOUT ANY WARRANTY; without even the implied warranty of
-#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#    GNU Lesser General Public License for more details.
-#
-#    You should have received a copy of the GNU Lesser General Public License
-#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-###############################################################################
-
 from odoo import _, api, fields, models
 from odoo.exceptions import ValidationError
 
@@ -55,7 +36,7 @@ class StudentMigrate(models.TransientModel):
                 raise ValidationError(
                     _("From Course must not be same as To Course!"))
 
-            if (record.course_from_id.parent_id and record.course_to_id)\
+            if (record.course_from_id.parent_id and record.course_to_id) \
                     or (record.course_from_id.parent_id and record.course_completed):
                 if record.course_to_id:
                     if record.course_from_id.parent_id != \
@@ -79,7 +60,7 @@ class StudentMigrate(models.TransientModel):
         act_type = self.env.ref('openeducat_activity.op_activity_type_3')
         for record in self:
             for student in record.student_ids:
-                if self.course_completed:
+                if record.course_completed:
                     for course_update in student.course_detail_ids:
                         if course_update.course_id == record.course_from_id:
                             course_update.state = 'finished'
@@ -93,7 +74,7 @@ class StudentMigrate(models.TransientModel):
                             self.env['op.activity'].create(activity_vals)
                 else:
                     for course_update in student.course_detail_ids:
-                        if course_update.course_id == self.course_from_id:
+                        if course_update.course_id == record.course_from_id:
                             course_update.state = 'finished'
 
                             activity_vals = {
@@ -106,9 +87,10 @@ class StudentMigrate(models.TransientModel):
                             }
                             self.env['op.activity'].create(activity_vals)
 
-                            student_course = self.env['op.student.course'].search(
-                                [('student_id', '=', student.id),
-                                 ('course_id', '=', record.course_from_id.id)])
+                            student_course = self.env['op.student.course'].search([
+                                ('student_id', '=', student.id),
+                                ('course_id', '=', record.course_from_id.id)
+                            ])
                             ay = self._get_academic_year_from_batch(record.batch_id)
                             student_course.create({
                                 'student_id': student.id,

@@ -157,10 +157,6 @@ class RostMaxTimetableController(http.Controller):
                             "is_admin": is_admin,
                         })
 
-                # Сессия отротирована в authenticate() -> sid изменился и Odoo
-                # csrf_token сброшен. Отдаём наш стабильный токен SPA в JSON,
-                # чтобы фронт перезаписал window.csrf_token (первый POST update
-                # после логина иначе упадёт с "CSRF validation failed").
                 response_data = {
                     "success": True,
                     "user_name": user.name,
@@ -170,8 +166,14 @@ class RostMaxTimetableController(http.Controller):
 
                 response = request.make_json_response(response_data)
 
-                # Если remember_me - ставим долгую куку сессии (Odoo session уже имеет куку session_id)
-                # Для 2FA trusted device куку поставим при подтверждении кода
+                # Явно проставляем session_id куку в ответ, чтобы клиент зафиксировал новую сессию
+                response.set_cookie(
+                    'session_id',
+                    request.session.sid,
+                    max_age=90 * 86400,
+                    httponly=True,
+                    samesite='Lax'
+                )
 
                 return response
 
@@ -244,12 +246,12 @@ class RostMaxTimetableController(http.Controller):
 
         # 2FA успешно - финализируем сессию
         request.session.finalize(request.env)
-        request.update_env(user=request.session.uid)
-        request.update_context(**request.session.context)
+        request.session.uid = user.id
+        request.session['is_timetable_user'] = True
+        request.session.pop('pre_uid', None)
 
         is_admin = user.has_group('base.group_system')
 
-        # Если запрошено доверенное устройство - генерируем куку
         response_data = {
             "success": True,
             "user_name": user.name,
@@ -262,8 +264,14 @@ class RostMaxTimetableController(http.Controller):
         if trusted_device:
             _generate_trusted_device_cookie(response, user)
 
-        # Очищаем pre_uid
-        request.session.pop('pre_uid', None)
+        # Сохраняем сессию и отправляем Cookie
+        response.set_cookie(
+            'session_id',
+            request.session.sid,
+            max_age=90 * 86400,
+            httponly=True,
+            samesite='Lax'
+        )
 
         return response
 

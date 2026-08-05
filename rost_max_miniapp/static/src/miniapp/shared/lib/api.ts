@@ -16,6 +16,7 @@ function getCsrfToken(): string {
 export async function apiGet<T>(url: string): Promise<T> {
   const res = await fetch(url, {
     headers: { 'X-CSRF-TOKEN': getCsrfToken() },
+    credentials: 'include',
   });
 
   if (res.status === 401) {
@@ -36,6 +37,7 @@ export async function apiPost<T>(url: string, data: unknown): Promise<T> {
       'Content-Type': 'application/json',
       'X-CSRF-TOKEN': getCsrfToken(),
     },
+    credentials: 'include',
     body: JSON.stringify(data),
   });
 
