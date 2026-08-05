@@ -1,23 +1,3 @@
-###############################################################################
-#
-#    OpenEduCat Inc
-#    Copyright (C) 2009-TODAY OpenEduCat Inc(<https://www.openeducat.org>).
-#
-#    This program is free software: you can redistribute it and/or modify
-#    it under the terms of the GNU Lesser General Public License as
-#    published by the Free Software Foundation, either version 3 of the
-#    License, or (at your option) any later version.
-#
-#    This program is distributed in the hope that it will be useful,
-#    but WITHOUT ANY WARRANTY; without even the implied warranty of
-#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#    GNU Lesser General Public License for more details.
-#
-#    You should have received a copy of the GNU Lesser General Public License
-#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#
-###############################################################################
-
 from odoo import api, fields, models
 
 
@@ -37,10 +17,10 @@ class OpStudent(models.Model):
         self.env['op.media.movement'].flush_model(['student_id'])
         data = self.env['op.media.movement'].read_group(
             [('student_id', 'in', self.ids)],
-            ['student_id'],
+            ['student_id', '__count'],
             ['student_id'],
         )
-        count_map = {r['student_id'][0]: r['__count'] for r in data}
+        count_map = {r['student_id'][0]: r.get('student_id_count', r.get('__count', 0)) for r in data}
         for rec in self:
             rec.media_movement_lines_count = count_map.get(rec.id, 0)
 

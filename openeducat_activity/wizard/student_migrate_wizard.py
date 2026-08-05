@@ -7,7 +7,7 @@ class StudentMigrate(models.TransientModel):
     _name = "student.migrate"
     _description = "Student Migrate"
 
-    date = fields.Date('Date', required=True, default=fields.Date.today())
+    date = fields.Date('Date', required=True, default=fields.Date.today)
     course_from_id = fields.Many2one('op.course', 'From Course', required=True)
     course_to_id = fields.Many2one('op.course', 'To Course')
     batch_id = fields.Many2one('op.batch', 'To Batch')
@@ -19,31 +19,36 @@ class StudentMigrate(models.TransientModel):
     @api.onchange('course_from_id')
     def student_by_course(self):
         self.student_ids = False
-        if self.course_from_id:
-            lists = []
-            student_ids = self.env['op.student.course'].search([
-                ('course_id', '=', self.course_from_id.id), ('state', '=', 'running')])
-            for i in student_ids:
-                lists.append(str(i.student_id.id))
-            domain = {'student_ids': [('id', 'in', lists)]}
-            result = {'domain': domain}
-            return result
+        if not self.course_from_id:
+            return {'domain': {'student_ids': []}}
 
-    @api.constrains('course_from_id', 'course_to_id')
-    def _check_admission_register(self):
+        running_courses = self.env['op.student.course'].search([
+            ('course_id', '=', self.course_from_id.id),
+            ('state', '=', 'running')
+        ])
+        return {
+            'domain': {
+                'student_ids': [('id', 'in', running_courses.mapped('student_id').ids)]
+            }
+        }
+
+    @api.constrains('course_from_id', 'course_to_id', 'course_completed')
+    def _check_migration_courses(self):
         for record in self:
-            if record.course_from_id == record.course_to_id:
+            if not record.course_completed and not record.course_to_id:
+                raise ValidationError(
+                    _("Please select 'To Course' or mark as 'Course Completed'."))
+
+            if record.course_to_id and record.course_from_id == record.course_to_id:
                 raise ValidationError(
                     _("From Course must not be same as To Course!"))
 
-            if (record.course_from_id.parent_id and record.course_to_id) \
-                    or (record.course_from_id.parent_id and record.course_completed):
+            if record.course_from_id.parent_id:
                 if record.course_to_id:
-                    if record.course_from_id.parent_id != \
-                            record.course_to_id.parent_id:
+                    if record.course_from_id.parent_id != record.course_to_id.parent_id:
                         raise ValidationError(_(
-                            "Can't migrate, As selected courses don't share same parent course!")) # noqa
-                else:
+                            "Can't migrate, As selected courses don't share same parent course!"))  # noqa
+                elif not record.course_completed:
                     raise ValidationError(
                         _("Can't migrate, Proceed for new admission"))
 
@@ -57,61 +62,78 @@ class StudentMigrate(models.TransientModel):
         ], limit=1)
 
     def student_migrate_forward(self):
-        act_type = self.env.ref('openeducat_activity.op_activity_type_3')
+        act_type = self.env.ref(
+            'openeducat_activity.op_activity_type_3', raise_if_not_found=False)
+        act_type_id = act_type.id if act_type else False
+
         for record in self:
+            academic_year = (
+                record._get_academic_year_from_batch(record.batch_id)
+                if not record.course_completed
+                else False
+            )
+
+            activities_to_create = []
+            student_courses_to_create = []
+            registrations_to_create = []
+
+            # Finish all running courses for these students at once
+            target_student_courses = record.student_ids.mapped(
+                'course_detail_ids'
+            ).filtered(
+                lambda sc: sc.course_id == record.course_from_id
+                and sc.state == 'running'
+            )
+            target_student_courses.write({'state': 'finished'})
+
             for student in record.student_ids:
                 if record.course_completed:
-                    for course_update in student.course_detail_ids:
-                        if course_update.course_id == record.course_from_id:
-                            course_update.state = 'finished'
-                            activity_vals = {
-                                'student_id': student.id,
-                                'type_id': act_type.id,
-                                'date': self.date,
-                                'description': _('Migration From {}'
-                                                 ' to Completed Course'.format(record.course_from_id.name)),
-                            }
-                            self.env['op.activity'].create(activity_vals)
+                    desc = _(
+                        "Migration From %s to Completed Course"
+                    ) % record.course_from_id.name
                 else:
-                    for course_update in student.course_detail_ids:
-                        if course_update.course_id == record.course_from_id:
-                            course_update.state = 'finished'
+                    desc = _(
+                        "Migration from %s to %s"
+                    ) % (record.course_from_id.name, record.course_to_id.name)
 
-                            activity_vals = {
-                                'student_id': student.id,
-                                'type_id': act_type.id,
-                                'date': self.date,
-                                'description': _('Migration from {} to {}'
-                                                 .format(record.course_from_id.name,
-                                                         record.course_to_id.name))
-                            }
-                            self.env['op.activity'].create(activity_vals)
+                    student_courses_to_create.append({
+                        'student_id': student.id,
+                        'course_id': record.course_to_id.id,
+                        'batch_id': record.batch_id.id if record.batch_id else False,
+                        'subject_ids': [(6, 0, record.course_to_id.subject_ids.ids)],
+                        'academic_years_id': academic_year.id if academic_year else False,
+                    })
 
-                            student_course = self.env['op.student.course'].search([
-                                ('student_id', '=', student.id),
-                                ('course_id', '=', record.course_from_id.id)
-                            ])
-                            ay = self._get_academic_year_from_batch(record.batch_id)
-                            student_course.create({
-                                'student_id': student.id,
-                                'course_id': record.course_to_id.id,
-                                'batch_id': record.batch_id.id,
-                                'subject_ids': record.course_to_id.subject_ids.ids,
-                                'academic_years_id': ay.id if ay else False
-                            })
+                if act_type_id:
+                    activities_to_create.append({
+                        'student_id': student.id,
+                        'type_id': act_type_id,
+                        'date': record.date,
+                        'description': desc,
+                    })
 
-                            reg_id = self.env['op.subject.registration'].create({
-                                'student_id': student.id,
-                                'batch_id': record.batch_id.id,
-                                'course_id':
-                                    record.course_to_id.id,
-                                'min_unit_load':
-                                    record.course_to_id.min_unit_load or 0.0,
-                                'max_unit_load':
-                                    record.course_to_id.max_unit_load or 0.0,
-                                'state': 'draft',
-                            })
-                            reg_id.get_subjects()
-                            if not record.optional_sub:
-                                reg_id.action_submitted()
-                                reg_id.action_approve()
+                if not record.course_completed and record.course_to_id:
+                    registrations_to_create.append({
+                        'student_id': student.id,
+                        'batch_id': record.batch_id.id if record.batch_id else False,
+                        'course_id': record.course_to_id.id,
+                        'min_unit_load': record.course_to_id.min_unit_load or 0.0,
+                        'max_unit_load': record.course_to_id.max_unit_load or 0.0,
+                        'state': 'draft',
+                    })
+
+            # Bulk operations
+            if activities_to_create:
+                self.env['op.activity'].create(activities_to_create)
+
+            if student_courses_to_create:
+                self.env['op.student.course'].create(student_courses_to_create)
+
+            if registrations_to_create:
+                registrations = self.env['op.subject.registration'].create(
+                    registrations_to_create
+                )
+                registrations.get_subjects()
+                if not record.optional_sub:
+                    registrations.action_submitted()
+                    registrations.action_approve()
