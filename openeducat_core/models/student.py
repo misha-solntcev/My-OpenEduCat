@@ -54,6 +54,20 @@ class OpStudent(models.Model):
     course_detail_ids = fields.One2many('op.student.course', 'student_id', 'Course Details', tracking=True)
     active = fields.Boolean(default=True)
 
+    # Computed stored fields for accurate current class/academic year filtering
+    active_academic_year_id = fields.Many2one(
+        'op.academic.year',
+        string="Current Academic Year",
+        compute='_compute_active_course_details',
+        store=True,
+    )
+    active_course_id = fields.Many2one(
+        'op.course',
+        string="Current Course",
+        compute='_compute_active_course_details',
+        store=True,
+    )
+
     # Student state for form view statusbar
     state = fields.Selection([
         ('draft', 'Draft'),
@@ -88,6 +102,18 @@ class OpStudent(models.Model):
         'unique(gr_no)',
         'Registration Number must be unique per student!'
     )]
+
+    @api.depends('course_detail_ids', 'course_detail_ids.state', 'course_detail_ids.academic_years_id', 'course_detail_ids.course_id')
+    def _compute_active_course_details(self):
+        for student in self:
+            running_details = student.course_detail_ids.filtered(lambda r: r.state == 'running')
+            if running_details:
+                active_record = running_details[0]
+                student.active_academic_year_id = active_record.academic_years_id
+                student.active_course_id = active_record.course_id
+            else:
+                student.active_academic_year_id = False
+                student.active_course_id = False
 
     @api.model
     def get_import_templates(self):

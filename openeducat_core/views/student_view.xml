@@ -161,38 +161,40 @@
                                 domain="[]" context="{'group_by':'nationality'}"/>
                         <filter name="language" string="Language"
                                 domain="[]" context="{'group_by':'lang'}"/>
+                        <filter name="current_course" string="Current Course"
+                                domain="[]" context="{'group_by':'active_course_id'}"/>
                         <filter string="Archived" name="inactive" domain="[('active', '=', False)]"/>
                     </group>
                     <group expand="0" string="Filters">
                         <filter string="2025-2026" name="filter_ay_2025_2026"
-                                domain="[('course_detail_ids.academic_years_id', '=', 6), ('course_detail_ids.state', '=', 'running')]"/>
+                                domain="[('active_academic_year_id', '=', 6)]"/>
                         <filter string="2026-2027" name="filter_ay_2026_2027"
-                                domain="[('course_detail_ids.academic_years_id', '=', 8), ('course_detail_ids.state', '=', 'running')]"/>
+                                domain="[('active_academic_year_id', '=', 8)]"/>
 
                         <separator/>
 
                         <filter string="1 класс" name="filter_1_klass"
-                                domain="[('course_detail_ids.course_id', '=', 15)]"/>
+                                domain="[('active_course_id', '=', 15)]"/>
                         <filter string="2 класс" name="filter_2_klass"
-                                domain="[('course_detail_ids.course_id', '=', 18)]"/>
+                                domain="[('active_course_id', '=', 18)]"/>
                         <filter string="3 класс" name="filter_3_klass"
-                                domain="[('course_detail_ids.course_id', '=', 19)]"/>
+                                domain="[('active_course_id', '=', 19)]"/>
                         <filter string="4 класс" name="filter_4_klass"
-                                domain="[('course_detail_ids.course_id', '=', 20)]"/>
+                                domain="[('active_course_id', '=', 20)]"/>
                         <filter string="5 класс" name="filter_5_klass"
-                                domain="[('course_detail_ids.course_id', '=', 21)]"/>
+                                domain="[('active_course_id', '=', 21)]"/>
                         <filter string="6 класс" name="filter_6_klass"
-                                domain="[('course_detail_ids.course_id', '=', 22)]"/>
+                                domain="[('active_course_id', '=', 22)]"/>
                         <filter string="7 класс" name="filter_7_klass"
-                                domain="[('course_detail_ids.course_id', '=', 23)]"/>
+                                domain="[('active_course_id', '=', 23)]"/>
                         <filter string="8 класс" name="filter_8_klass"
-                                domain="[('course_detail_ids.course_id', '=', 24)]"/>
+                                domain="[('active_course_id', '=', 24)]"/>
                         <filter string="9 класс" name="filter_9_klass"
-                                domain="[('course_detail_ids.course_id', '=', 25)]"/>
+                                domain="[('active_course_id', '=', 25)]"/>
                         <filter string="10 класс" name="filter_10_klass"
-                                domain="[('course_detail_ids.course_id', '=', 26)]"/>
+                                domain="[('active_course_id', '=', 26)]"/>
                         <filter string="11 класс" name="filter_11_klass"
-                                domain="[('course_detail_ids.course_id', '=', 27)]"/>
+                                domain="[('active_course_id', '=', 27)]"/>
                     </group>
                 </search>
             </field>
