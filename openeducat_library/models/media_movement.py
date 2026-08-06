@@ -196,3 +196,12 @@ class OpMediaMovement(models.Model):
             invoice._compute_tax_totals()
             #           invoice.action_invoice_open()
             self.invoice_id = invoice.id
+
+    def get_diff_day(self):
+        """Return number of days until the return date.
+        Used in email templates to show renewal reminders."""
+        self.ensure_one()
+        if not self.return_date:
+            return ''
+        delta = (self.return_date - fields.Date.today()).days
+        return delta
