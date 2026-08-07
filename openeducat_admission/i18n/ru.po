@@ -375,7 +375,7 @@ msgstr "Отображаемое имя"
 #: model:ir.model.fields.selection,name:openeducat_admission.selection__op_admission_register__state__done
 #: model_terms:ir.ui.view,arch_db:openeducat_admission.view_op_admission_register_form
 msgid "Done"
-msgstr "Зачислен"
+msgstr "Завершен"
 
 #. module: openeducat_admission
 #: model:ir.model.fields,field_description:openeducat_admission.field_op_admission_register__done_count
