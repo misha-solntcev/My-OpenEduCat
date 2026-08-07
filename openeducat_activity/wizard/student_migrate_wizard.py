@@ -86,6 +86,10 @@ class StudentMigrate(models.TransientModel):
             )
             target_student_courses.write({'state': 'finished'})
 
+            # Sync student state based on course_completed flag
+            if record.course_completed:
+                record.student_ids.write({'state': 'pass_out'})
+
             for student in record.student_ids:
                 if record.course_completed:
                     desc = _(
@@ -95,6 +99,9 @@ class StudentMigrate(models.TransientModel):
                     desc = _(
                         "Migration from %s to %s"
                     ) % (record.course_from_id.name, record.course_to_id.name)
+                    # Ensure student is in studying state when migrating to new course
+                    if student.state not in ['studying', 'admission']:
+                        student.write({'state': 'studying'})
 
                     student_courses_to_create.append({
                         'student_id': student.id,

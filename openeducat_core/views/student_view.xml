@@ -58,6 +58,9 @@
                     <field name="emergency_contact"/>
                     <field name="nationality"/>
                     <field name="lang"/>
+                    <field name="state" widget="badge"/>
+                    <field name="active_course_id" optional="hide"/>
+                    <field name="last_active_course_id" optional="hide"/>
                 </list>
             </field>
         </record>
@@ -69,6 +72,7 @@
             <field name="arch" type="xml">
                 <form string="Student">
                     <header>
+                        <field name="state" widget="statusbar" statusbar_visible="draft,admission,studying,pass_out,alumni"/>
                     </header>
                     <sheet>
                         <div name="button_box" class="oe_button_box">
@@ -135,6 +139,8 @@
                                     </group>
                                     <group string="miscellaneous">
                                         <field name="gr_no"/>
+                                        <field name="last_active_course_id" readonly="1"/>
+                                        <field name="last_active_academic_year_id" readonly="1"/>
                                     </group>
                                 </group>
                             </page>
@@ -153,43 +159,60 @@
                 <search string="Student">
                     <field name="name"/>
                     <field name="active_course_id" string="Класс"/>
-                    
+                    <field name="state"/>
+                    <field name="last_active_course_id" string="Last Course"/>
+                    <field name="last_active_academic_year_id" string="Last Academic Year"/>
                     
                     <group expand="0" string="Group By...">
                         <filter name="current_course" string="Класс"
                                 domain="[]" context="{'group_by':'active_course_id'}"/>
+                        <filter name="last_course" string="Last Course"
+                                domain="[]" context="{'group_by':'last_active_course_id'}"/>
                         <filter string="Archived" name="inactive" domain="[('active', '=', False)]"/>
                     </group>
                     <group expand="0" string="Filters">
                         <filter string="2025-2026" name="filter_ay_2025_2026"
-                                domain="[('active_academic_year_id', '=', 6)]"/>
+                                domain="['|', ('active_academic_year_id', '=', 6), ('last_active_academic_year_id', '=', 6)]"/>
                         <filter string="2026-2027" name="filter_ay_2026_2027"
-                                domain="[('active_academic_year_id', '=', 8)]"/>
+                                domain="['|', ('active_academic_year_id', '=', 8), ('last_active_academic_year_id', '=', 8)]"/>
 
                         <separator/>
 
                         <filter string="1 класс" name="filter_1_klass"
-                                domain="[('active_course_id', '=', 15)]"/>
+                                domain="['|', ('active_course_id', '=', 15), ('last_active_course_id', '=', 15)]"/>
                         <filter string="2 класс" name="filter_2_klass"
-                                domain="[('active_course_id', '=', 18)]"/>
+                                domain="['|', ('active_course_id', '=', 18), ('last_active_course_id', '=', 18)]"/>
                         <filter string="3 класс" name="filter_3_klass"
-                                domain="[('active_course_id', '=', 19)]"/>
+                                domain="['|', ('active_course_id', '=', 19), ('last_active_course_id', '=', 19)]"/>
                         <filter string="4 класс" name="filter_4_klass"
-                                domain="[('active_course_id', '=', 20)]"/>
+                                domain="['|', ('active_course_id', '=', 20), ('last_active_course_id', '=', 20)]"/>
                         <filter string="5 класс" name="filter_5_klass"
-                                domain="[('active_course_id', '=', 21)]"/>
+                                domain="['|', ('active_course_id', '=', 21), ('last_active_course_id', '=', 21)]"/>
                         <filter string="6 класс" name="filter_6_klass"
-                                domain="[('active_course_id', '=', 22)]"/>
+                                domain="['|', ('active_course_id', '=', 22), ('last_active_course_id', '=', 22)]"/>
                         <filter string="7 класс" name="filter_7_klass"
-                                domain="[('active_course_id', '=', 23)]"/>
+                                domain="['|', ('active_course_id', '=', 23), ('last_active_course_id', '=', 23)]"/>
                         <filter string="8 класс" name="filter_8_klass"
-                                domain="[('active_course_id', '=', 24)]"/>
+                                domain="['|', ('active_course_id', '=', 24), ('last_active_course_id', '=', 24)]"/>
                         <filter string="9 класс" name="filter_9_klass"
-                                domain="[('active_course_id', '=', 25)]"/>
+                                domain="['|', ('active_course_id', '=', 25), ('last_active_course_id', '=', 25)]"/>
                         <filter string="10 класс" name="filter_10_klass"
-                                domain="[('active_course_id', '=', 26)]"/>
+                                domain="['|', ('active_course_id', '=', 26), ('last_active_course_id', '=', 26)]"/>
                         <filter string="11 класс" name="filter_11_klass"
-                                domain="[('active_course_id', '=', 27)]"/>
+                                domain="['|', ('active_course_id', '=', 27), ('last_active_course_id', '=', 27)]"/>
+
+                        <separator/>
+
+                        <filter string="Studying" name="filter_studying"
+                                domain="[('state', '=', 'studying')]"/>
+                        <filter string="Admission" name="filter_admission"
+                                domain="[('state', '=', 'admission')]"/>
+                        <filter string="Pass Out" name="filter_pass_out"
+                                domain="[('state', '=', 'pass_out')]"/>
+                        <filter string="Alumni" name="filter_alumni"
+                                domain="[('state', '=', 'alumni')]"/>
+                        <filter string="All Active Students" name="filter_all_active"
+                                domain="[('state', 'in', ['studying', 'admission', 'pass_out', 'alumni'])]"/>
                     </group>
                     <searchpanel string="Класс" >
                         <field name="active_course_id" string="Класс" select="multi" icon="fa-graduation-cap" enable_counters="1" />

@@ -1,4 +1,5 @@
 from odoo import _, api, fields, models
+from odoo.exceptions import ValidationError
 
 
 class OpStudentCourse(models.Model):
@@ -18,6 +19,15 @@ class OpStudentCourse(models.Model):
     state = fields.Selection([('running', 'Running'),
                               ('finished', 'Finished')],
                              string="Status", default="running")
+
+    @api.constrains('state', 'student_id')
+    def _check_student_state_on_course_finish(self):
+        for record in self:
+            if record.state == 'finished' and record.student_id.state == 'studying':
+                raise ValidationError(_(
+                    "Cannot finish course: Student is still in 'Studying' state. "
+                    "Update student state to 'Pass Out' or 'Alumni' first."
+                ))
 
     _sql_constraints = [
         ('unique_name_roll_number_id',
@@ -67,6 +77,18 @@ class OpStudent(models.Model):
         compute='_compute_active_course_details',
         store=True,
     )
+    last_active_course_id = fields.Many2one(
+        'op.course',
+        string="Last Completed Course",
+        compute='_compute_active_course_details',
+        store=True,
+    )
+    last_active_academic_year_id = fields.Many2one(
+        'op.academic.year',
+        string="Last Academic Year",
+        compute='_compute_active_course_details',
+        store=True,
+    )
 
     # Student state for form view statusbar
     state = fields.Selection([
@@ -107,6 +129,9 @@ class OpStudent(models.Model):
     def _compute_active_course_details(self):
         for student in self:
             running_details = student.course_detail_ids.filtered(lambda r: r.state == 'running')
+            finished_details = student.course_detail_ids.filtered(lambda r: r.state == 'finished')
+            
+            # Active course/year: prioritize running courses
             if running_details:
                 active_record = running_details[0]
                 student.active_academic_year_id = active_record.academic_years_id
@@ -114,6 +139,15 @@ class OpStudent(models.Model):
             else:
                 student.active_academic_year_id = False
                 student.active_course_id = False
+            
+            # Last completed course/year: for historical context (alumni/pass_out)
+            if finished_details:
+                last_finished = finished_details[-1]
+                student.last_active_course_id = last_finished.course_id
+                student.last_active_academic_year_id = last_finished.academic_years_id
+            else:
+                student.last_active_course_id = False
+                student.last_active_academic_year_id = False
 
     @api.model
     def get_import_templates(self):
@@ -121,6 +155,32 @@ class OpStudent(models.Model):
             'label': _('Import Template for Students'),
             'template': '/openeducat_core/static/xls/op_student.xls'
         }]
+
+    @api.constrains('state', 'course_detail_ids')
+    def _check_student_course_state_consistency(self):
+        for student in self:
+            if student.state == 'studying':
+                running_courses = student.course_detail_ids.filtered(lambda r: r.state == 'running')
+                if not running_courses:
+                    raise ValidationError(_(
+                        "Student in 'Studying' state must have at least one running course."
+                    ))
+            if student.state == 'pass_out':
+                finished_courses = student.course_detail_ids.filtered(lambda r: r.state == 'finished')
+                if not finished_courses:
+                    raise ValidationError(_(
+                        "Student in 'Pass Out' state must have at least one finished course."
+                    ))
+
+    @api.constrains('course_detail_ids')
+    def _check_course_detail_state_consistency(self):
+        for student in self:
+            finished_courses = student.course_detail_ids.filtered(lambda r: r.state == 'finished')
+            if finished_courses and student.state == 'studying':
+                raise ValidationError(_(
+                    "Student has finished courses but is still in 'Studying' state. "
+                    "Please update student state to 'Pass Out' or 'Alumni'."
+                ))
 
     def create_student_user(self):
         user_group = self.env.ref("base.group_portal") or False
