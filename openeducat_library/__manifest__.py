@@ -31,7 +31,6 @@
     'depends': [
         'account',
         'base_automation',
-        'openeducat_activity',
         'openeducat_parent',
     ],
     'data': [

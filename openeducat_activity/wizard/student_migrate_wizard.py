@@ -86,9 +86,13 @@ class StudentMigrate(models.TransientModel):
             )
             target_student_courses.write({'state': 'finished'})
 
-            # Sync student state based on course_completed flag
+            # Sync student state based on course_completed flag and graduating course
             if record.course_completed:
-                record.student_ids.write({'state': 'pass_out'})
+                # Check if the completed course is a graduating course
+                if record.course_from_id.is_graduating:
+                    record.student_ids.write({'state': 'pass_out'})
+                else:
+                    record.student_ids.write({'state': 'left'})
 
             for student in record.student_ids:
                 if record.course_completed:

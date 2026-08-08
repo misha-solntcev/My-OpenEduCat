@@ -56,7 +56,7 @@
             <field name="name">Student Login rule</field>
             <field name="model_id" ref="model_op_student"/>
             <field name="groups"
-                   eval="[(4, ref('openeducat_core.group_op_back_office_admin'))]"/>
+                   eval="[(4, ref('__custom__.group_op_students'))]"/>
             <field name="domain_force">[('user_id','=',user.id)]</field>
         </record>
 
@@ -64,7 +64,7 @@
             <field name="name">View Students</field>
             <field name="model_id" ref="model_op_student"/>
             <field name="groups"
-                   eval="[(4, ref('openeducat_core.group_op_faculty'))]"/>
+                   eval="[(4, ref('openeducat_core.group_op_back_office_admin'))]"/>
             <field name="domain_force">[(1,'=',1)]</field>
         </record>
 
@@ -72,7 +72,7 @@
             <field name="name">Faculty Login rule</field>
             <field name="model_id" ref="model_op_faculty"/>
             <field name="groups"
-                   eval="[(4, ref('openeducat_core.group_op_faculty'))]"/>
+                   eval="[(4, ref('__custom__.group_op_students'))]"/>
             <field name="domain_force">['|',('user_id','=',user.id),('emp_id.user_id','=',user.id)]</field>
         </record>
 

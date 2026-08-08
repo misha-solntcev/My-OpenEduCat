@@ -23,6 +23,8 @@ class OpCourse(models.Model):
         self.env.user.dept_id and self.env.user.dept_id.id or False)
     active = fields.Boolean(default=True)
     program_id = fields.Many2one('op.program', string="Program", tracking=True)
+    is_graduating = fields.Boolean('Graduating Course', default=False,
+        help="Mark if this is the final graduating course (e.g., 11th grade)")
 
     _sql_constraints = [
         ('unique_course_code',

@@ -4686,3 +4686,53 @@ msgstr ""
 #: model:ir.ui.menu,name:openeducat_core.menu_student_attendance
 msgid "Посещаемость"
 msgstr ""
+
+#. module: openeducat_core
+#: model:ir.model.fields.selection,name:openeducat_core.selection__op_student__state__left
+msgid "Left"
+msgstr "Ушел/Отчислен"
+
+#. module: openeducat_core
+#: model:ir.model.fields.selection,name:openeducat_core.selection__op_student__state__draft
+msgid "Draft"
+msgstr "Черновик"
+
+#. module: openeducat_core
+#: model:ir.model.fields.selection,name:openeducat_core.selection__op_student__state__admission
+msgid "Admission"
+msgstr "Зачислен"
+
+#. module: openeducat_core
+#: model:ir.model.fields.selection,name:openeducat_core.selection__op_student__state__studying
+msgid "Studying"
+msgstr "Обучается"
+
+#. module: openeducat_core
+#: model:ir.model.fields.selection,name:openeducat_core.selection__op_student__state__pass_out
+msgid "Pass Out"
+msgstr "Выпущен"
+
+#. module: openeducat_core
+#: model:ir.model.fields,field_description:openeducat_core.field_op_student__state_color
+msgid "State Color"
+msgstr "Цвет статуса"
+
+#. module: openeducat_core
+#: model:ir.model.fields,field_description:openeducat_core.field_op_student__last_active_course_id
+msgid "Last Completed Course"
+msgstr "Последний класс"
+
+#. module: openeducat_core
+#: model:ir.model.fields,field_description:openeducat_core.field_op_student__last_active_academic_year_id
+msgid "Last Academic Year"
+msgstr "Год выпуска"
+
+#. module: openeducat_core
+#: model:ir.model.fields,field_description:openeducat_core.field_op_student__active_academic_year_id
+msgid "Current Academic Year"
+msgstr "Текущий учебный год"
+
+#. module: openeducat_core
+#: model:ir.model.fields,field_description:openeducat_core.field_op_student__active_course_id
+msgid "Current Course"
+msgstr "Текущий класс"

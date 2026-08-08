@@ -4,10 +4,10 @@
     <record id="view_op_student_form_library_inherit_extended" model="ir.ui.view">
         <field name="name">op.student.form.library.inherit.extended</field>
         <field name="model">op.student</field>
-        <!-- Наследуемся от представления модуля openeducat_library -->
-        <field name="inherit_id" ref="openeducat_library.view_op_student_form_library_inherit"/>
-        <!-- Устанавливаем приоритет, чтобы применять после базового представления -->
-        <field name="priority" eval="11"/>
+        <!-- Наследуемся от базовой формы студента (core) -->
+        <field name="inherit_id" ref="openeducat_core.view_op_student_form"/>
+        <!-- Устанавливаем приоритет, чтобы применять ПОСЛЕ всех модулей -->
+        <field name="priority" eval="20"/>
         <field name="arch" type="xml">
             <!-- Находим кнопку и изменяем её групповые права -->
             <xpath expr="//button[@name='count_media_movement_lines']" position="attributes">
@@ -21,10 +21,10 @@
     <record id="view_op_student_form_attendance_inherit_extended" model="ir.ui.view">
         <field name="name">op.student.form.attendance.inherit.extended</field>
         <field name="model">op.student</field>
-        <!-- Наследуемся от представления модуля openeducat_attendance -->
-        <field name="inherit_id" ref="openeducat_attendance.view_op_student_form_attendance_inherit"/>
-        <!-- Устанавливаем приоритет, чтобы применять после базового представления -->
-        <field name="priority" eval="5"/>
+        <!-- Наследуемся от базовой формы студента (core) -->
+        <field name="inherit_id" ref="openeducat_core.view_op_student_form"/>
+        <!-- Устанавливаем приоритет, чтобы применять ПОСЛЕ всех модулей -->
+        <field name="priority" eval="22"/>
         <field name="arch" type="xml">
             <!-- Находим кнопку и изменяем её групповые права -->
             <xpath expr="//button[@name='get_attendance']" position="attributes">
@@ -38,10 +38,10 @@
     <record id="view_op_student_form_fees_inherit_extended" model="ir.ui.view">
         <field name="name">op.student.form.fees.inherit.extended</field>
         <field name="model">op.student</field>
-        <!-- Наследуемся от представления модуля openeducat_fees -->
-        <field name="inherit_id" ref="openeducat_fees.view_op_student_form_fees_inherit"/>
-        <!-- Устанавливаем приоритет -->
-        <field name="priority" eval="3"/>
+        <!-- Наследуемся от базовой формы студента (core) -->
+        <field name="inherit_id" ref="openeducat_core.view_op_student_form"/>
+        <!-- Устанавливаем приоритет, чтобы применять ПОСЛЕ всех модулей -->
+        <field name="priority" eval="21"/>
         <field name="arch" type="xml">
             <!-- Находим кнопку и изменяем её групповые права -->
             <xpath expr="//button[@name='action_view_invoice']" position="attributes">
@@ -55,10 +55,10 @@
     <record id="view_op_student_form_assignment_inherit_extended" model="ir.ui.view">
         <field name="name">op.student.form.assignment.inherit.extended</field>
         <field name="model">op.student</field>
-        <!-- Наследуемся от представления модуля openeducat_assignment -->
-        <field name="inherit_id" ref="openeducat_assignment.assignment_smart_button"/>
-        <!-- Устанавливаем приоритет -->
-        <field name="priority" eval="4"/>
+        <!-- Наследуемся от базовой формы студента (core) -->
+        <field name="inherit_id" ref="openeducat_core.view_op_student_form"/>
+        <!-- Устанавливаем приоритет, чтобы применять ПОСЛЕ всех модулей -->
+        <field name="priority" eval="23"/>
         <field name="arch" type="xml">
             <!-- Находим кнопку и изменяем её групповые права -->
             <xpath expr="//button[@name='get_assignment']" position="attributes">
@@ -72,10 +72,10 @@
     <record id="view_op_student_form_activity_inherit_extended" model="ir.ui.view">
         <field name="name">op.student.form.activity.inherit.extended</field>
         <field name="model">op.student</field>
-        <!-- Наследуемся от представления модуля openeducat_activity -->
-        <field name="inherit_id" ref="openeducat_activity.activity_smart_button"/>
-        <!-- Устанавливаем приоритет -->
-        <field name="priority" eval="6"/>
+        <!-- Наследуемся от базовой формы студента (core) -->
+        <field name="inherit_id" ref="openeducat_core.view_op_student_form"/>
+        <!-- Устанавливаем приоритет, чтобы применять ПОСЛЕ всех модулей -->
+        <field name="priority" eval="24"/>
         <field name="arch" type="xml">
             <!-- Находим кнопку и изменяем её групповые права -->
             <xpath expr="//button[@name='get_activity']" position="attributes">

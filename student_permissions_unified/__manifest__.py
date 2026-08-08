@@ -11,6 +11,7 @@
     'data': [
         'security/ir.model.access.csv',
         'security/op_security.xml',
+        'views/student_permissions_view.xml',
     ],
     'installable': True,
     'application': False,
