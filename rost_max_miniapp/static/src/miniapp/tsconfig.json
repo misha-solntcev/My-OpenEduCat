@@ -6,14 +6,22 @@
     "moduleResolution": "bundler",
     "lib": ["ES2021", "DOM", "DOM.Iterable"],
     "types": ["react", "react-dom"],
-    "strict": false,
+    "strict": true,
     "noEmit": true,
+    "baseUrl": ".",
     "paths": {
-      "@/*": ["./*"],
-      "@/components/*": ["./components/*"],
-      "@/lib/*": ["./lib/*"],
-      "@/pages/*": ["./pages/*"]
+      "@/*": ["./"],
+      "@/shared/*": ["./shared/*"],
+      "@/pages/*": ["./pages/*"],
+      "@/components/*": ["./shared/components/*"],
+      "@/lib/*": ["./shared/lib/*"]
     }
   },
-  "include": ["App.tsx", "main.tsx", "pages", "components", "lib", "index.css", "vite-env.d.ts"]
+  "include": [
+    "App.tsx",
+    "main.tsx",
+    "pages/**/*.{ts,tsx}",
+    "shared/**/*.{ts,tsx}",
+    "vite-env.d.ts"
+  ]
 }

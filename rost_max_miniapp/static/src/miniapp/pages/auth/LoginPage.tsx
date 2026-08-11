@@ -19,6 +19,7 @@ interface LoginResponse {
   user_name?: string;
   is_admin?: boolean;
   csrf_token?: string;
+  session_id?: string;
   // 2FA fields
   require_2fa?: boolean;
   two_factor_enabled?: boolean;
@@ -91,10 +92,22 @@ export const LoginPage: React.FC<LoginPageProps> = ({ id }) => {
         return;
       }
 
-      // Успешный логин — загружаем профиль ПЕРЕД переключением на main
+      // Успешный логин — сохраняем session_id в localStorage (fallback для
+      // MAX WebView, где cookie может не сохраниться).
+      if (data.session_id) {
+        try {
+          localStorage.setItem('rost_max_session_id', data.session_id);
+        } catch {
+          // localStorage недоступен — полагаемся на cookie
+        }
+      }
+
+      // Обновляем CSRF-токен в window (нужен для последующих POST-запросов)
       if (data.csrf_token) {
         (window as unknown as { csrf_token?: string }).csrf_token = data.csrf_token;
       }
+
+      // Загружаем профиль ПЕРЕД переключением на main
       await loadUserInfo();
       setAuthSuccess(true);
     } catch {

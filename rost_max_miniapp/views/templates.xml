@@ -22,6 +22,15 @@
                 <!-- CSRF token from Odoo session -->
                 <script type="text/javascript">
                     window.csrf_token = "<t t-nocache='1' t-esc='csrf_token'/>";
+                    // MAX WebView fallback: если session_id есть в localStorage,
+                    // устанавливаем его как cookie (cross-site ограничения
+                    // могут блокировать автоматическое сохранение cookie).
+                    (function() {
+                        var sid = localStorage.getItem('rost_max_session_id');
+                        if (sid) {
+                            document.cookie = 'session_id=' + sid + '; path=/; SameSite=None; Secure';
+                        }
+                    })();
                 </script>
 
                 <!-- Compiled CSS -->

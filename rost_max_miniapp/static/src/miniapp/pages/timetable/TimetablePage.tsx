@@ -20,39 +20,23 @@ import {
 } from '@vkontakte/icons';
 import { useAppStore, selectGlobalDate, setGlobalDate } from '@/shared/lib/store';
 import { apiGet } from '@/shared/lib/api';
+import { useToast } from '@/shared/components/Toast';
+import type { Lesson, Faculty, TimetableResponse, FacultiesResponse } from '@/shared/lib/types';
 
-
-interface Lesson {
-  id: number;
-  subject: string;
-  batch: string;
-  timing: string;
-  faculty: string;
-}
-
-interface Faculty {
-  id: number;
-  name: string;
-}
-
-interface TimetableResponse {
-  lessons: Lesson[];
-}
-
-interface FacultiesResponse {
-  faculties: Faculty[];
-}
 
 interface TimetablePageProps {
   id: string;
   onOpenLesson: (id: number) => void;
 }
 
+type FacultyOption = { value: string; label: string };
+
 export const TimetablePage: React.FC<TimetablePageProps> = ({ id, onOpenLesson }) => {
   const globalDate = useAppStore(selectGlobalDate);
   const filters = useAppStore(s => s.filters);
   const setFilters = useAppStore(s => s.setFilters);
   const selectedFaculty = filters.selectedFaculty;
+  const addToast = useToast();
 
   const [lessons, setLessons] = React.useState<Lesson[]>([]);
   const [faculties, setFaculties] = React.useState<Faculty[]>([]);
@@ -68,7 +52,10 @@ export const TimetablePage: React.FC<TimetablePageProps> = ({ id, onOpenLesson }
           setIsAdmin(true);
         }
       })
-      .catch(err => console.error('Failed to load faculties:', err));
+      .catch((err: unknown) => {
+        console.error('Failed to load faculties:', err);
+        addToast('Не удалось загрузить список учителей', 'error');
+      });
   }, []);
 
   const loadLessons = React.useCallback(async () => {
@@ -80,10 +67,11 @@ export const TimetablePage: React.FC<TimetablePageProps> = ({ id, onOpenLesson }
       setLessons(data.lessons || []);
     } catch {
       setLessons([]);
+      addToast('Не удалось загрузить расписание', 'error');
     } finally {
       setLoading(false);
     }
-  }, [globalDate, selectedFaculty]);
+  }, [globalDate, selectedFaculty, addToast]);
 
   React.useEffect(() => { loadLessons(); }, [loadLessons]);
 
@@ -104,8 +92,8 @@ export const TimetablePage: React.FC<TimetablePageProps> = ({ id, onOpenLesson }
     }
   };
 
-  const facultyOptions = [
-    { value: null, label: 'Все учителя' },
+  const facultyOptions: FacultyOption[] = [
+    { value: '', label: 'Все учителя' },
     ...faculties.map(f => ({ value: String(f.id), label: f.name })),
   ];
 
@@ -141,7 +129,7 @@ export const TimetablePage: React.FC<TimetablePageProps> = ({ id, onOpenLesson }
               <CustomSelect
                 selectType="plain"
                 options={facultyOptions}
-                value={selectedFaculty ? String(selectedFaculty) : null}
+                value={selectedFaculty ? String(selectedFaculty) : ''}
                 onChange={(_, v) => setFilters({ selectedFaculty: v ? Number(v) : null })}
                 placeholder="Выбрать учителя"
               />
@@ -176,5 +164,5 @@ export const TimetablePage: React.FC<TimetablePageProps> = ({ id, onOpenLesson }
           )}
         </Box>
       </Panel>
-    );
-  };
+  );
+};

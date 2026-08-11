@@ -8,6 +8,8 @@
                 <kanban sample="1">
                     <field name="id"/>
                     <field name="image_1920"/>
+                    <field name="active_course_id"/>
+                    <field name="last_active_course_id"/>
                     <templates>
                         <t t-name="card" class="flex-row">
                             <widget name="web_ribbon" title="Archived" bg_color="text-bg-danger" invisible="active"/>
@@ -26,6 +28,12 @@
                             <main class="ml16 ps-2 ps-md-0">
                                 <div class="mb-1">
                                     <field name="name" class="mb-0 fw-bold fs-5"/>
+                                </div>
+                                <div t-if="record.active_course_id.raw_value">
+                                    <field name="active_course_id"/>
+                                </div>
+                                <div t-if="!record.active_course_id.raw_value and record.last_active_course_id.raw_value">
+                                    <field name="last_active_course_id"/>
                                 </div>
                                 <div t-if="record.city.raw_value or record.country_id.raw_value">
                                     <field name="city"/>
@@ -126,7 +134,7 @@
                                         <field name="emergency_contact" context="{'show_address': 1}"
                                                options="{'always_reload': True}"/>
                                     </group>
-                                    <group>
+                                <group>
                                         <field name="email"/>
                                         <field name="mobile"/>
                                         <field name="lang"/>
@@ -139,6 +147,7 @@
                                     </group>
                                     <group string="miscellaneous">
                                         <field name="gr_no"/>
+                                        <field name="active_course_id"/>
                                         <field name="last_active_course_id" readonly="1"/>
                                         <field name="last_active_academic_year_id" readonly="1"/>
                                     </group>

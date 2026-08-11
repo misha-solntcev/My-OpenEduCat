@@ -1,38 +1,16 @@
 import React from 'react';
-import { Panel, PanelHeader, Flex, Spinner, Avatar, Button, SimpleGrid, SimpleCell, Group, DateInput } from '@vkontakte/vkui';
+import { Panel, PanelHeader, Flex, Text, Spinner, Avatar, Button, SimpleGrid, SimpleCell, Group, DateInput } from '@vkontakte/vkui';
 import { apiGet } from '@/shared/lib/api';
 import { initialsOf } from '@/shared/lib/initials';
-import { Tile } from '@/pages/dashboard/components/Tile';
 import { useAppStore, selectGlobalDate, setGlobalDate } from '@/shared/lib/store';
-interface DashboardData {
-  is_admin: boolean;
-  is_teacher: boolean;
-  is_student: boolean;
-  date: string;
-  metrics: {
-    active_lessons?: number;
-    unfilled_sheets?: number;
-    attendance_pct?: number;
-    total_students?: number;
-    pending_substitutes?: number;
-    total_lessons?: number;
-    completed_lessons?: number;
-    graded_count?: number;
-    gpa?: number;
-    pending_homework?: number;
-  };
-  next_lesson: {
-    id: number;
-    subject: string;
-    batch: string;
-    time: string;
-    room: string;
-  } | null;
-}
+import { useToast } from '@/shared/components/Toast';
+import type { DashboardResponse, NextLesson, DashboardMetrics } from '@/shared/lib/types';
+import { Tile } from '@/pages/dashboard/components/Tile';
 
 export const DashboardPage: React.FC<{ id: string; onNavigate: (to: string) => void }> = ({ id, onNavigate }) => {
   const userInfo = useAppStore(s => s.userInfo);
   const globalDate = useAppStore(selectGlobalDate);
+  const addToast = useToast();
 
   const handleDateChange = (date: Date | null) => {
     if (date) {
@@ -51,20 +29,26 @@ export const DashboardPage: React.FC<{ id: string; onNavigate: (to: string) => v
   // Инициалы для аватара — единый формат (одна буква) для всех ролей
   const initials = initialsOf(userName || roleFallback);
 
-  const [data, setData] = React.useState<DashboardData | null>(null);
+  const [data, setData] = React.useState<DashboardResponse | null>(null);
   const [loading, setLoading] = React.useState(true);
 
   React.useEffect(() => {
     let cancelled = false;
     setLoading(true);
-    apiGet<DashboardData>(`/rost_max/api/dashboard_info?date=${globalDate}`)
+    apiGet<DashboardResponse>(`/rost_max/api/dashboard_info?date=${globalDate}`)
       .then(d => { if (!cancelled) setData(d); })
-      .catch(() => { if (!cancelled) setData(null); })
+      .catch((err: unknown) => {
+        if (!cancelled) {
+          setData(null);
+          console.error('Dashboard load failed:', err);
+          addToast('Не удалось загрузить данные', 'error');
+        }
+      })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
-  }, [globalDate]);
+  }, [globalDate, addToast]);
 
-  const m = data?.metrics ?? {};
+  const m: DashboardMetrics = data?.metrics ?? {};
 
   return (
     <Panel id={id}>

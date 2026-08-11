@@ -7,6 +7,7 @@ from odoo.http import request
 from odoo import fields
 import logging
 from odoo.exceptions import AccessDenied
+from .session_middleware import restore_session_if_needed
 
 _logger = logging.getLogger(__name__)
 
@@ -162,17 +163,26 @@ class RostMaxTimetableController(http.Controller):
                     "user_name": user.name,
                     "is_admin": is_admin,
                     "csrf_token": _get_spa_csrf_token(),
+                    # session_id в ответе — fallback для MAX WebView, где cookie
+                    # может не сохраниться из-за SameSite/CSP ограничений.
+                    # Клиент устанавливает его вручную через document.cookie.
+                    "session_id": request.session.sid,
                 }
 
                 response = request.make_json_response(response_data)
 
-                # Явно проставляем session_id куку в ответ, чтобы клиент зафиксировал новую сессию
+                # Явно проставляем session_id куку в ответ, чтобы клиент зафиксировал новую сессию.
+                # samesite='None' + secure=True обязательны для MAX WebView (cross-site context),
+                # иначе cookie не сохраняется при первичной аутентификации через fetch API.
+                # secure включаем только для HTTPS (локальная dev-среда работает по HTTP).
+                is_secure = request.httprequest.url.startswith('https')
                 response.set_cookie(
                     'session_id',
                     request.session.sid,
                     max_age=90 * 86400,
                     httponly=True,
-                    samesite='Lax'
+                    samesite='None',
+                    secure=is_secure
                 )
 
                 return response
@@ -257,6 +267,8 @@ class RostMaxTimetableController(http.Controller):
             "user_name": user.name,
             "is_admin": is_admin,
             "csrf_token": _get_spa_csrf_token(),
+            # session_id в ответе — fallback для MAX WebView.
+            "session_id": request.session.sid,
         }
 
         response = request.make_json_response(response_data)
@@ -264,13 +276,16 @@ class RostMaxTimetableController(http.Controller):
         if trusted_device:
             _generate_trusted_device_cookie(response, user)
 
-        # Сохраняем сессию и отправляем Cookie
+        # Сохраняем сессию и отправляем Cookie.
+        # samesite='None' обязательно для MAX WebView (cross-site context).
+        is_secure = request.httprequest.url.startswith('https')
         response.set_cookie(
             'session_id',
             request.session.sid,
             max_age=90 * 86400,
             httponly=True,
-            samesite='Lax'
+            samesite='None',
+            secure=is_secure
         )
 
         return response
@@ -352,6 +367,7 @@ class RostMaxTimetableController(http.Controller):
     @http.route("/rost_max/api/timetable", type="http", auth="public", methods=["GET"])
     def api_timetable(self, date=None, faculty_id=None):
         """API: список занятий на дате"""
+        restore_session_if_needed()
         user = request.env.user
         date = date or fields.Date.today()
         date_str = str(date)
@@ -376,7 +392,8 @@ class RostMaxTimetableController(http.Controller):
 
     @http.route("/rost_max/api/lesson/<int:lesson_id>/students", type="http", auth="public", methods=["GET"])
     def api_lesson_students(self, lesson_id):
-        """API: список учеников урока с аватарками, оценками и посещаемостью"""
+        """API: список учеников урока с аватарками, оценкой и посещаемостью"""
+        restore_session_if_needed()
         user = request.env.user
         sheet = request.env['op.attendance.sheet'].sudo().browse(lesson_id)
         if not sheet.exists():
@@ -467,6 +484,7 @@ class RostMaxTimetableController(http.Controller):
         тоже валидное значение, т.е. ластик-сброс тоже проходит). Это и есть
         механизм явного сохранения после локального редактирования.
         """
+        restore_session_if_needed()
         csrf_err = _check_spa_csrf()
         if csrf_err:
             return csrf_err
@@ -529,6 +547,7 @@ class RostMaxTimetableController(http.Controller):
     @http.route("/rost_max/api/user/info", type="http", auth="public", methods=["GET"])
     def api_user_info(self):
         """API: получение информации о текущем пользователе и его ролях"""
+        restore_session_if_needed()
         if not request.session.uid:
             return request.make_json_response({"error": "Unauthorized"}, status=401)
 
@@ -553,6 +572,7 @@ class RostMaxTimetableController(http.Controller):
     @http.route("/rost_max/api/dashboard_info", type="http", auth="public", methods=["GET"])
     def api_dashboard_info(self, date=None, **kw):
         """API: сбор статистики для дашборда с умным поиском даты"""
+        restore_session_if_needed()
         if not request.session.uid:
             return request.make_json_response({"error": "Unauthorized"}, status=401)
 
@@ -663,6 +683,7 @@ class RostMaxTimetableController(http.Controller):
     @http.route("/rost_max/api/faculties", type="http", auth="public", methods=["GET"])
     def api_faculties(self):
         """API: список учителей (только для админа)"""
+        restore_session_if_needed()
         user = request.env.user
         if not user.has_group('base.group_system'):
             return request.make_json_response({"faculties": []})
