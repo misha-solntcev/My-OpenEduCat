@@ -9,6 +9,7 @@ class OpFaculty(models.Model):
     _parent_name = False
 
     partner_id = fields.Many2one('res.partner', 'Partner', required=True, ondelete="cascade")
+    user_id = fields.Many2one('res.users', 'User', ondelete="cascade")
     
     login = fields.Char('Login', related='partner_id.user_id.login', readonly=True)
     last_login = fields.Datetime('Latest Connection', readonly=True, related='partner_id.user_id.login_date')

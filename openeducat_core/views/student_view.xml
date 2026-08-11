@@ -230,7 +230,7 @@
                             <searchpanel>
                                 <!-- Основной фильтр: Статус -->
                                 <field name="state" select="multi" icon="fa-user-graduate" 
-                                       enable_counters="1" string="Статус" sort="selection"/>
+                                    enable_counters="1" string="Статус" sort="selection" />
                        
                                 <!-- Год выпуска и Последний класс -->
                                 <field name="last_active_academic_year_id" select="multi" 
@@ -273,8 +273,8 @@
             <field name="path">students</field>
             <field name="binding_view_types">form</field>
             <field name="view_mode">kanban,list,form,activity</field>
-            <field name="search_view_id" ref="view_op_student_search_current"/>
-            <field name="context">{'search_default_state': 'studying'}</field>
+            <field name="search_view_id" ref="view_op_student_search_current"/>                      
+            <field name="domain">[('state', 'in', ['draft', 'studying'])]</field>
         </record>
 
         <record model="ir.actions.act_window.view" id="act_open_op_student_view_form">
@@ -305,8 +305,8 @@
             <field name="path">student</field>
             <field name="binding_view_types">form</field>
             <field name="view_mode">kanban,list,form,activity</field>
-            <field name="search_view_id" ref="view_op_student_search_archive"/>
-            <field name="context">{'search_default_state': 'pass_out'}</field>
+            <field name="search_view_id" ref="view_op_student_search_archive"/>            
+            <field name="domain">[('state', 'in', ['pass_out', 'left'])]</field>
         </record>
 
         <record model="ir.actions.act_window.view" id="act_open_op_student_view_2_form">
