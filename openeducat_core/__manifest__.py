@@ -1,6 +1,6 @@
 {
     'name': 'OpenEduCat Core',
-    'version': '18.0.1.1.1',
+    'version': '18.0.1.1.2',
     'license': 'LGPL-3',
     'category': 'Education',
     "sequence": 1,
