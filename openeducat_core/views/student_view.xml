@@ -274,7 +274,6 @@
             <field name="binding_view_types">form</field>
             <field name="view_mode">kanban,list,form,activity</field>
             <field name="search_view_id" ref="view_op_student_search_current"/>
-            <field name="domain">[('active', '=', True), ('state', 'in', ['admission', 'studying'])]</field>
             <field name="context">{'search_default_state': 'studying'}</field>
         </record>
 
@@ -307,7 +306,6 @@
             <field name="binding_view_types">form</field>
             <field name="view_mode">kanban,list,form,activity</field>
             <field name="search_view_id" ref="view_op_student_search_archive"/>
-            <field name="domain">[('active', '=', True), ('state', 'in', ['pass_out', 'left'])]</field>
             <field name="context">{'search_default_state': 'pass_out'}</field>
         </record>
 
