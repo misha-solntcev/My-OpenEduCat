@@ -320,6 +320,8 @@ class OpAdmission(models.Model):
                 if vals:
                     record.student_id = student_id = self.env[
                         'op.student'].create(vals).id
+                    # Устанавливаем статус "Обучается" сразу после создания ученика
+                    record.student_id.write({'state': 'studying'})
                     record.partner_id = record.student_id.partner_id.id \
                         if record else False
 

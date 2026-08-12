@@ -39,7 +39,7 @@
                                 class="oe_highlight"/>
                         <button name="close_register" invisible="state != 'admission'" type="object" string="Done"
                                 class="oe_highlight"/>
-                        <button name="cancel_register" invisible="state not in ('draft', 'confirm')" string="Cancel"
+                        <button name="cancel_register" string="Cancel"
                                 type="object"/>
                         <button name="set_to_draft" invisible="state != 'cancel'" string="Set to Draft" type="object"/>
                         <field name="state" widget="statusbar" statusbar_visible="draft,confirm,application,admission"/>
