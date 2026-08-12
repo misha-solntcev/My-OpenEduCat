@@ -96,7 +96,7 @@ class OpStudent(models.Model):
         ('admission', 'Зачислен'),
         ('studying', 'Обучается'),
         ('left', 'Ушел/Отчислен'),
-        ('pass_out', 'Выпущен'),
+        ('pass_out', 'Выпускник'),
     ], string='Статус', default='draft', tracking=True)
 
     # Fields from database (matching actual DB columns)
