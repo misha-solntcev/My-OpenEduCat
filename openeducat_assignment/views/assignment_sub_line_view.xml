@@ -31,29 +31,29 @@
                                 invisible="state != 'submit'"
                                 type="object"
                                 string="Accept"
-                                groups="openeducat_assignment.group_op_assignment_user,__custom__.group_op_assignment_teacher"
+                                groups="openeducat_assignment.group_op_assignment_user,openeducat_core.group_op_faculty"
                                 class="oe_highlight" />
                         <button name="act_change_req"
                                 invisible="state != 'submit'"
                                 type="object"
                                 string="Change Require"
-                                groups="openeducat_assignment.group_op_assignment_user,__custom__.group_op_assignment_teacher" />
+                                groups="openeducat_assignment.group_op_assignment_user,openeducat_core.group_op_faculty" />
                         <button name="act_reject"
                                 invisible="state != 'submit'"
                                 type="object"
                                 string="Reject"
-                                groups="openeducat_assignment.group_op_assignment_user,__custom__.group_op_assignment_teacher" />
+                                groups="openeducat_assignment.group_op_assignment_user,openeducat_core.group_op_faculty" />
                         <button name="act_draft"
                                 invisible="state != 'change'"
                                 type="object"
                                 string="Change And Resubmit"
-                                groups="openeducat_assignment.group_op_assignment_manager,__custom__.group_op_assignment_teacher"
+                                groups="openeducat_assignment.group_op_assignment_manager,openeducat_core.group_op_faculty"
                                 class="oe_highlight" />
                         <button name="act_draft"
                                 invisible="state != 'reject'"
                                 type="object"
                                 string="Resubmit"
-                                groups="openeducat_assignment.group_op_assignment_manager,__custom__.group_op_assignment_teacher"
+                                groups="openeducat_assignment.group_op_assignment_manager,openeducat_core.group_op_faculty"
                                 class="oe_highlight" />
                         <field name="state" widget="statusbar" statusbar_visible="draft,submit,accept" />
                     </header>

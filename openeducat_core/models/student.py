@@ -183,7 +183,7 @@ class OpStudent(models.Model):
                 ))
 
     def create_student_user(self):
-        user_group = self.env.ref("base.group_portal") or False
+        user_group = self.env.ref("openeducat_core.group_op_students") or False
         users_res = self.env['res.users']
         for record in self:
             if not record.user_id:

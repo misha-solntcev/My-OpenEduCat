@@ -40,7 +40,11 @@ class OpFaculty(models.Model):
             ['faculty_id'],
             ['faculty_id'],
         )
-        count_map = {r['faculty_id'][0]: r['__count'] for r in data}
+        count_map = {}
+        for r in data:
+            faculty_val = r.get('faculty_id')
+            if faculty_val and isinstance(faculty_val, tuple) and faculty_val[0]:
+                count_map[faculty_val[0]] = r.get('__count', 0)
         for rec in self:
             rec.media_movement_lines_count = count_map.get(rec.id, 0)
 
