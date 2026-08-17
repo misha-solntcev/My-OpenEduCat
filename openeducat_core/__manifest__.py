@@ -19,6 +19,7 @@
         'wizard/faculty_create_employee_wizard_view.xml',
         'wizard/faculty_create_user_wizard_view.xml',
         'wizard/students_create_user_wizard_view.xml',
+        'wizard/create_channel_wizard_view.xml',
         'views/department_view.xml',
         'views/res_company_view.xml',
         'views/student_view.xml',
