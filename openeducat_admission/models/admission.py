@@ -1,23 +1,3 @@
-##############################################################################
-#
-#    OpenEduCat Inc
-#    Copyright (C) 2009-TODAY OpenEduCat Inc(<https://www.openeducat.org>).
-#
-#    This program is free software: you can redistribute it and/or modify
-#    it under the terms of the GNU Lesser General Public License as
-#    published by the Free Software Foundation, either version 3 of the
-#    License, or (at your option) any later version.
-#
-#    This program is distributed in the hope that it will be useful,
-#    but WITHOUT ANY WARRANTY; without even the implied warranty of
-#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#    GNU Lesser General Public License for more details.
-#
-#    You should have received a copy of the GNU Lesser General Public License
-#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#
-##############################################################################
-
 from datetime import datetime
 
 from dateutil.relativedelta import relativedelta
@@ -135,7 +115,7 @@ class OpAdmission(models.Model):
             else:
                 data.course_ids = [(6, 0, [])]
 
-    @api.onchange('first_name', 'middle_name', 'last_name')
+    @api.onchange('last_name', 'first_name', 'middle_name')
     def _onchange_name(self):
         if not self.middle_name:
             self.name = str(self.first_name) + " " + str(
@@ -298,6 +278,7 @@ class OpAdmission(models.Model):
                     'fees_term_id': student.fees_term_id.id,
                     'fees_start_date': student.fees_start_date,
                     'product_id': student.register_id.product_id.id,
+                    'state': 'running',
                 }]],
                 'user_id': student_user.id if student_user else False,
                 'partner_id': student_user.partner_id.id if student_user else False,
@@ -318,10 +299,11 @@ class OpAdmission(models.Model):
             if not record.student_id:
                 vals = record.get_student_vals()
                 if vals:
-                    record.student_id = student_id = self.env[
+                    record.student_id = student_id = self.env[\
                         'op.student'].create(vals).id
                     # Устанавливаем статус "Обучается" сразу после создания ученика
-                    record.student_id.write({'state': 'studying'})
+                    self.env['op.student'].browse(student_id).write({
+                        'state': 'studying'})
                     record.partner_id = record.student_id.partner_id.id \
                         if record else False
 
@@ -336,6 +318,7 @@ class OpAdmission(models.Model):
                         'fees_term_id': record.fees_term_id.id,
                         'fees_start_date': record.fees_start_date,
                         'product_id': record.register_id.product_id.id,
+                        'state': 'running',
                     }]],
                 })
             if record.fees_term_id.fees_terms in ['fixed_days', 'fixed_date']:

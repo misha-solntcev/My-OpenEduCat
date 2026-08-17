@@ -8,16 +8,16 @@
                 <sheet>
                     <group string="Выбор класса">
                         <field name="course_ids" string="Классы" widget="many2many_tags"
-                               options="{'no_create_edit': True, 'no_open': True}"
-                               context="{'no_quick_create': True}" />
+                            options="{'no_create_edit': True, 'no_open': True}"
+                            context="{'no_quick_create': True}" />
                     </group>
 
                     <group string="General Channel" col="1">
                         <field name="create_general_channel" />
                         <field name="general_channel_name"
-                               invisible="not create_general_channel" />
+                            invisible="not create_general_channel" />
                         <field name="subscribe_all_to_general"
-                               invisible="not create_general_channel" />
+                            invisible="not create_general_channel" />
                     </group>
 
                     <notebook>
@@ -75,7 +75,7 @@
         <field name="res_model">create.channel.wizard</field>
         <field name="view_mode">form</field>
         <field name="target">new</field>
-        <field name="context">{'default_course_ids': active_ids}</field>
+        <field name="context">{'default_course_ids': []}</field>
         <field name="view_id" ref="view_create_channel_wizard_form" />
     </record>
 
@@ -95,4 +95,13 @@
             </xpath>
         </field>
     </record>
+
+    <!-- Menu item in Communication → Configuration → Create Channels -->
+    <menuitem id="menu_create_channels_from_discuss_config"
+        name="Создать каналы"
+        parent="mail.menu_configuration"
+        action="action_create_channel_wizard"
+        sequence="54"
+        groups="base.group_system" />
+
 </odoo>
