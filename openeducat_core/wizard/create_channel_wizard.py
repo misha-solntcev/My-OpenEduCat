@@ -1,362 +1,383 @@
+import re
 from odoo import api, fields, models, _
 from odoo.exceptions import UserError
 
 
 class CreateChannelWizard(models.TransientModel):
     _name = 'create.channel.wizard'
-    _description = 'Create Chat Channels for Course'
+    _description = 'Create Chat Channels for Courses'
 
-    # Step 1: Course selection
-    course_ids = fields.Many2many(
-        'op.course', string='Courses',
-        default=lambda self: self.env.context.get('active_ids'),
-        relation='course_create_channel_rel',
+    academic_year_id = fields.Many2one(
+        'op.academic.year',
+        string='Учебный год',
+        default=lambda self: self._default_academic_year_id(),
     )
-
-    # General channel
-    general_channel_name = fields.Char(
-        string='General Channel Name', default='Школа РОСТ', required=True
+    course_ids = fields.Many2many(
+        'op.course',
+        string='Курсы/Классы',
     )
     create_general_channel = fields.Boolean(
-        string='Create/Update General School Channel', default=True
+        string='Создать общий канал',
+        default=True,
+    )
+    general_channel_name = fields.Char(
+        string='Имя общего канала',
+        default='Школа РОСТ',
+    )
+    course_line_ids = fields.One2many(
+        'create.channel.wizard.course',
+        'wizard_id',
+        string='Классы/Потоки',
     )
 
-    # Subject selection (populated on course change)
-    subject_ids = fields.Many2many(
-        'op.subject', string='Subjects to Create Channels For',
-        help='Select which subjects should have dedicated channels',
-    )
-    subject_domain = fields.Char(
-        string='Subject Domain', compute='_compute_subject_domain', readonly=True
-    )
+    # ---------- defaults ----------
 
-    # Student selection
-    student_ids = fields.Many2many(
-        'op.student', string='Students to Subscribe',
-        help='Select students to subscribe to class and subject channels',
-    )
-    student_domain = fields.Char(
-        string='Student Domain', compute='_compute_student_domain', readonly=True
-    )
+    @api.model
+    def _default_academic_year_id(self):
+        """Автовыбор текущего учебного года."""
+        today = fields.Date.today()
+        year = self.env['op.academic.year'].search([
+            ('start_date', '<=', today),
+            ('end_date', '>=', today),
+        ], limit=1)
+        if not year:
+            year = self.env['op.academic.year'].search(
+                [], order='id desc', limit=1)
+        return year.id if year else None
 
-    # Teacher selection
-    faculty_ids = fields.Many2many(
-        'op.faculty', string='Teachers to Subscribe',
-        help='Select teachers to subscribe to class and subject channels',
-    )
-    faculty_domain = fields.Char(
-        string='Faculty Domain', compute='_compute_faculty_domain', readonly=True
-    )
+    # ---------- line generation ----------
 
-    # Options
-    subscribe_students_to_subjects = fields.Boolean(
-        string='Subscribe Students to Subject Channels', default=True
-    )
-    subscribe_teachers_to_subjects = fields.Boolean(
-        string='Subscribe Teachers to Subject Channels', default=True
-    )
-    subscribe_all_to_general = fields.Boolean(
-        string='Subscribe All to General Channel', default=True
-    )
+    def _batches_for_year(self, year_id, course_ids):
+        """Возвращает op.batch для выбранного year И course_ids.
 
-    @api.depends('course_ids')
-    def _compute_subject_domain(self):
-        for rec in self:
-            if rec.course_ids:
-                subject_ids = rec.course_ids.mapped('subject_ids').ids
-                rec.subject_domain = str([('id', 'in', subject_ids)])
-            else:
-                rec.subject_domain = str([('id', '=', False)])
+        Источник правды — связь ученика с year через op.student.course
+        (OpStudentCourse.academic_years_id ↔ batch_id ↔ course_id).
 
-    @api.depends('course_ids')
-    def _compute_student_domain(self):
-        for rec in self:
-            if rec.course_ids:
-                # Get students enrolled in these courses via batches
-                batches = self.env['op.batch'].search([
-                    ('course_id', 'in', rec.course_ids.ids),
-                    ('active', '=', True)
-                ])
-                student_ids = self.env['op.student'].search([
-                    ('course_detail_ids.batch_id', 'in', batches.ids),
-                    ('user_id', '!=', False),
-                ]).ids
-                rec.student_domain = str([('id', 'in', student_ids)])
-            else:
-                rec.student_domain = str([('id', '=', False)])
+        Почему НЕ batch.start_date: в базе есть batch с завышенной
+        start_date (6 А (2025-2026) имеет start_date=2026-09-01),
+        из‑за чего оба year попадают в одну выборку.
 
-    @api.depends('course_ids')
-    def _compute_faculty_domain(self):
-        for rec in self:
-            if rec.course_ids:
-                batches = self.env['op.batch'].search([
-                    ('course_id', 'in', rec.course_ids.ids),
-                    ('active', '=', True)
-                ])
-                # Teachers who have sessions in these batches
-                sessions = self.env['op.session'].search([
-                    ('batch_id', 'in', batches.ids)
-                ])
-                faculty_ids = sessions.mapped('faculty_id').ids
-                rec.faculty_domain = str([('id', 'in', faculty_ids)])
-            else:
-                rec.faculty_domain = str([('id', '=', False)])
+        Почему state='running': выпускники (11 класс, state='finished')
+        за 2025-2026 НЕ должны попадать в 2026-2027 и наоборот — только
+        активно обучающиеся студенты формируют batch-year.
 
-    @api.onchange('course_ids')
-    def _onchange_course_ids(self):
-        """Auto-select all available subjects/students/teachers when courses change."""
-        if self.course_ids:
-            # Subjects from courses
-            self.subject_ids = self.course_ids.mapped('subject_ids')
-            
-            # Students enrolled in these courses
-            batches = self.env['op.batch'].search([
-                ('course_id', 'in', self.course_ids.ids),
-                ('active', '=', True)
-            ])
-            self.student_ids = self.env['op.student'].search([
-                ('course_detail_ids.batch_id', 'in', batches.ids),
-                ('user_id', '!=', False),
-            ])
-            
-            # Teachers with sessions in these batches
-            sessions = self.env['op.session'].search([
-                ('batch_id', 'in', batches.ids)
-            ])
-            self.faculty_ids = sessions.mapped('faculty_id')
+        Никакого fallback на name: если за выбранный year нет зачисленных
+        студентов (новый year ещё не начался), batch не возвращается —
+        каналы создаются только для students, которых действительно
+        зачисили в этот year.
+        """
+        domain = [('course_id', 'in', course_ids)]
+        if not year_id:
+            return self.env['op.batch'].search(domain, order='name asc')
+
+        cd = self.env['op.student.course'].search([
+            ('academic_years_id', '=', year_id),
+            ('course_id', 'in', course_ids),
+            ('state', '=', 'running'),
+            ('batch_id', '!=', False),
+        ], order='id')
+        batch_ids = cd.mapped('batch_id').ids
+        if batch_ids:
+            domain += [('id', 'in', batch_ids)]
         else:
-            self.subject_ids = False
-            self.student_ids = False
-            self.faculty_ids = False
+            # за этот year нет running студентов — пусто
+            domain += [('id', 'in', [])]
 
-    def _get_or_create_general_channel(self):
-        """Create or get the school-wide General channel."""
-        channel = self.env['discuss.channel'].search(
-            [('name', '=', self.general_channel_name), ('channel_type', '=', 'channel')],
-            limit=1
-        )
-        # General channel: all students group + admins
-        student_group = self.env.ref('openeducat_core.group_op_students')
-        admin_groups = self._get_admin_groups()
-        all_groups = [(4, student_group.id)] + [(4, g.id) for g in admin_groups]
-        
+        return self.env['op.batch'].search(domain, order='name asc')
+
+    @api.model
+    def _prepare_course_lines(self, course_ids, year_id=None):
+        """Всегда начинается с Command.clear() — исключает дублирование
+        строк в веб-клиенте (баг NewId при 2→4→8).
+
+        Используется из action_create_channels, если onchange не сработал
+        в UI (wizard открывается из Discuss без active_model=op.course).
+        """
+        courses = self.env['op.course'].browse(course_ids)
+        if not courses:
+            return [fields.Command.clear()]
+
+        batches = self._batches_for_year(year_id, list(courses.ids))
+        commands = [fields.Command.clear()]
+        for batch in batches:
+            commands.append(fields.Command.create({
+                'academic_year_id': year_id,
+                'course_id': batch.course_id.id,
+                'batch_id': batch.id,
+                'subject_ids': [fields.Command.set(
+                    batch.course_id.subject_ids.ids)],
+                'student_ids': [fields.Command.set(
+                    self._students_for_batch(batch.id).ids)],
+                'faculty_ids': [fields.Command.set(
+                    self._faculty_for_batch(batch.id).ids)],
+                'subscribe_students_to_subjects': True,
+                'subscribe_teachers_to_subjects': True,
+            }))
+        return commands
+
+    def _students_for_batch(self, batch_id):
+        """Студенты batch с активными пользователями."""
+        return self.env['op.student'].search([
+            ('course_detail_ids.batch_id', '=', batch_id),
+            ('user_id', '!=', False),
+        ], order='id')
+
+    def _faculty_for_batch(self, batch_id):
+        """Преподаватели batch по его sessions."""
+        return self.env['op.session'].search([
+            ('batch_id', '=', batch_id),
+        ]).mapped('faculty_id')
+
+    def _rebuild_course_lines(self):
+        """Полный пересбор строк: Command.clear() + новые. Используется
+        в onchange и в action_create_channels."""
+        year_id = self.academic_year_id.id if self.academic_year_id else None
+        self.course_line_ids = self._prepare_course_lines(
+            self.course_ids.ids, year_id)
+
+    @api.onchange('academic_year_id', 'course_ids')
+    def _onchange_academic_year_and_courses(self):
+        """Пересобирает строки при изменении года или списка курсов."""
+        self._rebuild_course_lines()
+
+    # ---------- admin helpers ----------
+
+    @api.model
+    def _get_admin_groups_global(self):
+        """Группы администраторов (back office)."""
+        groups = self.env['res.groups']
+        try:
+            groups |= self.env.ref(
+                'openeducat_core.group_op_back_office_admin')
+        except ValueError:
+            pass
+        return groups
+
+    @api.model
+    def _get_admin_partners(self, admin_groups=None):
+        """Партнёры администраторов."""
+        if admin_groups is None:
+            admin_groups = self._get_admin_groups_global()
+        if not admin_groups:
+            return self.env['res.partner']
+        users = self.env['res.users'].search([
+            ('groups_id', 'in', admin_groups.ids),
+        ])
+        return users.mapped('partner_id')
+
+    # ---------- class group ----------
+
+    def _get_class_group(self, batch):
+        """Группа класса по номеру в имени batch ('10 А' →
+        'Ученики 10 класс'). fallback → group_op_students."""
+        match = re.match(r'^((\d+)', batch.name or '')
+        if match:
+            class_num = int(match.group(2))
+            if 1 <= class_num <= 11:
+                group_name = 'Ученики %d класс' % class_num
+                group = self.env['res.groups'].search(
+                    [('name', '=', group_name)], limit=1)
+                if group:
+                    return group
+        return self.env.ref(
+            'openeducat_core.group_op_students', raise_if_not_found=False)
+
+    # ---------- channel helpers ----------
+
+    def _all_groups(self, class_group, admin_groups):
+        """Список Command.link для group_ids канала."""
+        groups = [fields.Command.link(g.id) for g in admin_groups]
+        if class_group:
+            groups.append(fields.Command.link(class_group.id))
+        return groups
+
+    def _get_or_create_general_channel(self, admin_groups):
+        """Create/get school-wide General channel."""
+        channel = self.env['discuss.channel'].search([
+            ('name', '=', self.general_channel_name),
+            ('channel_type', '=', 'channel'),
+        ], limit=1)
+        student_group = self.env.ref(
+            'openeducat_core.group_op_students', raise_if_not_found=False)
+        all_groups = self._all_groups(student_group, admin_groups)
         if not channel:
             channel = self.env['discuss.channel'].create({
                 'name': self.general_channel_name,
                 'channel_type': 'channel',
                 'description': 'Общие объявления для всей школы',
-                'group_public_id': student_group.id,
+                'group_public_id': student_group.id if student_group else False,
                 'group_ids': all_groups,
             })
         else:
             channel.write({'group_ids': all_groups})
         return channel
 
-    def _get_class_group(self, batch):
-        """Get class-specific group from batch name (e.g., '11 класс' -> 'Ученики 11 класс')."""
-        import re
-        match = re.match(r'^(\d+)\s', batch.name)
-        if not match:
-            return self.env.ref('openeducat_core.group_op_students')  # fallback
-        class_num = int(match.group(1))
-        if not (1 <= class_num <= 11):
-            return self.env.ref('openeducat_core.group_op_students')
-        
-        group_name = f'Ученики {class_num} класс'
-        group = self.env['res.groups'].search([('name', '=', group_name)], limit=1)
-        if not group:
-            # Create class group if not exists
-            category = self.env.ref('openeducat_core.module_category_openeducat', raise_if_not_found=False)
-            base_group_user = self.env.ref('base.group_user', raise_if_not_found=False)
-            group = self.env['res.groups'].create({
-                'name': group_name,
-                'category_id': category.id if category else False,
-                'implied_ids': [(4, base_group_user.id)] if base_group_user else [],
-            })
-        return group
-
-    def _get_admin_groups(self):
-        """Get ONLY admin groups that should have access to all channels."""
-        groups = self.env['res.groups']
-        # Back office admin group ONLY
-        try:
-            groups |= self.env.ref('openeducat_core.group_op_back_office_admin')
-        except ValueError:
-            pass
-        return groups
-
-    def _get_admin_partners(self):
-        """Get partners of users in admin/teacher groups for auto-subscription."""
-        admin_groups = self._get_admin_groups()
-        users = self.env['res.users'].search([('groups_id', 'in', admin_groups.ids)])
-        return users.mapped('partner_id')
-
-    def _get_or_create_class_channel(self, batch):
-        """Create or get class channel for a batch."""
-        channel = self.env['discuss.channel'].search(
-            [('name', '=ilike', batch.name), ('channel_type', '=', 'channel')],
-            limit=1
-        )
-        # Use CLASS-SPECIFIC group (e.g., "Ученики 11 класс")
-        class_group = self._get_class_group(batch)
-        admin_groups = self._get_admin_groups()
-        all_groups = [(4, class_group.id)] + [(4, g.id) for g in admin_groups]
-        
+    def _get_or_create_channel(self, name, description, class_group,
+                               admin_groups):
+        """Универсальный поиск/создание канала по имени."""
+        channel = self.env['discuss.channel'].search([
+            ('name', '=', name),
+            ('channel_type', '=', 'channel'),
+        ], limit=1)
+        all_groups = self._all_groups(class_group, admin_groups)
         if not channel:
             channel = self.env['discuss.channel'].create({
-                'name': batch.name,
+                'name': name,
                 'channel_type': 'channel',
-                'description': f'Классный канал для {batch.name}',
-                'group_public_id': class_group.id,
+                'description': description,
+                'group_public_id': class_group.id if class_group else False,
                 'group_ids': all_groups,
             })
         else:
             channel.write({'group_ids': all_groups})
         return channel
 
-    def _get_or_create_subject_channel(self, batch, subject):
-        """Create or get subject channel for a batch+subject."""
-        channel_name = f"{batch.name} — {subject.name}"
-        channel = self.env['discuss.channel'].search(
-            [('name', '=ilike', channel_name), ('channel_type', '=', 'channel')],
-            limit=1
-        )
-        # Use CLASS-SPECIFIC group (e.g., "Ученики 11 класс")
-        class_group = self._get_class_group(batch)
-        admin_groups = self._get_admin_groups()
-        all_groups = [(4, class_group.id)] + [(4, g.id) for g in admin_groups]
-        
-        if not channel:
-            channel = self.env['discuss.channel'].create({
-                'name': channel_name,
-                'channel_type': 'channel',
-                'description': f'{subject.display_name} — {batch.name}',
-                'group_public_id': class_group.id,
-                'group_ids': all_groups,
-            })
-        else:
-            channel.write({'group_ids': all_groups})
-        return channel
+    def _channel_name(self, batch):
+        """Имя классного канала с суффиксом учебного года, если название
+        batch не содержит его — чтобы каналы разных лет не пересекались."""
+        year_name = self.academic_year_id.name if self.academic_year_id else ''
+        if year_name and year_name not in (batch.name or ''):
+            return '%s (%s)' % (batch.name, year_name)
+        return batch.name
+
+    # ---------- subscription ----------
 
     def _subscribe_partners(self, channel, partners):
-        """Subscribe partners to channel (idempotent)."""
-        existing = channel.channel_partner_ids
-        for partner in partners:
-            if partner not in existing:
-                self.env['discuss.channel.member'].create({
-                    'channel_id': channel.id,
-                    'partner_id': partner.id,
-                    'fold_state': 'open',
-                })
+        """Подписать партнёров на канал через штатный Discuss API.
+
+        channel.add_members создаёт discuss.channel.member и обновляет
+        channel_partner_ids — не нужно писать channel_partner_ids вручную
+        (дублирование member-записей приводит к UniqueViolation)."""
+        if not partners or not channel:
+            return
+        channel.add_members(partner_ids=partners.ids)
+
+    # ---------- main action ----------
 
     def action_create_channels(self):
-        """Create channels based on wizard selections."""
+        """Создать каналы на основе выбора в wizard."""
         self.ensure_one()
-        
-        created_channels = []
-        updated_channels = []
-        
-        # General channel
+
+        # Защита: если onchange не сработал в UI, но courses есть.
+        if self.course_ids and not self.course_line_ids:
+            self._rebuild_course_lines()
+
+        if not self.course_line_ids and not self.create_general_channel:
+            raise UserError(_(
+                'Выберите учебный год и хотя бы один класс, либо включите '
+                'создание общего канала.'))
+
+        admin_groups = self._get_admin_groups_global()
+        admin_partners = self._get_admin_partners(admin_groups)
+
+        created = {'class': 0, 'subject': 0, 'general': 0}
+
+        # 1. General school channel
         general_channel = None
         if self.create_general_channel:
-            general_channel = self._get_or_create_general_channel()
-            if general_channel.id not in [c.id for c in created_channels + updated_channels]:
-                created_channels.append(general_channel)
-        
-        # Process each course
-        for course in self.course_ids:
-            # Get active batch for this course
-            batch = self.env['op.batch'].search([
-                ('course_id', '=', course.id),
-                ('active', '=', True)
-            ], limit=1)
-            
-            if not batch:
-                raise UserError(
-                    _('Active batch not found for course "%s".') % course.name
+            if not self.general_channel_name:
+                raise UserError(_('Укажите имя общего канала.'))
+            general_channel = self._get_or_create_general_channel(admin_groups)
+            created['general'] = 1
+
+        # 2. Классы и предметы
+        for course_line in self.course_line_ids:
+            batch = course_line.batch_id
+            class_group = self._get_class_group(batch)
+            ch_name = self._channel_name(batch)
+
+            class_channel = self._get_or_create_channel(
+                ch_name,
+                'Классный канал для %s' % ch_name,
+                class_group,
+                admin_groups,
+            )
+            created['class'] += 1
+
+            student_partners = course_line.student_ids.mapped('user_id.partner_id')
+            faculty_partners = course_line.faculty_ids.mapped('user_id.partner_id')
+            all_class_partners = student_partners | faculty_partners | admin_partners
+
+            self._subscribe_partners(class_channel, all_class_partners)
+            if general_channel:
+                self._subscribe_partners(general_channel, all_class_partners)
+
+            for subject in course_line.subject_ids:
+                subject_channel = self._get_or_create_channel(
+                    '%s — %s' % (ch_name, subject.display_name),
+                    '%s — %s' % (subject.display_name, ch_name),
+                    class_group,
+                    admin_groups,
                 )
-            
-            # Get selected students/teachers for THIS course
-            course_batches = self.env['op.batch'].search([
-                ('course_id', '=', course.id),
-                ('active', '=', True)
-            ])
-            
-            course_students = self.student_ids.filtered(
-                lambda s: s.course_detail_ids.batch_id in course_batches
-            )
-            course_faculty = self.faculty_ids.filtered(
-                lambda f: self.env['op.session'].search_count([
-                    ('batch_id', 'in', course_batches.ids),
-                    ('faculty_id', '=', f.id)
-                ]) > 0
-            )
-            
-            student_partners = course_students.mapped('user_id.partner_id')
-            faculty_partners = course_faculty.mapped('user_id.partner_id')
-            
-            # --- Class Channel ---
-            class_channel = self._get_or_create_class_channel(batch)
-            if class_channel.id not in [c.id for c in created_channels + updated_channels]:
-                created_channels.append(class_channel)
-            
-            # Subscribe selected students + teachers to class channel
-            class_partners = student_partners | faculty_partners
-            # Also auto-subscribe admins/teachers with access rights
-            admin_partners = self._get_admin_partners()
-            class_partners |= admin_partners
-            self._subscribe_partners(class_channel, class_partners)
-            
-            # Also add to general channel
-            if general_channel and self.subscribe_all_to_general:
-                general_partners = class_partners
-                self._subscribe_partners(general_channel, general_partners)
-            
-            # --- Subject Channels ---
-            for subject in self.subject_ids.filtered(lambda s: s in course.subject_ids):
-                subject_channel = self._get_or_create_subject_channel(batch, subject)
-                if subject_channel.id not in [c.id for c in created_channels + updated_channels]:
-                    created_channels.append(subject_channel)
-                
-                # Subscribe students to subject channel
-                if self.subscribe_students_to_subjects:
-                    subject_partners = student_partners
-                    # Also add admins
-                    admin_partners = self._get_admin_partners()
-                    subject_partners |= admin_partners
-                    self._subscribe_partners(subject_channel, subject_partners)
-                
-                # Subscribe teachers of THIS subject
-                if self.subscribe_teachers_to_subjects:
+                created['subject'] += 1
+
+                sub_partners = self.env['res.partner']
+                if course_line.subscribe_students_to_subjects:
+                    sub_partners |= student_partners
+                if course_line.subscribe_teachers_to_subjects:
                     subject_sessions = self.env['op.session'].search([
-                        ('batch_id', 'in', course_batches.ids),
-                        ('subject_id', '=', subject.id)
+                        ('batch_id', '=', batch.id),
+                        ('subject_id', '=', subject.id),
                     ])
-                    subject_faculty = subject_sessions.mapped('faculty_id')
-                    selected_subject_faculty = subject_faculty & self.faculty_ids
-                    subject_faculty_partners = selected_subject_faculty.mapped('user_id.partner_id')
-                    # Also add admins
-                    admin_partners = self._get_admin_partners()
-                    subject_faculty_partners |= admin_partners
-                    self._subscribe_partners(subject_channel, subject_faculty_partners)
-        
-        # Prepare result message
-        total_subject_channels = len(created_channels) - len(self.course_ids) - (1 if general_channel else 0)
-        
+                    subject_faculty = subject_sessions.mapped(
+                        'faculty_id') & course_line.faculty_ids
+                    sub_partners |= subject_faculty.mapped('user_id.partner_id')
+                sub_partners |= admin_partners
+                self._subscribe_partners(subject_channel, sub_partners)
+
+        parts = []
+        if created['class']:
+            parts.append('%d классовых каналов' % created['class'])
+        if created['subject']:
+            parts.append('%d предметных каналов' % created['subject'])
+        if created['general']:
+            parts.append('1 общий канал')
+        result_msg = 'Готово! Создано/обновлено: ' + ', '.join(parts) + '.'
+
         return {
             'type': 'ir.actions.client',
             'tag': 'display_notification',
             'params': {
-                'title': _('Channels Created/Updated'),
-                'message': _(
-                    'Done! Created: %d class channel(s), %d subject channel(s)%s. '
-                    'Participants subscribed per your selection.'
-                ) % (
-                    len(self.course_ids),
-                    max(0, total_subject_channels),
-                    ', 1 general channel' if general_channel else '',
-                ),
+                'title': 'Каналы созданы/обновлены',
+                'message': result_msg,
                 'type': 'success',
                 'sticky': False,
             },
         }
+
+
+class CreateChannelWizardCourse(models.TransientModel):
+    _name = 'create.channel.wizard.course'
+    _description = 'Course settings for channel creation'
+
+    wizard_id = fields.Many2one(
+        'create.channel.wizard', required=True, ondelete='cascade',
+    )
+    academic_year_id = fields.Many2one(
+        'op.academic.year',
+        string='Учебный год',
+        required=True,
+    )
+    course_id = fields.Many2one(
+        'op.course', string='Курс', required=True,
+    )
+    batch_id = fields.Many2one(
+        'op.batch', string='Класс/Поток', required=True,
+    )
+    subject_ids = fields.Many2many(
+        'op.subject', string='Предметы',
+    )
+    student_ids = fields.Many2many(
+        'op.student', string='Ученики',
+    )
+    faculty_ids = fields.Many2many(
+        'op.faculty', string='Учителя',
+    )
+    subscribe_students_to_subjects = fields.Boolean(
+        string='Подписывать учеников на предметные каналы',
+        default=True,
+    )
+    subscribe_teachers_to_subjects = fields.Boolean(
+        string='Подписывать учителей на предметные каналы',
+        default=True,
+    )
