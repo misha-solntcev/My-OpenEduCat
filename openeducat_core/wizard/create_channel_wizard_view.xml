@@ -18,11 +18,6 @@
                         <field name="general_channel_name" invisible="not create_general_channel"/>
                     </group>
 
-                    <group string="Настройки подписок">
-                        <field name="subscribe_students"/>
-                        <field name="subscribe_teachers"/>
-                    </group>
-
                     <group string="Классы и участники">
                         <field name="course_line_ids" options="{'no_create': True}">
                             <list editable="bottom">
