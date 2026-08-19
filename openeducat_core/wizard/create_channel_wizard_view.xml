@@ -4,85 +4,66 @@
         <field name="name">create.channel.wizard.form</field>
         <field name="model">create.channel.wizard</field>
         <field name="arch" type="xml">
-            <form string="Create Chat Channels">
+            <form string="Создание каналов чата">
                 <sheet>
-                    <group string="Выбор класса">
-                        <field name="academic_year_id"
-                            string="Учебный год"
-                            options="{'no_create_edit': True, 'no_open': True}" />
-                        <field name="course_ids" string="Классы/Курсы"
-                            widget="many2many_tags"
-                            placeholder="Выберите классы/параллели..."
-                            options="{'no_create_edit': True, 'no_open': True}" />
+                    <group string="Выбор периода и классов">
+                        <field name="academic_year_id" options="{'no_create': True, 'no_open': True}"/>
+                        <field name="course_ids" widget="many2many_tags"
+                               placeholder="Выберите параллели/курсы..."
+                               options="{'no_create': True, 'no_open': True}"/>
                     </group>
 
-                    <group string="Общий канал" col="1">
-                        <field name="create_general_channel"
-                            string='Создать общий канал' />
-                        <field name="general_channel_name"
-                            string='Имя канала'
-                            invisible="not create_general_channel" />
+                    <group string="Общий канал школы">
+                        <field name="create_general_channel"/>
+                        <field name="general_channel_name" invisible="not create_general_channel"/>
                     </group>
 
-                    <!-- Автозаполняемые строки: tree inline-editable -->
-                    <group string="Классы/Потоки">
-                        <field name="course_line_ids"
-                            options="{'no_create': True, 'no_create_edit': True}">
+                    <group string="Настройки подписок">
+                        <field name="subscribe_students"/>
+                        <field name="subscribe_teachers"/>
+                    </group>
+
+                    <group string="Классы и участники">
+                        <field name="course_line_ids" options="{'no_create': True}">
                             <list editable="bottom">
-                                <field name="batch_id"
-                                    string="Класс/Поток"
-                                    options="{'no_create_edit': True, 'no_open': True}"/>
-                                <field name="subject_ids"
-                                    string="Предметы"
-                                    widget="many2many_tags"
-                                    options="{'no_create_edit': True, 'no_open': True}"/>
-                                <field name="student_ids"
-                                    string="Ученики"
-                                    widget="many2many_tags"
-                                    options="{'no_create_edit': True, 'no_open': True}"/>
-                                <field name="faculty_ids"
-                                    string="Учителя"
-                                    widget="many2many_tags"
-                                    options="{'no_create_edit': True, 'no_open': True}"/>
-                                <field name="subscribe_students_to_subjects"
-                                    string="Студенты к предметам"/>
-                                <field name="subscribe_teachers_to_subjects"
-                                    string="Учителя к предметам"/>
+                                <field name="academic_year_id" invisible="1" optional="hide"/>
+                                <field name="course_id" invisible="1" optional="hide"/>
+                                <field name="batch_id" invisible="1"/>
+                                <field name="subject_ids" widget="many2many_tags" options="{'no_create': True}"/>
+                                <field name="student_ids" widget="many2many_tags" options="{'no_create': True}"/>
+                                <field name="faculty_ids" widget="many2many_tags" options="{'no_create': True}"/>
+                                <field name="student_count" string="Учеников" optional="hide"/>
+                                <field name="faculty_count" string="Учителей" optional="hide"/>
+                                <field name="subject_count" string="Предметов" optional="hide"/>
                             </list>
                         </field>
                     </group>
-
                 </sheet>
                 <footer>
                     <button name="action_create_channels" type="object"
-                        string="Create Channels" class="btn-primary"
-                        icon="fa-plus" />
-                    <button string="Cancel" class="btn-secondary"
-                        special="cancel" />
+                            string="Создать / Обновить каналы" class="btn-primary" icon="fa-comments"/>
+                    <button string="Отмена" class="btn-secondary" special="cancel"/>
                 </footer>
             </form>
         </field>
     </record>
 
-    <record model="ir.actions.act_window" id="action_create_channels">
-        <field name="name">Create Chat Channels</field>
+    <record id="action_create_channels" model="ir.actions.act_window">
+        <field name="name">Создать каналы чата</field>
         <field name="res_model">create.channel.wizard</field>
         <field name="view_mode">form</field>
         <field name="target">new</field>
-        <field name="context">{}</field>
-        <field name="view_id" ref="view_create_channel_wizard_form" />
+        <field name="view_id" ref="view_create_channel_wizard_form"/>
     </record>
 
-    <!-- Button on op.course form -->
     <record id="view_course_form_inherit_channel_button" model="ir.ui.view">
         <field name="name">op.course.form.inherit.channel</field>
         <field name="model">op.course</field>
         <field name="inherit_id" ref="openeducat_core.view_op_course_form" />
         <field name="arch" type="xml">
             <xpath expr="//header" position="inside">
-                <button
-                    name="%(action_create_channels)d"
-                    string="Create Channels"
+                <button name="%(action_create_channels)d"
+                    string="Создать каналы"
                     type="action"
                     groups="openeducat_core.group_op_back_office_admin"
                     class="oe_highlight"
@@ -91,13 +72,12 @@
         </field>
     </record>
 
-    <!-- Menu item in Communication → Configuration → Create Channels -->
     <record id="menu_create_channels_from_discuss_config"
         model="ir.ui.menu">
         <field name="name">Создать каналы</field>
         <field name="parent_id" ref="mail.menu_configuration"/>
         <field name="action" ref="action_create_channels"/>
         <field name="sequence">54</field>
-        <field name="groups_id" eval="[(4, ref('base.group_system'))]"/>
+        <field name="groups_id" eval="[(4, ref('base.group_system')), (4, ref('openeducat_core.group_op_back_office_admin'))]"/>
     </record>
 </odoo>

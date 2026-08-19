@@ -14,20 +14,11 @@ class OpStudentCourse(models.Model):
     batch_id = fields.Many2one('op.batch', 'Batch', tracking=True)
     roll_number = fields.Char('Roll Number', tracking=True)
     subject_ids = fields.Many2many('op.subject', string='Subjects')
-    academic_years_id = fields.Many2one('op.academic.year', 'Academic Year')
+    academic_years_id = fields.Many2one('op.academic.year', 'Academic Year', required=True, tracking=True)
     academic_term_id = fields.Many2one('op.academic.term', 'Terms')
     state = fields.Selection([('running', 'Running'),
                               ('finished', 'Finished')],
                              string="Status", default="running")
-
-    @api.constrains('state', 'student_id')
-    def _check_student_state_on_course_finish(self):
-        for record in self:
-            if record.state == 'finished' and record.student_id.state == 'studying':
-                # Allow finishing if student will be set to 'left' via wizard
-                # This constraint is checked before wizard writes new state
-                # We allow it because wizard handles state transition
-                pass
 
     _sql_constraints = [
         ('unique_name_roll_number_id',
@@ -64,30 +55,31 @@ class OpStudent(models.Model):
     course_detail_ids = fields.One2many('op.student.course', 'student_id', 'Course Details', tracking=True)
     active = fields.Boolean(default=True)
 
-    # Computed stored fields for accurate current class/academic year filtering
-    active_academic_year_id = fields.Many2one(
-        'op.academic.year',
-        string="Current Academic Year",
-        compute='_compute_active_course_details',
+    # === Single Source of Truth ===
+    current_course_detail_id = fields.Many2one(
+        'op.student.course',
+        string="Текущее зачисление",
+        compute='_compute_current_course_detail',
         store=True,
     )
+    # Быстрые readonly-поля через текущую запись
     active_course_id = fields.Many2one(
-        'op.course',
-        string="Current Course",
-        compute='_compute_active_course_details',
+        related='current_course_detail_id.course_id',
+        string='Текущий курс',
         store=True,
+        readonly=True,
     )
-    last_active_course_id = fields.Many2one(
-        'op.course',
-        string="Last Completed Course",
-        compute='_compute_active_course_details',
+    active_batch_id = fields.Many2one(
+        related='current_course_detail_id.batch_id',
+        string='Текущий класс',
         store=True,
+        readonly=True,
     )
-    last_active_academic_year_id = fields.Many2one(
-        'op.academic.year',
-        string="Last Academic Year",
-        compute='_compute_active_course_details',
+    active_academic_year_id = fields.Many2one(
+        related='current_course_detail_id.academic_years_id',
+        string='Текущий учебный год',
         store=True,
+        readonly=True,
     )
 
     # Student state for form view statusbar
@@ -125,29 +117,60 @@ class OpStudent(models.Model):
         'Registration Number must be unique per student!'
     )]
 
-    @api.depends('course_detail_ids', 'course_detail_ids.state', 'course_detail_ids.academic_years_id', 'course_detail_ids.course_id')
-    def _compute_active_course_details(self):
+    @api.depends('course_detail_ids.state', 'course_detail_ids.academic_years_id')
+    def _compute_current_course_detail(self):
         for student in self:
-            running_details = student.course_detail_ids.filtered(lambda r: r.state == 'running')
-            finished_details = student.course_detail_ids.filtered(lambda r: r.state == 'finished')
-            
-            # Active course/year: prioritize running courses
-            if running_details:
-                active_record = running_details[0]
-                student.active_academic_year_id = active_record.academic_years_id
-                student.active_course_id = active_record.course_id
+            running = student.course_detail_ids.filtered(lambda r: r.state == 'running')
+            # Если есть несколько running, берём с максимальным start_date года
+            if running:
+                student.current_course_detail_id = max(
+                    running,
+                    key=lambda r: r.academic_years_id.start_date if r.academic_years_id else '0001-01-01'
+                )
             else:
-                student.active_academic_year_id = False
-                student.active_course_id = False
-            
-            # Last completed course/year: for historical context (left)
-            if finished_details:
-                last_finished = finished_details[-1]
-                student.last_active_course_id = last_finished.course_id
-                student.last_active_academic_year_id = last_finished.academic_years_id
+                student.current_course_detail_id = False
+
+    # Historical computed fields (not stored, for reference)
+    last_active_course_id = fields.Many2one(
+        'op.course', string='Last Completed Course',
+        compute='_compute_last_completed_course', store=False
+    )
+    last_active_academic_year_id = fields.Many2one(
+        'op.academic.year', string='Last Academic Year',
+        compute='_compute_last_completed_course', store=False
+    )
+
+    @api.depends('course_detail_ids.state', 'course_detail_ids.academic_years_id', 'course_detail_ids.course_id')
+    def _compute_last_completed_course(self):
+        for student in self:
+            finished = student.course_detail_ids.filtered(lambda r: r.state == 'finished')
+            if finished:
+                last = max(finished, key=lambda r: (
+                    r.academic_years_id.start_date if r.academic_years_id else '0001-01-01'))
+                student.last_active_course_id = last.course_id
+                student.last_active_academic_year_id = last.academic_years_id
             else:
                 student.last_active_course_id = False
                 student.last_active_academic_year_id = False
+
+    @api.constrains('state', 'course_detail_ids')
+    def _check_student_state_consistency(self):
+        """Единый constraint вместо трёх разрозненных.
+        Допускает одновременное наличие finished и running записей
+        (переходный период между учебными годами)."""
+        for student in self:
+            has_running = any(c.state == 'running' for c in student.course_detail_ids)
+            has_finished = any(c.state == 'finished' for c in student.course_detail_ids)
+
+            if student.state == 'studying' and not has_running:
+                raise ValidationError(
+                    _("Ученик в статусе 'Обучается' должен иметь хотя бы один активный курс (state='running').")
+                )
+            if student.state in ('pass_out', 'left') and not has_finished:
+                raise ValidationError(
+                    _("Ученик в статусе '%s' должен иметь хотя бы одну завершённую запись курса.")
+                    % dict(self._fields['state'].selection)[student.state]
+                )
 
     @api.model
     def get_import_templates(self):
@@ -156,43 +179,16 @@ class OpStudent(models.Model):
             'template': '/openeducat_core/static/xls/op_student.xls'
         }]
 
-    @api.constrains('state', 'course_detail_ids')
-    def _check_student_course_state_consistency(self):
-        for student in self:
-            if student.state == 'studying':
-                running_courses = student.course_detail_ids.filtered(lambda r: r.state == 'running')
-                if not running_courses:
-                    raise ValidationError(_(
-                        "Student in 'Studying' state must have at least one running course."
-                    ))
-            if student.state in ['pass_out', 'left']:
-                finished_courses = student.course_detail_ids.filtered(lambda r: r.state == 'finished')
-                if not finished_courses:
-                    raise ValidationError(_(
-                        "Student in 'Pass Out' or 'Left' state must have at least one finished course."
-                    ))
-
-    @api.constrains('course_detail_ids')
-    def _check_course_detail_state_consistency(self):
-        for student in self:
-            finished_courses = student.course_detail_ids.filtered(lambda r: r.state == 'finished')
-            if finished_courses and student.state == 'studying':
-                raise ValidationError(_(
-                    "Student has finished courses but is still in 'Studying' state. "
-                    "Please update student state to 'Pass Out' or 'Left'."
-                ))
-
     def create_student_user(self):
-        user_group = self.env.ref("openeducat_core.group_op_students") or False
-        users_res = self.env['res.users']
-        for record in self:
-            if not record.user_id:
-                user_id = users_res.create({
-                    'name': record.name,
-                    'partner_id': record.partner_id.id,
-                    'login': record.email,
-                    'groups_id': user_group,
-                    'is_student': True,
-                    'tz': self._context.get('tz'),
-                })
-                record.user_id = user_id
+        """Создает системного пользователя для ученика."""
+        user_group = self.env.ref("openeducat_core.group_op_students", raise_if_not_found=False)
+        for record in self.filtered(lambda s: not s.user_id and s.email):
+            group_commands = [fields.Command.link(user_group.id)] if user_group else []
+            record.user_id = self.env["res.users"].create({
+                "name": record.name,
+                "partner_id": record.partner_id.id,
+                "login": record.email,
+                "email": record.email,
+                "groups_id": group_commands,
+                "tz": self.env.context.get("tz", "UTC"),
+            })
