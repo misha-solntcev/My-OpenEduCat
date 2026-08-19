@@ -130,21 +130,16 @@ class CreateChannelWizard(models.TransientModel):
         if not self.course_line_ids and not self.create_general_channel:
             raise UserError(_('Выберите учебный год и хотя бы один класс, либо создайте общий канал.'))
 
-        # 1. Предзагрузка админов
-        admin_group = env.ref('openeducat_core.group_op_back_office_admin', raise_if_not_found=False)
-        admin_partners = env['res.partner']
-        if admin_group:
-            admin_partners = env['res.users'].search([
-                ('groups_id', 'in', admin_group.ids)
-            ]).mapped('partner_id')
+        # 1. Предзагрузка админов (через helper, без дублирования)
+        admin_partners = self._get_admin_partners()
         admin_partner_ids = set(admin_partners.ids)
+        admin_group = self.env.ref('openeducat_core.group_op_back_office_admin', raise_if_not_found=False)
+        admin_group_ids = [admin_group.id] if admin_group else []
 
         # 2. Кэшируем class_groups (один search вместо N)
         class_groups_records = env['res.groups'].search([('name', '=like', 'Ученики % класс')])
         class_group_cache = {g.name: g for g in class_groups_records}
         default_student_group = env.ref('openeducat_core.group_op_students', raise_if_not_found=False)
-        admin_group = env.ref('openeducat_core.group_op_back_office_admin', raise_if_not_found=False)
-        admin_group_ids = [admin_group.id] if admin_group else []
 
         def get_cached_class_group(batch_name):
             match = re.match(r'^(\d+)', batch_name or '')
