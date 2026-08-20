@@ -2756,8 +2756,8 @@ msgstr ""
 
 #. module: openeducat_core
 #: model:res.groups,name:openeducat_core.group_op_back_office_admin
-msgid "Manger"
-msgstr "Манера"
+msgid "Manager"
+msgstr "Администратор бэк-офиса"
 
 #. module: openeducat_core
 #: model:ir.model.fields,field_description:openeducat_core.field_res_config_settings__module_openeducat_mass_subject_registration
