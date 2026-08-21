@@ -116,9 +116,7 @@ class CreateChannelWizard(models.TransientModel):
     # ---------- channel helpers ----------
 
     def _channel_name(self, batch):
-        if not batch:
-            return 'Без класса'
-        return batch.name or 'Без класса'
+        return batch.name if batch else 'Без класса'
 
     # ---------- main action ----------
 
