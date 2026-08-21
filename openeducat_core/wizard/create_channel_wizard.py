@@ -118,11 +118,7 @@ class CreateChannelWizard(models.TransientModel):
     def _channel_name(self, batch):
         if not batch:
             return 'Без класса'
-        year_name = self.academic_year_id.name or ''
-        batch_name = batch.name or ''
-        if year_name and year_name not in batch_name:
-            return f'{batch_name} ({year_name})'
-        return batch_name
+        return batch.name or 'Без класса'
 
     # ---------- main action ----------
 
