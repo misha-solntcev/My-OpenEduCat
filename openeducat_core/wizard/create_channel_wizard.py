@@ -67,6 +67,9 @@ class CreateChannelWizard(models.TransientModel):
             sessions_by_batch.setdefault(session.batch_id.id, self.env['op.session'])
             sessions_by_batch[session.batch_id.id] |= session
 
+        # Админы для вывода в отдельную колонку (res.users)
+        admin_users = self._get_admin_users()
+
         commands = [fields.Command.clear()]
 
         for batch in batches:
@@ -84,6 +87,7 @@ class CreateChannelWizard(models.TransientModel):
                 'subject_ids': [fields.Command.set(batch.course_id.subject_ids.ids)],
                 'student_ids': [fields.Command.set(students.ids)],
                 'faculty_ids': [fields.Command.set(faculty.ids)],
+                'admin_ids': [fields.Command.set(admin_users.ids)],
             }))
 
         self.course_line_ids = commands
@@ -96,11 +100,16 @@ class CreateChannelWizard(models.TransientModel):
     # ---------- admin helpers ----------
 
     @api.model
-    def _get_admin_partners(self):
+    def _get_admin_users(self):
+        """Возвращает пользователей с группой group_op_back_office_admin."""
         admin_group = self.env.ref('openeducat_core.group_op_back_office_admin', raise_if_not_found=False)
         if not admin_group:
-            return self.env['res.partner']
-        return self.env['res.users'].search([('groups_id', 'in', admin_group.ids)]).mapped('partner_id')
+            return self.env['res.users']
+        return self.env['res.users'].search([('groups_id', 'in', admin_group.ids)])
+
+    @api.model
+    def _get_admin_partners(self):
+        return self._get_admin_users().mapped('partner_id')
 
     # ---------- channel helpers ----------
 
@@ -349,6 +358,7 @@ class CreateChannelWizardCourse(models.TransientModel):
     subject_ids = fields.Many2many('op.subject', string='Предметы', readonly=False)
     student_ids = fields.Many2many('op.student', string='Ученики', readonly=False)
     faculty_ids = fields.Many2many('op.faculty', string='Учителя', readonly=False)
+    admin_ids = fields.Many2many('res.users', string='Админы', readonly=True)
 
     # Preview counts (computed, not stored)
     student_count = fields.Integer(string='Учеников', compute='_compute_counts')

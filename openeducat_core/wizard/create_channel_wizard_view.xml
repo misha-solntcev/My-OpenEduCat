@@ -6,33 +6,41 @@
         <field name="arch" type="xml">
             <form string="Создание каналов чата">
                 <sheet>
-                    <group string="Выбор периода и классов">
-                        <field name="academic_year_id" options="{'no_create': True, 'no_open': True}"/>
-                        <field name="course_ids" widget="many2many_tags"
-                               placeholder="Выберите параллели/курсы..."
-                               options="{'no_create': True, 'no_open': True}"/>
+                    <group>
+                        <group>
+                            <field name="academic_year_id" options="{'no_create': True, 'no_open': True}"/>
+                        </group>
+                        <group>
+                            <field name="course_ids" widget="many2many_tags"
+                                placeholder="Выберите параллели/курсы..."
+                                options="{'no_create': True, 'no_open': True}"/>
+                        </group>
                     </group>
 
-                    <group string="Общий канал школы">
-                        <field name="create_general_channel"/>
-                        <field name="general_channel_name" invisible="not create_general_channel"/>
-                    </group>
+                    <group>
+                        <group>
+                            <field name="create_general_channel"/>
+                        </group>
+                        <group>
+                            <field name="general_channel_name" invisible="not create_general_channel"/>
+                        </group>
+                    </group>                   
 
-                    <group string="Классы и участники">
-                        <field name="course_line_ids" options="{'no_create': True}">
-                            <list editable="bottom">
-                                <field name="academic_year_id" invisible="1" optional="hide"/>
-                                <field name="course_id" invisible="1" optional="hide"/>
-                                <field name="batch_id" invisible="1"/>
-                                <field name="subject_ids" widget="many2many_tags" options="{'no_create': True}"/>
-                                <field name="student_ids" widget="many2many_tags" options="{'no_create': True}"/>
-                                <field name="faculty_ids" widget="many2many_tags" options="{'no_create': True}"/>
-                                <field name="student_count" string="Учеников" optional="hide"/>
-                                <field name="faculty_count" string="Учителей" optional="hide"/>
-                                <field name="subject_count" string="Предметов" optional="hide"/>
-                            </list>
-                        </field>
-                    </group>
+                    <separator string="Классы и участники" class="mt-4 mb-2"/>
+                    <field name="course_line_ids" nolabel="1" options="{'no_create': True}">
+                        <list editable="bottom">
+                            <field name="academic_year_id" column_invisible="1"/>
+                            <field name="course_id" column_invisible="1"/>                            
+                            <field name="batch_id" string="Класс" readonly="1"/>
+                            <field name="subject_ids" widget="many2many_tags" options="{'no_create': True}"/>                            
+                            <field name="admin_ids" widget="many2many_tags" options="{'no_create': True}" readonly="1"/>
+                            <field name="faculty_ids" widget="many2many_tags" options="{'no_create': True}"/>
+                            <field name="student_ids" widget="many2many_tags" options="{'no_create': True}"/>
+                            <field name="student_count" string="Учеников" optional="hide"/>
+                            <field name="faculty_count" string="Учителей" optional="hide"/>
+                            <field name="subject_count" string="Предметов" optional="hide"/>
+                        </list>
+                    </field>
                 </sheet>
                 <footer>
                     <button name="action_create_channels" type="object"
