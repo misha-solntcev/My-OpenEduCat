@@ -73,6 +73,8 @@ class CreateChannelWizard(models.TransientModel):
         commands = [fields.Command.clear()]
 
         for batch in batches:
+            if not batch:
+                continue
             batch_enrollments = enrollments_by_batch.get(batch.id, self.env['op.student.course'])
             students = batch_enrollments.mapped('student_id').filtered(lambda s: s.user_id)
             
@@ -114,10 +116,13 @@ class CreateChannelWizard(models.TransientModel):
     # ---------- channel helpers ----------
 
     def _channel_name(self, batch):
+        if not batch:
+            return 'Без класса'
         year_name = self.academic_year_id.name or ''
-        if year_name and year_name not in (batch.name or ''):
-            return f'{batch.name} ({year_name})'
-        return batch.name
+        batch_name = batch.name or ''
+        if year_name and year_name not in batch_name:
+            return f'{batch_name} ({year_name})'
+        return batch_name
 
     # ---------- main action ----------
 
@@ -133,7 +138,7 @@ class CreateChannelWizard(models.TransientModel):
         )
         env = self.env
 
-        if self.course_ids and not self.course_line_ids:
+        if self.course_ids and self.academic_year_id:
             self._rebuild_course_lines()
 
         if not self.course_line_ids and not self.create_general_channel:
@@ -352,9 +357,9 @@ class CreateChannelWizardCourse(models.TransientModel):
     _description = 'Course line for channel creation'
 
     wizard_id = fields.Many2one('create.channel.wizard', required=True, ondelete='cascade')
-    academic_year_id = fields.Many2one('op.academic.year', string='Учебный год', required=True)
-    course_id = fields.Many2one('op.course', string='Курс', required=True)
-    batch_id = fields.Many2one('op.batch', string='Класс/Поток', required=True)
+    academic_year_id = fields.Many2one('op.academic.year', string='Учебный год', readonly=True)
+    course_id = fields.Many2one('op.course', string='Курс', readonly=True)
+    batch_id = fields.Many2one('op.batch', string='Класс/Поток', readonly=True)
     subject_ids = fields.Many2many('op.subject', string='Предметы', readonly=False)
     student_ids = fields.Many2many('op.student', string='Ученики', readonly=False)
     faculty_ids = fields.Many2many('op.faculty', string='Учителя', readonly=False)
