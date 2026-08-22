@@ -130,14 +130,14 @@ class OpStudent(models.Model):
             else:
                 student.current_course_detail_id = False
 
-    # Historical computed fields (not stored, for reference)
+    # Historical computed fields (stored — required by searchpanel/read_group)
     last_active_course_id = fields.Many2one(
         'op.course', string='Last Completed Course',
-        compute='_compute_last_completed_course', store=False
+        compute='_compute_last_completed_course', store=True
     )
     last_active_academic_year_id = fields.Many2one(
         'op.academic.year', string='Last Academic Year',
-        compute='_compute_last_completed_course', store=False
+        compute='_compute_last_completed_course', store=True
     )
 
     @api.depends('course_detail_ids.state', 'course_detail_ids.academic_years_id', 'course_detail_ids.course_id')
