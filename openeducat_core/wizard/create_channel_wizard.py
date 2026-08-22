@@ -118,6 +118,11 @@ class CreateChannelWizard(models.TransientModel):
     def _channel_name(self, batch):
         return batch.name if batch else 'Без класса'
 
+    @staticmethod
+    def _subject_channel_name(class_name, subject):
+        """Единый формат имени предметного канала."""
+        return f'{class_name} — {subject.display_name}'
+
     # ---------- helpers ----------
 
     def _partner_ids(self, records):
@@ -198,7 +203,7 @@ class CreateChannelWizard(models.TransientModel):
             ch_name = self._channel_name(line.batch_id)
             expected_channel_names.add(ch_name)
             for subject in line.subject_ids:
-                expected_channel_names.add(f'{ch_name} — {subject.display_name}')
+                expected_channel_names.add(self._subject_channel_name(ch_name, subject))
 
         existing_channels = self.env['discuss.channel'].search([
             ('name', 'in', list(expected_channel_names)),
@@ -228,55 +233,56 @@ class CreateChannelWizard(models.TransientModel):
             })
 
             for subject in line.subject_ids:
-                sub_name = f'{ch_name} — {subject.display_name}'
                 channel_data.append({
-                    'name': sub_name,
+                    'name': self._subject_channel_name(ch_name, subject),
                     'description': f'Предмет: {subject.display_name} ({ch_name})',
                     'class_group': class_group,
                 })
 
         return channel_data, channel_pool, expected_channel_names
 
-    def _create_missing_channels(self, channel_data, channel_pool, admin_group_ids):
-        """Batch create новых каналов + обновление существующих. Возвращает обновлённый channel_pool."""
-        to_create = []
-        for cd in channel_data:
-            if cd['name'] not in channel_pool:
-                vals = {
-                    'name': cd['name'],
-                    'description': cd['description'],
-                    'channel_type': 'channel',
-                }
-                group_ids = list(admin_group_ids)
-                if cd['class_group']:
-                    vals['group_public_id'] = cd['class_group'].id
-                    group_ids.append(cd['class_group'].id)
-                if group_ids:
-                    vals['group_ids'] = [fields.Command.set(group_ids)]
-                to_create.append(vals)
+    @staticmethod
+    def _channel_create_vals(cd, admin_group_ids):
+        """Vals для создания канала из элемента channel_data."""
+        vals = {
+            'name': cd['name'],
+            'description': cd['description'],
+            'channel_type': 'channel',
+        }
+        group_ids = list(admin_group_ids)
+        if cd['class_group']:
+            vals['group_public_id'] = cd['class_group'].id
+            group_ids.append(cd['class_group'].id)
+        if group_ids:
+            vals['group_ids'] = [fields.Command.set(group_ids)]
+        return vals
 
+    def _create_new_channels(self, channel_data, channel_pool, admin_group_ids):
+        """Batch create недостающих каналов. Обновляет и возвращает channel_pool."""
+        to_create = [
+            self._channel_create_vals(cd, admin_group_ids)
+            for cd in channel_data if cd['name'] not in channel_pool
+        ]
         new_channels = self.env['discuss.channel'].create(to_create) if to_create else self.env['discuss.channel']
         for ch in new_channels:
             channel_pool[ch.name] = ch
-
-        # Обновляем ТОЛЬКО предварительно существующие
-        existing_channel_names = set(channel_pool.keys()) - {ch.name for ch in new_channels} if to_create else set(channel_pool.keys())
-        for cd in channel_data:
-            if cd['name'] not in existing_channel_names:
-                continue  # Новый канал — уже создан с правильными значениями
-            ch = channel_pool.get(cd['name'])
-            if ch:
-                update_vals = {'description': cd['description']}
-                if cd['class_group'] and ch.group_public_id != cd['class_group']:
-                    update_vals['group_public_id'] = cd['class_group'].id
-                group_ids = list(admin_group_ids)
-                if cd['class_group']:
-                    group_ids.append(cd['class_group'].id)
-                if group_ids:
-                    update_vals['group_ids'] = [fields.Command.set(group_ids)]
-                ch.write(update_vals)
-
         return channel_pool
+
+    def _update_existing_channels(self, channel_data, channel_pool, admin_group_ids):
+        """Синхронизирует description/group_public_id/group_ids у существующих каналов."""
+        for cd in channel_data:
+            ch = channel_pool.get(cd['name'])
+            if not ch:
+                continue
+            update_vals = {'description': cd['description']}
+            if cd['class_group'] and ch.group_public_id != cd['class_group']:
+                update_vals['group_public_id'] = cd['class_group'].id
+            group_ids = list(admin_group_ids)
+            if cd['class_group']:
+                group_ids.append(cd['class_group'].id)
+            if group_ids:
+                update_vals['group_ids'] = [fields.Command.set(group_ids)]
+            ch.write(update_vals)
 
     def _compute_channel_partners(self, channel_pool, sessions_by_batch, admin_partner_ids, get_cached_class_group):
         """Возвращает dict: {channel_id: set(partner_ids)}."""
@@ -378,7 +384,8 @@ class CreateChannelWizard(models.TransientModel):
         sessions_by_batch = self._load_sessions_cache()
 
         channel_data, channel_pool, _ = self._build_channel_data(get_cached_class_group, default_student_group)
-        channel_pool = self._create_missing_channels(channel_data, channel_pool, admin_group_ids)
+        channel_pool = self._create_new_channels(channel_data, channel_pool, admin_group_ids)
+        self._update_existing_channels(channel_data, channel_pool, admin_group_ids)
 
         channel_partners = self._compute_channel_partners(
             channel_pool, sessions_by_batch, admin_partner_ids, get_cached_class_group
