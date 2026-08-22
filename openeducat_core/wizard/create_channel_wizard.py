@@ -80,7 +80,7 @@ class CreateChannelWizard(models.TransientModel):
 
             # Берем сессии из кэша, а не из БД
             batch_sessions = sessions_by_batch.get(batch.id, self.env['op.session'])
-            faculty = batch_sessions.mapped('faculty_id').filtered(lambda f: f.user_id)
+            faculty = (batch_sessions.mapped('faculty_id') | batch.homeroom_faculty_ids).filtered(lambda f: f.user_id)
 
             commands.append(fields.Command.create({
                 'academic_year_id': self.academic_year_id.id,
@@ -89,7 +89,8 @@ class CreateChannelWizard(models.TransientModel):
                 'subject_ids': [fields.Command.set(batch.course_id.subject_ids.ids)],
                 'student_ids': [fields.Command.set(students.ids)],
                 'faculty_ids': [fields.Command.set(faculty.ids)],
-                'admin_ids': [fields.Command.set(admin_users.ids)],
+                'admin_ids': [fields.Command.set(
+                    (admin_users | batch.homeroom_faculty_ids.mapped('user_id')).ids)],
             }))
 
         self.course_line_ids = commands
@@ -157,12 +158,11 @@ class CreateChannelWizard(models.TransientModel):
             raise UserError(_('Выберите учебный год и хотя бы один класс, либо создайте общий канал.'))
 
     def _load_admin_data(self):
-        """Возвращает (admin_partners, admin_partner_ids, admin_group_ids)."""
-        admin_partners = self._get_admin_partners()
-        admin_partner_ids = set(admin_partners.ids)
+        """Возвращает (admin_partner_ids, admin_group_ids)."""
+        admin_partner_ids = set(self._get_admin_partners().ids)
         admin_group = self.env.ref('openeducat_core.group_op_back_office_admin', raise_if_not_found=False)
         admin_group_ids = [admin_group.id] if admin_group else []
-        return admin_partners, admin_partner_ids, admin_group_ids
+        return admin_partner_ids, admin_group_ids
 
     def _load_class_groups(self):
         """Возвращает (class_group_cache, default_student_group, get_cached_class_group_fn)."""
@@ -194,7 +194,7 @@ class CreateChannelWizard(models.TransientModel):
         return sessions_by_batch
 
     def _build_channel_data(self, get_cached_class_group, default_student_group):
-        """Строит channel_data + channel_pool + expected_names."""
+        """Строит channel_data + channel_pool (существующие каналы по ожидаемым именам)."""
         expected_channel_names = set()
         if self.create_general_channel and self.general_channel_name:
             expected_channel_names.add(self.general_channel_name)
@@ -239,7 +239,7 @@ class CreateChannelWizard(models.TransientModel):
                     'class_group': class_group,
                 })
 
-        return channel_data, channel_pool, expected_channel_names
+        return channel_data, channel_pool
 
     @staticmethod
     def _channel_create_vals(cd, admin_group_ids):
@@ -304,16 +304,15 @@ class CreateChannelWizard(models.TransientModel):
             channel_partners[class_channel_id] |= all_partners
 
             for subject in line.subject_ids:
-                sub_name = f'{ch_name} — {subject.display_name}'
+                sub_name = self._subject_channel_name(ch_name, subject)
                 subj_channel_id = channel_pool[sub_name].id
 
                 sub_partners = admin_partner_ids.copy()
                 sub_partners |= student_partner_ids
+                # Учителя предмета (по расписанию) + классные руководители этого класса
                 sessions = sessions_by_batch.get((batch.id, subject.id), self.env['op.session'])
-                sub_faculty = sessions.mapped('faculty_id') & line.faculty_ids
-                sub_partners |= self._partner_ids(sub_faculty)
-                # Плюс все учителя из визарда вручную (классный руководитель и др.)
-                sub_partners |= faculty_partner_ids
+                sub_faculty = sessions.mapped('faculty_id') | batch.homeroom_faculty_ids
+                sub_partners |= self._partner_ids(sub_faculty & line.faculty_ids)
 
                 channel_partners[subj_channel_id] |= sub_partners
 
@@ -379,11 +378,11 @@ class CreateChannelWizard(models.TransientModel):
         self._validate_input()
         self._validate_faculty_users()
 
-        admin_partners, admin_partner_ids, admin_group_ids = self._load_admin_data()
+        admin_partner_ids, admin_group_ids = self._load_admin_data()
         _, default_student_group, get_cached_class_group = self._load_class_groups()
         sessions_by_batch = self._load_sessions_cache()
 
-        channel_data, channel_pool, _ = self._build_channel_data(get_cached_class_group, default_student_group)
+        channel_data, channel_pool = self._build_channel_data(get_cached_class_group, default_student_group)
         channel_pool = self._create_new_channels(channel_data, channel_pool, admin_group_ids)
         self._update_existing_channels(channel_data, channel_pool, admin_group_ids)
 
