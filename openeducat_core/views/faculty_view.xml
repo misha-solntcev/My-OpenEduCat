@@ -9,6 +9,7 @@
                     <field name="image_1920"/>
                     <field name="faculty_subject_ids"/>
                     <field name="homeroom_batch_ids"/>
+                    <field name="current_homeroom_batch_ids"/>
                     <templates>
                         <t t-name="card" class="flex-row">
                             <widget name="web_ribbon" title="Archived" bg_color="text-bg-danger" invisible="active"/>
@@ -38,8 +39,8 @@
                                            options="{'color_field': 'color'}"/>
                                 </div>
                                 <footer class="d-flex align-items-center">
-                                    <span t-if="record.homeroom_batch_ids.raw_value.length" class="text-muted small me-auto">
-                                        <i class="oi oi-people me-1"/><field name="homeroom_batch_ids"/>
+                                    <span t-if="record.current_homeroom_batch_ids.raw_value.length" class="text-muted small me-auto">
+                                        <field name="current_homeroom_batch_ids"/>
                                     </span>
                                     <field name="activity_ids" widget="kanban_activity" class="ms-auto mt-auto" style="padding-bottom:6px;"/>
                                 </footer>

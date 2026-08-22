@@ -18,6 +18,17 @@ class OpFaculty(models.Model):
         'op.batch', 'op_faculty_homeroom_batch_rel', 'faculty_id', 'batch_id',
         string='Классный руководитель', tracking=True,
         help='Классы (параллели/потоки), в которых этот учитель является классным руководителем.')
+    current_homeroom_batch_ids = fields.Many2many(
+        'op.batch', compute='_compute_current_homeroom_batch_ids',
+        string='Классный руководитель (текущие)')
+
+    @api.depends('homeroom_batch_ids')
+    def _compute_current_homeroom_batch_ids(self):
+        """Только классы текущего учебного периода (end_date не в прошлом)."""
+        today = fields.Date.today()
+        for faculty in self:
+            faculty.current_homeroom_batch_ids = faculty.homeroom_batch_ids.filtered(
+                lambda b: b.end_date and b.end_date >= today)
     emp_id = fields.Many2one('hr.employee', 'HR Employee')
     main_department_id = fields.Many2one(
         'op.department', 'Main Department',
