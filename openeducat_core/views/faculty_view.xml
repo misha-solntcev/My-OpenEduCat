@@ -140,6 +140,10 @@
                                 </group>
                             </page>
                             <page name="subjects" string="Subjects">
+                                <group>
+                                    <field name="homeroom_batch_ids" widget="many2many_tags"
+                                           placeholder="Классы, где учитель — классный руководитель..."/>
+                                </group>
                                 <field name="faculty_subject_ids" colspan="4" nolabel="1"/>
                             </page>
                         </notebook>

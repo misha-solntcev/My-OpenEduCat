@@ -14,6 +14,10 @@ class OpFaculty(models.Model):
     login = fields.Char('Login', related='partner_id.user_id.login', readonly=True)
     last_login = fields.Datetime('Latest Connection', readonly=True, related='partner_id.user_id.login_date')
     faculty_subject_ids = fields.Many2many('op.subject', string='Subject(s)', tracking=True)
+    homeroom_batch_ids = fields.Many2many(
+        'op.batch', 'op_faculty_homeroom_batch_rel', 'faculty_id', 'batch_id',
+        string='Классный руководитель', tracking=True,
+        help='Классы (параллели/потоки), в которых этот учитель является классным руководителем.')
     emp_id = fields.Many2one('hr.employee', 'HR Employee')
     main_department_id = fields.Many2one(
         'op.department', 'Main Department',

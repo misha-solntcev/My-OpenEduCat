@@ -16,6 +16,9 @@ class OpBatch(models.Model):
         'Start Date', required=True, default=fields.Date.today())
     end_date = fields.Date('End Date', required=True)
     course_id = fields.Many2one('op.course', 'Course', required=True)
+    homeroom_faculty_ids = fields.Many2many(
+        'op.faculty', 'op_faculty_homeroom_batch_rel', 'batch_id', 'faculty_id',
+        string='Классные руководители')
     active = fields.Boolean(default=True)
 
     _sql_constraints = [
