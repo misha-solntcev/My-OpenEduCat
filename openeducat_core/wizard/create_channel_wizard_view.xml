@@ -29,11 +29,11 @@
                     <separator string="Классы и участники" class="mt-4 mb-2"/>
                     <field name="course_line_ids" nolabel="1" options="{'no_create': True}">
                         <list editable="bottom">
-                            <field name="academic_year_id" column_invisible="1"/>
-                            <field name="course_id" column_invisible="1"/>                            
-                            <field name="batch_id" string="Класс" readonly="1"/>
-                            <field name="subject_ids" widget="many2many_tags" options="{'no_create': True}"/>                            
-                            <field name="admin_ids" widget="many2many_tags" options="{'no_create': True}" readonly="1"/>
+                            <field name="academic_year_id" column_invisible="1" force_save="1"/>
+                            <field name="course_id" column_invisible="1" force_save="1"/>
+                            <field name="batch_id" string="Класс" readonly="1" force_save="1"/>
+                            <field name="subject_ids" widget="many2many_tags" options="{'no_create': True}"/>
+                            <field name="admin_ids" widget="many2many_tags" options="{'no_create': True}" readonly="1" force_save="1"/>
                             <field name="faculty_ids" widget="many2many_tags" options="{'no_create': True}"/>
                             <field name="student_ids" widget="many2many_tags" options="{'no_create': True}"/>
                             <field name="student_count" string="Учеников" optional="hide"/>
@@ -59,24 +59,7 @@
         <field name="view_id" ref="view_create_channel_wizard_form"/>
     </record>
 
-    <record id="view_course_form_inherit_channel_button" model="ir.ui.view">
-        <field name="name">op.course.form.inherit.channel</field>
-        <field name="model">op.course</field>
-        <field name="inherit_id" ref="openeducat_core.view_op_course_form" />
-        <field name="arch" type="xml">
-            <xpath expr="//header" position="inside">
-                <button name="%(action_create_channels)d"
-                    string="Создать каналы"
-                    type="action"
-                    groups="openeducat_core.group_op_back_office_admin"
-                    class="oe_highlight"
-                    icon="fa-plus" />
-            </xpath>
-        </field>
-    </record>
-
-    <record id="menu_create_channels_from_discuss_config"
-        model="ir.ui.menu">
+    <record id="menu_create_channels_from_discuss_config" model="ir.ui.menu">
         <field name="name">Создать каналы</field>
         <field name="parent_id" ref="mail.menu_configuration"/>
         <field name="action" ref="action_create_channels"/>

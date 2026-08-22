@@ -77,7 +77,7 @@ class CreateChannelWizard(models.TransientModel):
                 continue
             batch_enrollments = enrollments_by_batch.get(batch.id, self.env['op.student.course'])
             students = batch_enrollments.mapped('student_id').filtered(lambda s: s.user_id)
-            
+
             # Берем сессии из кэша, а не из БД
             batch_sessions = sessions_by_batch.get(batch.id, self.env['op.session'])
             faculty = batch_sessions.mapped('faculty_id').filtered(lambda f: f.user_id)
@@ -118,36 +118,52 @@ class CreateChannelWizard(models.TransientModel):
     def _channel_name(self, batch):
         return batch.name if batch else 'Без класса'
 
-    # ---------- main action ----------
+    # ---------- helpers ----------
 
-    def action_create_channels(self):
-        self.ensure_one()
+    def _partner_ids(self, records):
+        """Извлекает partner_id из записей через user_id. Единая точка вместо копий."""
+        return {p.id for p in records.mapped('user_id.partner_id') if p}
 
-        # CRITICAL: Отключаем трекинг и mail для массовых операций (ускорение в 5-10 раз)
-        self = self.with_context(
+    def _validate_faculty_users(self):
+        """Проверяет, у всех учителей в строках есть связанный пользователь.
+        Выбрасывает UserError со списком имен, если есть учителя без user_id."""
+        for line in self.course_line_ids:
+            without_user = line.faculty_ids.filtered(lambda f: not f.user_id)
+            if without_user:
+                raise UserError(_(
+                    'У следующих учителей нет связанного пользователя Odoo: %s. '
+                    'Создайте пользователя в карточке учителя и повторите.'
+                ) % ', '.join(without_user.mapped('name')))
+
+    # ---------- action_create_channels sub-methods ----------
+
+    def _prepare_context(self):
+        """Возвращает self с отключенным трекингом/mail для массовых операций."""
+        return self.with_context(
             tracking_disable=True,
             mail_notrack=True,
             mail_create_nosubscribe=True,
             mail_auto_subscribe=False,
         )
-        env = self.env
 
-        if self.course_ids and self.academic_year_id:
-            self._rebuild_course_lines()
-
+    def _validate_input(self):
+        """Проверка: есть строки или общий канал."""
         if not self.course_line_ids and not self.create_general_channel:
             raise UserError(_('Выберите учебный год и хотя бы один класс, либо создайте общий канал.'))
 
-        # 1. Предзагрузка админов (через helper, без дублирования)
+    def _load_admin_data(self):
+        """Возвращает (admin_partners, admin_partner_ids, admin_group_ids)."""
         admin_partners = self._get_admin_partners()
         admin_partner_ids = set(admin_partners.ids)
         admin_group = self.env.ref('openeducat_core.group_op_back_office_admin', raise_if_not_found=False)
         admin_group_ids = [admin_group.id] if admin_group else []
+        return admin_partners, admin_partner_ids, admin_group_ids
 
-        # 2. Кэшируем class_groups (один search вместо N)
-        class_groups_records = env['res.groups'].search([('name', '=like', 'Ученики % класс')])
+    def _load_class_groups(self):
+        """Возвращает (class_group_cache, default_student_group, get_cached_class_group_fn)."""
+        class_groups_records = self.env['res.groups'].search([('name', '=like', 'Ученики % класс')])
         class_group_cache = {g.name: g for g in class_groups_records}
-        default_student_group = env.ref('openeducat_core.group_op_students', raise_if_not_found=False)
+        default_student_group = self.env.ref('openeducat_core.group_op_students', raise_if_not_found=False)
 
         def get_cached_class_group(batch_name):
             match = re.match(r'^(\d+)', batch_name or '')
@@ -159,16 +175,21 @@ class CreateChannelWizard(models.TransientModel):
                         return class_group_cache[name_key]
             return default_student_group
 
-        # 3. Предзагрузка всех сессий (расписания)
+        return class_group_cache, default_student_group, get_cached_class_group
+
+    def _load_sessions_cache(self):
+        """Возвращает sessions_by_batch: {(batch_id, subject_id): op.session recordset}."""
         batch_ids = self.course_line_ids.mapped('batch_id').ids
-        all_sessions = env['op.session'].search([('batch_id', 'in', batch_ids)])
+        all_sessions = self.env['op.session'].search([('batch_id', 'in', batch_ids)])
         sessions_by_batch = {}
         for session in all_sessions:
             key = (session.batch_id.id, session.subject_id.id)
-            sessions_by_batch.setdefault(key, env['op.session'])
+            sessions_by_batch.setdefault(key, self.env['op.session'])
             sessions_by_batch[key] |= session
+        return sessions_by_batch
 
-        # 4. Собираем имена всех ожидаемых каналов для batch search
+    def _build_channel_data(self, get_cached_class_group, default_student_group):
+        """Строит channel_data + channel_pool + expected_names."""
         expected_channel_names = set()
         if self.create_general_channel and self.general_channel_name:
             expected_channel_names.add(self.general_channel_name)
@@ -179,16 +200,13 @@ class CreateChannelWizard(models.TransientModel):
             for subject in line.subject_ids:
                 expected_channel_names.add(f'{ch_name} — {subject.display_name}')
 
-        # 5. Batch search существующих каналов
-        existing_channels = env['discuss.channel'].search([
+        existing_channels = self.env['discuss.channel'].search([
             ('name', 'in', list(expected_channel_names)),
             ('channel_type', '=', 'channel'),
         ])
         channel_pool = {ch.name: ch for ch in existing_channels}
 
-        # 6. Подготавливаем данные для создания недостающих каналов
-        channel_data = []  # list of dicts: name, description, class_group
-
+        channel_data = []
         if self.create_general_channel:
             if not self.general_channel_name:
                 raise UserError(_('Укажите имя общего канала.'))
@@ -217,7 +235,10 @@ class CreateChannelWizard(models.TransientModel):
                     'class_group': class_group,
                 })
 
-        # 7. Batch create недостающих каналов
+        return channel_data, channel_pool, expected_channel_names
+
+    def _create_missing_channels(self, channel_data, channel_pool, admin_group_ids):
+        """Batch create новых каналов + обновление существующих. Возвращает обновлённый channel_pool."""
         to_create = []
         for cd in channel_data:
             if cd['name'] not in channel_pool:
@@ -226,7 +247,6 @@ class CreateChannelWizard(models.TransientModel):
                     'description': cd['description'],
                     'channel_type': 'channel',
                 }
-                # group_ids: админы + класс-группа (для автоподписки)
                 group_ids = list(admin_group_ids)
                 if cd['class_group']:
                     vals['group_public_id'] = cd['class_group'].id
@@ -235,23 +255,20 @@ class CreateChannelWizard(models.TransientModel):
                     vals['group_ids'] = [fields.Command.set(group_ids)]
                 to_create.append(vals)
 
-        if to_create:
-            new_channels = env['discuss.channel'].create(to_create)
-            for ch in new_channels:
-                channel_pool[ch.name] = ch
+        new_channels = self.env['discuss.channel'].create(to_create) if to_create else self.env['discuss.channel']
+        for ch in new_channels:
+            channel_pool[ch.name] = ch
 
-        # Обновляем ТОЛЬКО предварительно существующие каналы
+        # Обновляем ТОЛЬКО предварительно существующие
         existing_channel_names = set(channel_pool.keys()) - {ch.name for ch in new_channels} if to_create else set(channel_pool.keys())
-
         for cd in channel_data:
             if cd['name'] not in existing_channel_names:
-                continue  # Новый канал — уже создан с правильными значениями, обновлять не нужно
+                continue  # Новый канал — уже создан с правильными значениями
             ch = channel_pool.get(cd['name'])
             if ch:
                 update_vals = {'description': cd['description']}
                 if cd['class_group'] and ch.group_public_id != cd['class_group']:
                     update_vals['group_public_id'] = cd['class_group'].id
-                # group_ids: админы + класс-группа
                 group_ids = list(admin_group_ids)
                 if cd['class_group']:
                     group_ids.append(cd['class_group'].id)
@@ -259,7 +276,11 @@ class CreateChannelWizard(models.TransientModel):
                     update_vals['group_ids'] = [fields.Command.set(group_ids)]
                 ch.write(update_vals)
 
-        # 8. Собираем участников для каждого канала (в памяти, без add_members)
+        return channel_pool
+
+    def _compute_channel_partners(self, channel_pool, sessions_by_batch, admin_partner_ids, get_cached_class_group):
+        """Возвращает dict: {channel_id: set(partner_ids)}."""
+        # Валидация учителей выполняется явно в action_create_channels
         channel_partners = {ch.id: set() for ch in channel_pool.values()}
         general_channel_id = channel_pool.get(self.general_channel_name).id if self.create_general_channel else None
         all_class_partners = set()
@@ -269,47 +290,45 @@ class CreateChannelWizard(models.TransientModel):
             ch_name = self._channel_name(batch)
             class_channel_id = channel_pool[ch_name].id
 
-            # Безопасное получение partner_ids (фильтруем False)
-            student_partner_ids = {p.id for p in line.student_ids.mapped('user_id.partner_id') if p}
-            faculty_partner_ids = {p.id for p in line.faculty_ids.mapped('user_id.partner_id') if p}
-
+            student_partner_ids = self._partner_ids(line.student_ids)
+            faculty_partner_ids = self._partner_ids(line.faculty_ids)
             all_partners = student_partner_ids | faculty_partner_ids | admin_partner_ids
             all_class_partners |= all_partners
 
             channel_partners[class_channel_id] |= all_partners
 
-            # Предметные каналы
             for subject in line.subject_ids:
                 sub_name = f'{ch_name} — {subject.display_name}'
                 subj_channel_id = channel_pool[sub_name].id
 
                 sub_partners = admin_partner_ids.copy()
                 sub_partners |= student_partner_ids
-                sessions = sessions_by_batch.get((batch.id, subject.id), env['op.session'])
+                sessions = sessions_by_batch.get((batch.id, subject.id), self.env['op.session'])
                 sub_faculty = sessions.mapped('faculty_id') & line.faculty_ids
-                sub_partners |= {p.id for p in sub_faculty.mapped('user_id.partner_id') if p}
+                sub_partners |= self._partner_ids(sub_faculty)
+                # Плюс все учителя из визарда вручную (классный руководитель и др.)
+                sub_partners |= faculty_partner_ids
 
                 channel_partners[subj_channel_id] |= sub_partners
 
-        # 9. Общий канал
         if general_channel_id:
             channel_partners[general_channel_id] = all_class_partners | admin_partner_ids
 
-        # 10. Batch create discuss.channel.member (ГЛАВНОЕ УСКОРЕНИЕ)
+        return channel_partners
+
+    def _sync_channel_members(self, channel_partners):
+        """Batch create недостающих discuss.channel.member."""
         all_partner_ids = set()
         for pids in channel_partners.values():
             all_partner_ids |= pids
-
         all_channel_ids = list(channel_partners.keys())
 
-        # Находим существующих участников ОДНИМ запросом
-        existing_members = env['discuss.channel.member'].search([
+        existing_members = self.env['discuss.channel.member'].search([
             ('channel_id', 'in', all_channel_ids),
             ('partner_id', 'in', list(all_partner_ids)),
         ])
         existing_set = {(m.channel_id.id, m.partner_id.id) for m in existing_members}
 
-        # Создаем недостающих ОДНИМ batch create
         members_to_create = []
         for channel_id, partner_ids in channel_partners.items():
             for partner_id in partner_ids:
@@ -320,20 +339,20 @@ class CreateChannelWizard(models.TransientModel):
                     })
 
         if members_to_create:
-            env['discuss.channel.member'].create(members_to_create)
+            self.env['discuss.channel.member'].create(members_to_create)
 
+    def _build_result_notification(self):
+        """Возвращает display_notification с количеством обработанных каналов."""
         created_counts = {
             'general': 1 if self.create_general_channel else 0,
             'class': len(self.course_line_ids),
             'subject': sum(len(line.subject_ids) for line in self.course_line_ids),
         }
-
         parts = [f'{count} {label}' for label, count in [
             ('общий', created_counts['general']),
             ('классных', created_counts['class']),
-            ('предметных', created_counts['subject'])
+            ('предметных', created_counts['subject']),
         ] if count > 0]
-
         return {
             'type': 'ir.actions.client',
             'tag': 'display_notification',
@@ -344,6 +363,29 @@ class CreateChannelWizard(models.TransientModel):
                 'sticky': False,
             },
         }
+
+    # ---------- main action ----------
+
+    def action_create_channels(self):
+        self.ensure_one()
+        self = self._prepare_context()
+
+        self._validate_input()
+        self._validate_faculty_users()
+
+        admin_partners, admin_partner_ids, admin_group_ids = self._load_admin_data()
+        _, default_student_group, get_cached_class_group = self._load_class_groups()
+        sessions_by_batch = self._load_sessions_cache()
+
+        channel_data, channel_pool, _ = self._build_channel_data(get_cached_class_group, default_student_group)
+        channel_pool = self._create_missing_channels(channel_data, channel_pool, admin_group_ids)
+
+        channel_partners = self._compute_channel_partners(
+            channel_pool, sessions_by_batch, admin_partner_ids, get_cached_class_group
+        )
+        self._sync_channel_members(channel_partners)
+
+        return self._build_result_notification()
 
 
 class CreateChannelWizardCourse(models.TransientModel):
@@ -370,4 +412,3 @@ class CreateChannelWizardCourse(models.TransientModel):
             line.student_count = len(line.student_ids)
             line.faculty_count = len(line.faculty_ids)
             line.subject_count = len(line.subject_ids)
-
