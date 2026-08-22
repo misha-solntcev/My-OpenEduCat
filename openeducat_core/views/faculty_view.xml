@@ -7,6 +7,8 @@
                 <kanban sample="1">
                     <field name="id"/>
                     <field name="image_1920"/>
+                    <field name="faculty_subject_ids"/>
+                    <field name="homeroom_batch_ids"/>
                     <templates>
                         <t t-name="card" class="flex-row">
                             <widget name="web_ribbon" title="Archived" bg_color="text-bg-danger" invisible="active"/>
@@ -31,8 +33,16 @@
                                     <span t-if="record.city.raw_value and record.country_id.raw_value">, </span>
                                     <field name="country_id"/>
                                 </div>
-                                <field name="email" class="text-truncate"/>
-                                <footer><field name="activity_ids" widget="kanban_activity" class="ms-auto mt-auto" style="padding-bottom:6px;"/></footer>
+                                <div class="text-muted small">
+                                    <field name="faculty_subject_ids" widget="many2many_tags"
+                                           options="{'color_field': 'color'}"/>
+                                </div>
+                                <footer class="d-flex align-items-center">
+                                    <span t-if="record.homeroom_batch_ids.raw_value.length" class="text-muted small me-auto">
+                                        <i class="oi oi-people me-1"/><field name="homeroom_batch_ids"/>
+                                    </span>
+                                    <field name="activity_ids" widget="kanban_activity" class="ms-auto mt-auto" style="padding-bottom:6px;"/>
+                                </footer>
                             </main>
                         </t>
                     </templates>
