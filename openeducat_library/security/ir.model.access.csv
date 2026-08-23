@@ -30,3 +30,4 @@ access_op_media_type_library,name_op_media_type_library,model_op_media_type,grou
 access_issue_media,name_issue_media,model_issue_media,group_op_library,1,1,1,1
 access_reserve_media,name_reserve_media,model_reserve_media,group_op_library,1,1,1,1
 access_return_media,name_return_media,model_return_media,group_op_library,1,1,1,1
+access_mass_issue_media,name_mass_issue_media,model_mass_issue_media,group_op_library,1,1,1,1

@@ -109,7 +109,6 @@ class OpStudent(models.Model):
     mother_occupation = fields.Char("Mother's Occupation")
     last_school = fields.Char('Last School')
     last_class = fields.Char('Last Class')
-    library_card_id = fields.Many2one('op.library.card', 'Library Card')
 
     _sql_constraints = [(
         'unique_gr_no',
