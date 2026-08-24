@@ -1,249 +1,326 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <odoo>
 
-        <record id="view_gen_time_table_line_tree" model="ir.ui.view">
-            <field name="name">gen.time.table.line.list</field>
-            <field name="model">gen.time.table.line</field>
-            <field name="arch" type="xml">
-                <list string="Session Line" editable="bottom">
-                    <field name="day" column_invisible="True"/>
-                    <field name="timing_id" string="Урок" width="100px" options="{'no_create': True, 'no_open': True}"/>
-                    <field name="faculty_id" widget="many2one_avatar_user" options="{'no_create': True, 'no_open': True}"/>
-                    <field name="faculty_subject_ids" column_invisible="True"/>
-                    <field name="subject_id" options="{'no_create': True, 'no_open': True}" domain="[('id', 'in', faculty_subject_ids)]"/>
-                    <field name="classroom_id" string="Кабинет" width="100px" options="{'no_create': True, 'no_open': True}"/>
-                </list>
-            </field>
-        </record>
+    <record id="view_gen_time_table_line_tree" model="ir.ui.view">
+        <field name="name">gen.time.table.line.list</field>
+        <field name="model">gen.time.table.line</field>
+        <field name="arch" type="xml">
+            <list string="Session Line" editable="bottom">
+                <field name="day" column_invisible="True" />
+                <field name="timing_id" string="Урок" width="100px"
+                    options="{'no_create': True, 'no_open': True}" />
+                <field name="faculty_id" widget="many2one_avatar_user"
+                    options="{'no_create': True, 'no_open': True}" />
+                <field name="faculty_subject_ids" column_invisible="True" />
+                <field name="subject_id" options="{'no_create': True, 'no_open': True}"
+                    domain="[('id', 'in', faculty_subject_ids)]" />
+                <field name="classroom_id" string="Кабинет" width="100px"
+                    options="{'no_create': True, 'no_open': True}" />
+            </list>
+        </field>
+    </record>
 
-        <record id="view_generate_time_table_form" model="ir.ui.view">
-            <field name="name">generate.time.table.form</field>
-            <field name="model">generate.time.table</field>
-            <field name="arch" type="xml">
-                <form string="Создание расписания">
-                    <sheet>
-                        <!-- 1. ВЕРХНИЙ БЛОК: Параметры генерации -->
-                        <div class="alert alert-light border-0 border-start border-4 border-secondary py-2 px-3 mb-2" 
-                            style="background-color: #f8f9fa;" role="status">
-                            <div class="text-muted small mb-1">
-                                <i class="fa fa-info-circle me-1"/> Параметры создаваемого расписания
-                            </div>
-                            <div class="row align-items-center">
-                                <div class="col-lg-3">
-                                    <group class="m-0 p-0"><field name="course_id" options="{'no_create': True, 'no_open': True}"/></group>
-                                </div>
-                                <div class="col-lg-3">
-                                    <group class="m-0 p-0"><field name="batch_id" context="{'course_id': course_id}" options="{'no_create': True, 'no_open': True}"/></group>
-                                </div>
-                                <div class="col-lg-6">
-                                    <group class="m-0 p-0">
-                                        <label for="start_date" class="fa fa-calendar-plus-o" string=" " title="Период создания"/>
-                                        <div class="o_row">
-                                            <field name="start_date" widget="date"/>
-                                            <span class="mx-2 text-muted">→</span>
-                                            <field name="end_date" widget="date"/>
-                                        </div>
-                                    </group>
-                                </div>
+    <record id="view_generate_time_table_form" model="ir.ui.view">
+        <field name="name">generate.time.table.form</field>
+        <field name="model">generate.time.table</field>
+        <field name="arch" type="xml">
+            <form string="Создание расписания">
+                <sheet>
+                    <!-- 1. ВЕРХНИЙ БЛОК: Параметры генерации -->
+                    <div class="row align-items-center g-2">
+                        <!-- Первая строка: 3 элемента в один ряд -->
+                        <div class="col-lg-4">
+                            <div class="d-flex align-items-center">
+                                <label for="course_id" string="Класс" class="me-2 fw-bold text-nowrap"/>
+                                <field name="course_id" 
+                                    options="{'no_create': True, 'no_open': True}" 
+                                    placeholder="Из какого"/>
                             </div>
                         </div>
-
-                        <!-- 2. ВТОРОЙ БЛОК: Инструмент импорта -->
-                        <div class="alert alert-light border-0 border-start border-4 border-secondary py-2 px-3 mb-1" 
-                            style="background-color: #f8f9fa;" role="status">
-                            <div class="text-muted small mb-1">
-                                <i class="fa fa-magic me-1"/> Копирование прошлого расписания (опционально)
-                            </div>
-                            <div class="row align-items-center">
-                                <div class="col-lg-3">
-                                    <button name="action_import_last_week" type="object" string="Импорт" class="btn-secondary btn-sm w-100" icon="fa-download" invisible="import_start_date and import_end_date"/>
-                                    <button name="action_import_last_week" type="object" string="Импорт" class="btn-primary btn-sm w-100" icon="fa-download" invisible="not import_start_date or not import_end_date"/>
-                                </div>
-                                <!-- Пустая колонка 3 для выравнивания -->
-                                <div class="col-lg-3"></div>
-                                
-                                <div class="col-lg-6">
-                                    <group class="m-0 p-0">
-                                        <label for="import_start_date" class="fa fa-calendar" string=" " title="Период импорта"/>
-                                        <div class="o_row">
-                                            <field name="import_start_date" widget="date"/>
-                                            <span class="mx-2 text-muted">→</span>
-                                            <field name="import_end_date" widget="date"/>
-                                        </div>
-                                    </group>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Кнопки Статистика и Очистить все -->
-                        <div class="d-flex justify-content-between align-items-center mt-2">
-                            <!-- Блок переключателя -->
-                            <div class="d-flex align-items-center bg-white border rounded-pill px-3 py-1 shadow-sm">                                
-                                <span class="me-2" style="font-size: 1.2rem;" title="Статистика">📊</span>                                
-                                <span class="text-dark fw-bold small me-2">Статистика:</span>
-                                <field name="show_stats" widget="boolean_toggle" nolabel="1" class="m-0"/>
-                            </div>
-
-                            <!-- Кнопка очистки -->
-                            <button name="action_clear_all" type="object" string="Очистить всё" 
-                                    class="btn-secondary btn-sm" icon="fa-trash" 
-                                    confirm="Вы уверены что хотите очистить все введенные данные?"/>
-                        </div>
-
-
-                        <!-- БЛОК СТАТИСТИКИ (показывается только если show_stats == True) -->
                         
-                        <div class="mb-2 p-2 border-top border-bottom bg-light-subtle" 
-                            invisible="not show_stats" 
-                            style="min-height: 40px;" role="status">
-                            <field name="subject_stats_info" widget="html" readonly="1" nolabel="1"/>
-                            <field name="faculty_stats_info" widget="html" readonly="1" nolabel="1"/>
-                        </div>                        
-
-                        <notebook class="mt-0">
-                            <page name="monday" string="Понедельник">
-                                <div class="text-end mb-1">
-                                <button name="action_clear_day" type="object" string="Очистить понедельник" 
-                                        class="btn-secondary btn-sm" icon="fa-trash"
-                                        context="{'day_to_clear': 0}"
-                                        title="Очистить все уроки понедельника"/>
+                        <div class="col-lg-4">
+                            <div class="d-flex align-items-center">
+                                <label for="batch_id" string="Параллель" class="me-2 fw-bold text-nowrap"/>
+                                <field name="batch_id" 
+                                    context="{'course_id': course_id}" 
+                                    options="{'no_create': True, 'no_open': True}" 
+                                    placeholder="Из какого"/>
                             </div>
-                                <field name="time_table_lines_1" nolabel="1" context="{'default_day': '0'}">
-                                    <list editable="bottom" default_order="timing_id asc">
-                                        <field name="day" column_invisible="True"/>
-                                        <field name="timing_id" string="Урок" width="100px" options="{'no_create': True, 'no_open': True}"/>
-                                        <field name="faculty_id" widget="many2one_avatar_user" options="{'no_create': True, 'no_open': True}"/>
-                                        <field name="faculty_subject_ids" column_invisible="True"/>
-                                        <field name="subject_id" string="Предмет" options="{'no_create': True, 'no_open': True}" domain="[('id', 'in', faculty_subject_ids)]"/>
-                                        <field name="classroom_id" string="Кабинет" width="100px" options="{'no_create': True, 'no_open': True}"/>
-                                    </list>
-                                </field>
-                            </page>
-                            <page name="tuesday" string="Вторник">
-                                <div class="text-end mb-1">
-                                    <button name="action_clear_day" type="object" string="Очистить вторник" 
-                                        class="btn-secondary btn-sm" icon="fa-trash"
-                                        context="{'day_to_clear': 1}"/>
-                                </div>
-                                <field name="time_table_lines_2" nolabel="1" context="{'default_day': '1'}">
-                                    <list editable="bottom" default_order="timing_id asc">
-                                        <field name="day" column_invisible="True"/>
-                                        <field name="timing_id" string="Урок" width="100px" required="1" options="{'no_create': True, 'no_open': True}"/>
-                                        <field name="faculty_id" widget="many2one_avatar_user" options="{'no_create': True, 'no_open': True}"/>
-                                        <field name="faculty_subject_ids" column_invisible="True"/>
-                                        <field name="subject_id" string="Предмет" options="{'no_create': True, 'no_open': True}" domain="[('id', 'in', faculty_subject_ids)]"/>
-                                        <field name="classroom_id" string="Кабинет" width="100px" options="{'no_create': True, 'no_open': True}"/>
-                                    </list>
-                                </field>
-                            </page>
-                            <page name="wednesday" string="Среда">
-                                <div class="text-end mb-1">
-                                    <button name="action_clear_day" type="object" string="Очистить среду" 
-                                            class="btn-secondary btn-sm" icon="fa-trash"
-                                            context="{'day_to_clear': 2}"/>
-                                </div>
-                                <field name="time_table_lines_3" nolabel="1" context="{'default_day': '2'}">
-                                    <list editable="bottom" default_order="timing_id asc">
-                                        <field name="day" column_invisible="True"/>
-                                        <field name="timing_id" string="Урок" width="100px" required="1" options="{'no_create': True, 'no_open': True}"/>
-                                        <field name="faculty_id" widget="many2one_avatar_user" options="{'no_create': True, 'no_open': True}"/>
-                                        <field name="faculty_subject_ids" column_invisible="True"/>
-                                        <field name="subject_id" string="Предмет" options="{'no_create': True, 'no_open': True}" domain="[('id', 'in', faculty_subject_ids)]"/>
-                                        <field name="classroom_id" string="Кабинет" width="100px" options="{'no_create': True, 'no_open': True}"/>
-                                    </list>
-                                </field>
-                            </page>
-                            <page name="thursday" string="Четверг">
-                                <div class="text-end mb-1">
-                                    <button name="action_clear_day" type="object" string="Очистить четверг" 
-                                            class="btn-secondary btn-sm" icon="fa-trash"
-                                            context="{'day_to_clear': 3}"/>
-                                </div>
-                                <field name="time_table_lines_4" nolabel="1" context="{'default_day': '3'}">
-                                    <list editable="bottom" default_order="timing_id asc">
-                                        <field name="day" column_invisible="True"/>
-                                        <field name="timing_id" string="Урок" width="100px" required="1" options="{'no_create': True, 'no_open': True}"/>
-                                        <field name="faculty_id" widget="many2one_avatar_user" options="{'no_create': True, 'no_open': True}"/>
-                                        <field name="faculty_subject_ids" column_invisible="True"/>
-                                        <field name="subject_id" string="Предмет" options="{'no_create': True, 'no_open': True}" domain="[('id', 'in', faculty_subject_ids)]"/>
-                                        <field name="classroom_id" string="Кабинет" width="100px" options="{'no_create': True, 'no_open': True}"/>
-                                    </list>
-                                </field>
-                            </page>
-                            <page name="friday" string="Пятница">
-                                <div class="text-end mb-1">
-                                    <button name="action_clear_day" type="object" string="Очистить пятницу" 
-                                            class="btn-secondary btn-sm" icon="fa-trash"
-                                            context="{'day_to_clear': 4}"/>
-                                </div>
-                                <field name="time_table_lines_5" nolabel="1" context="{'default_day': '4'}">
-                                    <list editable="bottom" default_order="timing_id asc">
-                                        <field name="day" column_invisible="True"/>
-                                        <field name="timing_id" string="Урок" width="100px" required="1" options="{'no_create': True, 'no_open': True}"/>
-                                        <field name="faculty_id" widget="many2one_avatar_user" options="{'no_create': True, 'no_open': True}"/>
-                                        <field name="faculty_subject_ids" column_invisible="True"/>
-                                        <field name="subject_id" string="Предмет" options="{'no_create': True, 'no_open': True}" domain="[('id', 'in', faculty_subject_ids)]"/>
-                                        <field name="classroom_id" string="Кабинет" width="100px" options="{'no_create': True, 'no_open': True}"/>
-                                    </list>
-                                </field>
-                            </page>
-                            <page name="saturday" string="Суббота">
-                                <div class="text-end mb-1">
-                                    <button name="action_clear_day" type="object" string="Очистить субботу" 
-                                            class="btn-secondary btn-sm" icon="fa-trash"
-                                            context="{'day_to_clear': 5}"/>
-                                </div>
-                                <field name="time_table_lines_6" nolabel="1" context="{'default_day': '5'}">
-                                    <list editable="bottom" default_order="timing_id asc">
-                                        <field name="day" column_invisible="True"/>
-                                        <field name="timing_id" string="Урок" width="100px" required="1" options="{'no_create': True, 'no_open': True}"/>
-                                        <field name="faculty_id" widget="many2one_avatar_user" options="{'no_create': True, 'no_open': True}"/>
-                                        <field name="faculty_subject_ids" column_invisible="True"/>
-                                        <field name="subject_id" string="Предмет" options="{'no_create': True, 'no_open': True}" domain="[('id', 'in', faculty_subject_ids)]"/>
-                                        <field name="classroom_id" string="Кабинет" width="100px" options="{'no_create': True, 'no_open': True}"/>
-                                    </list>
-                                </field>
-                            </page>
-                            <page name="sunday" string="Воскресенье">
-                                <div class="text-end mb-1">
-                                    <button name="action_clear_day" type="object" string="Очистить воскресенье" 
-                                            class="btn-secondary btn-sm" icon="fa-trash"
-                                            context="{'day_to_clear': 6}"/>
-                                </div>
-                                <field name="time_table_lines_7" nolabel="1" context="{'default_day': '6'}">
-                                    <list editable="bottom" default_order="timing_id asc">
-                                        <field name="day" column_invisible="True"/>
-                                        <field name="timing_id" string="Урок" width="100px" required="1" options="{'no_create': True, 'no_open': True}"/>
-                                        <field name="faculty_id" widget="many2one_avatar_user" options="{'no_create': True, 'no_open': True}"/>
-                                        <field name="faculty_subject_ids" column_invisible="True"/>
-                                        <field name="subject_id" string="Предмет" options="{'no_create': True, 'no_open': True}" domain="[('id', 'in', faculty_subject_ids)]"/>
-                                        <field name="classroom_id" string="Кабинет" width="100px" options="{'no_create': True, 'no_open': True}"/>
-                                    </list>
-                                </field>
-                            </page>
-                        </notebook>
-                    </sheet>
-                    <footer>
-                        <button string="Создать" type="object" name="act_gen_time_table" class="btn-primary shadow-sm"/>
-                        <button special="cancel" string="Закрыть" class="btn-secondary"/>
-                    </footer>
-                </form>
-            </field>
-        </record>
+                        </div>
+                        
+                        <div class="col-lg-4">
+                            <div class="d-flex align-items-center">
+                                <label for="start_date" class="fa fa-calendar-plus-o me-2" string=" " title="Период создания"/>
+                                <field name="start_date" widget="date"/>
+                                <span class="mx-2 text-muted">→</span>
+                                <field name="end_date" widget="date"/>
+                            </div>
+                        </div>
 
-        <record model="ir.actions.act_window" id="act_open_generate_time_table_view">
-            <field name="name">Создать расписание</field>
-            <field name="type">ir.actions.act_window</field>
-            <field name="res_model">generate.time.table</field>
-            <field name="view_mode">form</field>
-            <field name="target">new</field>
-        </record>
+                        <!-- Вторая строка: И класс снизу на всю ширину -->
+                        <div class="col-12 mt-2">
+                            <div class="d-flex align-items-center">
+                                <label for="target_batch_id" string="Класс" class="me-2 fw-bold text-nowrap"/>
+                                <field name="target_batch_id" 
+                                    options="{'no_create': True, 'no_open': True}" 
+                                    placeholder="В какой" 
+                                    class="w-100"/>
+                            </div>
+                        </div>
+                    </div>
 
-        <record model="ir.actions.act_window.view" id="act_open_generate_time_table_view_form">
-            <field name="act_window_id" ref="act_open_generate_time_table_view"/>
-            <field name="sequence" eval="20"/>
-            <field name="view_mode">form</field>
-            <field name="view_id" ref="view_generate_time_table_form"/>
-        </record>
+                    <!-- 2. ВТОРОЙ БЛОК: Инструмент импорта -->
+                    <div
+                        class="alert alert-light border-0 border-start border-4 border-secondary py-2 px-3 mb-1"
+                        style="background-color: #f8f9fa;" role="status">
+                        <div class="text-muted small mb-1">
+                            <i class="fa fa-magic me-1" /> Копирование прошлого расписания
+                            (опционально) </div>
+                        <div class="row align-items-center">
+                            <div class="col-lg-3">
+                                <button name="action_import_last_week" type="object" string="Импорт"
+                                    class="btn-secondary btn-sm w-100" icon="fa-download"
+                                    invisible="import_start_date and import_end_date" />
+                                <button name="action_import_last_week" type="object" string="Импорт"
+                                    class="btn-primary btn-sm w-100" icon="fa-download"
+                                    invisible="not import_start_date or not import_end_date" />
+                            </div>
+                            <div class="col-lg-3"></div>
+
+                            <div class="col-lg-6">
+                                <group class="m-0 p-0">
+                                    <label for="import_start_date" class="fa fa-calendar" string=" "
+                                        title="Период импорта" />
+                                    <div class="o_row">
+                                        <field name="import_start_date" widget="date" />
+                                        <span class="mx-2 text-muted">→</span>
+                                        <field name="import_end_date" widget="date" />
+                                    </div>
+                                </group>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Кнопки Статистика и Очистить все -->
+                    <div class="d-flex justify-content-between align-items-center mt-2">
+                        <!-- Блок переключателя -->
+                        <div
+                            class="d-flex align-items-center bg-white border rounded-pill px-3 py-1 shadow-sm">
+                            <span class="me-2" style="font-size: 1.2rem;" title="Статистика">📊</span>
+                            <span class="text-dark fw-bold small me-2">Статистика:</span>
+                            <field name="show_stats" widget="boolean_toggle" nolabel="1" class="m-0" />
+                        </div>
+
+                        <!-- Кнопка очистки -->
+                        <button name="action_clear_all" type="object" string="Очистить всё"
+                            class="btn-secondary btn-sm" icon="fa-trash"
+                            confirm="Вы уверены что хотите очистить все введенные данные?" />
+                    </div>
+
+
+                    <!-- БЛОК СТАТИСТИКИ (показывается только если show_stats == True) -->
+
+                    <div class="mb-2 p-2 border-top border-bottom bg-light-subtle"
+                        invisible="not show_stats"
+                        style="min-height: 40px;" role="status">
+                        <field name="subject_stats_info" widget="html" readonly="1" nolabel="1" />
+                        <field name="faculty_stats_info" widget="html" readonly="1" nolabel="1" />
+                    </div>
+
+                    <notebook class="mt-0">
+                        <page name="monday" string="Понедельник">
+                            <div class="text-end mb-1">
+                                <button name="action_clear_day" type="object"
+                                    string="Очистить понедельник"
+                                    class="btn-secondary btn-sm" icon="fa-trash"
+                                    context="{'day_to_clear': 0}"
+                                    title="Очистить все уроки понедельника" />
+                            </div>
+                            <field name="time_table_lines_1" nolabel="1"
+                                context="{'default_day': '0'}">
+                                <list editable="bottom" default_order="timing_id asc">
+                                    <field name="day" column_invisible="True" />
+                                    <field name="timing_id" string="Урок" width="100px"
+                                        options="{'no_create': True, 'no_open': True}" />
+                                    <field name="faculty_id" widget="many2one_avatar_user"
+                                        options="{'no_create': True, 'no_open': True}" />
+                                    <field name="faculty_subject_ids" column_invisible="True" />
+                                    <field name="subject_id" string="Предмет"
+                                        options="{'no_create': True, 'no_open': True}"
+                                        domain="[('id', 'in', faculty_subject_ids)]" />
+                                    <field name="classroom_id" string="Кабинет" width="100px"
+                                        options="{'no_create': True, 'no_open': True}" />
+                                </list>
+                            </field>
+                        </page>
+                        <page name="tuesday" string="Вторник">
+                            <div class="text-end mb-1">
+                                <button name="action_clear_day" type="object"
+                                    string="Очистить вторник"
+                                    class="btn-secondary btn-sm" icon="fa-trash"
+                                    context="{'day_to_clear': 1}" />
+                            </div>
+                            <field name="time_table_lines_2" nolabel="1"
+                                context="{'default_day': '1'}">
+                                <list editable="bottom" default_order="timing_id asc">
+                                    <field name="day" column_invisible="True" />
+                                    <field name="timing_id" string="Урок" width="100px" required="1"
+                                        options="{'no_create': True, 'no_open': True}" />
+                                    <field name="faculty_id" widget="many2one_avatar_user"
+                                        options="{'no_create': True, 'no_open': True}" />
+                                    <field name="faculty_subject_ids" column_invisible="True" />
+                                    <field name="subject_id" string="Предмет"
+                                        options="{'no_create': True, 'no_open': True}"
+                                        domain="[('id', 'in', faculty_subject_ids)]" />
+                                    <field name="classroom_id" string="Кабинет" width="100px"
+                                        options="{'no_create': True, 'no_open': True}" />
+                                </list>
+                            </field>
+                        </page>
+                        <page name="wednesday" string="Среда">
+                            <div class="text-end mb-1">
+                                <button name="action_clear_day" type="object"
+                                    string="Очистить среду"
+                                    class="btn-secondary btn-sm" icon="fa-trash"
+                                    context="{'day_to_clear': 2}" />
+                            </div>
+                            <field name="time_table_lines_3" nolabel="1"
+                                context="{'default_day': '2'}">
+                                <list editable="bottom" default_order="timing_id asc">
+                                    <field name="day" column_invisible="True" />
+                                    <field name="timing_id" string="Урок" width="100px" required="1"
+                                        options="{'no_create': True, 'no_open': True}" />
+                                    <field name="faculty_id" widget="many2one_avatar_user"
+                                        options="{'no_create': True, 'no_open': True}" />
+                                    <field name="faculty_subject_ids" column_invisible="True" />
+                                    <field name="subject_id" string="Предмет"
+                                        options="{'no_create': True, 'no_open': True}"
+                                        domain="[('id', 'in', faculty_subject_ids)]" />
+                                    <field name="classroom_id" string="Кабинет" width="100px"
+                                        options="{'no_create': True, 'no_open': True}" />
+                                </list>
+                            </field>
+                        </page>
+                        <page name="thursday" string="Четверг">
+                            <div class="text-end mb-1">
+                                <button name="action_clear_day" type="object"
+                                    string="Очистить четверг"
+                                    class="btn-secondary btn-sm" icon="fa-trash"
+                                    context="{'day_to_clear': 3}" />
+                            </div>
+                            <field name="time_table_lines_4" nolabel="1"
+                                context="{'default_day': '3'}">
+                                <list editable="bottom" default_order="timing_id asc">
+                                    <field name="day" column_invisible="True" />
+                                    <field name="timing_id" string="Урок" width="100px" required="1"
+                                        options="{'no_create': True, 'no_open': True}" />
+                                    <field name="faculty_id" widget="many2one_avatar_user"
+                                        options="{'no_create': True, 'no_open': True}" />
+                                    <field name="faculty_subject_ids" column_invisible="True" />
+                                    <field name="subject_id" string="Предмет"
+                                        options="{'no_create': True, 'no_open': True}"
+                                        domain="[('id', 'in', faculty_subject_ids)]" />
+                                    <field name="classroom_id" string="Кабинет" width="100px"
+                                        options="{'no_create': True, 'no_open': True}" />
+                                </list>
+                            </field>
+                        </page>
+                        <page name="friday" string="Пятница">
+                            <div class="text-end mb-1">
+                                <button name="action_clear_day" type="object"
+                                    string="Очистить пятницу"
+                                    class="btn-secondary btn-sm" icon="fa-trash"
+                                    context="{'day_to_clear': 4}" />
+                            </div>
+                            <field name="time_table_lines_5" nolabel="1"
+                                context="{'default_day': '4'}">
+                                <list editable="bottom" default_order="timing_id asc">
+                                    <field name="day" column_invisible="True" />
+                                    <field name="timing_id" string="Урок" width="100px" required="1"
+                                        options="{'no_create': True, 'no_open': True}" />
+                                    <field name="faculty_id" widget="many2one_avatar_user"
+                                        options="{'no_create': True, 'no_open': True}" />
+                                    <field name="faculty_subject_ids" column_invisible="True" />
+                                    <field name="subject_id" string="Предмет"
+                                        options="{'no_create': True, 'no_open': True}"
+                                        domain="[('id', 'in', faculty_subject_ids)]" />
+                                    <field name="classroom_id" string="Кабинет" width="100px"
+                                        options="{'no_create': True, 'no_open': True}" />
+                                </list>
+                            </field>
+                        </page>
+                        <page name="saturday" string="Суббота">
+                            <div class="text-end mb-1">
+                                <button name="action_clear_day" type="object"
+                                    string="Очистить субботу"
+                                    class="btn-secondary btn-sm" icon="fa-trash"
+                                    context="{'day_to_clear': 5}" />
+                            </div>
+                            <field name="time_table_lines_6" nolabel="1"
+                                context="{'default_day': '5'}">
+                                <list editable="bottom" default_order="timing_id asc">
+                                    <field name="day" column_invisible="True" />
+                                    <field name="timing_id" string="Урок" width="100px" required="1"
+                                        options="{'no_create': True, 'no_open': True}" />
+                                    <field name="faculty_id" widget="many2one_avatar_user"
+                                        options="{'no_create': True, 'no_open': True}" />
+                                    <field name="faculty_subject_ids" column_invisible="True" />
+                                    <field name="subject_id" string="Предмет"
+                                        options="{'no_create': True, 'no_open': True}"
+                                        domain="[('id', 'in', faculty_subject_ids)]" />
+                                    <field name="classroom_id" string="Кабинет" width="100px"
+                                        options="{'no_create': True, 'no_open': True}" />
+                                </list>
+                            </field>
+                        </page>
+                        <page name="sunday" string="Воскресенье">
+                            <div class="text-end mb-1">
+                                <button name="action_clear_day" type="object"
+                                    string="Очистить воскресенье"
+                                    class="btn-secondary btn-sm" icon="fa-trash"
+                                    context="{'day_to_clear': 6}" />
+                            </div>
+                            <field name="time_table_lines_7" nolabel="1"
+                                context="{'default_day': '6'}">
+                                <list editable="bottom" default_order="timing_id asc">
+                                    <field name="day" column_invisible="True" />
+                                    <field name="timing_id" string="Урок" width="100px" required="1"
+                                        options="{'no_create': True, 'no_open': True}" />
+                                    <field name="faculty_id" widget="many2one_avatar_user"
+                                        options="{'no_create': True, 'no_open': True}" />
+                                    <field name="faculty_subject_ids" column_invisible="True" />
+                                    <field name="subject_id" string="Предмет"
+                                        options="{'no_create': True, 'no_open': True}"
+                                        domain="[('id', 'in', faculty_subject_ids)]" />
+                                    <field name="classroom_id" string="Кабинет" width="100px"
+                                        options="{'no_create': True, 'no_open': True}" />
+                                </list>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+                <footer>
+                    <button string="Создать" type="object" name="act_gen_time_table"
+                        class="btn-primary shadow-sm" />
+                    <button special="cancel" string="Закрыть" class="btn-secondary" />
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record model="ir.actions.act_window" id="act_open_generate_time_table_view">
+        <field name="name">Создать расписание</field>
+        <field name="type">ir.actions.act_window</field>
+        <field name="res_model">generate.time.table</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+
+    <record model="ir.actions.act_window.view" id="act_open_generate_time_table_view_form">
+        <field name="act_window_id" ref="act_open_generate_time_table_view" />
+        <field name="sequence" eval="20" />
+        <field name="view_mode">form</field>
+        <field name="view_id" ref="view_generate_time_table_form" />
+    </record>
 
 </odoo>

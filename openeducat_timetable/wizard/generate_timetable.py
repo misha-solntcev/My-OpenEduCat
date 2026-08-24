@@ -8,6 +8,7 @@ class GenerateSession(models.TransientModel):
     _name = "generate.time.table"
     _description = "Generate Sessions"
     _rec_name = "course_id"
+    _inherit = ['op.time.mixin']
 
     course_id = fields.Many2one('op.course', 'Класс', required=True)
     batch_id = fields.Many2one('op.batch', 'Параллель', required=True)
@@ -18,6 +19,10 @@ class GenerateSession(models.TransientModel):
 
     import_start_date = fields.Date('Начало периода импорта')
     import_end_date = fields.Date('Конец периода импорта')
+    target_batch_id = fields.Many2one(
+        'op.batch', 'Создать расписание для класса',
+        help='Класс, в который будет создано расписание. '
+             'Пусто = класс, выбранный выше.')
 
     time_table_lines = fields.One2many(
         'gen.time.table.line', 'gen_time_table', 'Time Table Lines')
@@ -152,10 +157,12 @@ class GenerateSession(models.TransientModel):
         self.ensure_one()
         if not self.time_table_lines:
             raise ValidationError("Таблица расписания не заполнена.")
+        target_batch = self.target_batch_id or self.batch_id
+        target_course = target_batch.course_id
 
         # 1. No existing sessions for this batch in the period
         existing_count = self.env['op.session'].search_count([
-            ('batch_id', '=', self.batch_id.id),
+            ('batch_id', '=', target_batch.id),
             ('timetable_date', '>=', self.start_date),
             ('timetable_date', '<=', self.end_date),
             ('state', '!=', 'cancel'),
@@ -174,8 +181,8 @@ class GenerateSession(models.TransientModel):
                 sync = self._sync_time_values(date_val=curr_date, timing_id=line.timing_id.id)
                 if sync:
                     sessions_data.append({
-                        'course_id': self.course_id.id,
-                        'batch_id': self.batch_id.id,
+                        'course_id': target_course.id,
+                        'batch_id': target_batch.id,
                         'faculty_id': line.faculty_id.id,
                         'subject_id': line.subject_id.id,
                         'classroom_id': line.classroom_id.id,
