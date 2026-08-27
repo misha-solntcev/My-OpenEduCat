@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!--
+        ROST School: меню Экзамены и Поступление — только для администрации.
+        Решение (access_matrix.md): ученикам и родителям не показывать,
+        учителям тоже не нужно (оценки ставятся через Успеваемость/Задания).
+        Оставляем только exam-группы (сейчас там администрация школы).
+    -->
+
+    <!-- Экзамены: только exam user/manager -->
+    <record id="openeducat_exam.menu_op_exam_root" model="ir.ui.menu">
+        <field name="groups_id"
+               eval="[(6, 0, [ref('openeducat_exam.group_op_exam_user'), ref('openeducat_exam.group_op_exam_admin')])]"/>
+    </record>
+
+    <!-- Поступление: только back-office администраторы -->
+    <record id="openeducat_admission.menu_op_admission_root" model="ir.ui.menu">
+        <field name="groups_id"
+               eval="[(6, 0, [ref('openeducat_core.group_op_back_office_admin')])]"/>
+    </record>
+</odoo>

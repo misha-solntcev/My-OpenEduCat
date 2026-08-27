@@ -1,0 +1,153 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!--
+        ROST School: вьюхи, ранее созданные вручную через UI (без xmlid).
+        Перенесены в код 2026-08-26, группы __custom__.* заменены на актуальные.
+
+        Смысл правок:
+        - Чаттер скрыт от учеников (роль openeducat_core.group_op_students)
+        - Кнопки расписания: учителя через per-module роль Учитель (timetable)
+        - Кнопки выдачи книг в библиотеке: пермодульная роль Учитель (assignment)
+        - Канбан преподавателей: ученикам отдельный шаблон без клика-открытия
+        - Оценка/примечание в сдаче задания: у учеников readonly
+    -->
+
+    <!-- ===== op.assignment.sub.line: чаттер скрыт от учеников ===== -->
+    <record id="view_assignment_sub_line_hide_chatter" model="ir.ui.view">
+        <field name="name">Делаем Чаттер невидимым для студентов</field>
+        <field name="model">op.assignment.sub.line</field>
+        <field name="inherit_id" ref="openeducat_assignment.view_op_assignment_sub_line_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//chatter" position="attributes">
+                <attribute name="groups">!openeducat_core.group_op_students</attribute>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- ===== op.session: кнопки формы видны и учителям ===== -->
+    <record id="view_session_buttons_faculty" model="ir.ui.view">
+        <field name="name">Добавляем группу учителей к кнопкам</field>
+        <field name="model">op.session</field>
+        <field name="inherit_id" ref="openeducat_timetable.view_op_session_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//header/button" position="attributes">
+                <attribute name="groups">openeducat_timetable.group_op_timetable_user,rost_school_access.group_teacher_timetable</attribute>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- ===== op.session: чаттер скрыт от учеников ===== -->
+    <record id="view_session_hide_chatter" model="ir.ui.view">
+        <field name="name">Отключаем чаттер для Учеников</field>
+        <field name="model">op.session</field>
+        <field name="inherit_id" ref="openeducat_timetable.view_op_session_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//chatter" position="attributes">
+                <attribute name="groups">!openeducat_core.group_op_students</attribute>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- ===== op.faculty: канбан — ученикам шаблон без открытия карточки ===== -->
+    <record id="view_faculty_kanban_student" model="ir.ui.view">
+        <field name="name">Ограничиваем доступ к канбану для Учеников</field>
+        <field name="model">op.faculty</field>
+        <field name="inherit_id" ref="openeducat_core.kanban_view_faculty"/>
+        <field name="arch" type="xml">
+            <data>
+                <!-- Скрываем оригинальный шаблон для студентов -->
+                <xpath expr="//kanban/templates/t[@t-name='card']" position="attributes">
+                    <attribute name="groups">!openeducat_core.group_op_students</attribute>
+                </xpath>
+
+                <!-- Шаблон для студентов БЕЗ класса oe_kanban_global_click -->
+                <xpath expr="//kanban/templates" position="inside">
+                    <t t-name="card" groups="openeducat_core.group_op_students" class="flex-row">
+                        <!-- ВАЖНО: Нет класса oe_kanban_global_click! -->
+                        <widget name="web_ribbon" title="Archived" bg_color="text-bg-danger" invisible="active"/>
+                        <aside class="o_kanban_aside_full">
+                            <t t-if="record.image_1920.value">
+                                <div class="o_kanban_image_fill position-relative w-100">
+                                    <field name="image_1920" alt="Contact image" class="h-100" widget="image" options="{'img_class': 'object-fit-cover'}"/>
+                                </div>
+                            </t>
+                            <t t-else="">
+                                <div class="o_kanban_image_fill position-relative w-100">
+                                    <field name="avatar_128" class="h-100" widget="image" options="{'img_class': 'object-fit-cover'}"/>
+                                </div>
+                            </t>
+                        </aside>
+                        <main class="ml16 ps-2 ps-md-0">
+                            <div class="mb-1">
+                                <field name="name" class="mb-0 fw-bold fs-5"/>
+                            </div>
+                            <div t-if="record.city.raw_value or record.country_id.raw_value">
+                                <field name="city"/>
+                                <span t-if="record.city.raw_value and record.country_id.raw_value">, </span>
+                                <field name="country_id"/>
+                            </div>
+                            <field name="email" class="text-truncate"/>
+                            <footer><field name="activity_ids" widget="kanban_activity" class="ms-auto mt-auto" style="padding-bottom:6px;"/></footer>
+                        </main>
+                    </t>
+                </xpath>
+            </data>
+        </field>
+    </record>
+
+    <!-- ===== op.student: чаттер скрыт от учеников ===== -->
+    <record id="view_student_hide_chatter" model="ir.ui.view">
+        <field name="name">Отключаем чаттер для учеников</field>
+        <field name="model">op.student</field>
+        <field name="inherit_id" ref="openeducat_core.view_op_student_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//chatter" position="attributes">
+                <attribute name="groups">!openeducat_core.group_op_students</attribute>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- ===== op.media.movement: кнопки выдачи/приёма для учителей библиотеки ===== -->
+    <record id="view_media_movement_teacher_buttons" model="ir.ui.view">
+        <field name="name">Добавление группы Учителя</field>
+        <field name="model">op.media.movement</field>
+        <field name="inherit_id" ref="openeducat_library.view_op_media_movement_form"/>
+        <field name="arch" type="xml">
+            <data>
+                <xpath expr="//header/button[@name='issue_media']" position="attributes">
+                    <attribute name="groups">openeducat_library.group_op_library,rost_school_access.group_teacher_assignment</attribute>
+                </xpath>
+                <xpath expr="//header/button[@name='410']" position="attributes">
+                    <attribute name="groups">openeducat_library.group_op_library,rost_school_access.group_teacher_assignment</attribute>
+                </xpath>
+            </data>
+        </field>
+    </record>
+
+    <!-- ===== op.assignment.sub.line: оценка/примечание у учеников readonly ===== -->
+    <record id="view_assignment_sub_line_marks_readonly" model="ir.ui.view">
+        <field name="name">Только для чтения студентов поля оценка и примечание</field>
+        <field name="model">op.assignment.sub.line</field>
+        <field name="inherit_id" ref="openeducat_assignment.view_op_assignment_sub_line_form"/>
+        <field name="arch" type="xml">
+            <data>
+                <!-- Поле Оценка для студентов - только для чтения -->
+                <xpath expr="//field[@name='marks']" position="attributes">
+                    <attribute name="readonly">state == 'accept' or True</attribute>
+                    <attribute name="groups">openeducat_core.group_op_students</attribute>
+                </xpath>
+
+                <!-- Для остальных пользователей - редактируемое -->
+                <xpath expr="//field[@name='marks']" position="after">
+                    <field name="marks" readonly="state == 'accept'" groups="!openeducat_core.group_op_students"/>
+                </xpath>
+
+                <!-- Поле Примечание для студентов - только для чтения -->
+                <xpath expr="//field[@name='note']" position="attributes">
+                    <attribute name="readonly">True</attribute>
+                    <attribute name="groups">openeducat_core.group_op_students</attribute>
+                </xpath>
+            </data>
+        </field>
+    </record>
+</odoo>

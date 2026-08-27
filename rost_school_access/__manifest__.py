@@ -1,0 +1,28 @@
+{
+    'name': 'ROST School Access',
+    'version': '18.0.1.0.0',
+    'license': 'LGPL-3',
+    'category': 'Education',
+    'summary': 'Права доступа и меню для школы РОСТ: ученики, родители, учителя',
+    'author': 'ROST School',
+    'depends': [
+        'openeducat_core',
+        'openeducat_attendance',
+        'openeducat_timetable',
+        'openeducat_assignment',
+        'openeducat_exam',
+        'openeducat_library',
+        'openeducat_admission',
+        'contacts',
+        'hr',
+        'utm',
+    ],
+    'data': [
+        'security/op_security.xml',
+        'views/custom_views.xml',
+        'menu/menu.xml',
+        'menu/menu_restricted.xml',
+    ],
+    'installable': True,
+    'application': False,
+}
