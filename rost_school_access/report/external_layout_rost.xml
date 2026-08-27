@@ -34,9 +34,13 @@
             </table>
         </div>
 
-        <!-- СОДЕРЖИМОЕ СТРАНИЦЫ -->
-        <div class="page">
-            <t t-out="0"/>
+        <!-- СОДЕРЖИМОЕ СТРАНИЦЫ (class="article" обязателен: _prepare_html
+             оборачивает его в web.minimal_layout с <base href> и charset,
+             без него ломаются относительные URL — штрихкоды, ассеты) -->
+        <div class="article">
+            <div class="page">
+                <t t-out="0"/>
+            </div>
         </div>
 
         <!-- ПОДВАЛ -->

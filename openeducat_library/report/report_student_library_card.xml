@@ -2,6 +2,7 @@
 <odoo>
     <template id="report_student_library_card">
         <t t-call="web.html_container">
+            <meta charset="utf-8"/>
             <t t-foreach="docs" t-as="o">
                 <t t-call="rost_school_access.external_layout_rost">
                     <!-- КАРТОЧКА (бэйдж) -->
@@ -43,7 +44,7 @@
                 </table>
                 <!-- Штрихкод по центру карточки -->
                 <div t-if="o.library_card_id.number" style="text-align: center; padding: 10px 12px;">
-                    <img t-att-src="'/report/barcode/?barcode_type=%s&amp;value=%s&amp;width=%s&amp;height=%s' % ('Code128', o.library_card_id.number, 300, 40)" style="height: 40px;"/>
+                    <img t-att-src="'/report/barcode/?barcode_type=%s&amp;value=%s&amp;width=%s&amp;height=%s' % ('Code128', o.library_card_id.number, 300, 40)" style="width: 300px; height: 40px;" width="300" height="40"/>
                 </div>
             </div>
 
@@ -65,7 +66,7 @@
                         <tr t-foreach="issued" t-as="m">
                             <td style="border: 1px solid #ccc; padding: 5px 8px;"><span t-field="m.media_id.name"/></td>
                             <td style="border: 1px solid #ccc; padding: 5px 8px; width: 35%;">
-                                <img t-if="m.barcode" t-att-src="'/report/barcode/?barcode_type=%s&amp;value=%s&amp;width=%s&amp;height=%s' % ('Code128', m.barcode, 380, 40)" style="width: 100%; height: 40px;"/>
+                                <img t-if="m.barcode" t-att-src="'/report/barcode/?barcode_type=%s&amp;value=%s&amp;width=%s&amp;height=%s' % ('Code128', m.barcode, 380, 40)" style="width: 100%; height: 40px;" width="380" height="40"/>
                             </td>
                             <td style="border: 1px solid #ccc; padding: 5px 8px;"><span t-field="m.barcode"/></td>
                             <td style="border: 1px solid #ccc; padding: 5px 8px;"><span t-field="m.issued_date" t-options="{'widget': 'date'}"/></td>
