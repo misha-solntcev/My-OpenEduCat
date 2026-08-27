@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- ACL, которые не помещаются в CSV из-за cross-module ссылок -->
+    <record id="access_op_batch_student" model="ir.model.access">
+        <field name="name">op.batch student read</field>
+        <field name="model_id" ref="openeducat_core.model_op_batch"/>
+        <field name="group_id" ref="openeducat_core.group_op_students"/>
+        <field name="perm_read" eval="1"/>
+    </record>
+</odoo>

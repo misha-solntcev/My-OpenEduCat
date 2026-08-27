@@ -154,24 +154,14 @@ class GenerateSession(models.TransientModel):
     # --- MAIN GENERATION ENGINE ---
 
     def act_gen_time_table(self):
+        """Предрасчёт сводки и переход к шагу подтверждения."""
         self.ensure_one()
         if not self.time_table_lines:
             raise ValidationError("Таблица расписания не заполнена.")
         target_batch = self.target_batch_id or self.batch_id
         target_course = target_batch.course_id
 
-        # 1. No existing sessions for this batch in the period
-        existing_count = self.env['op.session'].search_count([
-            ('batch_id', '=', target_batch.id),
-            ('timetable_date', '>=', self.start_date),
-            ('timetable_date', '<=', self.end_date),
-            ('state', '!=', 'cancel'),
-        ])
-        if existing_count > 0:
-            raise ValidationError(
-                "Для этого класса уже создано %s уроков. Сначала удалите их." % existing_count)
-
-        # 2. Build sessions_data
+        # Собираем новые уроки (день недели x строки мастера)
         sessions_data = []
         curr_date = self.start_date
         while curr_date <= self.end_date:
@@ -196,16 +186,35 @@ class GenerateSession(models.TransientModel):
         if not sessions_data:
             raise ValidationError("Нет данных для генерации.")
 
-        # 3. Validate conflicts BEFORE touching DB
-        get_param = self.env['ir.config_parameter'].sudo().get_param
-        allow_f = get_param('timetable.allow_faculty_overlap', 'True') == 'True'
-        allow_b = get_param('timetable.allow_batch_overlap', 'True') == 'True'
-        allow_c = get_param('timetable.allow_classroom_overlap', 'True') == 'True'
-        self._check_batch_conflicts(sessions_data, allow_f, allow_c, allow_b)
+        # Существующие уроки параллели за период
+        Session = self.env['op.session']
+        existing = Session.search([
+            ('batch_id', '=', target_batch.id),
+            ('state', '!=', 'cancel'),
+            ('timetable_date', '>=', self.start_date),
+            ('timetable_date', '<=', self.end_date),
+        ])
+        new_slots = {(d['timetable_date'], d['timing_id']) for d in sessions_data}
+        overlaps = existing.filtered(
+            lambda s: (s.timetable_date, s.timing_id.id) in new_slots)
+        protected = self.env['op.attendance.sheet'].sudo().search(
+            [('session_id', 'in', existing.ids)]).mapped('session_id')
 
-        # 4. Bulk create (constrains act as safety net)
-        self.env['op.session'].create(sessions_data)
-        return {'type': 'ir.actions.act_window_close'}
+        confirm = self.env['generate.time.table.confirm'].create({
+            'gen_wizard_id': self.id,
+            'mode': 'overlap' if overlaps else 'add',
+            'stat_new': len(sessions_data),
+            'stat_existing': len(existing),
+            'stat_overlap': len(overlaps),
+            'stat_protected': len(protected),
+        })
+        return {
+            'type': 'ir.actions.act_window',
+            'res_model': 'generate.time.table.confirm',
+            'res_id': confirm.id,
+            'view_mode': 'form',
+            'target': 'new',
+        }
 
     # --- STATISTICS ---
 

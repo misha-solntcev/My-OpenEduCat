@@ -12,6 +12,7 @@
     'data': [
         'security/op_security.xml',
         'security/ir.model.access.csv',
+        'security/student_access.xml',
         'data/day_data.xml',
         'data/lesson_data.xml',
         'views/timetable_view.xml',

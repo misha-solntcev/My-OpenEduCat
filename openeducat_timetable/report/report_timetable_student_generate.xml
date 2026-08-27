@@ -1,122 +1,58 @@
 <odoo>
 
         <template id="report_timetable_student_generate">
-            <style>
-                .font{
-                font-size:18px;
-                font-family:"Helvetica"
-                }
-                @page{
-                size: A4;
-                }
-                table.center {
-                width:80%;
-                margin-left:10%;
-                }
-                td.spacer1{
-                padding-right:320px;
-                }
-                .table.gridtable {
-                font-size:11px;
-                border-width: 1px;
-                border-color: #cccccc;
-                border-collapse: collapse;
-                }
-                table.gridtable th {
-                border-width: 1px;
-                padding: 10px;
-                border-style: solid;
-                border-color: #cccccc;
-                }
-                table.gridtable td {
-                border-width: 1px;
-                padding: 10px;
-                border-style: solid;
-                border-color: #cccccc;
-                }
-            </style>
             <t t-call="web.html_container">
                 <t t-foreach="docs" t-as="o">
                     <t t-call="web.external_layout">
-                        <div class="font">
-                            <div class="page">
-                                <br/>
-                                <br/>
-                                <br/>
-                                <div style="text-align: center;">
-                                    <h2>
-                                        <b>
-                                            <span t-field='res_company.name'/>
-                                            <span class="ml-2">TimeTable</span>
-                                        </b>
-                                    </h2>
-                                </div>
-                                <br></br>
-                                <table width="100%" style="text-align:center;">
-                                    <tbody>
-                                        <tr>
-                                            <td>
-                                                <b>Class :</b>
-                                                <span t-esc="data['course_id'][1]"/>
-                                            </td>
-                                            <td class="text-right">
-                                                <b>From Date :</b>
-                                                <span t-esc="data['start_date']" t-options="{'widget':'date'}"/>
-                                            </td>
-                                        </tr>
-                                        <tr>
-                                            <td>
-                                                <b>Batch :</b>
-                                                <span t-esc="data['course_id'][1]"/>
-                                            </td>
-                                            <td class="text-right">
-                                                <b>To Date :</b>
-                                                <span t-esc="data['end_date']" t-options="{'widget':'date'}"/>
-                                            </td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                                <br></br>
-                                <br></br>
-                                <table class="table table-bordered">
-                                    <thead class="text-center" style="background-color:#eeeeee; font-size:14px; font-weight:600;">
-                                        <th style="text-align: center;font-weight: bold;">Period</th>
-                                        <span t-foreach="get_heading()" t-as="n">
-                                            <th style="text-align: center;font-weight: bold;">
-                                                <span t-out="n"/>
-                                            </th>
-                                        </span>
-                                    </thead>
-                                    <tbody class="text-left" style="font-size:12px;text-align: center;">
-                                        <tr t-foreach="get_object(data)" t-as="a">
-                                            <td>
-                                                <span t-out="a['name'] if  a['name']  else ''"/>
-                                            </td>
-                                            <td>
-                                                <span t-esc="a['line'].get('0',{'subject':''})['subject']"/>
-                                            </td>
-                                            <td>
-                                                <span t-esc="a['line'].get('1',{'subject':''})['subject']"/>
-                                            </td>
-                                            <td>
-                                                <span t-esc="a['line'].get('2',{'subject':''})['subject']"/>
-                                            </td>
-                                            <td>
-                                                <span t-esc="a['line'].get('3',{'subject':''})['subject']"/>
-                                            </td>
-                                            <td>
-                                                <span t-esc="a['line'].get('4',{'subject':''})['subject']"/>
-                                            </td>
-                                            <td>
-                                                <span t-esc="a['line'].get('5',{'subject':''})['subject']"/>
-                                            </td>
-                                            <td>
-                                                <span t-esc="a['line'].get('6',{'subject':''})['subject']"/>
-                                            </td>
-                                        </tr>
-                                    </tbody>
-                                </table>
+                        <div class="page">
+
+                            <div style="text-align: center; margin-bottom: 14px;">
+                                <h2 style="font-size: 22px; margin-bottom: 4px;">
+                                    <b>Расписание занятий</b>
+                                </h2>
                             </div>
+                            <table width="100%" style="margin-bottom: 12px; font-size: 14px;">
+                                <tbody>
+                                    <tr>
+                                        <td>
+                                            <b>Класс:</b>
+                                            <span t-esc="data['course_id'][1]"/>
+                                            <span style="margin-left: 24px;"/>
+                                            <b>Группа:</b>
+                                            <span t-if="data.get('batch_id')" t-esc="data['batch_id'][1]"/>
+                                            <span t-else="">&#8212;</span>
+                                        </td>
+                                        <td style="text-align: right;">
+                                            <b>Период:</b>
+                                            <span t-esc="data['start_date']" t-options="{'widget':'date'}"/>
+                                            &#8212;
+                                            <span t-esc="data['end_date']" t-options="{'widget':'date'}"/>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                            <table class="table table-bordered" style="width: 100%; border-collapse: collapse;">
+                                <thead>
+                                    <tr>
+                                        <th style="font-size: 14px; padding: 10px 6px; border: 1px solid #999; background-color: #eeeeee; text-align: center; width: 90px;">Урок</th>
+                                        <t t-foreach="days" t-as="d">
+                                            <th style="font-size: 14px; padding: 10px 6px; border: 1px solid #999; background-color: #eeeeee; text-align: center;"><span t-out="d[1]"/></th>
+                                        </t>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr t-foreach="get_object(data)" t-as="a">
+                                        <td style="font-size: 13px; padding: 12px 6px; border: 1px solid #999; text-align: center; font-weight: bold; background-color: #f7f7f7;">
+                                            <span t-out="a['name'] if a['name'] else ''"/>
+                                        </td>
+                                        <t t-foreach="days" t-as="d">
+                                            <td style="font-size: 13px; padding: 12px 6px; border: 1px solid #999; text-align: center; vertical-align: middle;">
+                                                <span t-esc="a['line'].get(d[0], {'subject': ''})['subject']"/>
+                                            </td>
+                                        </t>
+                                    </tr>
+                                </tbody>
+                            </table>
                         </div>
                     </t>
                 </t>

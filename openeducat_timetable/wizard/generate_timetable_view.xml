@@ -20,6 +20,36 @@
         </field>
     </record>
 
+    <record id="view_generate_time_table_confirm_form" model="ir.ui.view">
+        <field name="name">generate.time.table.confirm.form</field>
+        <field name="model">generate.time.table.confirm</field>
+        <field name="arch" type="xml">
+            <form string="Проверьте изменения расписания">
+                <sheet>
+                    <div invisible="empty_period">
+                        <div class="mb-2 fw-bold">Выберите режим:</div>
+                        <group>
+                            <field name="mode" widget="radio"
+                                options="{'horizontal': true}" nolabel="1" />
+                        </group>
+                    </div>
+                    <div class="alert alert-info py-2 px-3" invisible="not empty_period">
+                        Расписание на этот период свободно. Просто нажмите «Применить».
+                    </div>
+                    <field name="summary_html" widget="html" readonly="1" nolabel="1" />
+                </sheet>
+                <footer>
+                    <button string="Назад" type="object" name="action_back"
+                        class="btn-secondary" />
+                    <button string="Применить" type="object" name="action_apply"
+                        class="btn-primary shadow-sm"
+                        confirm="Применить выбранные изменения расписания?" />
+                    <button special="cancel" string="Отмена" class="btn-secondary" />
+                </footer>
+            </form>
+        </field>
+    </record>
+
     <record id="view_generate_time_table_form" model="ir.ui.view">
         <field name="name">generate.time.table.form</field>
         <field name="model">generate.time.table</field>
