@@ -1,4 +1,4 @@
-from odoo import api, fields, models, _, fields
+from odoo import api, fields, models, _
 from odoo.exceptions import ValidationError
 
 class OpAttendanceLine(models.Model):
@@ -39,9 +39,9 @@ class OpAttendanceLine(models.Model):
     excused = fields.Boolean(related='attendance_type_id.excused', store=True)
 
     # --- ОЦЕНКИ ---
-    grade_1 = fields.Float('Оценка 1', default=0.0, tracking=True, aggregator="avg")
-    grade_2 = fields.Float('Оценка 2', default=0.0, tracking=True, aggregator="avg")
-    grade_3 = fields.Float('Оценка 3', default=0.0, tracking=True, aggregator="avg")
+    grade_1 = fields.Float('Оценка 1', default=0.0, aggregator="avg")
+    grade_2 = fields.Float('Оценка 2', default=0.0, aggregator="avg")
+    grade_3 = fields.Float('Оценка 3', default=0.0, aggregator="avg")
     
     grade_1_ui = fields.Selection([('2','2'),('3','3'),('4','4'),('5','5')], string='О1', 
         compute='_compute_grade_ui', inverse='_set_grade_1_ui')

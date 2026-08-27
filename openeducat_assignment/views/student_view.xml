@@ -12,7 +12,7 @@
                             name="get_assignment"
                             style="border-right: 1px solid;"
                             icon="fa-newspaper-o"
-                            groups="openeducat_assignment.group_op_assignment_user,openeducat_assignment.group_op_assignment_manager">
+                            groups="openeducat_assignment.group_op_assignment_user,openeducat_assignment.group_op_assignment_manager,rost_school_access.group_teacher_assignment,rost_school_access.group_student_assignment">
                         <field string="Assignment" name="assignment_count" widget="statinfo"/>
                     </button>
                 </xpath>

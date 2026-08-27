@@ -11,7 +11,7 @@
                             name="get_activity"
                             style="border-right: 1px solid;"
                             icon="fa-book"
-                            groups="openeducat_activity.group_activity_user,openeducat_activity.group_activity_manager">
+                            groups="openeducat_activity.group_activity_user,openeducat_activity.group_activity_manager,rost_school_access.group_teacher_activity">
                         <field string="Activity" name="activity_count" widget="statinfo"/>
                     </button>
                 </xpath>

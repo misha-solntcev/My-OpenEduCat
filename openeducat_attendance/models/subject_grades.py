@@ -84,7 +84,7 @@ class OpSubjectGrades(models.Model):
 
     def _compute_is_teacher(self):
         # Проверяем, входит ли текущий пользователь в группу учителей
-        teacher_group = self.env.ref('__custom__.group_op_faculty')
+        teacher_group = self.env.ref('openeducat_core.group_op_faculty')
         for record in self:
             record.is_teacher = self.env.user in teacher_group.users
 
