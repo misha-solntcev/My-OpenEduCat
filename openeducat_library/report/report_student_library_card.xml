@@ -31,6 +31,7 @@
                                         <tr style="float:left; margin:10px 0;">
                                             <td>
                                                 <img class="image"
+                                                     t-if="o.image_1920"
                                                      t-att-src="image_data_uri(o.image_1920)"
                                                      style="max-height:2.5cm; max-width:4cm; margin-left: 10px; margin-right: 10px; margin-bottom: 3px; border: 1px solid #ccc;"/>
                                             </td>
@@ -70,6 +71,38 @@
                                         </tr>
                                     </tbody>
                                 </table>
+                            </div>
+                            <!-- Issued books -->
+                            <t t-set="issued"
+                               t-value="env['op.media.movement'].search([('student_id', '=', o.id), ('state', '=', 'issue')])"/>
+                            <div style="width: 100%; margin-top: 15px; font-size: 12px;"
+                                 t-if="issued">
+                                <p style="font-size: 14px; font-weight: 600;">
+                                    Выданные книги:
+                                </p>
+                                <table width="100%" style="border-collapse: collapse;">
+                                    <thead>
+                                        <tr style="background-color: #2d4383; color: white;">
+                                            <th style="border: 1px solid #ccc; padding: 4px 8px;">Книга</th>
+                                            <th style="border: 1px solid #ccc; padding: 4px 8px;">Штрихкод</th>
+                                            <th style="border: 1px solid #ccc; padding: 4px 8px;">Дата выдачи</th>
+                                            <th style="border: 1px solid #ccc; padding: 4px 8px;">Вернуть до</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr t-foreach="issued" t-as="m">
+                                            <td style="border: 1px solid #ccc; padding: 4px 8px;"><span t-field="m.media_id.name"/></td>
+                                            <td style="border: 1px solid #ccc; padding: 4px 8px;"><span t-field="m.barcode"/></td>
+                                            <td style="border: 1px solid #ccc; padding: 4px 8px;"><span t-field="m.issued_date" t-options="{'widget':'date'}"/></td>
+                                            <td style="border: 1px solid #ccc; padding: 4px 8px;"><span t-field="m.return_date" t-options="{'widget':'date'}"/></td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                                <p style="margin-top: 40px; font-size: 12px;">
+                                    Книги получил(а), обязуюсь вернуть в срок.
+                                    Подпись ученика: ______________________
+                                    Дата: «___» ____________ 20___ г.
+                                </p>
                             </div>
                         </div>
                     </t>

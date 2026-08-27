@@ -28,7 +28,7 @@
                         name="count_media_movement_lines"
                         style="border-right: 1px solid;"
                         icon="fa-file"
-                        groups="openeducat_library.group_op_library_user,openeducat_library.group_op_library">
+                        groups="openeducat_library.group_op_library_user,openeducat_library.group_op_library,rost_school_access.group_teacher_library,rost_school_access.group_student_library">
                     <field string="Книги" name="media_movement_lines_count" widget="statinfo"/>
                 </button>
             </xpath>
