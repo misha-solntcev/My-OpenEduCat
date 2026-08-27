@@ -20,7 +20,7 @@
                                             </td>
                                             <td>
                                                 <p style="font-size:16px; font-weight: 600; margin: 10px 10px 0;">
-                                                    Library Card
+                                                    Библиотечная карточка
                                                 </p>
                                                 <p style="color: #3087c3;font-weight: 600;font-size: 14px;margin: 0px 10px 10px;"
                                                    t-out="res_company.partner_id.name if res_company.partner_id.name else ''"/>
@@ -38,26 +38,26 @@
                                             <td style="vertical-align: top;">
                                                 <div style="margin-left: 10px; margin-right: 10px; margin-bottom: 3px; font-size: 12px;">
                                                     <span style="font-weight:600">
-                                                        Name :
+                                                        ФИО :
                                                     </span>
                                                     <span t-field='o.name'/>
                                                     <br></br>
                                                     <span style="font-weight:600">
-                                                        Card No :
+                                                        № билета :
                                                     </span>
                                                     <span t-if="o.library_card_id">
                                                         <span t-field='o.library_card_id.number'/>
                                                     </span>
                                                     <br></br>
                                                     <span style="font-weight:600">
-                                                        Type :
+                                                        Тип :
                                                     </span>
                                                     <span t-if="o.library_card_id">
                                                         <span t-field='o.library_card_id.library_card_type_id.name'/>
                                                     </span>
                                                     <br></br>
                                                     <span style="font-weight:600">
-                                                        Issued Date :
+                                                        Выдан :
                                                     </span>
                                                     <span t-if="o.library_card_id">
                                                         <span t-field='o.library_card_id.issue_date' t-options="{'widget':'date'}"/>
