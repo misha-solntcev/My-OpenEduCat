@@ -31,23 +31,23 @@
                                             style="width: 90px; border: 1px solid #ccc; border-radius: 4px;" />
                                     </td>
                                     <td
-                                        style="padding: 10px 12px 10px 4px; font-size: 12px; vertical-align: top;">
+                                        style="padding: 10px 12px 10px 4px; font-size: 16px; vertical-align: top;">
                                         <div style="margin-bottom: 4px;">
-                                            <span style="font-weight: 700;">ФИО: </span>
+                                            <span style="font-weight: 700;">ФИО:&#160;</span>
                                             <span t-field="o.last_name" />
                                             <span t-field="o.first_name" />
                                         </div>
                                         <div style="margin-bottom: 4px;">
-                                            <span style="font-weight: 700;">№ билета: </span>
+                                            <span style="font-weight: 700;">№ билета:&#160;</span>
                                             <span t-field="o.library_card_id.number" />
                                         </div>
                                         <div style="margin-bottom: 4px;">
-                                            <span style="font-weight: 700;">Тип: </span>
+                                            <span style="font-weight: 700;">Тип:&#160;</span>
                                             <span
                                                 t-field="o.library_card_id.library_card_type_id.name" />
                                         </div>
                                         <div>
-                                            <span style="font-weight: 700;">Выдан: </span>
+                                            <span style="font-weight: 700;">Выдан:&#160;</span>
                                             <span t-field="o.library_card_id.issue_date"
                                                 t-options="{'widget': 'date'}" />
                                         </div>
