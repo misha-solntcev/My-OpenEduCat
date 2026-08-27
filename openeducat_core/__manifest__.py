@@ -12,7 +12,6 @@
     'data': [
         'security/op_security.xml',
         'security/ir.model.access.csv',
-        'security/student_access_restrictions.xml',
         'report/report_menu.xml',
         'report/report_student_bonafide.xml',
         'report/report_student_idcard.xml',
@@ -20,6 +19,7 @@
         'wizard/faculty_create_user_wizard_view.xml',
         'wizard/students_create_user_wizard_view.xml',
         'wizard/create_channel_wizard_view.xml',
+        'wizard/bonafide_certificate_wizard_view.xml',
         'views/department_view.xml',
         'views/res_company_view.xml',
         'views/student_view.xml',
