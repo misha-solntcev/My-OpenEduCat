@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+
+    <!-- Фирменный формат РОСТ: А4 портрет, поля по ГОСТ Р 7.0.97-2016
+         (левое 20 мм, остальные 10 мм).
+         header_spacing = высота зоны шапки ROST (~30мм хватает для лого 80px),
+         margin_top = header_spacing + небольшой зазор до контента. -->
+    <record id="paperformat_a4_rost_portret" model="report.paperformat">
+        <field name="name">A4 ROST Портрет</field>
+        <field name="format">A4</field>
+        <field name="orientation">Portrait</field>
+        <field name="margin_top">34</field>
+        <field name="margin_bottom">16</field>
+        <field name="margin_left">20</field>
+        <field name="margin_right">10</field>
+        <field name="header_spacing">30</field>
+        <field name="dpi">90</field>
+    </record>
+
+</odoo>
