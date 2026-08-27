@@ -79,7 +79,14 @@ class OpParent(models.Model):
             if not record.name.email:
                 raise ValidationError(_('Update parent email id first.'))
             if not record.name.user_id:
-                groups_id = template and template.groups_id or False
+                # Матрица ROST: родитель = internal user с группой Родитель
+                # (наследует Student). Шаблон portal не используем.
+                parent_group = self.env.ref(
+                    'rost_school_access.group_op_parent_rost',
+                    raise_if_not_found=False)
+                groups_id = (
+                    [(4, parent_group.id)] if parent_group
+                    else template and template.groups_id or False)
                 user_ids = [
                     parent.user_id.id for
                     parent in record.student_ids if parent.user_id]
