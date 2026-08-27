@@ -6,100 +6,81 @@
                 <t t-foreach="docs" t-as="o">
                     <t t-call="web.external_layout">
                         <div class="page">
-                            <br></br>
-                            <br></br>
-                            <br></br>
-                            <div style="max-height: 229px; width: 400px; border: 1px solid black;">
-                                <table width="100%">
-                                    <tbody>
-                                        <tr style="float:left">
-                                            <td>
-                                                <img class="image" alt="Library Card"
-                                                     t-att-src="image_data_uri(res_company.logo)"
-                                                     style="max-width:2.5cm; margin:10px;"/>
-                                            </td>
-                                            <td>
-                                                <p style="font-size:16px; font-weight: 600; margin: 10px 10px 0;">
-                                                    Библиотечная карточка
-                                                </p>
-                                                <p style="color: #3087c3;font-weight: 600;font-size: 14px;margin: 0px 10px 10px;"
-                                                   t-out="res_company.partner_id.name if res_company.partner_id.name else ''"/>
-                                            </td>
-                                        </tr>
-                                        <tr style="float: left;height: 2px;width: 100%;background-color: #2d4383;">
-                                        </tr>
-                                        <tr style="float:left; margin:10px 0;">
-                                            <td>
-                                                <img class="image"
-                                                     t-if="o.image_1920"
-                                                     t-att-src="image_data_uri(o.image_1920)"
-                                                     style="max-height:2.5cm; max-width:4cm; margin-left: 10px; margin-right: 10px; margin-bottom: 3px; border: 1px solid #ccc;"/>
-                                            </td>
-                                            <td style="vertical-align: top;">
-                                                <div style="margin-left: 10px; margin-right: 10px; margin-bottom: 3px; font-size: 12px;">
-                                                    <span style="font-weight:600">
-                                                        ФИО :
-                                                    </span>
-                                                    <span t-field='o.name'/>
-                                                    <br></br>
-                                                    <span style="font-weight:600">
-                                                        № билета :
-                                                    </span>
-                                                    <span t-if="o.library_card_id">
-                                                        <span t-field='o.library_card_id.number'/>
-                                                    </span>
-                                                    <br></br>
-                                                    <span style="font-weight:600">
-                                                        Тип :
-                                                    </span>
-                                                    <span t-if="o.library_card_id">
-                                                        <span t-field='o.library_card_id.library_card_type_id.name'/>
-                                                    </span>
-                                                    <br></br>
-                                                    <span style="font-weight:600">
-                                                        Выдан :
-                                                    </span>
-                                                    <span t-if="o.library_card_id">
-                                                        <span t-field='o.library_card_id.issue_date' t-options="{'widget':'date'}"/>
-                                                    </span>
-                                                    <div style="margin-top: 5px;" t-if="o.library_card_id.number">
-                                                            <img t-att-src="'/report/barcode/?barcode_type=%s&amp;value=%s&amp;width=%s&amp;height=%s' % ('Code128', o.library_card_id.number, 250, 40)"/></div>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                        <tr style="float: left;height: 15px;width: 100%;background-color: #2d4383;">
-                                        </tr>
-                                    </tbody>
+                            <!-- КАРТОЧКА (бэйдж) -->
+                            <div style="width: 400px; margin: 30px auto 0; border: 2px solid #2d4383; border-radius: 8px; overflow: hidden;">
+                                <!-- Шапка карточки: текст слева, логотип справа -->
+                                <table width="100%" style="background: #2d4383; border-collapse: collapse;">
+                                    <tr>
+                                        <td style="color: white; font-size: 13px; font-weight: 700; padding: 6px 12px;">Библиотечная карточка</td>
+                                        <td style="text-align: right; padding: 4px 10px;">
+                                            <img t-att-src="image_data_uri(res_company.logo)"
+                                                 style="height: 28px; background: white; border-radius: 4px; padding: 2px;"/>
+                                        </td>
+                                    </tr>
                                 </table>
+                                <!-- Тело: фото слева, текст справа -->
+                                <div style="display: flex; padding: 10px 12px;">
+                                    <img t-if="o.image_1920"
+                                         t-att-src="image_data_uri(o.image_1920)"
+                                         style="width: 80px; height: 100px; object-fit: cover; border: 1px solid #ccc; border-radius: 4px; margin-right: 12px;"/>
+                                    <div style="font-size: 12px; flex: 1;">
+                                        <div style="margin-bottom: 4px;">
+                                            <span style="font-weight: 700;">ФИО:</span>
+                                            <span t-field="o.last_name"/> <span t-field="o.first_name"/>
+                                        </div>
+                                        <div style="margin-bottom: 4px;">
+                                            <span style="font-weight: 700;">№ билета:</span>
+                                            <span t-field="o.library_card_id.number"/>
+                                        </div>
+                                        <div style="margin-bottom: 4px;">
+                                            <span style="font-weight: 700;">Тип:</span>
+                                            <span t-field="o.library_card_id.library_card_type_id.name"/>
+                                        </div>
+                                        <div>
+                                            <span style="font-weight: 700;">Выдан:</span>
+                                            <span t-field="o.library_card_id.issue_date" t-options="{'widget': 'date'}"/>
+                                        </div>
+                                    </div>
+                                </div>
+                                <!-- Штрихкод по центру карточки -->
+                                <div t-if="o.library_card_id.number" style="text-align: center; padding: 0 12px 10px;">
+                                    <img t-att-src="'/report/barcode/?barcode_type=%s&amp;value=%s&amp;width=%s&amp;height=%s' % ('Code128', o.library_card_id.number, 300, 40)"
+                                         style="height: 40px;"/>
+                                </div>
                             </div>
-                            <!-- Issued books -->
+
+                            <!-- ВЫДАННЫЕ КНИГИ -->
                             <t t-set="issued"
                                t-value="env['op.media.movement'].search([('student_id', '=', o.id), ('state', '=', 'issue')])"/>
-                            <div style="width: 100%; margin-top: 15px; font-size: 12px;"
-                                 t-if="issued">
-                                <p style="font-size: 14px; font-weight: 600;">
+                            <div style="margin: 25px 0 0; font-size: 12px;" t-if="issued">
+                                <p style="font-size: 14px; font-weight: 700; margin-bottom: 6px;">
                                     Выданные книги:
                                 </p>
-                                <table width="100%" style="border-collapse: collapse;">
+                                <table width="100%" style="border-collapse: collapse; font-size: 12px;">
                                     <thead>
                                         <tr style="background-color: #2d4383; color: white;">
-                                            <th style="border: 1px solid #ccc; padding: 4px 8px;">Книга</th>
-                                            <th style="border: 1px solid #ccc; padding: 4px 8px;">Штрихкод</th>
-                                            <th style="border: 1px solid #ccc; padding: 4px 8px;">Дата выдачи</th>
-                                            <th style="border: 1px solid #ccc; padding: 4px 8px;">Вернуть до</th>
+                                            <th style="border: 1px solid #ccc; padding: 5px 8px;">Книга</th>
+                                            <th style="border: 1px solid #ccc; padding: 5px 8px;">Штрих-код</th>
+                                            <th style="border: 1px solid #ccc; padding: 5px 8px;">Номер</th>
+                                            <th style="border: 1px solid #ccc; padding: 5px 8px;">Дата выдачи</th>
+                                            <th style="border: 1px solid #ccc; padding: 5px 8px;">Вернуть до</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         <tr t-foreach="issued" t-as="m">
-                                            <td style="border: 1px solid #ccc; padding: 4px 8px;"><span t-field="m.media_id.name"/></td>
-                                            <td style="border: 1px solid #ccc; padding: 4px 8px;"><span t-field="m.barcode"/></td>
-                                            <td style="border: 1px solid #ccc; padding: 4px 8px;"><span t-field="m.issued_date" t-options="{'widget':'date'}"/></td>
-                                            <td style="border: 1px solid #ccc; padding: 4px 8px;"><span t-field="m.return_date" t-options="{'widget':'date'}"/></td>
+                                            <td style="border: 1px solid #ccc; padding: 5px 8px;"><span t-field="m.media_id.name"/></td>
+                                            <td style="border: 1px solid #ccc; padding: 5px 8px;">
+                                                <img t-att-src="'/report/barcode/?barcode_type=%s&amp;value=%s&amp;width=%s&amp;height=%s' % ('Code128', m.barcode, 200, 35)"
+                                                     style="height: 35px;" t-if="m.barcode"/>
+                                            </td>
+                                            <td style="border: 1px solid #ccc; padding: 5px 8px;"><span t-field="m.barcode"/></td>
+                                            <td style="border: 1px solid #ccc; padding: 5px 8px;"><span t-field="m.issued_date" t-options="{'widget': 'date'}"/></td>
+                                            <td style="border: 1px solid #ccc; padding: 5px 8px;"><span t-field="m.return_date" t-options="{'widget': 'date'}"/></td>
                                         </tr>
                                     </tbody>
                                 </table>
                                 <p style="margin-top: 40px; font-size: 12px;">
-                                    Книги получил(а), обязуюсь вернуть в срок.
+                                    Получил(а) <t t-out="len(issued)"/> книг(и), обязуюсь вернуть в срок.
                                     Подпись ученика: ______________________
                                     Дата: «___» ____________ 20___ г.
                                 </p>
