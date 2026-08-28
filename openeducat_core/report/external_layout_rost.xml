@@ -4,7 +4,7 @@
     <!-- Фирменная шапка РОСТ: вариант 4 — вертикальная синяя линия слева,
          лого + название, контакты справа. Подключение в отчетах:
              <t t-foreach="docs" t-as="o">
-                 <t t-call="rost_school_access.external_layout_rost">
+                 <t t-call="openeducat_core.external_layout_rost">
                      ... содержимое страницы (доступна переменная o) ...
                  </t>
              </t>
@@ -16,7 +16,7 @@
                 <tr>
                     <td style="width: 6px; background-color: #2d4383; padding: 0;"></td>
                     <td style="padding: 6px 0 6px 16px; width: 130px; vertical-align: middle;">
-                        <img t-att-src="'/rost_school_access/static/description/logo_rost.png'"
+                        <img t-att-src="'/openeducat_core/static/description/logo_rost.png'"
                              style="height: 80px;" alt="РОСТ"/>
                     </td>
                     <td style="vertical-align: middle;">

@@ -23,8 +23,6 @@
         'views/custom_views.xml',
         'menu/menu.xml',
         'menu/menu_restricted.xml',
-        'report/external_layout_rost.xml',
-        'data/paperformat_a4_rost_portret.xml',
     ],
     'installable': True,
     'application': False,

@@ -13,6 +13,8 @@
         'security/op_security.xml',
         'security/ir.model.access.csv',
         'report/report_menu.xml',
+        'report/external_layout_rost.xml',
+        'data/paperformat_a4_rost_portret.xml',
         'report/report_student_bonafide.xml',
         'report/report_student_idcard.xml',
         'wizard/faculty_create_employee_wizard_view.xml',
