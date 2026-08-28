@@ -28,7 +28,9 @@
     'complexity': "easy",
     'author': 'OpenEduCat Inc',
     'website': 'https://www.openeducat.org',
-    'depends': ['openeducat_core', 'openeducat_facility', 'product'],
+    'depends': ['openeducat_core', 'openeducat_facility', 'product',
+        'rost_school_access',
+    ],
     'data': [
         'security/op_classroom_security.xml',
         'security/ir.model.access.csv',

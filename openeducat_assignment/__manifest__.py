@@ -31,6 +31,7 @@
     'depends': [
         'base_automation',
         'openeducat_core',
+        'rost_school_access',
     ],
     'data': [
         'security/op_security.xml',

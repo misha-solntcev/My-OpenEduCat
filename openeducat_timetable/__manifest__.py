@@ -8,7 +8,9 @@
     'complexity': "easy",
     'author': 'OpenEduCat Inc',
     'website': 'https://www.openeducat.org',
-    'depends': ['openeducat_classroom'],
+    'depends': ['openeducat_classroom',
+        'rost_school_access',
+    ],
     'data': [
         'security/op_security.xml',
         'security/ir.model.access.csv',
