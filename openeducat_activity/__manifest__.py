@@ -29,7 +29,6 @@
     'author': 'OpenEduCat Inc',
     'website': 'https://www.openeducat.org',
     'depends': ['openeducat_core',
-        'rost_school_access',
     ],
     'data': [
         'security/op_security.xml',

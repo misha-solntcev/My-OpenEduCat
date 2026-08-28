@@ -32,7 +32,6 @@
         'account',
         'base_automation',
         'openeducat_parent',
-        'rost_school_access',
     ],
     'data': [
         'security/op_security.xml',

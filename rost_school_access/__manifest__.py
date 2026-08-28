@@ -7,6 +7,7 @@
     'author': 'ROST School',
     'depends': [
         'openeducat_core',
+        'openeducat_activity',
         'openeducat_attendance',
         'openeducat_timetable',
         'openeducat_assignment',

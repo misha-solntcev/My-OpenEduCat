@@ -31,7 +31,7 @@
         <field name="inherit_id" ref="openeducat_timetable.view_op_session_form"/>
         <field name="arch" type="xml">
             <xpath expr="//header/button" position="attributes">
-                <attribute name="groups">openeducat_timetable.group_op_timetable_user,rost_school_access.group_teacher_timetable</attribute>
+                <attribute name="groups">openeducat_timetable.group_op_timetable_user,openeducat_timetable.group_teacher_timetable</attribute>
             </xpath>
         </field>
     </record>
@@ -115,10 +115,10 @@
         <field name="arch" type="xml">
             <data>
                 <xpath expr="//header/button[@name='issue_media']" position="attributes">
-                    <attribute name="groups">openeducat_library.group_op_library,rost_school_access.group_teacher_assignment</attribute>
+                    <attribute name="groups">openeducat_library.group_op_library,openeducat_assignment.group_teacher_assignment</attribute>
                 </xpath>
                 <xpath expr="//header/button[@name='410']" position="attributes">
-                    <attribute name="groups">openeducat_library.group_op_library,rost_school_access.group_teacher_assignment</attribute>
+                    <attribute name="groups">openeducat_library.group_op_library,openeducat_assignment.group_teacher_assignment</attribute>
                 </xpath>
             </data>
         </field>

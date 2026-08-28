@@ -1,14 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-    <!--
-        ROST School: безопасность — группы, record rules, ограничение системных меню.
+<!--
+        ROST School: безопасность — record rules, implied-чейн ролей, ограничение системных меню.
+
+        Пер-module группы (group_teacher_* / group_student_*) переехали в свои модули
+        2026-08-28: rost_school_access зависит от OE-модулей, поэтому ACL тех модулей
+        ссылаются на группы в них же (разрыв циклической зависимости для fresh install).
 
         Ученик (openeducat_core.group_op_students): read-only на свои данные.
         Учитель (group_op_faculty): видит всё, редактирует только свои записи.
         Родитель (group_op_parent_rost): видит то же, что ученик, но по своим детям.
-
-        ACL моделей живут в security/ir.model.access.csv соответствующих
-        модулей OpenEduCat; здесь только ir.rule и группы.
     -->
 
     <!-- ==================== ГРУППЫ ==================== -->
@@ -21,105 +22,16 @@
         <field name="comment">Родитель: видит данные своих детей (только чтение)</field>
     </record>
 
-    <!-- ==================== ПЕРМОДУЛЬНЫЕ РОЛИ ====================
-         Роли «Учитель»/«Ученик» в секциях модулей настроек пользователя.
-         Родные user/manager группы модулей не трогаем. ACL моделей
-         перепривязаны на эти группы в ir.model.access.csv модулей.
-         «Учителя»/«Ученик» выдают их через implied_ids — при онбординге
-         галочки проставляются сами; админ может снять любую вручную. -->
-
-    <!-- Расписание -->
-    <record id="group_teacher_timetable" model="res.groups">
-        <field name="name">Учитель</field>
-        <field name="category_id" ref="openeducat_timetable.module_category_openeducat_timetable"/>
-        <field name="comment">Учитель: работа с расписанием</field>
-    </record>
-    <record id="group_student_timetable" model="res.groups">
-        <field name="name">Ученик</field>
-        <field name="category_id" ref="openeducat_timetable.module_category_openeducat_timetable"/>
-        <field name="comment">Ученик: просмотр своего расписания</field>
-    </record>
-
-    <!-- Успеваемость -->
-    <record id="group_teacher_attendance" model="res.groups">
-        <field name="name">Учитель</field>
-        <field name="category_id" ref="openeducat_attendance.module_category_openeducat_attendance"/>
-        <field name="comment">Учитель: журналы посещаемости и оценки</field>
-    </record>
-    <record id="group_student_attendance" model="res.groups">
-        <field name="name">Ученик</field>
-        <field name="category_id" ref="openeducat_attendance.module_category_openeducat_attendance"/>
-        <field name="comment">Ученик: свои посещаемость и оценки</field>
-    </record>
-
-    <!-- Задание -->
-    <record id="group_teacher_assignment" model="res.groups">
-        <field name="name">Учитель</field>
-        <field name="category_id" ref="openeducat_assignment.module_category_openeducat_assignment"/>
-        <field name="comment">Учитель: создание заданий, проверка работ</field>
-    </record>
-    <record id="group_student_assignment" model="res.groups">
-        <field name="name">Ученик</field>
-        <field name="category_id" ref="openeducat_assignment.module_category_openeducat_assignment"/>
-        <field name="comment">Ученик: задания и сдача работ</field>
-    </record>
-
-    <!-- Экзамены -->
-    <record id="group_teacher_exam" model="res.groups">
-        <field name="name">Учитель</field>
-        <field name="category_id" ref="openeducat_exam.module_category_openeducat_exam"/>
-        <field name="comment">Учитель: экзамены и выставление оценок</field>
-    </record>
-    <!-- Ученик в Exam: НЕ входит в implied — включается админом вручную.
-         Меню Экзамены по умолчанию скрыто; правило student_no_exam_rule удалено. -->
-    <record id="group_student_exam" model="res.groups">
-        <field name="name">Ученик</field>
-        <field name="category_id" ref="openeducat_exam.module_category_openeducat_exam"/>
-        <field name="comment">Ученик: доступ к экзаменам (включается вручную админом)</field>
-    </record>
-
-    <!-- Библиотека -->
-    <record id="group_student_library" model="res.groups">
-        <field name="name">Ученик</field>
-        <field name="category_id" ref="openeducat_library.module_category_openeducat_library"/>
-        <field name="comment">Ученик: свои книги (смарт-кнопка)</field>
-    </record>
-    <record id="group_teacher_library" model="res.groups">
-        <field name="name">Учитель</field>
-        <field name="category_id" ref="openeducat_library.module_category_openeducat_library"/>
-        <field name="comment">Учитель: выдача и приём книг</field>
-    </record>
-
-    <!-- Активность -->
-    <record id="group_teacher_activity" model="res.groups">
-        <field name="name">Учитель</field>
-        <field name="category_id" ref="openeducat_activity.module_category_openeducat_activity"/>
-        <field name="comment">Учитель: ведение активностей</field>
-    </record>
-
-    <!-- Классная комната -->
-    <record id="group_teacher_classroom" model="res.groups">
-        <field name="name">Учитель</field>
-        <field name="category_id" ref="openeducat_classroom.module_category_openeducat_classroom"/>
-        <field name="comment">Учитель: просмотр кабинетов</field>
-    </record>
-
-    <!-- Инфраструктура -->
-    <record id="group_teacher_facility" model="res.groups">
-        <field name="name">Учитель</field>
-        <field name="category_id" ref="openeducat_facility.module_category_openeducat_facility"/>
-        <field name="comment">Учитель: просмотр инфраструктуры</field>
-    </record>
-
-    <!-- Implied: одна роль — все пермодульные галочки.
+    <!-- ==================== IMPLIED-ЧЕЙН РОЛЕЙ ====================
+         «Учителя»/«Ученик» выдают пермодульные галочки (группы живут в OE-модулях).
          group_student_exam НЕ входит: экзамены включаются админом вручную. -->
     <record id="openeducat_core.group_op_faculty" model="res.groups">
         <field name="implied_ids"
-               eval="[(4, ref('group_teacher_timetable')), (4, ref('group_teacher_attendance')), (4, ref('group_teacher_assignment')), (4, ref('group_teacher_exam')), (4, ref('group_teacher_library')), (4, ref('group_teacher_activity')), (4, ref('group_teacher_classroom')), (4, ref('group_teacher_facility'))]"/>
+               eval="[(4, ref('openeducat_timetable.group_teacher_timetable')), (4, ref('openeducat_attendance.group_teacher_attendance')), (4, ref('openeducat_assignment.group_teacher_assignment')), (4, ref('openeducat_exam.group_teacher_exam')), (4, ref('openeducat_library.group_teacher_library')), (4, ref('openeducat_activity.group_teacher_activity')), (4, ref('openeducat_classroom.group_teacher_classroom')), (4, ref('openeducat_facility.group_teacher_facility'))]"/>
     </record>
     <record id="openeducat_core.group_op_students" model="res.groups">
         <field name="implied_ids"
-               eval="[(4, ref('group_student_timetable')), (4, ref('group_student_attendance')), (4, ref('group_student_assignment')), (4, ref('group_student_library'))]"/>
+               eval="[(4, ref('openeducat_timetable.group_student_timetable')), (4, ref('openeducat_attendance.group_student_attendance')), (4, ref('openeducat_assignment.group_student_assignment')), (4, ref('openeducat_library.group_student_library'))]"/>
     </record>
 
     <!-- ==================== RECORD RULES: УЧЕНИК ==================== -->

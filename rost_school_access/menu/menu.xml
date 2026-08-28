@@ -39,65 +39,65 @@
     <!-- ===== Расписание ===== -->
     <record id="openeducat_timetable.menu_op_timetable_root" model="ir.ui.menu">
         <field name="groups_id"
-               eval="[(6, 0, [ref('openeducat_timetable.group_op_timetable_user'), ref('openeducat_timetable.group_op_timetable_manager'), ref('rost_school_access.group_teacher_timetable'), ref('rost_school_access.group_student_timetable')])]"/>
+               eval="[(6, 0, [ref('openeducat_timetable.group_op_timetable_user'), ref('openeducat_timetable.group_op_timetable_manager'), ref('openeducat_timetable.group_teacher_timetable'), ref('openeducat_timetable.group_student_timetable')])]"/>
     </record>
     <!-- Подменю «Уроки»: учителю нужен доступ к расписанию (просмотр) -->
     <record id="openeducat_timetable.menu_op_timetable" model="ir.ui.menu">
         <field name="groups_id"
-               eval="[(6, 0, [ref('openeducat_timetable.group_op_timetable_user'), ref('openeducat_timetable.group_op_timetable_manager'), ref('rost_school_access.group_teacher_timetable')])]"/>
+               eval="[(6, 0, [ref('openeducat_timetable.group_op_timetable_user'), ref('openeducat_timetable.group_op_timetable_manager'), ref('openeducat_timetable.group_teacher_timetable')])]"/>
     </record>
 
     <!-- ===== Успеваемость (attendance) ===== -->
     <record id="openeducat_attendance.menu_op_attendance_root" model="ir.ui.menu">
         <field name="groups_id"
-               eval="[(6, 0, [ref('openeducat_attendance.group_op_attendance_user'), ref('openeducat_attendance.group_op_attendance_manager'), ref('rost_school_access.group_teacher_attendance'), ref('rost_school_access.group_student_attendance')])]"/>
+               eval="[(6, 0, [ref('openeducat_attendance.group_op_attendance_user'), ref('openeducat_attendance.group_op_attendance_manager'), ref('openeducat_attendance.group_teacher_attendance'), ref('openeducat_attendance.group_student_attendance')])]"/>
     </record>
     <!-- Дашборд оценок (Current Grades / subject.grades.kanban): учителя и ученики.
          В XML модуля у меню стояли только user/manager + core-группы —
          Ермакова (group_teacher_attendance) не видела его. -->
     <record id="openeducat_attendance.menu_op_subject_grades_kanban" model="ir.ui.menu">
         <field name="groups_id"
-               eval="[(6, 0, [ref('openeducat_attendance.group_op_attendance_user'), ref('openeducat_attendance.group_op_attendance_manager'), ref('rost_school_access.group_teacher_attendance'), ref('rost_school_access.group_student_attendance')])]"/>
+               eval="[(6, 0, [ref('openeducat_attendance.group_op_attendance_user'), ref('openeducat_attendance.group_op_attendance_manager'), ref('openeducat_attendance.group_teacher_attendance'), ref('openeducat_attendance.group_student_attendance')])]"/>
     </record>
     <!-- Журналы уроков: только учителя (там оценки всего класса).
          Электронный дневник: ученик видит свои строки оценок
          (rule student_no_attendance_line_rule сужает до себя). -->
     <record id="openeducat_attendance.menu_op_attendance_sheet_sub" model="ir.ui.menu">
         <field name="groups_id"
-               eval="[(6, 0, [ref('openeducat_attendance.group_op_attendance_user'), ref('openeducat_attendance.group_op_attendance_manager'), ref('rost_school_access.group_teacher_attendance')])]"/>
+               eval="[(6, 0, [ref('openeducat_attendance.group_op_attendance_user'), ref('openeducat_attendance.group_op_attendance_manager'), ref('openeducat_attendance.group_teacher_attendance')])]"/>
     </record>
     <record id="openeducat_attendance.menu_op_attendance_line_sub" model="ir.ui.menu">
         <field name="groups_id"
-               eval="[(6, 0, [ref('openeducat_attendance.group_op_attendance_user'), ref('openeducat_attendance.group_op_attendance_manager'), ref('rost_school_access.group_teacher_attendance'), ref('rost_school_access.group_student_attendance')])]"/>
+               eval="[(6, 0, [ref('openeducat_attendance.group_op_attendance_user'), ref('openeducat_attendance.group_op_attendance_manager'), ref('openeducat_attendance.group_teacher_attendance'), ref('openeducat_attendance.group_student_attendance')])]"/>
     </record>
 
     <!-- Отчёты: только учителя. Текущие оценки и PDF-выписки —
          общешкольные, ученику не нужны. -->
     <record id="openeducat_attendance.menu_op_attendance_reports" model="ir.ui.menu">
         <field name="groups_id"
-               eval="[(6, 0, [ref('openeducat_attendance.group_op_attendance_user'), ref('openeducat_attendance.group_op_attendance_manager'), ref('rost_school_access.group_teacher_attendance')])]"/>
+               eval="[(6, 0, [ref('openeducat_attendance.group_op_attendance_user'), ref('openeducat_attendance.group_op_attendance_manager'), ref('openeducat_attendance.group_teacher_attendance')])]"/>
     </record>
     <record id="openeducat_attendance.menu_current_grades_report" model="ir.ui.menu">
         <field name="groups_id"
-               eval="[(6, 0, [ref('rost_school_access.group_teacher_attendance')])]"/>
+               eval="[(6, 0, [ref('openeducat_attendance.group_teacher_attendance')])]"/>
     </record>
 
     <!-- ===== Задания: root + пункты с action ===== -->
     <record id="openeducat_assignment.menu_op_assignment_root" model="ir.ui.menu">
         <field name="groups_id"
-               eval="[(6, 0, [ref('openeducat_assignment.group_op_assignment_user'), ref('openeducat_assignment.group_op_assignment_manager'), ref('rost_school_access.group_teacher_assignment'), ref('rost_school_access.group_student_assignment')])]"/>
+               eval="[(6, 0, [ref('openeducat_assignment.group_op_assignment_user'), ref('openeducat_assignment.group_op_assignment_manager'), ref('openeducat_assignment.group_teacher_assignment'), ref('openeducat_assignment.group_student_assignment')])]"/>
     </record>
     <!-- Промежуточное меню «Задания» (без action) + список заданий: учителю тоже -->
     <record id="openeducat_assignment.menu_op_assignment_main" model="ir.ui.menu">
-        <field name="groups_id" eval="[(6, 0, [ref('rost_school_access.group_teacher_assignment'), ref('rost_school_access.group_student_assignment')])]"/>
+        <field name="groups_id" eval="[(6, 0, [ref('openeducat_assignment.group_teacher_assignment'), ref('openeducat_assignment.group_student_assignment')])]"/>
     </record>
     <!-- Список заданий (action): учителю тоже; ACL через *_faculty в CSV -->
     <record id="openeducat_assignment.menu_op_assignment_sub" model="ir.ui.menu">
         <field name="groups_id"
-               eval="[(6, 0, [ref('openeducat_assignment.group_op_assignment_user'), ref('openeducat_assignment.group_op_assignment_manager'), ref('rost_school_access.group_teacher_assignment'), ref('rost_school_access.group_student_assignment')])]"/>
+               eval="[(6, 0, [ref('openeducat_assignment.group_op_assignment_user'), ref('openeducat_assignment.group_op_assignment_manager'), ref('openeducat_assignment.group_teacher_assignment'), ref('openeducat_assignment.group_student_assignment')])]"/>
     </record>
     <record id="openeducat_assignment.menu_op_assignment_sub_line_sub" model="ir.ui.menu">
-        <field name="groups_id" eval="[(6, 0, [ref('rost_school_access.group_student_assignment')])]"/>
+        <field name="groups_id" eval="[(6, 0, [ref('openeducat_assignment.group_student_assignment')])]"/>
     </record>
 
     <!-- ===== Библиотека: скрыто от учеников (каталог бесполезен без прав открытия).

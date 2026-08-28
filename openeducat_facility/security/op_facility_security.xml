@@ -31,4 +31,11 @@
         </record>
 
 
+
+    <!-- ROST per-module role group (перенесён из rost_school_access 2026-08-28) -->
+    <record id="group_teacher_facility" model="res.groups">
+        <field name="name">Учитель</field>
+        <field name="category_id" ref="module_category_openeducat_facility"/>
+        <field name="comment">Учитель: просмотр инфраструктуры</field>
+    </record>
 </odoo>
