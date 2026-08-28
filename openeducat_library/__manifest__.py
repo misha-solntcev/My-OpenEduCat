@@ -31,6 +31,8 @@
     'depends': [
         'account',
         'base_automation',
+        # Библиотечная карточка использует фирменный layout и paperformat РОСТ
+        'rost_school_access',
         'openeducat_parent',
     ],
     'data': [
