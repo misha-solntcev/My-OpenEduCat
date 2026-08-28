@@ -20,14 +20,16 @@
                              style="height: 80px;" alt="РОСТ"/>
                     </td>
                     <td style="vertical-align: middle;">
-                        <div style="font-size: 26px; font-weight: 700; color: #2d4383;">ЧОУ СПбГШ «РОСТ»</div>
-                        <div style="font-size: 17px; color: #555555; margin-top: 2px;">Библиотека</div>
+                        <div style="font-size: 18px; font-weight: 700; color: #2d4383;">ЧОУ СПбГШ «РОСТ»</div>
+                        <div style="font-size: 16px; font-weight: 600; color: #555555; margin-top: 2px;">Библиотека</div>
                     </td>
                     <td style="text-align: right; vertical-align: middle;">
-                        <div style="font-size: 17px; color: #555555; line-height: 1.7;">
+                        <div style="font-size: 14px; color: #555555; line-height: 1.5;">
                             Санкт-Петербург, Парнас,<br/>
                             улица Николая Рубцова, дом 5<br/>
-                            +7 921 631-25-50 &amp;middot; info@rostschoolspb.ru
+                            <a href="tel:+79216312550" style="color: #555555; text-decoration: none;">+7 921 631-25-50</a>
+                            &amp;middot;
+                            <a href="https://rostschoolspb.ru" style="color: #555555; text-decoration: none;">info@rostschoolspb.ru</a>
                         </div>
                     </td>
                 </tr>
@@ -45,8 +47,9 @@
 
         <!-- ПОДВАЛ -->
         <div class="footer o_layout_rost_footer">
-            <div style="border-top: 1px solid #dddddd; margin-top: 20px; padding-top: 6px; text-align: center; font-size: 20px; color: #888888;">
-                ЧОУ СПбГШ «РОСТ» &amp;middot; rostschoolspb.ru
+            <div style="border-top: 1px solid #dddddd; padding-top: 6px; text-align: center; font-size: 16px; color: #888888;">
+                ЧОУ СПбГШ «РОСТ» &amp;middot;
+                <a href="https://rostschoolspb.ru" style="color: #888888; text-decoration: none;">rostschoolspb.ru</a>
             </div>
         </div>
     </template>

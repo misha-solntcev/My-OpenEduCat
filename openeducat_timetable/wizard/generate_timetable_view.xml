@@ -33,7 +33,7 @@
                                 options="{'horizontal': true}" nolabel="1" />
                         </group>
                     </div>
-                    <div class="alert alert-info py-2 px-3" invisible="not empty_period">
+                    <div class="alert alert-info py-2 px-3" role="status" invisible="not empty_period">
                         Расписание на этот период свободно. Просто нажмите «Применить».
                     </div>
                     <field name="summary_html" widget="html" readonly="1" nolabel="1" />
