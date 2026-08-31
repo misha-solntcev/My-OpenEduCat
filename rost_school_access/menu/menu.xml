@@ -53,16 +53,20 @@
             </p>
         </field>
     </record>
-    <!-- Меню «Расписание» для учеников (те же группы, что давали root-меню) -->
-    <menuitem id="menu_op_timetable_student"
-              name="Расписание"
-              parent="openeducat_timetable.menu_op_timetable_root"
+    <!-- Меню «Расписание» для учеников: отдельное КОРНЕВОЕ меню (не ребёнок
+         учительского root, у которого action act_open_op_session_view с
+         search_default_my_sessions — клик по иконке приложения открывает
+         именно action корня, подменю при этом не открывается). Ученикам
+         нужен свой корень с экшеном без «Мои уроки». -->
+    <menuitem id="menu_op_timetable_student_root"
+              name="Time Table"
               groups="openeducat_timetable.group_student_timetable"
+              web_icon="openeducat_timetable,static/description/icon.png"
               action="act_open_op_session_view_student"
-              sequence="5"/>
+              sequence="280"/>
     <record id="openeducat_timetable.menu_op_timetable_root" model="ir.ui.menu">
         <field name="groups_id"
-               eval="[(6, 0, [ref('openeducat_timetable.group_op_timetable_user'), ref('openeducat_timetable.group_op_timetable_manager'), ref('openeducat_timetable.group_teacher_timetable'), ref('openeducat_timetable.group_student_timetable')])]"/>
+               eval="[(6, 0, [ref('openeducat_timetable.group_op_timetable_user'), ref('openeducat_timetable.group_op_timetable_manager'), ref('openeducat_timetable.group_teacher_timetable')])]"/>
     </record>
     <!-- Подменю «Уроки»: учителю нужен доступ к расписанию (просмотр) -->
     <record id="openeducat_timetable.menu_op_timetable" model="ir.ui.menu">
