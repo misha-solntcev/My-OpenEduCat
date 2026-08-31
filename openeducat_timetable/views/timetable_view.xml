@@ -337,6 +337,17 @@
 
                 <separator />
 
+                <!-- Текущий учебный год (начало 1 сентября):
+                     k = месяцев с прошлого сентября, старт = 1-е число
+                     месяца минус k месяцев. Снимаемый дефолт
+                     (search_default) в act_window. -->
+                <filter string="🎓 Текущий учебный год" name="current_year"
+                    domain="[
+                        ('timetable_date', '&gt;=', (context_today() + relativedelta(months=-(((context_today().month) - 9) % 12), day=1)).strftime('%Y-%m-%d')),
+                        ('timetable_date', '&lt;=', (context_today() + relativedelta(months=-(((context_today().month) - 9) % 12), day=1, years=1, days=-1)).strftime('%Y-%m-%d'))]" />
+
+                <separator />
+
                 <filter string="Мои уроки" name="my_sessions"
                     domain="[('faculty_id.user_id', '=', uid)]" />
 
@@ -364,6 +375,13 @@
                         context="{'group_by': 'timetable_date'}" />
                 </group>
                 <searchpanel>
+                    <!-- Учебный год -->
+                    <field name="academic_year_id"
+                        string="Учебный год"
+                        select="one"
+                        icon="fa-calendar"
+                        enable_counters="1" />
+
                     <!-- Фильтр по классам -->
                     <field name="batch_id"
                         string="Класс"
@@ -388,7 +406,7 @@
         <field name="res_model">op.session</field>
         <field name="view_mode">calendar,kanban,list,pivot,graph,form</field>
         <field name="search_view_id" ref="view_op_session_search" />
-        <field name="context">{'search_default_my_sessions': 1,
+        <field name="context">{'search_default_my_sessions': 1, 'search_default_current_year': 1,
             'graph_groupbys': ['faculty_surname', 'subject_id'],
             'graph_stacked': True,
             'graph_mode': 'bar'

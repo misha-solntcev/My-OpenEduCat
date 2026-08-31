@@ -65,6 +65,9 @@ class OpSession(models.Model):
     course_id = fields.Many2one('op.course', 'Course', required=True, index=True)
     classroom_id = fields.Many2one('op.classroom', 'Classroom', index=True, tracking=True)
     timing_id = fields.Many2one('op.timing', string='Lesson Slot')
+    academic_year_id = fields.Many2one(
+        'op.academic.year', string='Учебный год',
+        compute='_compute_academic_year', store=True, index=True)
 
     # --- FLAGS ---
     active = fields.Boolean(default=True)
@@ -183,6 +186,17 @@ class OpSession(models.Model):
             if record.timetable_date:
                 record.days_id = day_map.get(
                     record.timetable_date.strftime('%A').lower())
+
+    @api.depends('timetable_date')
+    def _compute_academic_year(self):
+        """Учебный год = диапазон [start_date, end_date], в который попадает
+        timetable_date. Диапазоны годов не пересекаются."""
+        years = self.env['op.academic.year'].sudo().search([])
+        spans = [(y.start_date, y.end_date, y.id) for y in years]
+        for record in self:
+            d = record.timetable_date
+            record.academic_year_id = next(
+                (yid for start, end, yid in spans if start <= d <= end), False)
 
     @api.depends('batch_id', 'faculty_id')
     def _compute_user_ids(self):
