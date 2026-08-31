@@ -21,6 +21,21 @@ CSRF_SESSION_KEY = 'spa_csrf_token'
 TRUSTED_DEVICE_COOKIE = 'td_id'
 TRUSTED_DEVICE_AGE = 90 * 86400  # 90 days
 
+# Веб-версия MAX (web.max.ru) открывает миниапп в iframe. Odoo по умолчанию
+# шлёт X-Frame-Options: SAMEORIGIN — браузер блокирует встраивание с чужого
+# домена. Разрешаем встраивание только для доменов MAX.
+MAX_FRAME_HEADERS = {
+    'X-Frame-Options': 'ALLOW-FROM https://web.max.ru',
+    'Content-Security-Policy': 'frame-ancestors https://*.max.ru',
+}
+
+
+def _spa_response(template, **ctx):
+    """Рендер SPA-страницы с заголовками, разрешающими iframe из MAX."""
+    response = request.render(template, ctx)
+    response.headers.update(MAX_FRAME_HEADERS)
+    return response
+
 
 def _get_spa_csrf_token():
     """Стабильный CSRF-токен SPA, хранящийся в сессии под нашим ключом."""
@@ -205,8 +220,8 @@ class RostMaxTimetableController(http.Controller):
         # GET - рендерим SPA (React router покажет LoginPage).
         # Явно передаём CSRF-токен: в голом SPA нет web-клиента Odoo, поэтому
         # кука csrf_token не проставляется, а фронт читает window.csrf_token.
-        return request.render('rost_max_miniapp.spa_page',
-                               {'csrf_token': _get_spa_csrf_token()})
+        return _spa_response('rost_max_miniapp.spa_page',
+                             csrf_token=_get_spa_csrf_token())
 
     @http.route("/rost_max/login/totp", type="http", auth="public", methods=["POST"], cors="*", csrf=False)
     def login_totp(self, **kw):
@@ -307,26 +322,26 @@ class RostMaxTimetableController(http.Controller):
     @http.route("/rost_max/dashboard", type="http", auth="public")
     def dashboard_page(self):
         """Дашборд - рендерит SPA (React router покажет DashboardPage)"""
-        return request.render('rost_max_miniapp.spa_page',
-                              {'csrf_token': _get_spa_csrf_token()})
+        return _spa_response('rost_max_miniapp.spa_page',
+                             csrf_token=_get_spa_csrf_token())
 
     @http.route("/rost_max/timetable", type="http", auth="public")
     def timetable_page(self):
         """Страница расписания - рендерит SPA"""
-        return request.render('rost_max_miniapp.spa_page',
-                              {'csrf_token': _get_spa_csrf_token()})
+        return _spa_response('rost_max_miniapp.spa_page',
+                             csrf_token=_get_spa_csrf_token())
 
     @http.route("/rost_max/lesson/<int:lesson_id>", type="http", auth="public")
     def lesson_page(self, lesson_id):
         """Страница журнала урока - рендерит SPA"""
-        return request.render('rost_max_miniapp.spa_page',
-                              {'csrf_token': _get_spa_csrf_token()})
+        return _spa_response('rost_max_miniapp.spa_page',
+                             csrf_token=_get_spa_csrf_token())
 
     @http.route("/rost_max/modules", type="http", auth="public")
     def modules_page(self):
         """Страница модулей - рендерит тот же SPA (клиентский роутер покажет экран)"""
-        return request.render('rost_max_miniapp.spa_page',
-                              {'csrf_token': _get_spa_csrf_token()})
+        return _spa_response('rost_max_miniapp.spa_page',
+                             csrf_token=_get_spa_csrf_token())
 
     def _get_user_timetable(self, user, date, faculty_id=None):
         """Получить timetable для пользователя по дате и факультету (админ)"""
