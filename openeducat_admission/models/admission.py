@@ -236,6 +236,12 @@ class OpAdmission(models.Model):
                     'image_1920': self.image or False,
                     'is_student': True,
                     'company_id': self.company_id.id,
+                    # company_ids обязателен: global rule "user rule" на
+                    # res.users пускает write только юзеров своих компаний
+                    # ('|', share=False, company_ids in company_ids).
+                    # Портальный юзер (share=True) без company_ids падает
+                    # с AccessError прямо во время enroll_student.
+                    'company_ids': [(6, 0, [self.company_id.id])],
                     'groups_id': [
                         (6, 0,
                          [self.env.ref('base.group_portal').id])]

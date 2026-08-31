@@ -207,6 +207,21 @@
         <field name="perm_unlink" eval="False"/>
     </record>
 
+    <!-- Бэк-офис: обход teacher-ограничения на контакты. Правила групп
+         объединяются через OR — это правило-«пустышка» нейтрализует
+         faculty_own_partner_rule для администратора бэк-офиса (иначе
+         он не может создать контакт ученика при приёме, см. 2026-08-31). -->
+    <record model="ir.rule" id="back_office_all_partners_rule">
+        <field name="name">Back Office: All Partners</field>
+        <field name="model_id" ref="base.model_res_partner"/>
+        <field name="groups" eval="[(4, ref('openeducat_core.group_op_back_office_admin'))]"/>
+        <field name="domain_force">[(1, '=', 1)]</field>
+        <field name="perm_read" eval="False"/>
+        <field name="perm_write" eval="False"/>
+        <field name="perm_create" eval="True"/>
+        <field name="perm_unlink" eval="True"/>
+    </record>
+
     <!-- Сотрудники: убрать от учеников (HR-данные). Оставляем HR-офицера и админа -->
     <record id="hr.menu_hr_root" model="ir.ui.menu">
         <field name="groups_id"
