@@ -48,33 +48,6 @@
         </field>
     </record>
 
-    <!-- ===== op.session: форма read-only для учеников =====
-         У группы учеников нет write на op.session. Унаследованное
-         представление не может задавать groups_id (ParseError при -u),
-         поэтому делаем ОТДЕЛЬНУЮ primary-форму без inherit и вешаем её
-         в ученический экшен act_open_op_session_view_student (view_id).
-         Кнопки Edit/Create/Delete скрыты флагами формы. -->
-    <record id="view_op_session_form_student" model="ir.ui.view">
-        <field name="name">op.session.form.student</field>
-        <field name="model">op.session</field>
-        <field name="arch" type="xml">
-            <form create="false" edit="false" delete="false">
-                <sheet>
-                    <group>
-                        <field name="subject_id"/>
-                        <field name="faculty_id"/>
-                        <field name="batch_id"/>
-                        <field name="classroom_id"/>
-                        <field name="days_id"/>
-                        <field name="start_datetime"/>
-                        <field name="end_datetime"/>
-                        <field name="state"/>
-                    </group>
-                </sheet>
-            </form>
-        </field>
-    </record>
-
     <!-- ===== op.faculty: канбан — ученикам шаблон без открытия карточки ===== -->
     <record id="view_faculty_kanban_student" model="ir.ui.view">
         <field name="name">Ограничиваем доступ к канбану для Учеников</field>
