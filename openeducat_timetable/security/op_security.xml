@@ -38,13 +38,11 @@
             <field name="domain_force">['|', ('user_ids','in',user.id), ('user_ids','in',user.child_ids.ids)]</field>
         </record>
 
-        <!-- Учитель видит свои сессии -->
-        <record model="ir.rule" id="faculty_session_rule">
-            <field name="name">Faculty Session rule</field>
-            <field name="model_id" ref="model_op_session"/>
-            <field name="groups" eval="[(4, ref('openeducat_core.group_op_faculty'))]"/>
-            <field name="domain_force">[('faculty_id.user_id','=',user.id)]</field>
-        </record>
+        <!-- Учитель: ВЕСЬ тайминг школы (матрица 2026-08-23).
+             Ограничение «Мои уроки» — дефолтный фильтр my_sessions в act_window,
+             снимается пользователем. Редактирование запрещено ACL
+             (op_session_faculty = 1,0,0,0). Правило faculty_session_rule
+             (срез до своих уроков) удалено 2026-08-31. -->
 
         <!-- Менеджер видит все сессии -->
         <record model="ir.rule" id="manager_session_rule">
