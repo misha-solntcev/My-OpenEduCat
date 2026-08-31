@@ -89,24 +89,24 @@
                                                    readonly="state == 'done'"/>
                                         </td>
                                         <td>
+                                            <field name="last_name"
+                                                   placeholder="Фамилия" required="1"
+                                                   readonly="state == 'done'"
+                                                   style="padding-right:10px"/>
+                                        </td>
+                                        <td>
                                             <field name="first_name"
-                                                   placeholder="First Name"
+                                                   placeholder="Имя"
                                                    required="1"
                                                    style="padding-right:10px"
                                                    readonly="state == 'done'"/>
                                         </td>
                                         <td>
-                                            <field name="middle_name"
+                                            <field name="Отчество"
                                                    placeholder="Middle Name"
                                                    readonly="state == 'done'"
                                                    style="padding-right:10px"/>
-                                        </td>
-                                        <td>
-                                            <field name="last_name"
-                                                   placeholder="Last Name" required="1"
-                                                   readonly="state == 'done'"
-                                                   style="padding-right:10px"/>
-                                        </td>
+                                        </td>                                        
                                     </tr>
                                 </table>
                             </h2>
