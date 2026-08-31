@@ -230,7 +230,13 @@ class OpAdmission(models.Model):
         for student in self:
             student_user = False
             if enable_create_student_user:
-                student_user = self.env['res.users'].create({
+                # sudo(): create res.users внутри дергает
+                # _inverse_notification_type -> write в только что
+                # созданного юзера. Без sudo этот write проходит проверку
+                # record rules под текущим юзером (uid бэк-офиса) и режется
+                # глобальным правилом 'user rule' на res.users
+                # (AccessError при enroll_student, prod 2026-08-31).
+                student_user = self.env['res.users'].sudo().create({
                     'name': student.name,
                     'login': student.email if student.email else student.application_number,  # noqa
                     'image_1920': self.image or False,
