@@ -37,6 +37,29 @@
     </record>
 
     <!-- ===== Расписание ===== -->
+    <!-- Ученикам — свой экшен БЕЗ дефолтного фильтра «Мои уроки»
+         (search_default_my_sessions в act_open_op_session_view фильтрует по
+         faculty_id.user_id — у ученика нет op.faculty, он видел бы пустоту).
+         Ученик и так видит только уроки своего класса (student_session_rule). -->
+    <record id="act_open_op_session_view_student" model="ir.actions.act_window">
+        <field name="name">Расписание</field>
+        <field name="res_model">op.session</field>
+        <field name="view_mode">calendar,kanban,list,pivot,graph,form</field>
+        <field name="search_view_id" ref="openeducat_timetable.view_op_session_search"/>
+        <field name="context">{'search_default_current_year': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                На выбранную неделю уроков нет.
+            </p>
+        </field>
+    </record>
+    <!-- Меню «Расписание» для учеников (те же группы, что давали root-меню) -->
+    <menuitem id="menu_op_timetable_student"
+              name="Расписание"
+              parent="openeducat_timetable.menu_op_timetable_root"
+              groups="openeducat_timetable.group_student_timetable"
+              action="act_open_op_session_view_student"
+              sequence="5"/>
     <record id="openeducat_timetable.menu_op_timetable_root" model="ir.ui.menu">
         <field name="groups_id"
                eval="[(6, 0, [ref('openeducat_timetable.group_op_timetable_user'), ref('openeducat_timetable.group_op_timetable_manager'), ref('openeducat_timetable.group_teacher_timetable'), ref('openeducat_timetable.group_student_timetable')])]"/>
