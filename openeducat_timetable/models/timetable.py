@@ -49,7 +49,7 @@ class OpSession(models.Model):
 
     days_id = fields.Many2one(
         'op.day', string='День недели',
-        compute='_compute_day_info', store=True, group_expand='_read_group_days')
+        compute='_compute_days_id', store=True, group_expand='_read_group_days')
 
     start_datetime = fields.Datetime(
         'Start Time', required=True, index=True, tracking=True,
@@ -170,9 +170,19 @@ class OpSession(models.Model):
             if record.start_datetime:
                 local_dt = record._convert_to_local(record.start_datetime)
                 record.timetable_date = local_dt.date()
-                day_code = local_dt.strftime('%A').lower()
-                record.days_id = self.env['op.day'].search(
-                    [('code', '=', day_code)], limit=1)
+
+    @api.depends('timetable_date')
+    def _compute_days_id(self):
+        """День недели из timetable_date (не из start_datetime!).
+        Отдельный compute: если days_id висит на _compute_day_info вместе
+        с timetable_date и в create передан только timetable_date, Odoo
+        помечает общий compute выполненным и days_id остаётся NULL
+        (баг 176 пустых уроков сентября 2026)."""
+        day_map = {d.code: d.id for d in self.env['op.day'].sudo().search([])}
+        for record in self:
+            if record.timetable_date:
+                record.days_id = day_map.get(
+                    record.timetable_date.strftime('%A').lower())
 
     @api.depends('batch_id', 'faculty_id')
     def _compute_user_ids(self):
