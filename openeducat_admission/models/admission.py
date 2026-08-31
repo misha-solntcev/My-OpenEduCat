@@ -236,14 +236,19 @@ class OpAdmission(models.Model):
                     'image_1920': self.image or False,
                     'is_student': True,
                     'company_id': self.company_id.id,
-                    # Ученик = INTERNAL user (матрица доступа 2026-08-23,
-                    # CE portal не используется). Internal (share=False)
-                    # проходит глобальное правило 19 "user rule" на
-                    # res.users; портал (share=True) — нет, падал
-                    # AccessError при enroll_student.
+                    # Ученик = INTERNAL user (матрица 2026-08-23).
+                    # group_op_students сам по себе НЕ тянет base.group_user
+                    # (проверено: share=True на prod и test4), поэтому
+                    # base.group_user добавляем явно — иначе share=True и
+                    # глобальное правило "user rule" режет любой write в
+                    # юзера от имени бэк-офиса (AccessError при зачислении).
+                    # company_ids в придачу: вторая ветка OR правила
+                    # ('company_ids','in',company_ids) как страховка.
+                    'company_ids': [(6, 0, [self.company_id.id])],
                     'groups_id': [
                         (6, 0,
-                         [self.env.ref('openeducat_core.group_op_students').id])]
+                         [self.env.ref('base.group_user').id,
+                          self.env.ref('openeducat_core.group_op_students').id])]
                 })
             details = {
                 'name': student.name,
