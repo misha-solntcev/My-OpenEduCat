@@ -18,6 +18,9 @@ export class SessionCalendarCommonRenderer extends CalendarCommonRenderer {
             ...super.options,
             slotMinTime: SLOT_MIN_TIME,
             slotMaxTime: SLOT_MAX_TIME,
+            // Школа работает по СПб: показываем сетку и уроки в Europe/Moscow
+            // независимо от локального пояса пользователя.
+            timeZone: "Europe/Moscow",
         };
     }
 }
