@@ -388,16 +388,16 @@
         <field name="res_model">op.session</field>
         <field name="view_mode">calendar,kanban,list,pivot,graph,form</field>
         <field name="search_view_id" ref="view_op_session_search" />
-        <field name="context">{'search_default_my_sessions': 1}</field>
+        <field name="context">{'search_default_my_sessions': 1,
+            'graph_groupbys': ['faculty_surname', 'subject_id'],
+            'graph_stacked': True,
+            'graph_mode': 'bar'
+        }</field>
         <field name="help" type="html">
             <p class="o_view_nocontent_smiling_face">
                 На выбранную неделю уроков нет.
             </p>
         </field>
-        <field name="context">{
-            'graph_groupbys': ['faculty_surname', 'subject_id'], 
-            'graph_stacked': True,
-            'graph_mode': 'bar'
-        }</field>
-    </record>    
+    </record>
+
 </odoo>
