@@ -236,15 +236,14 @@ class OpAdmission(models.Model):
                     'image_1920': self.image or False,
                     'is_student': True,
                     'company_id': self.company_id.id,
-                    # company_ids обязателен: global rule "user rule" на
-                    # res.users пускает write только юзеров своих компаний
-                    # ('|', share=False, company_ids in company_ids).
-                    # Портальный юзер (share=True) без company_ids падает
-                    # с AccessError прямо во время enroll_student.
-                    'company_ids': [(6, 0, [self.company_id.id])],
+                    # Ученик = INTERNAL user (матрица доступа 2026-08-23,
+                    # CE portal не используется). Internal (share=False)
+                    # проходит глобальное правило 19 "user rule" на
+                    # res.users; портал (share=True) — нет, падал
+                    # AccessError при enroll_student.
                     'groups_id': [
                         (6, 0,
-                         [self.env.ref('base.group_portal').id])]
+                         [self.env.ref('openeducat_core.group_op_students').id])]
                 })
             details = {
                 'name': student.name,
