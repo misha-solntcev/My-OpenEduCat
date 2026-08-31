@@ -48,6 +48,25 @@
         </field>
     </record>
 
+    <!-- ===== op.session: форма read-only для учеников =====
+         Скрываем системные кнопки Edit/Create/Delete (а также Discard):
+         у группы учеников нет write на op.session, кнопка Edit не нужна.
+         Учёт через groups-синтаксис "!": представление действует ТОЛЬКО
+         для тех, у кого есть group_student_timetable. -->
+    <record id="view_session_form_readonly_student" model="ir.ui.view">
+        <field name="name">Форма урока read-only для Учеников</field>
+        <field name="model">op.session</field>
+        <field name="inherit_id" ref="openeducat_timetable.view_op_session_form"/>
+        <field name="groups_id" eval="[(4, ref('openeducat_timetable.group_student_timetable'))]"/>
+        <field name="arch" type="xml">
+            <xpath expr="//form" position="attributes">
+                <attribute name="create">false</attribute>
+                <attribute name="edit">false</attribute>
+                <attribute name="delete">false</attribute>
+            </xpath>
+        </field>
+    </record>
+
     <!-- ===== op.faculty: канбан — ученикам шаблон без открытия карточки ===== -->
     <record id="view_faculty_kanban_student" model="ir.ui.view">
         <field name="name">Ограничиваем доступ к канбану для Учеников</field>
