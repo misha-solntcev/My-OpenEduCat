@@ -26,6 +26,7 @@
         'wizards/student_report_wizard_view.xml', # Визард "Итоговые оценки"
         'report/student_report_template.xml',    # Шаблон печати "Итоговые оценки"
         'wizards/current_grades_report_wizard_view.xml',
+        'wizards/register_generation_wizard_view.xml',
         'report/current_grades_report_template.xml',
     ],
     'demo': [

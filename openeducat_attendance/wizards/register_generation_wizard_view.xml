@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <record id="view_register_generation_wizard_form" model="ir.ui.view">
+        <field name="name">attendance.register.generation.wizard.form</field>
+        <field name="model">attendance.register.generation.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Генерация настроек журналов">
+                <group>
+                    <field name="academic_year_id" />
+                    <field name="batch_ids" widget="many2many_tags" />
+                </group>
+                <field name="preview" nolabel="1" readonly="1" />
+                <footer>
+                    <button name="action_generate" string="Показать план"
+                        type="object" class="btn-primary"
+                        invisible="context.get('plan_ready')" />
+                    <button name="action_confirm_generate" string="Создать регистры"
+                        type="object" class="btn-primary"
+                        invisible="not context.get('plan_ready')" />
+                    <button string="Отмена" class="btn-secondary" special="cancel" />
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_register_generation_wizard" model="ir.actions.act_window">
+        <field name="name">Генерация настроек журналов</field>
+        <field name="res_model">attendance.register.generation.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+
+    <menuitem id="menu_register_generation_wizard"
+              name="Генерация настроек журналов"
+              parent="openeducat_attendance.menu_op_attendance_config"
+              action="action_register_generation_wizard"
+              sequence="15"
+              groups="openeducat_core.group_op_back_office_admin,openeducat_attendance.group_op_attendance_manager"/>
+</odoo>
