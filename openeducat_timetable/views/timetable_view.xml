@@ -348,8 +348,11 @@
 
                 <separator />
 
+                <!-- Только для учителей: узел вырезается из arch для остальных
+                     групп, и search_default_my_sessions у них молча игнорируется. -->
                 <filter string="Мои уроки" name="my_sessions"
-                    domain="[('faculty_id.user_id', '=', uid)]" />
+                    domain="[('faculty_id.user_id', '=', uid)]"
+                    groups="openeducat_core.group_op_faculty" />
 
                 <separator />
 
