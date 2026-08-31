@@ -1,32 +1,32 @@
 # -*- coding: utf-8 -*-
 """
 Хелперы для rost_max_miniapp: восстановление Odoo-сессии из заголовка
-X-Session-Id. Используется как fallback для MAX WebView, где cookie
-могут не сохраняться из-за SameSite/CSP ограничений cross-site контекста.
+X-Session-Id. Используется как fallback для веб-версии MAX (iframe на
+web.max.ru), где браузер блокирует сторонние cookie и session_id кука
+не сохраняется.
 
 Механизм:
-1. MAX WebView сохраняет session_id в localStorage после логина
-2. SPA передаёт session_id в заголовке X-Session-Id каждом API-запросе
-3. Хелпер проверяет: если cookie session_id отсутствует, но
-   есть X-Session-Id — пытается восстановить сессию
+1. SPA сохраняет session_id в localStorage после логина
+2. SPA передаёт session_id в заголовке X-Session-Id в каждом API-запросе
+3. Хелпер проверяет: если сессия запроса анонимна, но есть X-Session-Id —
+   загружает сохранённую сессию из session store и подменяет данные
+   текущей сессии.
 """
 
-from odoo import http
-from odoo.http import request
 import logging
+
+from odoo.http import request, root
 
 _logger = logging.getLogger(__name__)
 
-# Имя cookie session_id в Odoo по умолчанию
-SESSION_COOKIE_NAME = 'session_id'
-
 
 def restore_session_if_needed():
-    """Проверяет X-Session-Id заголовок и пытается восстановить сессию.
+    """Поднимает сессию из session store по заголовку X-Session-Id.
 
-    Если пользователь уже аутентифицирован через cookie — ничего не делает.
-    Если cookie отсутствует, но есть X-Session-Id — пытаемся загрузить
-    сессию с этим ID.
+    Odoo 18: у Session нет load(); сессии живут в root.session_store
+    (FilesystemSessionStore). Если сессия запроса уже аутентифицирована
+    (cookie дошла) — ничего не делаем. Иначе грузим сессию по sid из
+    заголовка и копируем её данные в текущую сессию запроса.
 
     Возвращает True, если сессия была восстановлена.
     """
@@ -34,24 +34,40 @@ def restore_session_if_needed():
     if request.session and request.session.uid:
         return False
 
-    # Проверяем X-Session-Id заголовок (fallback для MAX WebView)
     session_id = request.httprequest.headers.get('X-Session-Id')
     if not session_id:
         return False
 
+    # Формат ключа в Odoo 18: 84 символа base64url
+    if not root.session_store.is_valid_key(session_id):
+        _logger.debug("X-Session-Id has invalid format, skipping restore")
+        return False
+
     try:
-        # Пытаемся загрузить сессию по переданному session_id
-        # Используем внутренний метод Odoo для загрузки сессии
+        stored = root.session_store.get(session_id)
+        if not stored or not stored.get('uid'):
+            return False
+
+        # Копируем данные сохранённой сессии (uid, db, context,
+        # is_timetable_user, spa_csrf_token...) в сессию запроса.
+        request.session.clear()
+        request.session.update(stored)
         request.session.sid = session_id
-        request.session._pstore = None  # сбрасываем кэш
-        request.session.load()
-        if request.session.uid:
-            _logger.debug(
-                "Session restored from X-Session-Id header for uid=%s, sid=%s",
-                request.session.uid, session_id,
-            )
-            return True
-    except Exception as e:
-        _logger.warning("Failed to restore session from X-Session-Id: %s", e)
+        request.session.db = stored.get('db') or request.session.db
+
+        # Пересобираем env под восстановленного пользователя — он был
+        # создан для анонимной сессии при старте запроса.
+        import odoo
+        request.env = odoo.api.Environment(
+            request.env.cr, request.session.uid, request.session.context
+        )
+
+        _logger.info(
+            "Session restored from X-Session-Id for uid=%s",
+            request.session.uid,
+        )
+        return True
+    except Exception:
+        _logger.exception("Failed to restore session from X-Session-Id")
 
     return False
