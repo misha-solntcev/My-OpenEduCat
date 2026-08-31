@@ -33,7 +33,8 @@
     ],
     'assets': {
         'web.assets_backend': [
-            'openeducat_timetable/static/src/css/calendar_style.css',            
+            'openeducat_timetable/static/src/css/calendar_style.css',
+            'openeducat_timetable/static/src/js/session_calendar.js', 
         ],
     },
     'images': [

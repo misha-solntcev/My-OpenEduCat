@@ -1,5 +1,5 @@
 .o_calendar_view .fc-timegrid-slot {
-    height: 35px !important; /* Высота карточки урока */
+    height: 45px !important; /* Высота карточки урока */
 }    
 
 .o_calendar_view .fc-event-main {

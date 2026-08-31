@@ -179,7 +179,8 @@
         <field name="arch" type="xml">
             <!-- 1. Атрибут color="batch_id" сделает так, что уроки будут 
                  раскрашены по цветам классов, и список классов будет главным фильтром -->
-            <calendar string="Sessions"                    
+            <calendar string="Sessions"                   
+                    js_class="session_calendar"
                     quick_create="false"        
                     date_start="start_datetime" 
                     date_stop="end_datetime"
@@ -341,7 +342,7 @@
                      k = месяцев с прошлого сентября, старт = 1-е число
                      месяца минус k месяцев. Снимаемый дефолт
                      (search_default) в act_window. -->
-                <filter string="🎓 Текущий учебный год" name="current_year"
+                <filter string="🎓 Учебный год" name="current_year"
                     domain="[
                         ('timetable_date', '&gt;=', (context_today() + relativedelta(months=-(((context_today().month) - 9) % 12), day=1)).strftime('%Y-%m-%d')),
                         ('timetable_date', '&lt;=', (context_today() + relativedelta(months=-(((context_today().month) - 9) % 12), day=1, years=1, days=-1)).strftime('%Y-%m-%d'))]" />
