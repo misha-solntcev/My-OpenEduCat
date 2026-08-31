@@ -102,8 +102,8 @@
                                                    readonly="state == 'done'"/>
                                         </td>
                                         <td>
-                                            <field name="Отчество"
-                                                   placeholder="Middle Name"
+                                            <field name="middle_name"
+                                                   placeholder="Отчество"
                                                    readonly="state == 'done'"
                                                    style="padding-right:10px"/>
                                         </td>                                        
