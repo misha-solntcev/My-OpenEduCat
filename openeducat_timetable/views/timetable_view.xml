@@ -342,7 +342,7 @@
                      k = месяцев с прошлого сентября, старт = 1-е число
                      месяца минус k месяцев. Снимаемый дефолт
                      (search_default) в act_window. -->
-                <filter string="🎓 Учебный год" name="current_year"
+                <filter string="🎓 Текущий год" name="current_year"
                     domain="[
                         ('timetable_date', '&gt;=', (context_today() + relativedelta(months=-(((context_today().month) - 9) % 12), day=1)).strftime('%Y-%m-%d')),
                         ('timetable_date', '&lt;=', (context_today() + relativedelta(months=-(((context_today().month) - 9) % 12), day=1, years=1, days=-1)).strftime('%Y-%m-%d'))]" />
