@@ -39,3 +39,6 @@ static/src/bundle/
 __pycache__/
 *.pycuv.lock
 .venv/
+
+# Мокапы дизайна миниаппа — только для локальной работы, на прод не нужны
+rost_max_miniapp/design/
