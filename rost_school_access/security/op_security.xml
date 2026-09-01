@@ -195,6 +195,21 @@
         <field name="perm_unlink" eval="True"/>
     </record>
 
+    <!-- Бэк-офис: обход teacher-ограничения на карточки преподавателей
+         (правка чужих op.faculty). Прецедент: back_office_all_partners_rule.
+         Только write: create разрешён по умолчанию (audit 2026-09-01), read
+         bypass'нут апстримным «Faculty: Read All», unlink сознательно не даём. -->
+    <record model="ir.rule" id="back_office_all_faculty_rule">
+        <field name="name">Back Office: All Faculty Cards</field>
+        <field name="model_id" ref="openeducat_core.model_op_faculty"/>
+        <field name="groups" eval="[(4, ref('openeducat_core.group_op_back_office_admin'))]"/>
+        <field name="domain_force">[(1, '=', 1)]</field>
+        <field name="perm_read" eval="False"/>
+        <field name="perm_write" eval="True"/>
+        <field name="perm_create" eval="False"/>
+        <field name="perm_unlink" eval="False"/>
+    </record>
+
     <!-- ==================== RECORD RULES: РОДИТЕЛЬ ==================== -->
     <!-- Механика: op_parent.user_id -> юзер родителя; при создании юзера
          openeducat_parent заполняет res.users.child_ids юзерами студентов.
