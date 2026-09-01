@@ -152,6 +152,13 @@ class RostMaxTimetableController(http.Controller):
                         {"error": "Неверные учетные данные"}, status=400
                     )
 
+                # authenticate() -> finalize() ставит should_rotate=True: Odoo
+                # в конце запроса сгенерирует НОВЫЙ sid, и sid, отданный ниже
+                # cookie, отданной ниже в JSON/Set-Cookie, умрёт. Гасим
+                # ротацию, чтобы session_id в ответе и в X-Session-Id
+                # fallback оставался валидным.
+                request.session.should_rotate = False
+
                 request.session['is_timetable_user'] = True
                 user = request.env['res.users'].browse(auth_info['uid'])
                 is_admin = user.has_group('base.group_system')
@@ -271,6 +278,9 @@ class RostMaxTimetableController(http.Controller):
 
         # 2FA успешно - финализируем сессию
         request.session.finalize(request.env)
+        # finalize() ставит should_rotate=True — гасим, иначе sid в ответе
+        # и в X-Session-Id fallback умрёт при ротации в конце запроса.
+        request.session.should_rotate = False
         request.session.uid = user.id
         request.session['is_timetable_user'] = True
         request.session.pop('pre_uid', None)
