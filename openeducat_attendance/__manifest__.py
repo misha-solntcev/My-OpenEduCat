@@ -15,6 +15,7 @@
         'security/ir.model.access.csv',
         'data/attendance_sheet_sequence.xml',
         'data/automation_cron.xml',
+        'data/session_lifecycle_cron.xml',
         'views/attendance_register_view.xml',
         'views/attendance_sheet_view.xml',
         'views/attendance_line_view.xml',

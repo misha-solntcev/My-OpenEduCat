@@ -1,5 +1,8 @@
 from odoo import models, fields, api, _
-from odoo.exceptions import ValidationError  
+from odoo.exceptions import ValidationError
+import logging
+
+_logger = logging.getLogger(__name__)
 
 class OpSession(models.Model):
     _inherit = "op.session"
@@ -51,18 +54,29 @@ class OpSession(models.Model):
         return super(OpSession, self).lecture_draft()
 
     def lecture_confirm(self):
-        """УТВЕРЖДЕНИЕ: Создание журналов"""
+        """УТВЕРЖДЕНИЕ: Создание журналов + сразу генерируем список учеников.
+
+        Раньше строки создавались только на lecture_start, из-за чего
+        утверждённый урок в миниаппе выглядел как «Ученики не найдены».
+        """
         res = super(OpSession, self).lecture_confirm()
         for rec in self:
-            self.env['op.attendance.sheet'].create_sheet_for_session(rec)
+            sheet = self.env['op.attendance.sheet'].create_sheet_for_session(rec)
+            sheet.action_generate_lines()
         return res
 
     def lecture_start(self):
-        """СТАРТ: Перевод в рабочий режим"""
+        """СТАРТ: Перевод в рабочий режим + СИНХРОНИЗАЦИЯ списка.
+
+        action_generate_lines() дополняет строки только если журнал пуст.
+        Между утверждением и стартом состав мог измениться (новенький /
+        выбывший) — досинхронизируем через _sync_lines().
+        """
         res = super(OpSession, self).lecture_start()
         sheets = self._get_linked_sheets()
         if sheets:
-            sheets.action_generate_lines() # Генерируем список детей
+            sheets.action_generate_lines()  # пустые журналы
+            sheets._sync_lines()            # досоздать/убрать изменившихся
             sheets.write({'state': 'start'})
         return res
 
@@ -97,3 +111,40 @@ class OpSession(models.Model):
         if sheets:
             sheets.write({'state': 'start'})
         return res
+
+    # --- CRON: переводим уроки по расписанию (замена Base Automation 18/19) ---
+
+    @api.model
+    def _cron_advance_sessions(self):
+        """confirm -> start при наступлении start_datetime,
+        start -> done после end_datetime.
+
+        Вызывается ir.cron каждые 5 минут. Тайминги совпадают со старыми
+        рукотворными правилами 18/19: start = start_datetime + 0,
+        done = end_datetime + 0. На confirm старый крон не вставал —
+        утверждение остаётся ручным (или через мастер-расписание).
+        """
+        now = fields.Datetime.now()
+
+        to_start = self.sudo().search([
+            ('state', '=', 'confirm'),
+            ('start_datetime', '<=', now),
+            ('end_datetime', '>', now),      # ещё не закончился
+        ])
+        if to_start:
+            to_start.lecture_start()
+            _logger.info("Session lifecycle: started %d session(s)", len(to_start))
+
+        # start -> done: уроки, чьё время прошло (не раньше чем 2 урока
+        # назад, чтобы не трогать исторические записи и не перепроводить
+        # пропущенные обработкой)
+        from datetime import timedelta
+        cutoff = now - timedelta(days=1)
+        to_done = self.sudo().search([
+            ('state', '=', 'start'),
+            ('end_datetime', '<=', now),
+            ('end_datetime', '>=', cutoff),
+        ])
+        if to_done:
+            to_done.lecture_done()
+            _logger.info("Session lifecycle: done %d sessions", len(to_done))

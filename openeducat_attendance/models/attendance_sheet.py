@@ -97,6 +97,34 @@ class OpAttendanceSheet(models.Model):
                 lines = [(0, 0, {'student_id': s.id, 'attendance_type_id': False}) for s in students]
                 rec.write({'attendance_line': lines})
 
+    def _sync_lines(self):
+        """Синхронизация строк журнала с текущим составом batch.
+
+        В отличие от action_generate_lines() работает не только с пустым
+        журналом: досоздаёт строки новеньким и удаляет строки выбывших /
+        неактивных. Данные (оценки/посещаемость) при пересоздании строки
+        теряются, поэтому удаление делаем только для строк БЕЗ данных.
+        Строки выбывшего с данными оставляем (история не должна пропасть).
+        """
+        for rec in self:
+            current_students = self.env['op.student'].sudo().search([
+                ('course_detail_ids.course_id', '=', rec.session_id.course_id.id),
+                ('course_detail_ids.batch_id', '=', rec.batch_id.id),
+                ('active', '=', True)
+            ])
+            existing = {l.student_id.id: l for l in rec.attendance_line}
+            to_add = [(0, 0, {'student_id': s.id, 'attendance_type_id': False})
+                      for s in current_students if s.id not in existing]
+            to_remove = []
+            for sid, line in existing.items():
+                if sid not in current_students.ids and not (
+                        line.grade_1 or line.grade_2 or line.grade_3
+                        or line.attendance_type_id or line.remark):
+                    to_remove.append((3, line.id))
+            changes = to_add + to_remove
+            if changes:
+                rec.write({'attendance_line': changes})
+
     # Заполнение статистики по оценкам в Subject Grades после завершения урока
     def _transfer_grades_to_stats(self):
         GradeObj = self.env['op.subject.grades']
