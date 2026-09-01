@@ -37,4 +37,5 @@ openeducat_attendance/backup_subject_grades/
 
 static/src/bundle/
 __pycache__/
-*.pyc
+*.pycuv.lock
+.venv/
