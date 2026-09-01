@@ -256,6 +256,11 @@ class OpAdmission(models.Model):
                          [self.env.ref('base.group_user').id,
                           self.env.ref('openeducat_core.group_op_students').id])]
                 })
+                # Приглашение ученику: одноразовый signup-токен и письмо
+                # со ссылкой /web/signup для самостоятельной установки
+                # пароля (вместо ручной отправки приглашения).
+                if student.email:
+                    student_user.sudo().action_reset_password()
             details = {
                 'name': student.name,
                 'phone': student.phone,
