@@ -123,22 +123,27 @@ class OpSession(models.Model):
         рукотворными правилами 18/19: start = start_datetime + 0,
         done = end_datetime + 0. На confirm старый крон не вставал —
         утверждение остаётся ручным (или через мастер-расписание).
+
+        Чтобы урок не ждал до 5 минут («тик через 1 минуту после начала
+        урока — следующая проверка через 4»), переводим в start ЗАРАНЕЕ:
+        как только до start_datetime осталось < 2 минут. Учитель открывает
+        журнал по звонку, а не по таймеру.
         """
         now = fields.Datetime.now()
+        soon = now + timedelta(minutes=5)
 
         to_start = self.sudo().search([
             ('state', '=', 'confirm'),
-            ('start_datetime', '<=', now),
+            ('start_datetime', '<=', soon),  # начнётся < чем через 5 мин
             ('end_datetime', '>', now),      # ещё не закончился
         ])
         if to_start:
             to_start.lecture_start()
             _logger.info("Session lifecycle: started %d session(s)", len(to_start))
 
-        # start -> done: уроки, чьё время прошло (не раньше чем 2 урока
-        # назад, чтобы не трогать исторические записи и не перепроводить
+        # start -> done: уроки, чьё время прошло (не раньше чем сутки назад,
+        # чтобы не трогать исторические записи и не перепроводить
         # пропущенные обработкой)
-        from datetime import timedelta
         cutoff = now - timedelta(days=1)
         to_done = self.sudo().search([
             ('state', '=', 'start'),
