@@ -1,6 +1,31 @@
 import type { AttendanceType } from './types';
 import { GRADES } from './colors';
 
+/** Appearance VKUI Button по целой оценке (2..5, дробных нет —
+ * дробными бывают только средние): 5/4 зелёная, 3 нейтральная, 2 красная. */
+export type GradeAppearance = 'positive' | 'neutral' | 'negative';
+
+export function getGradeAppearance(grade: number | null | undefined): GradeAppearance {
+  if (grade == null) return 'neutral';
+  if (grade >= 4) return 'positive';
+  if (grade >= 3) return 'neutral';
+  return 'negative';
+}
+
+/** Appearance по названию типа посещаемости:
+ * присутствовал — зелёный, опоздание — нейтральный, отсутствие — красный. */
+export function getAttendanceAppearance(name?: string): GradeAppearance {
+  if (!name) return 'neutral';
+  const n = name.toLowerCase();
+  if (n.includes('присутств') || n.includes('был') || n.includes('есть') || n.includes('да')) {
+    return 'positive';
+  }
+  if (n.includes('отсутств') || n.includes('нет') || n.includes('не ')) {
+    return 'negative';
+  }
+  return 'neutral'; // опоздание и прочее
+}
+
 /** Цикл оценок: пусто → 5 → 4 → 3 → 2 → пусто */
 export function cycleGrade(current: number | null): number | null {
   const currentStr = current != null ? String(current) : '';
@@ -27,28 +52,4 @@ export function getAttendanceDisplay(value: number | null, types: AttendanceType
   if (value == null) return '—';
   const found = types.find(t => t.id === value);
   return found?.name ?? '—';
-}
-
-/** Цвет оценки */
-export function getGradeColor(grade: number | null): string {
-  if (grade == null) return 'var(--text-secondary)';
-  if (grade >= 3.5) return 'var(--background-accent-positive)';
-  if (grade >= 2.5) return 'var(--background-accent-attention-primary)';
-  return 'var(--background-accent-negative)';
-}
-
-/** Цвет посещаемости по названию типа */
-export function getAttendanceColor(name?: string): string {
-  if (!name) return 'var(--text-secondary)';
-  const n = name.toLowerCase();
-  if (n.includes('присутств') || n.includes('был') || n.includes('есть') || n.includes('да')) {
-    return 'var(--background-accent-positive)';
-  }
-  if (n.includes('отсутств') || n.includes('нет') || n.includes('не ')) {
-    return 'var(--background-accent-negative)';
-  }
-  if (n.includes('опозд')) {
-    return 'var(--background-accent-attention-primary)';
-  }
-  return 'var(--icon-themed)';
 }

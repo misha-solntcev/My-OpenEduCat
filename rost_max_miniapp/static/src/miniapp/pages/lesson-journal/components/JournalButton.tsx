@@ -5,6 +5,8 @@ import {
   cycleAttendance,
   getGradeDisplay,
   getAttendanceDisplay,
+  getGradeAppearance,
+  getAttendanceAppearance,
 } from '@/shared/lib/cycle';
 import type { AttendanceType } from '@/shared/lib/types';
 
@@ -45,7 +47,11 @@ const JournalButton: React.FC<JournalButtonProps> = ({
     ? getGradeDisplay(value)
     : getAttendanceDisplay(value, list);
   const active = value != null;
-  const appearance = active ? 'accent' : 'neutral';
+  const appearance = active
+    ? (kind === 'grade'
+        ? getGradeAppearance(value)
+        : getAttendanceAppearance(list.find(t => t.id === value)?.name))
+    : 'neutral';
   const mode = active ? 'primary' : 'tertiary';
   const size = propSize ?? sizeByVariant[v];
 

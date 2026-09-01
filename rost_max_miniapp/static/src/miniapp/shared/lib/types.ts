@@ -51,51 +51,17 @@ export interface FacultiesResponse {
 
 // Журнал — типы ответов API для lesson journal
 export interface LessonInfo {
-  id: number;
   subject: string;
   batch: string;
-  timing: string;
   date: string;
+  timing: string;
   can_edit?: boolean;
 }
 
 export interface LessonJournalResponse {
-  lesson: LessonInfo;
+  lesson: LessonInfo | null;
   students: Student[];
   attendance_types: AttendanceType[];
-  // grade_1, grade_2, grade_3 — числа 1-5 или null
-  // attendance_type_id — id из attendance_types или null
-}
-
-// Dashboard API response
-export interface DashboardMetrics {
-  active_lessons?: number;
-  unfilled_sheets?: number;
-  attendance_pct?: number;
-  total_students?: number;
-  pending_substitutes?: number;
-  total_lessons?: number;
-  completed_lessons?: number;
-  graded_count?: number;
-  gpa?: number;
-  pending_homework?: number;
-}
-
-export interface NextLesson {
-  id: number;
-  subject: string;
-  batch: string;
-  time: string;
-  room: string;
-}
-
-export interface DashboardResponse {
-  is_admin: boolean;
-  is_teacher: boolean;
-  is_student: boolean;
-  date: string;
-  metrics: DashboardMetrics;
-  next_lesson: NextLesson | null;
 }
 
 // --- Успеваемость (ученик / родитель, read-only) ---

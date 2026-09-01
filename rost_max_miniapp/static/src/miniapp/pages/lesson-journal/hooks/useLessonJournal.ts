@@ -1,21 +1,13 @@
 import React from 'react';
 import { apiGet } from '@/shared/lib/api';
 import { apiPost } from '@/shared/lib/api';
-import type { Student, AttendanceType, GradeField } from '@/shared/lib/types';
-
-interface LessonInfo {
-  subject: string;
-  batch: string;
-  date: string;
-  timing: string;
-  can_edit?: boolean;
-}
-
-interface LessonResponse {
-  lesson: LessonInfo | null;
-  attendance_types: AttendanceType[];
-  students: Student[];
-}
+import type {
+  Student,
+  AttendanceType,
+  GradeField,
+  LessonInfo,
+  LessonJournalResponse,
+} from '@/shared/lib/types';
 
 interface UseLessonJournalReturn {
   lesson: LessonInfo | null;
@@ -69,7 +61,7 @@ export function useLessonJournal(lessonId: number | null, onBack: () => void): U
     }
     setLoading(true);
     setError(null);
-    apiGet<LessonResponse>(`/rost_max/api/lesson/${lessonId}/students`)
+    apiGet<LessonJournalResponse>(`/rost_max/api/lesson/${lessonId}/students`)
       .then(data => {
         setLesson(data.lesson || null);
         setStudents(data.students || []);
