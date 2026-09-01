@@ -346,6 +346,21 @@ class CreateChannelWizard(models.TransientModel):
         if members_to_create:
             self.env['discuss.channel.member'].create(members_to_create)
 
+    def _sync_faculty_class_groups(self, get_cached_class_group):
+        """Добавляет учителям классные группы «Ученики N класс».
+
+        Членство в канале само по себе не даёт видимости: Rule 42 пускает
+        в канал типа 'channel' только при совпадении group_public_id
+        с группами юзера. Без этого новые учителя видят только general.
+        """
+        for line in self.course_line_ids:
+            class_group = get_cached_class_group(line.batch_id.name)
+            if not class_group:
+                continue
+            for faculty in line.faculty_ids.filtered(lambda f: f.user_id):
+                if class_group not in faculty.user_id.groups_id:
+                    faculty.user_id.write({'groups_id': [fields.Command.link(class_group.id)]})
+
     def _build_result_notification(self):
         """Возвращает display_notification с количеством обработанных каналов."""
         created_counts = {
@@ -390,6 +405,7 @@ class CreateChannelWizard(models.TransientModel):
             channel_pool, sessions_by_batch, admin_partner_ids, get_cached_class_group
         )
         self._sync_channel_members(channel_partners)
+        self._sync_faculty_class_groups(get_cached_class_group)
 
         return self._build_result_notification()
 
