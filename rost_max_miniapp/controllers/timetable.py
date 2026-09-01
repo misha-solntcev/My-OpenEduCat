@@ -409,7 +409,12 @@ class RostMaxTimetableController(http.Controller):
                 # У op.student нет прямого batch_id — он через
                 # course_detail_ids (op.student.course.batch_id).
                 if student:
-                    batch = student.course_detail_ids.mapped('batch_id')[:1]
+                    # Активный batch: только running-деталь курса. Первая
+                    # попавшаяся course_detail может быть finished (прошлый
+                    # год) — тогда расписание молча пустое.
+                    batch = student.active_batch_id or \
+                        student.course_detail_ids.filtered(
+                            lambda r: r.state == 'running').mapped('batch_id')[:1]
                     if batch:
                         domain.append(('batch_id', '=', batch.id))
                     else:
@@ -665,7 +670,11 @@ class RostMaxTimetableController(http.Controller):
                 if faculty:
                     domain.append(('faculty_id', '=', faculty.id))
                 elif student:
-                    batch = student.course_detail_ids.mapped('batch_id')[:1]
+                    # Активный batch: только running-деталь (см. фикс в
+                    # _get_user_timetable) — иначе прошлый год, пусто.
+                    batch = student.active_batch_id or \
+                        student.course_detail_ids.filtered(
+                            lambda r: r.state == 'running').mapped('batch_id')[:1]
                     if batch:
                         domain.append(('batch_id', '=', batch.id))
                     else:
