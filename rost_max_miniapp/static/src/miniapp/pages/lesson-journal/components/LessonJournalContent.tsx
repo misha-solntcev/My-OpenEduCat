@@ -9,8 +9,9 @@ interface LessonJournalContentProps {
   error: string | null;
   students: Student[];
   attendanceTypes: AttendanceType[];
-  onCycleGrade: (student: Student, field: GradeField, next: number | null) => void;
-  onCycleAttendance: (student: Student, next: number | null) => void;
+  canEdit?: boolean;
+  onCycleGrade?: (student: Student, field: GradeField, next: number | null) => void;
+  onCycleAttendance?: (student: Student, next: number | null) => void;
   onRetry?: () => void;
 }
 
@@ -20,6 +21,7 @@ export const LessonJournalContent: React.FC<LessonJournalContentProps> = ({
   error,
   students,
   attendanceTypes,
+  canEdit = true,
   onCycleGrade,
   onCycleAttendance,
   onRetry,
@@ -58,6 +60,7 @@ export const LessonJournalContent: React.FC<LessonJournalContentProps> = ({
           key={student.id}
           student={student}
           attendanceTypes={attendanceTypes}
+          canEdit={canEdit}
           onCycleGrade={onCycleGrade}
           onCycleAttendance={onCycleAttendance}
         />

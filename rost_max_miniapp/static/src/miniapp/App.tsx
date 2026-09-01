@@ -8,16 +8,18 @@ import {
   Tabbar,
   TabbarItem, 
 } from '@vkontakte/vkui';
-import { Icon28HomeOutline, Icon28CalendarOutline, Icon28GridLayoutOutline } from '@vkontakte/icons';
+import { Icon28HomeOutline, Icon28CalendarOutline, Icon28GridLayoutOutline, Icon28BookSpreadOutline } from '@vkontakte/icons';
 import { LoginPage } from '@/pages/auth/LoginPage';
 import { DashboardPage } from '@/pages/dashboard/DashboardPage';
 import { TimetablePage } from '@/pages/timetable/TimetablePage';
 import { ModulesPage } from '@/pages/modules/ModulesPage';
+import { SubjectsPage } from '@/pages/subjects/SubjectsPage';
+import { SubjectGradesPage } from '@/pages/subjects/SubjectGradesPage';
 import { LessonJournalPage } from '@/pages/lesson-journal/LessonJournalPage';
 import { ToastContainer } from '@/shared/components/Toast';
 import { useAppStore } from '@/shared/lib/store';
 
-type TabId = 'dashboard' | 'timetable' | 'modules';
+type TabId = 'dashboard' | 'timetable' | 'subjects' | 'modules';
 
 export default function App() {
   const authSuccess = useAppStore(s => s.authSuccess);
@@ -29,7 +31,29 @@ export default function App() {
   const [timetableHistory, setTimetableHistory] = React.useState<string[]>(['timetable-panel']);
   const [selectedLessonId, setSelectedLessonId] = React.useState<number | null>(null);
 
+  // Вложенная навигация внутри таба "Успеваемость"
+  const [subjectsHistory, setSubjectsHistory] = React.useState<string[]>(['subjects-panel']);
+  const [selectedSubject, setSelectedSubject] = React.useState<{ id: number; name: string } | null>(null);
+
   const activeTimetablePanel = timetableHistory[timetableHistory.length - 1];
+  const activeSubjectsPanel = subjectsHistory[subjectsHistory.length - 1];
+
+  // Таб «Оценки» виден только ученику и родителю
+  const isStudentOrParent = Boolean(
+    userInfo && (userInfo.is_student || userInfo.is_parent) && !userInfo.is_admin && !userInfo.is_teacher
+  );
+
+  const handleOpenSubject = (subjectId: number, subjectName: string) => {
+    setSelectedSubject({ id: subjectId, name: subjectName });
+    setSubjectsHistory(h => [...h, 'subject-grades-panel']);
+  };
+
+  const handleSubjectsBack = () => {
+    if (subjectsHistory.length > 1) {
+      setSubjectsHistory(h => h.slice(0, -1));
+      setSelectedSubject(null);
+    }
+  };
 
   const handleOpenLesson = (lessonId: number) => {
     setSelectedLessonId(lessonId);
@@ -94,6 +118,15 @@ export default function App() {
                 >
                   <Icon28CalendarOutline />
                 </TabbarItem>
+                {isStudentOrParent && (
+                  <TabbarItem
+                    label="Оценки"
+                    selected={activeTab === 'subjects'}
+                    onClick={() => setActiveTab('subjects')}
+                  >
+                    <Icon28BookSpreadOutline />
+                  </TabbarItem>
+                )}
                 <TabbarItem
                   label="Модули"
                   selected={activeTab === 'modules'}
@@ -117,6 +150,21 @@ export default function App() {
               onSwipeBackStart={handleSwipeBackStart}
             >
               <TimetablePage id="timetable-panel" onOpenLesson={handleOpenLesson} />
+            </View>
+
+            <View
+              id="subjects"
+              activePanel={activeSubjectsPanel}
+              history={subjectsHistory}
+              onSwipeBack={handleSubjectsBack}
+            >
+              <SubjectsPage id="subjects-panel" onOpenSubject={handleOpenSubject} />
+              <SubjectGradesPage
+                id="subject-grades-panel"
+                subjectId={selectedSubject?.id ?? 0}
+                subjectName={selectedSubject?.name ?? ''}
+                onBack={handleSubjectsBack}
+              />
             </View>
 
             <View id="modules" activePanel="modules-panel">

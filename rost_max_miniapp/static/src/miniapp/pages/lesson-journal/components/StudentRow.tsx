@@ -7,13 +7,15 @@ import type { Student, AttendanceType, GradeField } from '@/shared/lib/types';
 interface StudentRowProps {
   student: Student;
   attendanceTypes: AttendanceType[];
-  onCycleGrade: (student: Student, field: GradeField, next: number | null) => void;
-  onCycleAttendance: (student: Student, next: number | null) => void;
+  canEdit?: boolean;
+  onCycleGrade?: (student: Student, field: GradeField, next: number | null) => void;
+  onCycleAttendance?: (student: Student, next: number | null) => void;
 }
 
 export const StudentRow: React.FC<StudentRowProps> = ({
   student,
   attendanceTypes,
+  canEdit = true,
   onCycleGrade,
   onCycleAttendance,
 }) => (
@@ -36,10 +38,10 @@ export const StudentRow: React.FC<StudentRowProps> = ({
             grade_2: student.grade_2,
             grade_3: student.grade_3,
           }}
-          onCycleGrade={(field, next) => onCycleGrade(student, field, next)}
+          onCycleGrade={canEdit && onCycleGrade ? (field, next) => onCycleGrade(student, field, next) : undefined}
           gradeVariant="grade"
           attendanceValue={student.attendance_type_id}
-          onCycleAttendance={(next) => onCycleAttendance(student, next)}
+          onCycleAttendance={canEdit && onCycleAttendance ? (next) => onCycleAttendance(student, next) : undefined}
           attendanceVariant="attendance"
           attendanceTypes={attendanceTypes}
         />

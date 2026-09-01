@@ -6,7 +6,7 @@ import type { GradeField, AttendanceType } from '@/shared/lib/types';
 
 interface GradeColumnsProps {
   gradeValues: Record<GradeField, number | null>;
-  onCycleGrade: (field: GradeField, next: number | null) => void;
+  onCycleGrade?: (field: GradeField, next: number | null) => void;
   gradeVariant: 'grade' | 'attendance' | 'bulk-grade' | 'bulk-attendance';
   attendanceValue?: number | null;
   onCycleAttendance?: (next: number | null) => void;
@@ -32,7 +32,7 @@ export const GradeColumns: React.FC<GradeColumnsProps> = ({
         key={field}
         kind="grade"
         value={gradeValues[field]}
-        onCycle={(next) => onCycleGrade(field, next)}
+        onCycle={onCycleGrade ? (next) => onCycleGrade(field, next) : undefined}
         title={`Оценка ${field === 'grade_1' ? 'О1' : field === 'grade_2' ? 'О2' : 'О3'}`}
         variant={gradeVariant}
         size="s"

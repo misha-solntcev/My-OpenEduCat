@@ -8,6 +8,7 @@ interface LessonInfo {
   batch: string;
   date: string;
   timing: string;
+  can_edit?: boolean;
 }
 
 interface LessonResponse {

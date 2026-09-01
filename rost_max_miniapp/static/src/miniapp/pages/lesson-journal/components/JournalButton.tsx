@@ -14,7 +14,7 @@ interface JournalButtonProps {
   kind: 'grade' | 'attendance';
   value: number | null;
   attendanceTypes?: AttendanceType[];
-  onCycle: (next: number | null) => void;
+  onCycle?: (next: number | null) => void;
   title?: string;
   variant?: JournalButtonVariant;
   size?: 'm' | 'l';
@@ -52,7 +52,7 @@ const JournalButton: React.FC<JournalButtonProps> = ({
   return (
     <Button
       type="button"
-      onClick={() => onCycle(next)}
+      onClick={onCycle ? () => onCycle(next) : undefined}
       title={title}
       size={size}
       mode={mode}

@@ -94,6 +94,36 @@ def _generate_trusted_device_cookie(response, user):
     return key
 
 
+def _get_user_students(user):
+    """Определить роль пользователя и список "его" учеников (op.student).
+
+    Возвращает (role, students):
+      role: 'admin' | 'teacher' | 'student' | 'parent' | 'guest'
+      students: recordset op.student, чьи данные видит юзер:
+        - teacher/admin -> пустой recordset (видят всё, ограничений по ученикам нет)
+        - student       -> сам ученик
+        - parent        -> дети (op.parent.student_ids)
+    """
+    if user.has_group('base.group_system'):
+        return 'admin', request.env['op.student'].browse()
+    faculty = request.env['op.faculty'].sudo().search([
+        ('partner_id', '=', user.partner_id.id)
+    ], limit=1)
+    if faculty:
+        return 'teacher', request.env['op.student'].browse()
+    student = request.env['op.student'].sudo().search([
+        ('partner_id', '=', user.partner_id.id)
+    ], limit=1)
+    if student:
+        return 'student', student
+    parent = request.env['op.parent'].sudo().search([
+        ('name', '=', user.partner_id.id)
+    ], limit=1)
+    if parent:
+        return 'parent', parent.student_ids
+    return 'guest', request.env['op.student'].browse()
+
+
 def _check_lesson_write_access(sheet):
     """Защита от фальсификации оценок: писать может только админ либо
     преподаватель, назначенный вести этот урок. Гость/студент/чужой
@@ -429,7 +459,12 @@ class RostMaxTimetableController(http.Controller):
         # IDOR-защита: закрытый урок отдаём только админу либо тому, у кого
         # он реально есть в расписании (студент своей группы / преподаватель).
         # Гость (public_user) в allowed_sheets не попадёт -> 403.
-        is_admin = user.has_group('base.group_system')
+        #
+        # Для student/parent дополнительно сужаем данные до ЕГО строк:
+        # из всех attendance_line отдаём только те, что принадлежат
+        # его/её детям ученикам. Учитель/админ видят весь класс.
+        role, own_students = _get_user_students(user)
+        is_admin = role == 'admin'
         if not is_admin:
             allowed_sheets = self._get_user_timetable(user, sheet.attendance_date).sudo()
             if sheet not in allowed_sheets:
@@ -448,6 +483,9 @@ class RostMaxTimetableController(http.Controller):
         for ln in sheet.attendance_line:
             student = ln.student_id
             if not student:
+                continue
+            # Ученик/родитель видит только свои строки (can_edit=False на фронте)
+            if not is_admin and role != 'teacher' and student not in own_students:
                 continue
 
             # Аватар: отдаём относительный URL на встроенный роутинг Odoo
@@ -488,6 +526,7 @@ class RostMaxTimetableController(http.Controller):
 
         lesson = {
             "subject": sheet.subject_id.name if sheet.subject_id else '',
+            "can_edit": role in ('admin', 'teacher'),
             "batch": sheet.batch_id.name if sheet.batch_id else '',
             "date": str(sheet.attendance_date) if sheet.attendance_date else '',
             "timing": sheet.timing or '',
@@ -587,11 +626,16 @@ class RostMaxTimetableController(http.Controller):
             ('partner_id', '=', user.partner_id.id)
         ], limit=1))
 
+        is_parent = bool(request.env['op.parent'].sudo().search([
+            ('name', '=', user.partner_id.id)
+        ], limit=1))
+
         return request.make_json_response({
             "user_name": user.name,
             "is_admin": is_admin,
             "is_teacher": is_teacher,
             "is_student": is_student,
+            "is_parent": is_parent,
         })
 
     @http.route("/rost_max/api/dashboard_info", type="http", auth="public", methods=["GET"])
@@ -722,4 +766,171 @@ class RostMaxTimetableController(http.Controller):
                 }
                 for f in faculties
             ]
+        })
+
+    # --- УСПЕВАЕМОСТЬ (ученик / родитель) ---
+
+    def _get_quarter_terms(self):
+        """Четверти: {1..4: op.academic.term}. Логика как в
+        op.subject.grades._compute_line_ids — четверти это дочерние термины
+        (parent_term != False), номер = цифра в названии."""
+        terms = request.env['op.academic.term'].sudo().search([
+            ('parent_term', '!=', False)
+        ])
+        q_map = {}
+        for i in range(1, 5):
+            t = terms.filtered(lambda x, n=i: str(n) in (x.name or ''))
+            if t:
+                q_map[i] = t[0]
+        return q_map
+
+    def _get_current_quarter(self, q_map):
+        """Номер текущей четверти по дате (как _get_current_q_code в модели)."""
+        today = fields.Date.today()
+        for i in sorted(q_map):
+            term = q_map[i]
+            if term.term_start_date <= today <= term.term_end_date:
+                return i
+        started = [i for i in sorted(q_map) if q_map[i].term_start_date <= today]
+        return started[-1] if started else 1
+
+    @staticmethod
+    def _line_payload(ln):
+        """Сериализация op.attendance.line для read-only экранов."""
+        grades = [int(g) for g in (ln.grade_1, ln.grade_2, ln.grade_3) if g and g > 0]
+        return {
+            "line_id": ln.id,
+            "date": str(ln.attendance_date) if ln.attendance_date else '',
+            "subject_id": ln.subject_id.id if ln.subject_id else None,
+            "subject": ln.subject_id.name if ln.subject_id else '',
+            "grades": grades,
+            "attendance_type_id": ln.attendance_type_id.id if ln.attendance_type_id else None,
+            "attendance": ln.attendance_type_id.name if ln.attendance_type_id else None,
+            "remark": ln.remark or '',
+            "topic": ln.lesson_topic or '',
+        }
+
+    @http.route("/rost_max/api/my/subjects", type="http", auth="public", methods=["GET"])
+    def api_my_subjects(self, quarter=None):
+        """API: предметы с оценками/посещаемостью для ученика и родителя.
+
+        Считается НА ЛЕТУ из op.attendance.line (не из stored-компутов
+        op.subject.grades), чтобы успеваемость всегда совпадала с журналом.
+        Доступ жёстко ограничен своими учениками (IDOR по построению).
+        """
+        restore_session_if_needed()
+        if not request.session.uid:
+            return request.make_json_response({"error": "Unauthorized"}, status=401)
+
+        user = request.env.user
+        role, own_students = _get_user_students(user)
+        if role not in ('student', 'parent') or not own_students:
+            return request.make_json_response(
+                {"error": "Доступно только ученикам и родителям"}, status=403)
+
+        q_map = self._get_quarter_terms()
+        current_q = self._get_current_quarter(q_map)
+        try:
+            q = int(quarter) if quarter else current_q
+        except ValueError:
+            q = current_q
+        if q not in q_map:
+            return request.make_json_response(
+                {"error": "Четверть не найдена"}, status=404)
+
+        term = q_map[q]
+        lines = request.env['op.attendance.line'].sudo().search([
+            ('student_id', 'in', own_students.ids),
+            ('attendance_date', '>=', term.term_start_date),
+            ('attendance_date', '<=', term.term_end_date),
+        ])
+
+        # Группируем ученик x предмет, статистика через движок get_stats_from_lines
+        students_payload = []
+        stat_obj = request.env['op.attendance.line']
+        for st in own_students:
+            st_lines = request.env['op.attendance.line'].sudo().search([
+                ('student_id', '=', st.id),
+                ('attendance_date', '>=', term.term_start_date),
+                ('attendance_date', '<=', term.term_end_date),
+            ])
+            by_subject = {}
+            for ln in st_lines:
+                by_subject.setdefault(ln.subject_id, request.env['op.attendance.line'].browse())
+            for ln in st_lines:
+                by_subject[ln.subject_id] |= ln
+
+            subjects = []
+            for subj, subj_lines in by_subject.items():
+                if not subj:
+                    continue
+                stats = stat_obj.get_stats_from_lines(subj_lines)
+                subjects.append({
+                    "subject_id": subj.id,
+                    "name": subj.name,
+                    "average_mark": stats['avg'],
+                    "attendance_rate": stats['rate'],
+                    "total_classes": stats['total'],
+                    "present_classes": stats['present'],
+                    "last_remark": stats['last_remark'],
+                    "counts": {str(k): v for k, v in stats['counts'].items()},
+                })
+            subjects.sort(key=lambda s: s['name'])
+            students_payload.append({
+                "student_id": st.id,
+                "name": ("%s %s %s" % (st.last_name or '', st.first_name or '', st.middle_name or '')).strip(),
+                "subjects": subjects,
+            })
+
+        return request.make_json_response({
+            "quarter": q,
+            "current_quarter": current_q,
+            "quarters": [{"q": i, "name": q_map[i].name} for i in sorted(q_map)],
+            "students": students_payload,
+        })
+
+    @http.route("/rost_max/api/my/grades/<int:subject_id>", type="http", auth="public", methods=["GET"])
+    def api_my_grades(self, subject_id, quarter=None, **kw):
+        """API: хронология оценок/посещаемости ученика по предмету за четверть."""
+        restore_session_if_needed()
+        if not request.session.uid:
+            return request.make_json_response({"error": "Unauthorized"}, status=401)
+
+        user = request.env.user
+        role, own_students = _get_user_students(user)
+        if role not in ('student', 'parent') or not own_students:
+            return request.make_json_response(
+                {"error": "Доступно только ученикам и родителям"}, status=403)
+
+        q_map = self._get_quarter_terms()
+        current_q = self._get_current_quarter(q_map)
+        try:
+            q = int(quarter) if quarter else current_q
+        except ValueError:
+            q = current_q
+        if q not in q_map:
+            return request.make_json_response(
+                {"error": "Четверть не найдена"}, status=404)
+
+        term = q_map[q]
+        lines = request.env['op.attendance.line'].sudo().search([
+            ('student_id', 'in', own_students.ids),
+            ('subject_id', '=', subject_id),
+            ('attendance_date', '>=', term.term_start_date),
+            ('attendance_date', '<=', term.term_end_date),
+        ], order='attendance_date desc')
+
+        stats = request.env['op.attendance.line'].get_stats_from_lines(lines)
+        return request.make_json_response({
+            "quarter": q,
+            "subject_id": subject_id,
+            "summary": {
+                "average_mark": stats['avg'],
+                "attendance_rate": stats['rate'],
+                "total_classes": stats['total'],
+                "present_classes": stats['present'],
+                "counts": {str(k): v for k, v in stats['counts'].items()},
+                "last_remark": stats['last_remark'],
+            },
+            "lines": [self._line_payload(ln) for ln in lines],
         })

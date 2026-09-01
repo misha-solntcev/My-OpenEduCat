@@ -6,7 +6,7 @@ interface LessonJournalToolbarProps {
   lesson: { subject: string; batch: string; date: string; timing: string } | null;
   showExitBanner: boolean;
   setShowExitBanner: (v: boolean) => void;
-  onOpenBulkSheet: () => void;
+  onOpenBulkSheet?: () => void;
   exitSave: () => Promise<void>;
   exitDiscard: () => void;
   handleBack: () => void;

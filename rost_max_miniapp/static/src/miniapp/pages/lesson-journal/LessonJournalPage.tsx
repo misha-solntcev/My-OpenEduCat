@@ -38,6 +38,9 @@ export const LessonJournalPage: React.FC<LessonJournalPageProps> = ({ id, lesson
     clearAll: clearAllLocal,
   } = useLessonJournal(lessonId, onBack);
 
+  // Ученик/родитель: бэкенд отдал только его строки и can_edit=false
+  const canEdit = lesson?.can_edit !== false;
+
   // Логика массовой шторки вынесена в отдельный хук
   const bulkSetGrade = (field: GradeField, value: number | null) => {
     bulkSetGradeLocal(field, value, overwriteFilled, baselineRef);
@@ -58,17 +61,19 @@ export const LessonJournalPage: React.FC<LessonJournalPageProps> = ({ id, lesson
     students,
     attendanceTypes,
     false,
-    bulkSetGrade,
-    bulkSetAtt,
-    clearAll
+    canEdit ? bulkSetGrade : () => {},
+    canEdit ? bulkSetAtt : () => {},
+    canEdit ? clearAll : () => {}
   );
 
   const [sheetOpen, setSheetOpen] = React.useState(false);
 
-  const onOpenBulkSheet = () => {
-    resetBaseline(students);
-    setSheetOpen(true);
-  };
+  const onOpenBulkSheet = canEdit
+    ? () => {
+        resetBaseline(students);
+        setSheetOpen(true);
+      }
+    : undefined;
 
   // Если lessonId не передан (null) — показываем пустое состояние
   if (lessonId === null) {
@@ -92,7 +97,7 @@ export const LessonJournalPage: React.FC<LessonJournalPageProps> = ({ id, lesson
           flexGrow={1}
           overflowBlock="auto"
           padding="xl"
-          paddingBlockEnd={dirty ? 84 : 24}
+          paddingBlockEnd={canEdit && dirty ? 84 : 24}
         >
           <LessonJournalContent
             loading={loading}
@@ -100,12 +105,13 @@ export const LessonJournalPage: React.FC<LessonJournalPageProps> = ({ id, lesson
             onRetry={loadStudents}
             students={students}
             attendanceTypes={attendanceTypes}
+            canEdit={canEdit}
             onCycleGrade={cycleGradeField}
             onCycleAttendance={cycleAttendance}
           />
         </Box>
 
-        {dirty && (
+        {canEdit && dirty && (
           <Box position="sticky" insetBlockEnd={0} zIndex="popout" padding="m" paddingInline="l" border="top" background="content">
             <Button
               stretched
@@ -127,7 +133,7 @@ export const LessonJournalPage: React.FC<LessonJournalPageProps> = ({ id, lesson
           onBulkAtt={bulkSetAtt}
           onClearAll={clearAll}
           onClose={() => setSheetOpen(false)}
-          open={sheetOpen}
+          open={canEdit && sheetOpen}
         />
       </Flex>
     </Panel>

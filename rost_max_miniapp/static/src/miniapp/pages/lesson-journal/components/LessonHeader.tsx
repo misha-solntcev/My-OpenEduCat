@@ -5,7 +5,7 @@ import { Icon28ChevronBack, Icon28FlashOutline } from '@vkontakte/icons';
 interface LessonHeaderProps {
   lesson: { subject?: string; batch?: string; timing?: string } | null;
   onBack: () => void;
-  onOpenBulkSheet: () => void;
+  onOpenBulkSheet?: () => void;
 }
 
 export const LessonHeader: React.FC<LessonHeaderProps> = ({
@@ -21,7 +21,7 @@ export const LessonHeader: React.FC<LessonHeaderProps> = ({
   return (
     <PanelHeader
       before={<IconButton label="Назад" onClick={onBack}><Icon28ChevronBack /></IconButton>}
-      after={<IconButton label="Массово проставить оценки и посещаемость" onClick={onOpenBulkSheet}><Icon28FlashOutline /></IconButton>}
+      after={onOpenBulkSheet ? <IconButton label="Массово проставить оценки и посещаемость" onClick={onOpenBulkSheet}><Icon28FlashOutline /></IconButton> : undefined}
     >
       <Title level="3" weight="2">{headerTitle}</Title>
       {headerSubtitle && <Text weight="2" inline>{headerSubtitle}</Text>}

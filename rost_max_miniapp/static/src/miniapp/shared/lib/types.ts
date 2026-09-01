@@ -3,6 +3,7 @@ export interface UserInfo {
   is_admin: boolean;
   is_teacher: boolean;
   is_student: boolean;
+  is_parent?: boolean;
 }
 
 export interface AttendanceType {
@@ -53,6 +54,7 @@ export interface LessonInfo {
   batch: string;
   timing: string;
   date: string;
+  can_edit?: boolean;
 }
 
 export interface LessonJournalResponse {
@@ -92,4 +94,56 @@ export interface DashboardResponse {
   date: string;
   metrics: DashboardMetrics;
   next_lesson: NextLesson | null;
+}
+
+// --- Успеваемость (ученик / родитель, read-only) ---
+
+export interface SubjectSummary {
+  subject_id: number;
+  name: string;
+  average_mark: number;
+  attendance_rate: number;
+  total_classes: number;
+  present_classes: number;
+  last_remark: string;
+  counts: Record<string, number>;
+}
+
+export interface StudentSubjects {
+  student_id: number;
+  name: string;
+  subjects: SubjectSummary[];
+}
+
+export interface MySubjectsResponse {
+  quarter: number;
+  current_quarter: number;
+  quarters: { q: number; name: string }[];
+  students: StudentSubjects[];
+}
+
+export interface GradeLine {
+  line_id: number;
+  date: string;
+  subject_id: number | null;
+  subject: string;
+  grades: number[];
+  attendance_type_id: number | null;
+  attendance: string | null;
+  remark: string;
+  topic: string;
+}
+
+export interface MyGradesResponse {
+  quarter: number;
+  subject_id: number;
+  summary: {
+    average_mark: number;
+    attendance_rate: number;
+    total_classes: number;
+    present_classes: number;
+    counts: Record<string, number>;
+    last_remark: string;
+  };
+  lines: GradeLine[];
 }
