@@ -55,6 +55,14 @@ def restore_session_if_needed():
         request.session.sid = session_id
         request.session.db = stored.get('db') or request.session.db
 
+        # ВАЖНО: clear() взводит session.should_rotate (защита от session
+        # fixation). В конце запроса Odoo тогда создаёт НОВЫЙ sid, а старый
+        # (хранящийся в localStorage клиента и в соседних параллельных
+        # запросах) удаляется из store -> следующий restore падает, юзер
+        # молча становится гостем ("Занятий не найдено"). Гасим ротацию:
+        # сессия уже аутентифицирована, повторная ротация здесь не нужна.
+        request.session.should_rotate = False
+
         # Пересобираем env под восстановленного пользователя — он был
         # создан для анонимной сессии при старте запроса.
         import odoo
