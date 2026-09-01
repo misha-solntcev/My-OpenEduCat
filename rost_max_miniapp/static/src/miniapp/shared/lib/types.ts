@@ -32,6 +32,8 @@ export interface Lesson {
   batch: string;
   timing: string;
   faculty: string;
+  /** id op.attendance.sheet (журнал). Есть только у teacher/admin. */
+  sheet_id?: number | null;
 }
 
 export interface Faculty {

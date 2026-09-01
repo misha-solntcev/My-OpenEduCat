@@ -354,32 +354,8 @@ class RostMaxTimetableController(http.Controller):
 
     @http.route("/rost_max/", type="http", auth="public")
     def index(self):
-        """Главная - редирект на login или dashboard"""
-        if request.session.get('is_timetable_user'):
-            return request.redirect('/rost_max/dashboard')
-        return request.redirect('/rost_max/login')
-
-    @http.route("/rost_max/dashboard", type="http", auth="public")
-    def dashboard_page(self):
-        """Дашборд - рендерит SPA (React router покажет DashboardPage)"""
-        return _spa_response('rost_max_miniapp.spa_page',
-                             csrf_token=_get_spa_csrf_token())
-
-    @http.route("/rost_max/timetable", type="http", auth="public")
-    def timetable_page(self):
-        """Страница расписания - рендерит SPA"""
-        return _spa_response('rost_max_miniapp.spa_page',
-                             csrf_token=_get_spa_csrf_token())
-
-    @http.route("/rost_max/lesson/<int:lesson_id>", type="http", auth="public")
-    def lesson_page(self, lesson_id):
-        """Страница журнала урока - рендерит SPA"""
-        return _spa_response('rost_max_miniapp.spa_page',
-                             csrf_token=_get_spa_csrf_token())
-
-    @http.route("/rost_max/modules", type="http", auth="public")
-    def modules_page(self):
-        """Страница модулей - рендерит тот же SPA (клиентский роутер покажет экран)"""
+        """SPA: авторизационное состояние (login vs main) фронт решает сам
+        по /api/user/info."""
         return _spa_response('rost_max_miniapp.spa_page',
                              csrf_token=_get_spa_csrf_token())
 
@@ -806,12 +782,21 @@ class RostMaxTimetableController(http.Controller):
     # --- УСПЕВАЕМОСТЬ (ученик / родитель) ---
 
     def _get_quarter_terms(self):
-        """Четверти: {1..4: op.academic.term}. Логика как в
-        op.subject.grades._compute_line_ids — четверти это дочерние термины
-        (parent_term != False), номер = цифра в названии."""
-        terms = request.env['op.academic.term'].sudo().search([
-            ('parent_term', '!=', False)
-        ])
+        """Четверти: {1..4: op.academic.term} ТЕКУЩЕГО учебного года.
+        Логика как в op.subject.grades._compute_line_ids — четверти это
+        дочерние термины (parent_term != False), номер = цифра в названии.
+        Обязательный фильтр по году: «1 четверть» существует у каждого
+        op.academic.year, без него q_map[1] ловит первый попавшийся (вчерашний).
+        Год определяется по дате (образец: op.session._compute_academic_year).
+        """
+        today = fields.Date.today()
+        year = request.env['op.academic.year'].sudo().search([
+            ('start_date', '<=', today), ('end_date', '>=', today)
+        ], limit=1)
+        domain = [('parent_term', '!=', False)]
+        if year:
+            domain.append(('academic_year_id', '=', year.id))
+        terms = request.env['op.academic.term'].sudo().search(domain)
         q_map = {}
         for i in range(1, 5):
             t = terms.filtered(lambda x, n=i: str(n) in (x.name or ''))

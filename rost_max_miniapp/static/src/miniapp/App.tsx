@@ -8,18 +8,17 @@ import {
   Tabbar,
   TabbarItem, 
 } from '@vkontakte/vkui';
-import { Icon28HomeOutline, Icon28CalendarOutline, Icon28GridLayoutOutline, Icon28BookSpreadOutline } from '@vkontakte/icons';
+import { Icon28HomeOutline, Icon28CalendarOutline, Icon28BookSpreadOutline } from '@vkontakte/icons';
 import { LoginPage } from '@/pages/auth/LoginPage';
 import { DashboardPage } from '@/pages/dashboard/DashboardPage';
 import { TimetablePage } from '@/pages/timetable/TimetablePage';
-import { ModulesPage } from '@/pages/modules/ModulesPage';
 import { SubjectsPage } from '@/pages/subjects/SubjectsPage';
 import { SubjectGradesPage } from '@/pages/subjects/SubjectGradesPage';
 import { LessonJournalPage } from '@/pages/lesson-journal/LessonJournalPage';
 import { ToastContainer } from '@/shared/components/Toast';
 import { useAppStore } from '@/shared/lib/store';
 
-type TabId = 'dashboard' | 'timetable' | 'subjects' | 'modules';
+type TabId = 'dashboard' | 'timetable' | 'subjects';
 
 export default function App() {
   const authSuccess = useAppStore(s => s.authSuccess);
@@ -127,13 +126,6 @@ export default function App() {
                     <Icon28BookSpreadOutline />
                   </TabbarItem>
                 )}
-                <TabbarItem
-                  label="Модули"
-                  selected={activeTab === 'modules'}
-                  onClick={() => setActiveTab('modules')}
-                >
-                  <Icon28GridLayoutOutline />
-                </TabbarItem>
               </Tabbar>
             }
           >
@@ -165,10 +157,6 @@ export default function App() {
                 subjectName={selectedSubject?.name ?? ''}
                 onBack={handleSubjectsBack}
               />
-            </View>
-
-            <View id="modules" activePanel="modules-panel">
-              <ModulesPage id="modules-panel" />
             </View>
           </Epic>
 

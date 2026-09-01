@@ -257,15 +257,28 @@ export const TimetablePage: React.FC<TimetablePageProps> = ({ id, onOpenLesson }
         ) : lessons.length > 0 ? (
           <Group header="Занятия">
             {lessons.map(l => (
-              <SimpleCell
-                key={l.id}
-                onClick={() => onOpenLesson(l.id)}
-                before={formatTime(l.timing)}
-                subtitle={`👤 ${l.faculty}`}
-                after={<Badge mode="prominent">{l.batch}</Badge>}
-              >
-                {l.subject}
-              </SimpleCell>
+              l.sheet_id ? (
+                <SimpleCell
+                  key={l.id}
+                  onClick={() => onOpenLesson(l.sheet_id!)}
+                  before={formatTime(l.timing)}
+                  subtitle={`👤 ${l.faculty}`}
+                  after={<Badge mode="prominent">{l.batch}</Badge>}
+                >
+                  {l.subject}
+                </SimpleCell>
+              ) : (
+                // Без sheet_id (ученик/родитель) журнал недоступен —
+                // показываем урок без открытия журнала.
+                <SimpleCell
+                  key={l.id}
+                  before={formatTime(l.timing)}
+                  subtitle={`👤 ${l.faculty}`}
+                  after={<Badge mode="prominent">{l.batch}</Badge>}
+                >
+                  {l.subject}
+                </SimpleCell>
+              )
             ))}
           </Group>
         ) : (
