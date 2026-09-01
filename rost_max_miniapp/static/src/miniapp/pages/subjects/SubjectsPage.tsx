@@ -47,7 +47,8 @@ export const SubjectsPage: React.FC<SubjectsPageProps> = ({ id, onOpenSubject })
     }
   }, [addToast]);
 
-  React.useEffect(() => { load(quarter); /* eslint-disable-line react-hooks/exhaustive-deps */ }, []);
+  // Грузим один раз при монтировании (quarter на этом экране не меняется)
+  React.useEffect(() => { load(quarter); }, []);
 
   const subjects: SubjectSummary[] = data?.students[0]?.subjects ?? [];
   const studentName = data?.students[0]?.name ?? '';

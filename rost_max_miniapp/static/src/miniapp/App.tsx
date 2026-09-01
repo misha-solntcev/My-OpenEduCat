@@ -71,6 +71,8 @@ export default function App() {
     }
   };
 
+  // Намеренно глушим системный swipe-back VKUI: переход назад только по
+  // кнопке «Назад» (системный жест в MAX конфликтует с закрытием приложения)
   const handleSwipeBackStart = (_activePanel: string) => {
     return undefined;
   };
@@ -131,7 +133,7 @@ export default function App() {
           >
             {/* Дочерние View внутри Epic. ID каждого View обязан совпадать с activeStory */}
             <View id="dashboard" activePanel="dashboard-panel">
-              <DashboardPage id="dashboard-panel" onNavigate={(panel) => setActiveTab(panel as TabId)} />
+              <DashboardPage id="dashboard-panel" />
             </View>
 
             <View

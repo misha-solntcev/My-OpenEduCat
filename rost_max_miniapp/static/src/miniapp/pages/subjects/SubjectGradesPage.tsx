@@ -2,7 +2,6 @@ import React from 'react';
 import {
   Panel,
   PanelHeader,
-  PanelHeaderButton,
   IconButton,
   Box,
   Flex,

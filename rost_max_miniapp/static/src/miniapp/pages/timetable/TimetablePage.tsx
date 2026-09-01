@@ -15,7 +15,6 @@ import {
   ModalPage,
   ModalPageHeader,
   PanelHeaderButton,
-  Separator,
 } from '@vkontakte/vkui';
 import {
   Icon20FilterOutline,

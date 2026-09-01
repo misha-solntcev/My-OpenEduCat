@@ -2,6 +2,7 @@ import { createRoot } from 'react-dom/client';
 import { ConfigProvider, AdaptivityProvider, AppRoot } from '@vkontakte/vkui';
 import '@vkontakte/vkui/dist/vkui.css';
 import App from './App';
+import { ErrorBoundary } from './shared/components/ErrorBoundary';
 
 // MAX Bridge: типы для WebView API
 declare global {
@@ -42,7 +43,10 @@ const Root = () => {
     <ConfigProvider platform={maxPlatform} isWebView={true}>
       <AdaptivityProvider>
         <AppRoot mode="full">
-          <App />
+          {/* В MAX WebView нет консоли: без Boundary render-error = белый экран */}
+          <ErrorBoundary>
+            <App />
+          </ErrorBoundary>
         </AppRoot>
       </AdaptivityProvider>
     </ConfigProvider>

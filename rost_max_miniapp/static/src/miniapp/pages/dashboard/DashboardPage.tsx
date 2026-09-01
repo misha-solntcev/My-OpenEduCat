@@ -13,7 +13,7 @@ import {
 import { initialsOf } from '@/shared/lib/initials';
 import { useAppStore } from '@/shared/lib/store';
 
-export const DashboardPage: React.FC<{ id: string; onNavigate: (to: string) => void }> = ({ id }) => {
+export const DashboardPage: React.FC<{ id: string }> = ({ id }) => {
   const userInfo = useAppStore(s => s.userInfo);
   const userName = userInfo?.user_name ?? '';
   const isAdmin = userInfo?.is_admin ?? false;

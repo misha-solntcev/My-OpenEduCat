@@ -10,7 +10,7 @@ import {
   Checkbox,
   Link,
 } from '@vkontakte/vkui';
-import { apiPost } from '@/shared/lib/api';
+import { apiPost, setSessionId } from '@/shared/lib/api';
 import { useAppStore } from '@/shared/lib/store';
 
 interface LoginResponse {
@@ -92,14 +92,10 @@ export const LoginPage: React.FC<LoginPageProps> = ({ id }) => {
         return;
       }
 
-      // Успешный логин — сохраняем session_id в localStorage (fallback для
-      // MAX WebView, где cookie может не сохраниться).
+      // Успешный логин — сохраняем session_id (fallback для MAX WebView,
+      // где cookie может не сохраниться). Через API, ключ в одном месте.
       if (data.session_id) {
-        try {
-          localStorage.setItem('rost_max_session_id', data.session_id);
-        } catch {
-          // localStorage недоступен — полагаемся на cookie
-        }
+        setSessionId(data.session_id);
       }
 
       // Обновляем CSRF-токен в window (нужен для последующих POST-запросов)
