@@ -384,45 +384,47 @@ class RostMaxTimetableController(http.Controller):
                              csrf_token=_get_spa_csrf_token())
 
     def _get_user_timetable(self, user, date, faculty_id=None):
-        """Получить timetable для пользователя по дате и факультету (админ)"""
+        """Расписание пользователя на дату — из op.session (уроки расписания),
+        как в веб-интерфейсе OpenEduCat. НЕ op.attendance.sheet: листы
+        заводятся только у утверждённых уроков, а правило 629
+        «Students: No Attendance Sheets» ([[0,'=',1]]) принципиально не
+        даёт ученикам читать листы — на sheet-поиске от uid ученика
+        расписание всегда пустое.
+
+        Возвращает recordset op.session:
+          - admin: все сессии на дату (+ фильтр faculty_id из query);
+          - teacher: свои сессии (faculty_id.user_id == user.id);
+          - student/parent: сессии своего класса — rule 173 «Student
+            Session rule» (user_ids in user.id) сама срезает до batch'а;
+          - guest: пусто.
+        """
         is_admin = user.has_group('base.group_system')
-        
-        domain = [('attendance_date', '=', date)]
-        
-        if is_admin and faculty_id:
-            domain.append(('faculty_id', '=', int(faculty_id)))
-        elif is_admin:
-            pass  # админ видит все
+
+        domain = [('timetable_date', '=', date)]
+
+        if is_admin:
+            if faculty_id:
+                domain.append(('faculty_id', '=', int(faculty_id)))
         elif user == request.env.ref('base.public_user').sudo():
-            # Гость - пустой результат
-            return request.env['op.attendance.sheet'].browse()
+            return request.env['op.session'].browse()
         else:
             faculty = request.env['op.faculty'].sudo().search([
                 ('partner_id', '=', user.partner_id.id)
             ], limit=1)
             if faculty:
-                domain.append(('faculty_id', '=', faculty.id))
+                domain.append(('faculty_id.user_id', '=', user.id))
             else:
                 student = request.env['op.student'].sudo().search([
                     ('partner_id', '=', user.partner_id.id)
                 ], limit=1)
-                # У op.student нет прямого batch_id — он через
-                # course_detail_ids (op.student.course.batch_id).
-                if student:
-                    # Активный batch: только running-деталь курса. Первая
-                    # попавшаяся course_detail может быть finished (прошлый
-                    # год) — тогда расписание молча пустое.
-                    batch = student.active_batch_id or \
-                        student.course_detail_ids.filtered(
-                            lambda r: r.state == 'running').mapped('batch_id')[:1]
-                    if batch:
-                        domain.append(('batch_id', '=', batch.id))
-                    else:
-                        return request.env['op.attendance.sheet'].browse()
-                else:
-                    return request.env['op.attendance.sheet'].browse()
+                if not student:
+                    return request.env['op.session'].browse()
+                # Без фильтра по batch: право доступа срежет до своего
+                # класса (rule 173), включая случай нескольких активных
+                # course_detail. Родитель видит расписание класса ребёнка
+                # так же (user_ids включает user.child_ids, см. rule 173).
 
-        return request.env['op.attendance.sheet'].search(domain)
+        return request.env['op.session'].search(domain, order='start_datetime asc')
 
     @http.route("/rost_max/api/timetable", type="http", auth="public", methods=["GET"])
     def api_timetable(self, date=None, faculty_id=None):
@@ -433,7 +435,22 @@ class RostMaxTimetableController(http.Controller):
         date_str = str(date)
         is_admin = user.has_group('base.group_system')
 
-        lessons = self._get_user_timetable(user, date, faculty_id).sudo()
+        lessons = self._get_user_timetable(user, date, faculty_id)
+
+        # sheet_id (журнал) — только teacher/admin. Ученику/родителю журнал
+        # не показываем (семантика веба), к тому же rule 629 не даёт ему
+        # читать листы. IDOR-безопасно: sheet_id выдаётся только вместе с
+        # правом на журнал.
+        is_teacher = bool(request.env['op.faculty'].sudo().search([
+            ('partner_id', '=', user.partner_id.id)
+        ], limit=1))
+        sheets_map = {}
+        if lessons and (is_admin or is_teacher):
+            sheets_map = {
+                s.session_id.id: s.id
+                for s in request.env['op.attendance.sheet'].sudo().search(
+                    [('session_id', 'in', lessons.ids)])
+            }
 
         return request.make_json_response({
             "date": date_str,
@@ -444,7 +461,9 @@ class RostMaxTimetableController(http.Controller):
                     "subject": l.subject_id.name,
                     "batch": l.batch_id.name,
                     "timing": l.timing or "",
-                    "faculty": f"{l.session_id.faculty_id.last_name or ''} {l.session_id.faculty_id.first_name or ''} {l.session_id.faculty_id.middle_name or ''}".strip()
+                    "state": l.state,
+                    "faculty": f"{l.faculty_id.last_name or ''} {l.faculty_id.first_name or ''} {l.faculty_id.middle_name or ''}".strip(),
+                    "sheet_id": sheets_map.get(l.id),
                 }
                 for l in lessons
             ]
@@ -461,25 +480,29 @@ class RostMaxTimetableController(http.Controller):
                 {"lesson": None, "attendance_types": [], "students": []}
             )
 
-        # IDOR-защита: закрытый урок отдаём только админу либо тому, у кого
-        # он реально есть в расписании (студент своей группы / преподаватель).
-        # Гость (public_user) в allowed_sheets не попадёт -> 403.
-        #
-        # Для student/parent дополнительно сужаем данные до ЕГО строк:
-        # из всех attendance_line отдаём только те, что принадлежат
-        # его/её детям ученикам. Учитель/админ видят весь класс.
+        # IDOR-защита (журнал = sheet_id из /api/timetable): lesson_id — это
+        # id op.attendance.sheet. Журнал доступен только admin/teacher —
+        # семантика веба: у ученика/родителя кнопки журнала нет, их
+        # собственные данные они берут через /api/my/subjects и
+        # /api/my/grades. Гость тоже отсекается.
         role, own_students = _get_user_students(user)
-        is_admin = role == 'admin'
-        if not is_admin:
-            allowed_sheets = self._get_user_timetable(user, sheet.attendance_date).sudo()
-            if sheet not in allowed_sheets:
-                _logger.warning(
-                    "Security access violation: User %s (ID %s) attempted to view unauthorized lesson ID %s",
-                    user.login, user.id, lesson_id,
-                )
-                return request.make_json_response(
-                    {"error": "Доступ к уроку запрещен"}, status=403
-                )
+        if role not in ('admin', 'teacher'):
+            _logger.warning(
+                "Security access violation: User %s (ID %s) role=%s attempted to view lesson journal ID %s",
+                user.login, user.id, role, lesson_id,
+            )
+            return request.make_json_response(
+                {"error": "Журнал доступен только учителям"}, status=403
+            )
+        if role == 'teacher' and sheet.faculty_id != request.env['op.faculty'].sudo().search([
+                ('partner_id', '=', user.partner_id.id)], limit=1):
+            _logger.warning(
+                "Security access violation: User %s (ID %s) attempted to view unauthorized lesson ID %s",
+                user.login, user.id, lesson_id,
+            )
+            return request.make_json_response(
+                {"error": "Доступ к уроку запрещен"}, status=403
+            )
 
         attend_types = request.env['op.attendance.type'].search([])
         attendance_types = [{"id": at.id, "name": at.name} for at in attend_types]
@@ -489,9 +512,7 @@ class RostMaxTimetableController(http.Controller):
             student = ln.student_id
             if not student:
                 continue
-            # Ученик/родитель видит только свои строки (can_edit=False на фронте)
-            if not is_admin and role != 'teacher' and student not in own_students:
-                continue
+            # Учитель/админ видят весь класс (student/parent отсечены выше).
 
             # Аватар: отдаём относительный URL на встроенный роутинг Odoo
             # /web/image/<model>/<id>/<field>/<W>x<H> вместо base64-строки.
@@ -661,50 +682,52 @@ class RostMaxTimetableController(http.Controller):
         is_fallback = False
         fallback_date = ""
 
-        # Проверяем, есть ли уроки на выбранную дату
-        sheets = self._get_user_timetable(user, date_val).sudo()
-        if not sheets:
-            # На выбранную дату уроков нет (лето/выходной). Ищем последний активный день в истории
-            domain = []
+        # Проверяем, есть ли уроки на выбранную дату (op.session — см.
+        # docstring _get_user_timetable: sheet недоступен ученикам, rule 629)
+        sessions = self._get_user_timetable(user, date_val)
+        if not sessions:
+            # На выбранную дату уроков нет (лето/выходной). Ищем последний
+            # активный день в истории
+            domain = [('state', '!=', 'cancel')]
             if not is_admin:
                 if faculty:
-                    domain.append(('faculty_id', '=', faculty.id))
+                    domain.append(('faculty_id.user_id', '=', user.id))
                 elif student:
-                    # Активный batch: только running-деталь (см. фикс в
-                    # _get_user_timetable) — иначе прошлый год, пусто.
-                    batch = student.active_batch_id or \
-                        student.course_detail_ids.filtered(
-                            lambda r: r.state == 'running').mapped('batch_id')[:1]
-                    if batch:
-                        domain.append(('batch_id', '=', batch.id))
-                    else:
-                        domain.append(('id', '=', 0))  # пустой результат
+                    # Право доступа (rule 173) само срежет до класса
+                    # ребёнка/ученика — домен не сужаем, ищем дату.
+                    pass
+                else:
+                    domain.append(('id', '=', 0))  # пустой результат
 
-            last_sheet = request.env['op.attendance.sheet'].sudo().search(domain, order='attendance_date desc', limit=1)
-            if last_sheet:
-                date_val = last_sheet.attendance_date
+            last_session = request.env['op.session'].sudo().search(
+                domain, order='timetable_date desc', limit=1)
+            if last_session:
+                date_val = last_session.timetable_date
                 date_str = str(date_val)
                 is_fallback = True
                 fallback_date = date_str
-                sheets = self._get_user_timetable(user, date_val).sudo()
+                sessions = self._get_user_timetable(user, date_val)
 
         # 2. Расчет показателей на целевую дату
         metrics = {}
         next_lesson = None
 
-        if sheets:
-            # Сортируем уроки по времени, чтобы определить первый/ближайший
-            sorted_sheets = sheets.sorted(key=lambda s: s.timing or '')
-            first_sheet = sorted_sheets[0]
+        if sessions:
+            first_session = sessions[0]  # отсортированы по start_datetime
+            # Кабинет читаем через sudo: у ученика нет ACL на op.classroom
+            room = first_session.classroom_id.sudo().name if first_session.classroom_id else None
             next_lesson = {
-                "id": first_sheet.id,
-                "subject": first_sheet.subject_id.name if first_sheet.subject_id else "Урок",
-                "batch": first_sheet.batch_id.name if first_sheet.batch_id else "",
-                "time": first_sheet.timing or "12:15 - 13:00",
-                "room": "Кабинет"
+                "id": first_session.id,
+                "subject": first_session.subject_id.name if first_session.subject_id else "Урок",
+                "batch": first_session.batch_id.name if first_session.batch_id else "",
+                "time": first_session.timing or "12:15 - 13:00",
+                "room": room or "Кабинет"
             }
 
         if is_admin:
+            # Журналы (листы) нужны админу для статистики посещаемости
+            sheets = request.env['op.attendance.sheet'].sudo().search([
+                ('session_id', 'in', sessions.ids)])
             lines = sheets.mapped('attendance_line')
             total_lines = len(lines)
             attendance_pct = 100.0
@@ -714,13 +737,16 @@ class RostMaxTimetableController(http.Controller):
 
             unfilled = len(sheets.filtered(lambda s: any(not l.attendance_type_id for l in s.attendance_line)))
             metrics = {
-                "active_lessons": len(sheets),
+                "active_lessons": len(sessions),
                 "unfilled_sheets": unfilled,
                 "attendance_pct": attendance_pct,
                 "total_students": len(lines.mapped('student_id')),
                 "pending_substitutes": 0
             }
         elif faculty:
+            # Журналы только своих уроков (листы из confirm-сессий)
+            sheets = request.env['op.attendance.sheet'].sudo().search([
+                ('session_id', 'in', sessions.ids)])
             lines = sheets.mapped('attendance_line')
             total_lines = len(lines)
             attendance_pct = 100.0
@@ -730,7 +756,7 @@ class RostMaxTimetableController(http.Controller):
 
             graded = len(lines.filtered(lambda l: l.grade_1 > 0))
             metrics = {
-                "total_lessons": len(sheets),
+                "total_lessons": len(sessions),
                 "completed_lessons": len(sheets.filtered(lambda s: any(l.attendance_type_id for l in s.attendance_line))),
                 "attendance_pct": attendance_pct,
                 "graded_count": graded
@@ -744,7 +770,7 @@ class RostMaxTimetableController(http.Controller):
             gpa = round(sum(all_grades) / len(all_grades), 2) if all_grades else 4.5
             metrics = {
                 "gpa": gpa,
-                "pending_homework": len(sheets)  # условная цифра уроков за день
+                "pending_homework": len(sessions)  # условная цифра уроков за день
             }
 
         return request.make_json_response({
