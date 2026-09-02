@@ -57,7 +57,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
 
       {loading && !data ? (
         <Div style={{ display: 'flex', justifyContent: 'center', padding: 40 }}>
-          <Spinner size="large" />
+          <Spinner size="l" />
         </Div>
       ) : !data ? (
         <Div>

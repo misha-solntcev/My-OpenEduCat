@@ -37,7 +37,7 @@
                 <link rel="stylesheet" href="/rost_max_miniapp/static/src/bundle/styles.css"/>
 
                 <!-- Compiled JS (UMD format, no module) -->
-                <script defer="defer" src="/rost_max_miniapp/static/src/bundle/index.js?v=3"></script>
+                <script defer="defer" src="/rost_max_miniapp/static/src/bundle/index.js?v=4"></script>
 
                 <!-- Error catcher for MAX WebView (no console) -->
                 <script>

@@ -35,8 +35,6 @@ export const Greeting: React.FC<{ name: string; date: string }> = ({ name, date 
   </Div>
 );
 
-// --- Блок «Сегодня · N уроков» ------------------------------------------
-
 export interface FeedLesson {
   id: number;
   sheet_id: number | null;
@@ -58,7 +56,7 @@ export const TodayLessons: React.FC<{
   <Group
     header={
       <Header
-        aside={
+        after={
           onOpenTimetable ? (
             <span
               style={{ color: 'var(--vkui--color_text_accent)', fontWeight: 500, cursor: 'pointer', fontSize: 13 }}
@@ -111,7 +109,7 @@ export const GradesToday: React.FC<{
   <Group
     header={
       <Header
-        aside={
+        after={
           onOpenGrades ? (
             <span
               style={{ color: 'var(--vkui--color_text_accent)', fontWeight: 500, cursor: 'pointer', fontSize: 13 }}
@@ -189,7 +187,7 @@ export const HomeworkList: React.FC<{ items: HomeworkItem[] }> = ({ items }) => 
                 : 'var(--vkui--color_background_negative)',
             }} />
           }
-          after={h.overdue && !h.done ? <Counter mode="prominent">Просрочено</Counter> : undefined}
+          after={h.overdue && !h.done ? <Counter mode="primary">Просрочено</Counter> : undefined}
           subtitle={[
             fmtDue(h.due),
             h.task.length > 80 ? h.task.slice(0, 80) + '…' : h.task,
@@ -225,7 +223,7 @@ export const JournalsToFill: React.FC<{
         <SimpleCell
           key={j.sheet_id}
           onClick={() => onOpenJournal(j.sheet_id)}
-          after={<Counter mode="prominent">Заполнить</Counter>}
+          after={<Counter mode="primary">Заполнить</Counter>}
           subtitle={`${startTimeOf(j.timing)} · ${j.room} · ${j.students} ${plural(j.students, 'ученик', 'ученика', 'учеников')}`}
         >
           {`${j.batch} · ${j.subject}`}
@@ -331,7 +329,7 @@ export const AdminAlerts: React.FC<{ unfilled: number; morningPassed: number }> 
 // --- Пустой день ------------------------------------------------------------
 
 export const EmptyDay: React.FC<{ date: string }> = ({ date }) => (
-  <Placeholder icon={<Icon56EventOutline />} header="Уроков нет">
+  <Placeholder icon={<Icon56EventOutline />} title="Уроков нет">
     {formatDateLong(date)} — выходной или каникулы.
   </Placeholder>
 );
