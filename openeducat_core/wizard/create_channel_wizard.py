@@ -182,6 +182,31 @@ class CreateChannelWizard(models.TransientModel):
 
         return class_group_cache, default_student_group, get_cached_class_group
 
+    def _get_or_create_channel_group(self, class_num):
+        """Группа доступа к каналам класса «Участники каналов N класса».
+
+        Отдельная от «Ученики N класс»: у каналов group_public_id указывает
+        именно на неё, а в ней состоят ВСЕ участники канала (ученики +
+        учителя). Импликаций у группы нет — добавление учителя не должно
+        тянуть Student (иначе rule 613 режет ему библиотечные карточки).
+        """
+        name = f'Участники каналов {class_num} класса'
+        group = self.env['res.groups'].search([('name', '=', name)], limit=1)
+        if not group:
+            group = self.env['res.groups'].create({
+                'name': name,
+            })
+        return group
+
+    def _get_channel_group_for_batch(self, batch_name):
+        match = re.match(r'^(\d+)', batch_name or '')
+        if not match:
+            return self.env['res.groups']
+        num = int(match.group(1))
+        if not 1 <= num <= 11:
+            return self.env['res.groups']
+        return self._get_or_create_channel_group(num)
+
     def _load_sessions_cache(self):
         """Возвращает sessions_by_batch: {(batch_id, subject_id): op.session recordset}."""
         batch_ids = self.course_line_ids.mapped('batch_id').ids
@@ -218,12 +243,16 @@ class CreateChannelWizard(models.TransientModel):
             channel_data.append({
                 'name': self.general_channel_name,
                 'description': 'Общие объявления школы',
-                'class_group': default_student_group,
+                # group_public_id = Внутренний пользователь: канал видят все
+                # internal-пользователи, включая учителей без роли Student.
+                'class_group': self.env.ref('base.group_user', raise_if_not_found=False),
             })
 
         for line in self.course_line_ids:
             batch = line.batch_id
-            class_group = get_cached_class_group(batch.name)
+            # Группа доступа «Участники каналов N класса» вместо «Ученики N класс»:
+            # у teacher-юзеров не должен появляться Student (rule 613 режет карточки).
+            class_group = self._get_channel_group_for_batch(batch.name) or get_cached_class_group(batch.name)
             ch_name = self._channel_name(batch)
 
             channel_data.append({
@@ -347,19 +376,24 @@ class CreateChannelWizard(models.TransientModel):
             self.env['discuss.channel.member'].create(members_to_create)
 
     def _sync_faculty_class_groups(self, get_cached_class_group):
-        """Добавляет учителям классные группы «Ученики N класс».
+        """Добавляет ВСЕМ участникам каналов группы «Участники каналов N класса».
 
-        Членство в канале само по себе не даёт видимости: Rule 42 пускает
-        в канал типа 'channel' только при совпадении group_public_id
-        с группами юзера. Без этого новые учителя видят только general.
+        Видимость канала (Rule 42) определяется по group_public_id, а не по
+        членству, поэтому в группу доступа должны входить и ученики, и
+        учителя. Группа создается без импликаций — teacher-юзер не получает
+        Student (rule 613 иначе режет библиотечные карточки: 0 AND all = 0).
         """
         for line in self.course_line_ids:
-            class_group = get_cached_class_group(line.batch_id.name)
+            class_group = self._get_channel_group_for_batch(line.batch_id.name)
             if not class_group:
                 continue
-            for faculty in line.faculty_ids.filtered(lambda f: f.user_id):
-                if class_group not in faculty.user_id.groups_id:
-                    faculty.user_id.write({'groups_id': [fields.Command.link(class_group.id)]})
+            # ученики класса
+            users = line.student_ids.filtered(lambda s: s.user_id).mapped('user_id')
+            # учителя класса
+            users |= line.faculty_ids.filtered(lambda f: f.user_id).mapped('user_id')
+            for user in users:
+                if class_group not in user.groups_id:
+                    user.write({'groups_id': [fields.Command.link(class_group.id)]})
 
     def _build_result_notification(self):
         """Возвращает display_notification с количеством обработанных каналов."""
