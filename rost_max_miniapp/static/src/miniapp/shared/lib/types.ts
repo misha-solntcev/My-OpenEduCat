@@ -115,3 +115,77 @@ export interface MyGradesResponse {
   };
   lines: GradeLine[];
 }
+
+// --- Лента дня (dashboard_info, вариант A) ---
+
+export interface FeedLesson {
+  id: number;
+  sheet_id: number | null;
+  subject: string;
+  batch: string;
+  faculty: string;
+  timing: string;
+  start: string;
+  end: string;
+  is_now: boolean;
+  journal_unfilled: boolean;
+  homework: string;
+}
+
+export interface GradeToday {
+  grades: number[];
+  subject: string;
+  comment: string;
+}
+
+export interface HomeworkItem {
+  id: number;
+  subject: string;
+  task: string;
+  due: string;
+  overdue: boolean;
+  done: boolean;
+}
+
+export interface JournalToFill {
+  sheet_id: number;
+  subject: string;
+  batch: string;
+  timing: string;
+  room: string;
+  students: number;
+}
+
+export interface MyHomeworkItem {
+  id: number;
+  subject: string;
+  batch: string;
+  task: string;
+  due: string;
+  submitted: number;
+  total: number;
+}
+
+export interface AdminStats {
+  lessons_today: number;
+  batches_today: number;
+  journals_unfilled: number;
+}
+
+export interface DashboardInfoResponse {
+  is_admin: boolean;
+  is_teacher: boolean;
+  is_student: boolean;
+  date: string;
+  is_fallback: boolean;
+  fallback_date: string;
+  lessons: FeedLesson[];
+  grades_today?: GradeToday[];
+  homework?: HomeworkItem[];
+  journals_to_fill?: JournalToFill[];
+  my_homework?: MyHomeworkItem[];
+  admin_stats?: AdminStats;
+  alerts?: { kind: string; count: number; morning_passed: number }[];
+  metrics: Record<string, unknown>;
+  next_lesson: unknown;
+}

@@ -133,7 +133,12 @@ export default function App() {
           >
             {/* Дочерние View внутри Epic. ID каждого View обязан совпадать с activeStory */}
             <View id="dashboard" activePanel="dashboard-panel">
-              <DashboardPage id="dashboard-panel" />
+              <DashboardPage
+                id="dashboard-panel"
+                onOpenLesson={handleOpenLesson}
+                onOpenTimetable={() => setActiveTab('timetable')}
+                onOpenGrades={() => setActiveTab('subjects')}
+              />
             </View>
 
             <View

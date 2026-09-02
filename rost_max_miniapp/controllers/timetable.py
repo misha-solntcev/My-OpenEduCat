@@ -2,9 +2,10 @@
 import secrets
 import re
 import base64
+from datetime import timedelta
 from odoo import http
 from odoo.http import request
-from odoo import fields
+from odoo import fields, tools
 import logging
 from odoo.exceptions import AccessDenied
 from .session_middleware import restore_session_if_needed
@@ -757,8 +758,166 @@ class RostMaxTimetableController(http.Controller):
             "is_fallback": is_fallback,
             "fallback_date": fallback_date,
             "metrics": metrics,
-            "next_lesson": next_lesson
+            "next_lesson": next_lesson,
+            **self._dashboard_feed(user, is_admin, faculty, student, sessions, date_val),
         })
+
+    # --- ЛЕНТА ДНЯ (вариант A) ---------------------------------------------
+
+    def _dashboard_feed(self, user, is_admin, faculty, student, sessions, date_val):
+        """Лента дня: уроки с бейджами + роль-специфичные блоки.
+
+        Общий агрегат для ученика/родителя, учителя и админа (макеты
+        design/dashboard-variants.html и dashboard-teacher-admin.html).
+        Все чтения через sudo с жёсткой ролевой фильтрацией (IDOR по
+        построению): ученик — только свои оценки/ДЗ своего класса,
+        учитель — только свои уроки/задания.
+        """
+        now = fields.Datetime.now()
+        role, own_students = _get_user_students(user)
+
+        # --- Лента уроков (все роли) ---
+        sheets_map = {}
+        if sessions:
+            sheets_map = {
+                s.session_id.id: s for s in request.env[
+                    'op.attendance.sheet'].sudo().search(
+                    [('session_id', 'in', sessions.ids)])
+            }
+        lessons_feed = []
+        for l in sessions:
+            sheet = sheets_map.get(l.id)
+            unfilled = bool(sheet) and any(
+                not ln.attendance_type_id for ln in sheet.attendance_line)
+            hw = (sheet.lesson_homework or '').strip() if sheet else ''
+            lessons_feed.append({
+                "id": l.id,
+                "sheet_id": sheet.id if sheet else None,
+                "subject": l.subject_id.name if l.subject_id else "Урок",
+                "batch": l.batch_id.name if l.batch_id else "",
+                "faculty": self._faculty_name(l.faculty_id),
+                "timing": l.timing or "",
+                "start": str(l.start_datetime) if l.start_datetime else "",
+                "end": str(l.end_datetime) if l.end_datetime else "",
+                "is_now": bool(
+                    l.start_datetime and l.end_datetime
+                    and l.start_datetime <= now <= l.end_datetime
+                    and l.state not in ('cancel', 'done')),
+                "journal_unfilled": unfilled,
+                "homework": hw,
+            })
+
+        feed = {"lessons": lessons_feed}
+
+        # --- Ученик / родитель: оценки за сегодня + ДЗ ---
+        if role in ('student', 'parent') and own_students:
+            today_lines = request.env['op.attendance.line'].sudo().search([
+                ('student_id', 'in', own_students.ids),
+                ('attendance_date', '=', date_val),
+            ], order='attendance_date asc, id asc')
+            grades_today = []
+            for ln in today_lines:
+                grades = [int(g) for g in (ln.grade_1, ln.grade_2, ln.grade_3)
+                          if g and g > 0]
+                if grades:
+                    grades_today.append({
+                        "grades": grades,
+                        "subject": ln.subject_id.name if ln.subject_id else "",
+                        "comment": ln.remark or ln.lesson_topic or "",
+                    })
+            feed["grades_today"] = grades_today
+
+            batches = own_students.mapped('active_batch_id')
+            asgs = request.env['op.assignment'].sudo().search([
+                ('state', '=', 'publish'),
+                ('batch_id', 'in', batches.ids),
+                ('submission_date', '>=', fields.Datetime.now() - timedelta(days=21)),
+            ], order='submission_date asc')
+            subs = request.env['op.assignment.sub.line'].sudo().search([
+                ('assignment_id', 'in', asgs.ids),
+                ('student_id', 'in', own_students.ids),
+            ])
+            done_ids = {s.assignment_id.id for s in subs
+                        if s.state in ('submit', 'accept')}
+            feed["homework"] = [{
+                "id": a.id,
+                "subject": a.subject_id.name if a.subject_id else "",
+                "task": tools.html2plaintext(a.description) or a.name,
+                "due": str(a.submission_date) if a.submission_date else "",
+                "overdue": bool(a.submission_date and a.submission_date < now),
+                "done": a.id in done_ids,
+            } for a in asgs]
+
+        # --- Учитель: журналы к заполнению + задано моими уроками ---
+        if role == 'teacher' and faculty:
+            to_fill = []
+            for l in sessions:
+                sheet = sheets_map.get(l.id)
+                if sheet and any(
+                        not ln.attendance_type_id
+                        for ln in sheet.attendance_line):
+                    to_fill.append({
+                        "sheet_id": sheet.id,
+                        "subject": l.subject_id.name if l.subject_id else "",
+                        "batch": l.batch_id.name if l.batch_id else "",
+                        "timing": l.timing or "",
+                        "room": l.classroom_id.sudo().name or "",
+                        "students": len(sheet.attendance_line),
+                    })
+            feed["journals_to_fill"] = to_fill
+
+            my_asgs = request.env['op.assignment'].sudo().search([
+                ('faculty_id', '=', faculty.id),
+                ('state', '=', 'publish'),
+                ('submission_date', '>=', fields.Datetime.now() - timedelta(days=21)),
+            ], order='submission_date asc')
+            submitted_counts = {
+                s['assignment_id'][0]: s['__count']
+                for s in request.env['op.assignment.sub.line'].sudo().read_group(
+                    [('assignment_id', 'in', my_asgs.ids),
+                     ('state', 'in', ['submit', 'accept'])],
+                    ['assignment_id'], ['assignment_id'])
+            }
+            feed["my_homework"] = [{
+                "id": a.id,
+                "subject": a.subject_id.name if a.subject_id else "",
+                "batch": a.batch_id.name if a.batch_id else "",
+                "task": tools.html2plaintext(a.description) or a.name,
+                "due": str(a.submission_date) if a.submission_date else "",
+                "submitted": submitted_counts.get(a.id, 0),
+                "total": len(a.allocation_ids),
+            } for a in my_asgs]
+
+        # --- Админ: полоса цифр + требует внимания ---
+        if role == 'admin':
+            all_sheets = list(sheets_map.values())
+            unfilled_sheets = [s for s in all_sheets if any(
+                not ln.attendance_type_id for ln in s.attendance_line)]
+            morning_passed = sum(
+                1 for s in unfilled_sheets
+                if s.session_id.end_datetime and s.session_id.end_datetime < now)
+            alerts = []
+            if unfilled_sheets:
+                alerts.append({
+                    "kind": "journals",
+                    "count": len(unfilled_sheets),
+                    "morning_passed": morning_passed,
+                })
+            feed["admin_stats"] = {
+                "lessons_today": len(sessions),
+                "batches_today": len(sessions.mapped('batch_id')),
+                "journals_unfilled": len(unfilled_sheets),
+            }
+            feed["alerts"] = alerts
+
+        return feed
+
+    @staticmethod
+    def _faculty_name(f):
+        if not f:
+            return ""
+        return f"{f.last_name or ''} {f.first_name or ''} {f.middle_name or ''}".strip()
+
 
     @http.route("/rost_max/api/faculties", type="http", auth="public", methods=["GET"])
     def api_faculties(self):
