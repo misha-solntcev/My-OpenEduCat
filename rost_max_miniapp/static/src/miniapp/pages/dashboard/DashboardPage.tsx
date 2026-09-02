@@ -1,6 +1,6 @@
 import React from 'react';
 import { Panel, PanelHeader, Spinner, Div, Button } from '@vkontakte/vkui';
-import { useAppStore } from '@/shared/lib/store';
+import { useAppStore, selectGlobalDate } from '@/shared/lib/store';
 import { apiGet } from '@/shared/lib/api';
 import { useToast } from '@/shared/components/Toast';
 import type { DashboardInfoResponse } from '@/shared/lib/types';
@@ -26,7 +26,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
   id, onOpenLesson, onOpenTimetable, onOpenGrades,
 }) => {
   const userInfo = useAppStore(s => s.userInfo);
-  const globalDate = useAppStore(s => s.getGlobalDate());
+  const globalDate = useAppStore(selectGlobalDate);
   const addToast = useToast();
 
   const [data, setData] = React.useState<DashboardInfoResponse | null>(null);
