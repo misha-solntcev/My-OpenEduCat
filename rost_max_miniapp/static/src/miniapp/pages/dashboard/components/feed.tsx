@@ -17,7 +17,6 @@ export const formatDateLong = (iso: string): string => {
 };
 
 const startTimeOf = (timing: string): string => (timing || '').split(' - ')[0] || timing;
-const endTimeOf = (timing: string): string => (timing || '').split(' - ')[1] || '';
 
 const fmtDue = (due: string): string => {
   if (!due) return '';
@@ -35,10 +34,10 @@ const firstNamePatronymic = (full: string): string => {
   return parts.length >= 3 ? parts.slice(1).join(' ') : full;
 };
 
-export const Greeting: React.FC<{ name: string; date: string }> = ({ name, date }) => (
+export const Greeting: React.FC<{ name: string; date: string; short?: boolean }> = ({ name, date, short }) => (
   <Div style={{ paddingBottom: 4 }}>
     <Text weight="2" style={{ fontSize: 20 }}>
-      Привет, {firstNamePatronymic(name)}
+      Привет, {short ? (name.split(' ')[0] || name) : firstNamePatronymic(name)}
     </Text>
     <Caption style={{ color: 'var(--vkui--color_text_secondary)' }}>{formatDateLong(date)}</Caption>
   </Div>
@@ -62,7 +61,7 @@ export const TodayLessons: React.FC<{
   onOpenTimetable?: () => void;
   showBatch?: boolean;
 }> = ({ lessons, onOpenJournal, onOpenTimetable, showBatch }) => (
-  <Group
+  <Group mode="card"
     header={
       <Header
         after={
@@ -85,9 +84,9 @@ export const TodayLessons: React.FC<{
         key={l.id}
         onClick={onOpenJournal && l.sheet_id ? () => onOpenJournal(l.sheet_id!) : undefined}
         before={
-          <Caption style={{ color: 'var(--vkui--color_text_secondary)', whiteSpace: 'pre-line', width: 58, flexShrink: 0 }}>
-            {startTimeOf(l.timing)}{'\n'}{endTimeOf(l.timing)}
-          </Caption>
+          <span style={{ color: 'var(--vkui--color_text_accent)', fontWeight: 600, fontSize: 15, flexShrink: 0, minWidth: 48 }}>
+            {startTimeOf(l.timing)}
+          </span>
         }
         after={l.is_now ? <Badge mode="prominent">Сейчас</Badge> : undefined}
         subtitle={[
@@ -115,7 +114,7 @@ export const GradesToday: React.FC<{
   onOpenGrades?: () => void;
   average?: number | null;
 }> = ({ grades, onOpenGrades, average }) => (
-  <Group
+  <Group mode="card"
     header={
       <Header
         after={
@@ -181,7 +180,7 @@ export interface HomeworkItem {
 }
 
 export const HomeworkList: React.FC<{ items: HomeworkItem[] }> = ({ items }) => (
-  <Group header={<Header>Домашние задания</Header>}>
+  <Group mode="card" header={<Header>Домашние задания</Header>}>
     {items.length === 0 ? (
       <Div><Caption style={{ color: 'var(--vkui--color_text_secondary)' }}>Заданий нет — можно отдыхать</Caption></Div>
     ) : (
@@ -224,7 +223,7 @@ export const JournalsToFill: React.FC<{
   items: JournalToFill[];
   onOpenJournal: (sheetId: number) => void;
 }> = ({ items, onOpenJournal }) => (
-  <Group header={<Header>Журналы к заполнению</Header>}>
+  <Group mode="card" header={<Header>Журналы к заполнению</Header>}>
     {items.length === 0 ? (
       <Div><Caption style={{ color: 'var(--vkui--color_text_secondary)' }}>Все журналы заполнены 👍</Caption></Div>
     ) : (
@@ -255,7 +254,7 @@ export interface MyHomeworkItem {
 }
 
 export const MyHomework: React.FC<{ items: MyHomeworkItem[] }> = ({ items }) => (
-  <Group header={<Header>Задано моими уроками</Header>}>
+  <Group mode="card" header={<Header>Домашние задания</Header>}>
     {items.length === 0 ? (
       <Div><Caption style={{ color: 'var(--vkui--color_text_secondary)' }}>Активных заданий нет</Caption></Div>
     ) : (
@@ -319,7 +318,7 @@ export const AdminStatStrip: React.FC<{ stats: AdminStats }> = ({ stats }) => {
 };
 
 export const AdminAlerts: React.FC<{ unfilled: number; morningPassed: number }> = ({ unfilled, morningPassed }) => (
-  <Group header={<Header>Требует внимания</Header>}>
+  <Group mode="card" header={<Header>Требует внимания</Header>}>
     {unfilled > 0 ? (
       <SimpleCell
         before={<Icon28ClockOutline />}

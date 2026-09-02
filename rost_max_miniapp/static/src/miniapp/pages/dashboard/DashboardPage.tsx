@@ -50,6 +50,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
   const userName = userInfo?.user_name ?? '';
   const isAdmin = Boolean(data?.is_admin);
   const isTeacher = Boolean(data?.is_teacher) && !isAdmin;
+  const isStudentOrParent = !isAdmin && !isTeacher;
 
   return (
     <Panel id={id}>
@@ -65,7 +66,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
         </Div>
       ) : (
         <>
-          <Greeting name={userName} date={data.date} />
+          <Greeting name={userName} date={data.date} short={isStudentOrParent} />
 
           {/* Админ: полоса цифр + требует внимания */}
           {isAdmin && data.admin_stats && (
@@ -91,10 +92,10 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
           />
 
           {/* Ученик: оценки за сегодня + ДЗ */}
-          {!isAdmin && !isTeacher && data.grades_today && (
+          {isStudentOrParent && data.grades_today && (
             <GradesToday grades={data.grades_today} onOpenGrades={onOpenGrades} />
           )}
-          {!isAdmin && !isTeacher && data.homework && (
+          {isStudentOrParent && data.homework && (
             <HomeworkList items={data.homework} />
           )}
 
