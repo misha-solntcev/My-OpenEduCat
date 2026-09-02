@@ -28,9 +28,18 @@ const fmtDue = (due: string): string => {
 
 // --- Карточка-заголовок (приветствие) -----------------------------------
 
+// Имя-отчество: «Ермакова Лариса Анатольевна» -> «Лариса Анатольевна».
+// Фамилию отбрасываем — обращение по имени, не фамильярно и не казённо.
+const firstNamePatronymic = (full: string): string => {
+  const parts = (full || '').trim().split(/\s+/);
+  return parts.length >= 3 ? parts.slice(1).join(' ') : full;
+};
+
 export const Greeting: React.FC<{ name: string; date: string }> = ({ name, date }) => (
   <Div style={{ paddingBottom: 4 }}>
-    <Text weight="2" style={{ fontSize: 20 }}>Привет, {name.split(' ')[0] || name}</Text>
+    <Text weight="2" style={{ fontSize: 20 }}>
+      Привет, {firstNamePatronymic(name)}
+    </Text>
     <Caption style={{ color: 'var(--vkui--color_text_secondary)' }}>{formatDateLong(date)}</Caption>
   </Div>
 );

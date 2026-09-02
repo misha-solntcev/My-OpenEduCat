@@ -105,6 +105,18 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
           {isTeacher && data.my_homework && (
             <MyHomework items={data.my_homework} />
           )}
+
+          {/* Выход — реальная навигация, чтобы Odoo закрыл сессию серверно */}
+          <Div style={{ paddingTop: 8, paddingBottom: 24 }}>
+            <Button
+              mode="outline"
+              appearance="negative"
+              stretched
+              onClick={() => { window.location.href = '/rost_max/logout'; }}
+            >
+              Выйти
+            </Button>
+          </Div>
         </>
       )}
     </Panel>

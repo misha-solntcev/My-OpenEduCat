@@ -794,7 +794,7 @@ class RostMaxTimetableController(http.Controller):
                 "id": l.id,
                 "sheet_id": sheet.id if sheet else None,
                 "subject": l.subject_id.name if l.subject_id else "Урок",
-                "batch": l.batch_id.name if l.batch_id else "",
+                "batch": self._batch_short(l.batch_id.name) if l.batch_id else "",
                 "faculty": self._faculty_name(l.faculty_id),
                 "timing": l.timing or "",
                 "start": str(l.start_datetime) if l.start_datetime else "",
@@ -859,7 +859,7 @@ class RostMaxTimetableController(http.Controller):
                     to_fill.append({
                         "sheet_id": sheet.id,
                         "subject": l.subject_id.name if l.subject_id else "",
-                        "batch": l.batch_id.name if l.batch_id else "",
+                        "batch": self._batch_short(l.batch_id.name) if l.batch_id else "",
                         "timing": l.timing or "",
                         "room": l.classroom_id.sudo().name or "",
                         "students": len(sheet.attendance_line),
@@ -881,7 +881,7 @@ class RostMaxTimetableController(http.Controller):
             feed["my_homework"] = [{
                 "id": a.id,
                 "subject": a.subject_id.name if a.subject_id else "",
-                "batch": a.batch_id.name if a.batch_id else "",
+                "batch": self._batch_short(a.batch_id.name) if a.batch_id else "",
                 "task": tools.html2plaintext(a.description) or a.name,
                 "due": str(a.submission_date) if a.submission_date else "",
                 "submitted": submitted_counts.get(a.id, 0),
@@ -911,6 +911,11 @@ class RostMaxTimetableController(http.Controller):
             feed["alerts"] = alerts
 
         return feed
+
+    @staticmethod
+    def _batch_short(name):
+        """«5А  2026/2027» -> «5А»: отбрасываем учебный год в имени класса."""
+        return re.sub(r'\s*\d{4}/\d{4}\s*$', '', name or '').strip()
 
     @staticmethod
     def _faculty_name(f):
