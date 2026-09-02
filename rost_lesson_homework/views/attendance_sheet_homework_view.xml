@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_op_attendance_sheet_form_homework" model="ir.ui.view">
+        <field name="name">op.attendance.sheet.form.homework</field>
+        <field name="model">op.attendance.sheet</field>
+        <field name="inherit_id" ref="openeducat_attendance.view_op_attendance_sheet_form"/>
+        <field name="arch" type="xml">
+
+            <!-- Заменяем одиночный блок «Тема занятия» на сетку из двух блоков:
+                 Тема (слева) | Домашнее задание (справа) -->
+            <xpath expr="//div[hasclass('position-relative') and .//label[@for='lesson_topic']]" position="replace">
+                <div class="row g-3 align-items-stretch mb-4">
+                    <!-- Тема занятия -->
+                    <div class="p-4 rounded-3 border-start border-4 border-primary bg-white shadow-sm position-relative overflow-hidden col-lg-6 d-flex flex-column justify-content-center"
+                        style="background: linear-gradient(to right, #ffffff, #f8fafc);">
+                        <i class="fa fa-pencil-square-o position-absolute" title="Тема занятия"
+                            style="right: -10px; bottom: -10px; font-size: 100px; opacity: 0.03; transform: rotate(-15deg);"/>
+
+                        <label for="lesson_topic" class="fw-bold text-uppercase mb-2 text-muted"
+                            style="font-size: 0.75rem; letter-spacing: 1px;">
+                            <i class="fa fa-edit me-1 text-primary" title="Тема занятия"/> Тема
+                            текущего занятия </label>
+                        <div class="h2 mb-0">
+                            <field name="lesson_topic"
+                                placeholder="Например: Решение квадратных уравнений через дискриминант..."
+                                class="w-100 border-0 p-0 fw-bold shadow-none text-dark"
+                                style="background: transparent; outline: none;"
+                                readonly="state == 'done'"/>
+                        </div>
+                    </div>
+
+                    <!-- Домашнее задание -->
+                    <div class="p-4 rounded-3 border-start border-4 border-warning bg-white shadow-sm position-relative overflow-hidden col-lg-6 d-flex flex-column justify-content-center"
+                        style="background: linear-gradient(to right, #ffffff, #fdfaf3);">
+                        <i class="fa fa-home position-absolute" title="Домашнее задание"
+                            style="right: -10px; bottom: -10px; font-size: 100px; opacity: 0.03; transform: rotate(-15deg);"/>
+
+                        <label for="lesson_homework" class="fw-bold text-uppercase mb-2 text-muted"
+                            style="font-size: 0.75rem; letter-spacing: 1px;">
+                            <i class="fa fa-home me-1 text-warning" title="Домашнее задание"/> Домашнее
+                            задание </label>
+                        <div class="h2 mb-0">
+                            <field name="lesson_homework"
+                                placeholder="Например: §12, задачи 245-248..."
+                                class="w-100 border-0 p-0 fw-bold shadow-none text-dark"
+                                style="background: transparent; outline: none;"
+                                readonly="state in ('done', 'cancel')"/>
+                        </div>
+                        <field name="homework_assignment_id" invisible="1" force_save="1"/>
+                    </div>
+                </div>
+            </xpath>
+
+        </field>
+    </record>
+</odoo>
