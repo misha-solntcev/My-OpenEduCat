@@ -42,7 +42,7 @@ const Root = () => {
   return (
     <ConfigProvider platform={maxPlatform} isWebView={true}>
       <AdaptivityProvider>
-        <AppRoot mode="full">
+        <AppRoot mode="full" style={{ background: 'var(--vkui--color_background_secondary)' }}>
           {/* В MAX WebView нет консоли: без Boundary render-error = белый экран */}
           <ErrorBoundary>
             <App />

@@ -66,10 +66,13 @@ export interface FeedLesson {
 // даём явным инлайн-стилем контейнера (не кастомный css-класс).
 const Card: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   <div style={{
-    background: 'var(--vkui--color_background_secondary)',
+    // content = белая карточка в светлой теме / тёмная поверхность в тёмной
+    // (VKUI токен адаптивен, тёмная тема подхватывается автоматически)
+    background: 'var(--vkui--color_background_content)',
     borderRadius: 12,
     margin: '8px 8px',
     overflow: 'hidden',
+    boxShadow: '0 2px 8px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)',
   }}>
     {children}
   </div>
