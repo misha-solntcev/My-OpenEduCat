@@ -8,6 +8,7 @@ import {
   Box,
   Group,
   Badge,
+  Avatar,
   Placeholder,
   IconButton,
   CustomSelect,
@@ -241,10 +242,14 @@ export const TimetablePage: React.FC<TimetablePageProps> = ({ id, onOpenLesson }
 
         <DayStrip selected={globalDate} onSelect={setGlobalDate} />
 
-        {/* Фильтры — только админ, показываются всегда (без кнопки-тумблера) */}
+        {/* Фильтры — только админ, показываются всегда (без кнопки-тумблера).
+            Селекты в строку (полширины каждый), а дропдауны раскрываются на
+            всю ширину своего поля: floating-ui в VKUI держит
+            sameWidth (dropdownAutoWidth=false по умолчанию). */}
         {isAdmin && (
-          <Flex gap={8} direction="column" align="stretch">
+          <Flex gap={8}>
             <CustomSelect
+              style={{ flexGrow: 1 }}
               selectType="plain"
               options={facultyOptions}
               value={selectedFaculty ? String(selectedFaculty) : ''}
@@ -252,6 +257,7 @@ export const TimetablePage: React.FC<TimetablePageProps> = ({ id, onOpenLesson }
               placeholder="Все учителя"
             />
             <CustomSelect
+              style={{ flexGrow: 1 }}
               selectType="plain"
               options={batchOptions}
               value={selectedBatch ? String(selectedBatch) : ''}
@@ -268,28 +274,24 @@ export const TimetablePage: React.FC<TimetablePageProps> = ({ id, onOpenLesson }
         ) : lessons.length > 0 ? (
           <Group header="Занятия">
             {lessons.map(l => (
-              l.sheet_id ? (
-                <SimpleCell
-                  key={l.id}
-                  onClick={() => onOpenLesson(l.sheet_id!)}
-                  before={formatTime(l.timing)}
-                  subtitle={`👤 ${l.faculty}`}
-                  after={<Badge mode="prominent">{l.batch}</Badge>}
-                >
-                  {l.subject}
-                </SimpleCell>
-              ) : (
-                // Без sheet_id (ученик/родитель) журнал недоступен —
-                // показываем урок без открытия журнала.
-                <SimpleCell
-                  key={l.id}
-                  before={formatTime(l.timing)}
-                  subtitle={`👤 ${l.faculty}`}
-                  after={<Badge mode="prominent">{l.batch}</Badge>}
-                >
-                  {l.subject}
-                </SimpleCell>
-              )
+              // Без sheet_id (ученик/родитель) журнал недоступен —
+              // урок без открытия журнала.
+              <SimpleCell
+                key={l.id}
+                onClick={l.sheet_id ? () => onOpenLesson(l.sheet_id!) : undefined}
+                before={
+                  <Avatar
+                    size={40}
+                    src={l.faculty_avatar || undefined}
+                    style={{ borderRadius: 8, flexShrink: 0 }}
+                  />
+                }
+                subtitle={l.faculty}
+                after={<Badge mode="new" style={{ flexShrink: 0 }}>{l.batch}</Badge>}
+              >
+                <Text weight="2" style={{ marginRight: 6 }}>{formatTime(l.timing)}</Text>
+                {l.subject}
+              </SimpleCell>
             ))}
           </Group>
         ) : (

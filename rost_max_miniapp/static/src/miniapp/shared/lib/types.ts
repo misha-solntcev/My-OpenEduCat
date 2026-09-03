@@ -31,7 +31,10 @@ export interface Lesson {
   subject: string;
   batch: string;
   timing: string;
+  /** ФИО учителя */
   faculty: string;
+  /** URL аватара учителя (/web/image). Пусто — нет фото или гость. */
+  faculty_avatar?: string;
   /** id op.attendance.sheet (журнал). Есть только у teacher/admin. */
   sheet_id?: number | null;
 }
