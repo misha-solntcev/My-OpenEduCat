@@ -243,13 +243,14 @@ export const TimetablePage: React.FC<TimetablePageProps> = ({ id, onOpenLesson }
         <DayStrip selected={globalDate} onSelect={setGlobalDate} />
 
         {/* Фильтры — только админ, показываются всегда (без кнопки-тумблера).
-            Селекты в строку (полширины каждый), а дропдауны раскрываются на
-            всю ширину своего поля: floating-ui в VKUI держит
-            sameWidth (dropdownAutoWidth=false по умолчанию). */}
+            ВАЖНО: у VKUI Flex по умолчанию flex-wrap — без noWrap селекты
+            уходят друг под друга. flexBasis:0 + flexGrow:1 делят строку
+            поровну. Дропдаун раскрывается на всю ширину своего поля
+            (floating-ui sameWidth, dropdownAutoWidth=false по умолчанию). */}
         {isAdmin && (
-          <Flex gap={8}>
+          <Flex gap={8} noWrap>
             <CustomSelect
-              style={{ flexGrow: 1 }}
+              style={{ flexGrow: 1, flexBasis: 0, minWidth: 0 }}
               selectType="plain"
               options={facultyOptions}
               value={selectedFaculty ? String(selectedFaculty) : ''}
@@ -257,7 +258,7 @@ export const TimetablePage: React.FC<TimetablePageProps> = ({ id, onOpenLesson }
               placeholder="Все учителя"
             />
             <CustomSelect
-              style={{ flexGrow: 1 }}
+              style={{ flexGrow: 1, flexBasis: 0, minWidth: 0 }}
               selectType="plain"
               options={batchOptions}
               value={selectedBatch ? String(selectedBatch) : ''}
@@ -289,7 +290,7 @@ export const TimetablePage: React.FC<TimetablePageProps> = ({ id, onOpenLesson }
                 subtitle={l.faculty}
                 after={<Badge mode="new" style={{ flexShrink: 0 }}>{l.batch}</Badge>}
               >
-                <Text weight="2" style={{ marginRight: 6 }}>{formatTime(l.timing)}</Text>
+                <Text weight="2" inline style={{ marginRight: 6 }}>{formatTime(l.timing)}</Text>
                 {l.subject}
               </SimpleCell>
             ))}
