@@ -117,11 +117,11 @@ class OpAdmission(models.Model):
 
     @api.onchange('last_name', 'first_name', 'middle_name')
     def _onchange_name(self):
-        if not self.middle_name:
-            self.name = str(self.last_name) + " " + str(self.first_name)
-        else:
-            self.name = str(self.last_name) + " " + str(
-                self.middle_name) + " " + str(self.first_name)
+        # Единый стандарт op_person_base: Фамилия Имя Отчество.
+        # Раньше здесь было last+middle+first («Фамилия Отчество Имя»),
+        # из-за чего имя расползалось в partner и user при зачислении.
+        self.name = " ".join(
+            n for n in [self.last_name, self.first_name, self.middle_name] if n)
 
     @api.onchange('student_id', 'is_student')
     def onchange_student(self):
