@@ -12,7 +12,7 @@ interface AppState {
   authSuccess: boolean;
   setAuthSuccess: (v: boolean) => void;
 
-  // Фильтры расписания (дата + преподаватель) — единая точка правды.
+  // Фильтры расписания (дата + преподаватель + класс) — единая точка правды.
   filters: TimetableFilters;
   setFilters: (patch: Partial<TimetableFilters>) => void;
 }

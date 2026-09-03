@@ -41,12 +41,21 @@ export interface Faculty {
   name: string;
 }
 
+export interface Batch {
+  id: number;
+  name: string;
+}
+
 export interface TimetableResponse {
   lessons: Lesson[];
 }
 
 export interface FacultiesResponse {
   faculties: Faculty[];
+}
+
+export interface BatchesResponse {
+  batches: Batch[];
 }
 
 // Журнал — типы ответов API для lesson journal

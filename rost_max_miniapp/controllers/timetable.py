@@ -364,7 +364,7 @@ class RostMaxTimetableController(http.Controller):
         return _spa_response('rost_max_miniapp.spa_page',
                              csrf_token=_get_spa_csrf_token())
 
-    def _get_user_timetable(self, user, date, faculty_id=None):
+    def _get_user_timetable(self, user, date, faculty_id=None, batch_id=None):
         """Расписание пользователя на дату — из op.session (уроки расписания),
         как в веб-интерфейсе OpenEduCat. НЕ op.attendance.sheet: листы
         заводятся только у утверждённых уроков, а правило 629
@@ -386,6 +386,8 @@ class RostMaxTimetableController(http.Controller):
         if is_admin:
             if faculty_id:
                 domain.append(('faculty_id', '=', int(faculty_id)))
+            if batch_id:
+                domain.append(('batch_id', '=', int(batch_id)))
         elif user == request.env.ref('base.public_user').sudo():
             return request.env['op.session'].browse()
         else:
@@ -408,7 +410,7 @@ class RostMaxTimetableController(http.Controller):
         return request.env['op.session'].search(domain, order='start_datetime asc')
 
     @http.route("/rost_max/api/timetable", type="http", auth="public", methods=["GET"])
-    def api_timetable(self, date=None, faculty_id=None):
+    def api_timetable(self, date=None, faculty_id=None, batch_id=None):
         """API: список занятий на дате"""
         restore_session_if_needed()
         user = request.env.user
@@ -416,7 +418,10 @@ class RostMaxTimetableController(http.Controller):
         date_str = str(date)
         is_admin = user.has_group('base.group_system')
 
-        lessons = self._get_user_timetable(user, date, faculty_id)
+        # batch_id игнорируется для не-админов: фильтр «класс» — чисто
+        # админский инструмент, остальным роль срезает домен сама.
+        lessons = self._get_user_timetable(
+            user, date, faculty_id=faculty_id, batch_id=batch_id)
 
         # sheet_id (журнал) — только teacher/admin. Ученику/родителю журнал
         # не показываем (семантика веба), к тому же rule 629 не даёт ему
@@ -944,6 +949,22 @@ class RostMaxTimetableController(http.Controller):
                     "name": f"{f.last_name or ''} {f.first_name or ''} {f.middle_name or ''}".strip()
                 }
                 for f in faculties
+            ]
+        })
+
+    @http.route("/rost_max/api/batches", type="http", auth="public", methods=["GET"])
+    def api_batches(self):
+        """API: список классов (только для админа)"""
+        restore_session_if_needed()
+        user = request.env.user
+        if not user.has_group('base.group_system'):
+            return request.make_json_response({"batches": []})
+
+        batches = request.env['op.batch'].search([], order='sequence, name')
+        return request.make_json_response({
+            "batches": [
+                {"id": b.id, "name": b.name}
+                for b in batches
             ]
         })
 

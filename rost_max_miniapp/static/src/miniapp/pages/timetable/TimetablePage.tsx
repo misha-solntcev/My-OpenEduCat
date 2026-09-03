@@ -18,7 +18,6 @@ import {
 import {
   Icon24ChevronLeftOutline,
   Icon24ChevronRightOutline,
-  Icon20FilterOutline,
   Icon56CalendarOutline,
   Icon24CalendarOutline,
   Icon24Dismiss,
@@ -27,14 +26,14 @@ import { Calendar } from '@vkontakte/vkui';
 import { useAppStore, selectGlobalDate, setGlobalDate } from '@/shared/lib/store';
 import { apiGet } from '@/shared/lib/api';
 import { useToast } from '@/shared/components/Toast';
-import type { Lesson, Faculty, TimetableResponse, FacultiesResponse } from '@/shared/lib/types';
+import type { Lesson, Faculty, Batch, TimetableResponse, FacultiesResponse, BatchesResponse } from '@/shared/lib/types';
 
 interface TimetablePageProps {
   id: string;
   onOpenLesson: (id: number) => void;
 }
 
-type FacultyOption = { value: string; label: string };
+type SelectOption = { value: string; label: string };
 
 /** Понедельник недели, содержащей d */
 const startOfWeek = (d: Date): Date => {
@@ -121,25 +120,34 @@ export const TimetablePage: React.FC<TimetablePageProps> = ({ id, onOpenLesson }
   const filters = useAppStore(s => s.filters);
   const setFilters = useAppStore(s => s.setFilters);
   const selectedFaculty = filters.selectedFaculty;
+  const selectedBatch = filters.selectedBatch;
   const addToast = useToast();
 
   const [lessons, setLessons] = React.useState<Lesson[]>([]);
   const [faculties, setFaculties] = React.useState<Faculty[]>([]);
+  const [batches, setBatches] = React.useState<Batch[]>([]);
   const [isAdmin, setIsAdmin] = React.useState(false);
   const [loading, setLoading] = React.useState(false);
-  const [showFilters, setShowFilters] = React.useState(false);
   const [calendarOpen, setCalendarOpen] = React.useState(false);
 
   React.useEffect(() => {
-    apiGet<FacultiesResponse>('/rost_max/api/faculties')
-      .then(data => {
-        if (data.faculties?.length) {
-          setFaculties(data.faculties);
+    // Оба справочника отдаются только админу (для остальных — пустые
+    // списки, см. роуты) — заодно служат детекцией роли.
+    Promise.all([
+      apiGet<FacultiesResponse>('/rost_max/api/faculties'),
+      apiGet<BatchesResponse>('/rost_max/api/batches'),
+    ])
+      .then(([facData, batchData]) => {
+        if (facData.faculties?.length) {
+          setFaculties(facData.faculties);
           setIsAdmin(true);
+        }
+        if (batchData.batches?.length) {
+          setBatches(batchData.batches);
         }
       })
       .catch((err: unknown) => {
-        console.error('Failed to load faculties:', err);
+        console.error('Failed to load filter dictionaries:', err);
       });
   }, []);
 
@@ -148,6 +156,7 @@ export const TimetablePage: React.FC<TimetablePageProps> = ({ id, onOpenLesson }
     try {
       let url = `/rost_max/api/timetable?date=${globalDate}`;
       if (selectedFaculty) url += `&faculty_id=${selectedFaculty}`;
+      if (selectedBatch) url += `&batch_id=${selectedBatch}`;
       const data = await apiGet<TimetableResponse>(url);
       setLessons(data.lessons || []);
     } catch {
@@ -156,7 +165,7 @@ export const TimetablePage: React.FC<TimetablePageProps> = ({ id, onOpenLesson }
     } finally {
       setLoading(false);
     }
-  }, [globalDate, selectedFaculty, addToast]);
+  }, [globalDate, selectedFaculty, selectedBatch, addToast]);
 
   React.useEffect(() => { loadLessons(); }, [loadLessons]);
 
@@ -171,9 +180,14 @@ export const TimetablePage: React.FC<TimetablePageProps> = ({ id, onOpenLesson }
     return date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' });
   };
 
-  const facultyOptions: FacultyOption[] = [
+  const facultyOptions: SelectOption[] = [
     { value: '', label: 'Все учителя' },
     ...faculties.map(f => ({ value: String(f.id), label: f.name })),
+  ];
+
+  const batchOptions: SelectOption[] = [
+    { value: '', label: 'Все классы' },
+    ...batches.map(b => ({ value: String(b.id), label: b.name })),
   ];
 
   // Переключение недели относительно текущей выбранной даты
@@ -208,14 +222,6 @@ export const TimetablePage: React.FC<TimetablePageProps> = ({ id, onOpenLesson }
             >
               <Icon24CalendarOutline />
             </IconButton>
-            {isAdmin && (
-              <IconButton
-                label="Фильтры"
-                onClick={() => setShowFilters(!showFilters)}
-              >
-                <Icon20FilterOutline />
-              </IconButton>
-            )}
             <Text
               weight="1"
               style={{ cursor: 'pointer', color: 'var(--vkui--color_text_accent)' }}
@@ -235,15 +241,22 @@ export const TimetablePage: React.FC<TimetablePageProps> = ({ id, onOpenLesson }
 
         <DayStrip selected={globalDate} onSelect={setGlobalDate} />
 
-        {/* Фильтры — только админ */}
-        {showFilters && isAdmin && (
-          <Flex gap={4} justify="end">
+        {/* Фильтры — только админ, показываются всегда (без кнопки-тумблера) */}
+        {isAdmin && (
+          <Flex gap={8} direction="column" align="stretch">
             <CustomSelect
               selectType="plain"
               options={facultyOptions}
               value={selectedFaculty ? String(selectedFaculty) : ''}
               onChange={(_, v) => setFilters({ selectedFaculty: v ? Number(v) : null })}
-              placeholder="Выбрать учителя"
+              placeholder="Все учителя"
+            />
+            <CustomSelect
+              selectType="plain"
+              options={batchOptions}
+              value={selectedBatch ? String(selectedBatch) : ''}
+              onChange={(_, v) => setFilters({ selectedBatch: v ? Number(v) : null })}
+              placeholder="Все классы"
             />
           </Flex>
         )}

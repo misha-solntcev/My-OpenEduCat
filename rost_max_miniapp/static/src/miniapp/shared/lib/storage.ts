@@ -15,6 +15,7 @@ const FILTERS_KEY = 'rost_max_timetable_filters';
 export interface TimetableFilters {
   date: string;
   selectedFaculty: number | null;
+  selectedBatch: number | null;
 }
 
 export function today(): string {
@@ -22,17 +23,21 @@ export function today(): string {
 }
 
 export function getSavedFilters(): TimetableFilters {
-  const fallback: TimetableFilters = { date: today(), selectedFaculty: null };
+  const fallback: TimetableFilters = {
+    date: today(),
+    selectedFaculty: null,
+    selectedBatch: null,
+  };
   try {
     const saved = sessionStorage.getItem(FILTERS_KEY);
     if (!saved) return fallback;
     const parsed = JSON.parse(saved);
+    const toId = (v: unknown): number | null =>
+      v === undefined || v === null ? null : Number(v);
     return {
       date: typeof parsed.date === 'string' && parsed.date ? parsed.date : fallback.date,
-      selectedFaculty:
-        parsed.selectedFaculty === undefined || parsed.selectedFaculty === null
-          ? null
-          : Number(parsed.selectedFaculty),
+      selectedFaculty: toId(parsed.selectedFaculty),
+      selectedBatch: toId(parsed.selectedBatch),
     };
   } catch {
     // sessionStorage недоступен (приватный режим) — возвращаем дефолт
