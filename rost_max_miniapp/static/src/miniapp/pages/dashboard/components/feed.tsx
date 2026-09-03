@@ -323,7 +323,7 @@ export const AdminStatStrip: React.FC<{ stats: AdminStats }> = ({ stats }) => {
       {tiles.map((t, i) => (
         <div key={i} style={{
           flex: 1,
-          background: 'var(--vkui--color_background_secondary)',
+          background: 'var(--vkui--color_background_content)',
           borderRadius: 12,
           padding: '10px 12px',
         }}>
