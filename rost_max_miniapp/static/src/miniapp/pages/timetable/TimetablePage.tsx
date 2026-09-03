@@ -250,7 +250,13 @@ export const TimetablePage: React.FC<TimetablePageProps> = ({ id, onOpenLesson }
         {isAdmin && (
           <Flex gap={8} noWrap>
             <CustomSelect
-              style={{ flexGrow: 1, flexBasis: 0, minWidth: 0 }}
+              style={{
+                flexGrow: 1,
+                flexBasis: 0,
+                minWidth: 0,
+                border: '1px solid var(--vkui--color_separator_primary)',
+                borderRadius: 10,
+              }}
               selectType="plain"
               options={facultyOptions}
               value={selectedFaculty ? String(selectedFaculty) : ''}
@@ -258,7 +264,13 @@ export const TimetablePage: React.FC<TimetablePageProps> = ({ id, onOpenLesson }
               placeholder="Все учителя"
             />
             <CustomSelect
-              style={{ flexGrow: 1, flexBasis: 0, minWidth: 0 }}
+              style={{
+                flexGrow: 1,
+                flexBasis: 0,
+                minWidth: 0,
+                border: '1px solid var(--vkui--color_separator_primary)',
+                borderRadius: 10,
+              }}
               selectType="plain"
               options={batchOptions}
               value={selectedBatch ? String(selectedBatch) : ''}
@@ -273,7 +285,13 @@ export const TimetablePage: React.FC<TimetablePageProps> = ({ id, onOpenLesson }
             <Spinner />
           </Flex>
         ) : lessons.length > 0 ? (
-          <Group header="Занятия">
+          <Group
+            header={
+              <Text weight="2" style={{ textAlign: 'center', display: 'block' }}>
+                Уроки
+              </Text>
+            }
+          >
             {lessons.map(l => (
               // Без sheet_id (ученик/родитель) журнал недоступен —
               // урок без открытия журнала.
@@ -284,11 +302,22 @@ export const TimetablePage: React.FC<TimetablePageProps> = ({ id, onOpenLesson }
                   <Avatar
                     size={40}
                     src={l.faculty_avatar || undefined}
+                    objectPosition="center top"
                     style={{ borderRadius: 8, flexShrink: 0 }}
                   />
                 }
                 subtitle={l.faculty}
-                after={<Badge mode="new" style={{ flexShrink: 0 }}>{l.batch}</Badge>}
+                after={
+                  <Badge
+                    mode="new"
+                    style={{
+                      flexShrink: 0,
+                      border: '1px solid var(--vkui--color_stroke_accent)',
+                    }}
+                  >
+                    {l.batch}
+                  </Badge>
+                }
               >
                 <Text weight="2" inline style={{ marginRight: 6 }}>{formatTime(l.timing)}</Text>
                 {l.subject}

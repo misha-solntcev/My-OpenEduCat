@@ -438,18 +438,20 @@ class RostMaxTimetableController(http.Controller):
                     [('session_id', 'in', lessons.ids)])
             }
 
-        # Аватары учителей: URL на /web/image (Odoo сам ресайзит до 128x128,
-        # кеширует и отдаёт плейсхолдер с первой буквой, если фото нет —
-        # как в журнале урока). Наличие фото проверяем search() БЕЗ выгрузки
-        # BLOB (EXISTS в SQL); URL только для залогиненных, иначе 404.
-        # Список уникален: у одного учителя несколько уроков в день.
+        # Аватары учителей: URL на /web/image (Odoo ресайзит и кеширует,
+        # плейсхолдер с первой буквой при отсутствии фото — как в журнале).
+        # ВАЖНО: без суффикса /WxH — иначе Одоо серверно кропнет квадрат по
+        # центру (срежет лоб). Отдаём image_512 целиком, квадрат режет
+        # браузер (objectPosition='center top' — голова всегда в кадре).
+        # Наличие фото проверяем search() БЕЗ выгрузки BLOB (EXISTS в SQL);
+        # URL только для залогиненных, иначе 404.
         avatar_map = {}
         if lessons and request.session.uid:
             faculty_ids = lessons.mapped('faculty_id').ids
             with_photo = request.env['op.faculty'].sudo().search(
                 [('id', 'in', faculty_ids), ('image_128', '!=', False)])
             avatar_map = {
-                f.id: '/web/image/op.faculty/%s/image_128/128x128' % f.id
+                f.id: '/web/image/op.faculty/%s/image_512' % f.id
                 for f in with_photo
             }
 
