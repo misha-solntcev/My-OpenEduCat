@@ -34,14 +34,20 @@ const firstNamePatronymic = (full: string): string => {
   return parts.length >= 3 ? parts.slice(1).join(' ') : full;
 };
 
-export const Greeting: React.FC<{ name: string; date: string; short?: boolean }> = ({ name, date, short }) => (
-  <Div style={{ paddingBottom: 4 }}>
-    <Text weight="2" style={{ fontSize: 20 }}>
-      Привет, {short ? (name.split(' ')[0] || name) : firstNamePatronymic(name)}
-    </Text>
-    <Caption style={{ color: 'var(--vkui--color_text_secondary)' }}>{formatDateLong(date)}</Caption>
-  </Div>
-);
+// Ученик: «Макаров Михаил Игоревич» -> «Михаил» (второе слово ФИО).
+// Учителю/админу — имя-отчество.
+export const Greeting: React.FC<{ name: string; date: string; short?: boolean }> = ({ name, date, short }) => {
+  const parts = (name || '').trim().split(/\s+/);
+  const display = short
+    ? (parts.length >= 2 ? parts[1] : name)
+    : firstNamePatronymic(name);
+  return (
+    <Div style={{ paddingBottom: 4 }}>
+      <Text weight="2" style={{ fontSize: 20 }}>Привет, {display}</Text>
+      <Caption style={{ color: 'var(--vkui--color_text_secondary)' }}>{formatDateLong(date)}</Caption>
+    </Div>
+  );
+};
 
 export interface FeedLesson {
   id: number;
@@ -55,13 +61,27 @@ export interface FeedLesson {
   homework: string;
 }
 
+// Обёртка-карточка: фон поверхности + скругление. Group в MAX WebView
+// рендерится в plain-режиме (мобильный адаптив), поэтому карточный вид
+// даём явным инлайн-стилем контейнера (не кастомный css-класс).
+const Card: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+  <div style={{
+    background: 'var(--vkui--color_background_secondary)',
+    borderRadius: 12,
+    margin: '8px 8px',
+    overflow: 'hidden',
+  }}>
+    {children}
+  </div>
+);
+
 export const TodayLessons: React.FC<{
   lessons: FeedLesson[];
   onOpenJournal?: (sheetId: number) => void;
   onOpenTimetable?: () => void;
   showBatch?: boolean;
 }> = ({ lessons, onOpenJournal, onOpenTimetable, showBatch }) => (
-  <Group mode="card"
+  <Card><Group
     header={
       <Header
         after={
@@ -98,7 +118,7 @@ export const TodayLessons: React.FC<{
         {showBatch ? `${l.batch} · ${l.subject}` : l.subject}
       </SimpleCell>
     ))}
-  </Group>
+  </Group></Card>
 );
 
 // --- Оценки за сегодня (ученик) ------------------------------------------
@@ -114,7 +134,7 @@ export const GradesToday: React.FC<{
   onOpenGrades?: () => void;
   average?: number | null;
 }> = ({ grades, onOpenGrades, average }) => (
-  <Group mode="card"
+  <Card><Group
     header={
       <Header
         after={
@@ -165,7 +185,7 @@ export const GradesToday: React.FC<{
         </Caption>
       </Div>
     )}
-  </Group>
+  </Group></Card>
 );
 
 // --- Домашние задания (ученик) -------------------------------------------
@@ -180,7 +200,7 @@ export interface HomeworkItem {
 }
 
 export const HomeworkList: React.FC<{ items: HomeworkItem[] }> = ({ items }) => (
-  <Group mode="card" header={<Header>Домашние задания</Header>}>
+  <Card><Group header={<Header>Домашние задания</Header>}>
     {items.length === 0 ? (
       <Div><Caption style={{ color: 'var(--vkui--color_text_secondary)' }}>Заданий нет — можно отдыхать</Caption></Div>
     ) : (
@@ -205,7 +225,7 @@ export const HomeworkList: React.FC<{ items: HomeworkItem[] }> = ({ items }) => 
         </SimpleCell>
       ))
     )}
-  </Group>
+  </Group></Card>
 );
 
 // --- Журналы к заполнению (учитель) ---------------------------------------
@@ -223,7 +243,7 @@ export const JournalsToFill: React.FC<{
   items: JournalToFill[];
   onOpenJournal: (sheetId: number) => void;
 }> = ({ items, onOpenJournal }) => (
-  <Group mode="card" header={<Header>Журналы к заполнению</Header>}>
+  <Card><Group header={<Header>Журналы к заполнению</Header>}>
     {items.length === 0 ? (
       <Div><Caption style={{ color: 'var(--vkui--color_text_secondary)' }}>Все журналы заполнены 👍</Caption></Div>
     ) : (
@@ -238,7 +258,7 @@ export const JournalsToFill: React.FC<{
         </SimpleCell>
       ))
     )}
-  </Group>
+  </Group></Card>
 );
 
 // --- Задано моими уроками (учитель) ---------------------------------------
@@ -254,7 +274,7 @@ export interface MyHomeworkItem {
 }
 
 export const MyHomework: React.FC<{ items: MyHomeworkItem[] }> = ({ items }) => (
-  <Group mode="card" header={<Header>Домашние задания</Header>}>
+  <Card><Group header={<Header>Домашние задания</Header>}>
     {items.length === 0 ? (
       <Div><Caption style={{ color: 'var(--vkui--color_text_secondary)' }}>Активных заданий нет</Caption></Div>
     ) : (
@@ -279,7 +299,7 @@ export const MyHomework: React.FC<{ items: MyHomeworkItem[] }> = ({ items }) => 
         </SimpleCell>
       ))
     )}
-  </Group>
+  </Group></Card>
 );
 
 // --- Полоса цифр + требует внимания (админ) --------------------------------
@@ -318,7 +338,7 @@ export const AdminStatStrip: React.FC<{ stats: AdminStats }> = ({ stats }) => {
 };
 
 export const AdminAlerts: React.FC<{ unfilled: number; morningPassed: number }> = ({ unfilled, morningPassed }) => (
-  <Group mode="card" header={<Header>Требует внимания</Header>}>
+  <Card><Group header={<Header>Требует внимания</Header>}>
     {unfilled > 0 ? (
       <SimpleCell
         before={<Icon28ClockOutline />}
@@ -331,7 +351,7 @@ export const AdminAlerts: React.FC<{ unfilled: number; morningPassed: number }> 
     ) : (
       <Div><Caption style={{ color: 'var(--vkui--color_text_secondary)' }}>Всё в порядке</Caption></Div>
     )}
-  </Group>
+  </Group></Card>
 );
 
 // --- Пустой день ------------------------------------------------------------
