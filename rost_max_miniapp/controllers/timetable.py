@@ -22,11 +22,12 @@ CSRF_SESSION_KEY = 'spa_csrf_token'
 TRUSTED_DEVICE_COOKIE = 'td_id'
 TRUSTED_DEVICE_AGE = 90 * 86400  # 90 days
 
-# Веб-версия MAX (web.max.ru) открывает миниапп в iframe. Odoo по умолчанию
-# шлёт X-Frame-Options: SAMEORIGIN — браузер блокирует встраивание с чужого
-# домена. Разрешаем встраивание только для доменов MAX.
+# Веб-версии MAX (web.max.ru) и Telegram (web.telegram.org) открывают миниапп
+# в iframe. Odoo по умолчанию не пускает чужие домены. X-Frame-Options не
+# используем вовсе: ALLOW-FROM удалён из стандартов и игнорируется
+# браузерами, а SAMEORIGIN запрещал бы встраивание — всю работу делает
+# CSP frame-ancestors (приоритетнее XFO в современных браузерах).
 MAX_FRAME_HEADERS = {
-    'X-Frame-Options': 'ALLOW-FROM https://web.max.ru',
     'Content-Security-Policy': (
         'frame-ancestors https://*.max.ru https://web.telegram.org '
         'https://telegram.org https://*.telegram.org'
