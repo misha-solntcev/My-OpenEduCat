@@ -55,6 +55,11 @@ const toISO = (d: Date): string => {
 
 const WEEKDAYS = ['пн', 'вт', 'ср', 'чт', 'пт', 'сб', 'вс'];
 
+/** «5А 2026/2027» -> «5А»: учебный год в имени класса не нужен. */
+const BATCH_YEAR_RE = /\s*\d{4}[/\-–]\d{4}\s*/;
+const shortBatchName = (name: string): string =>
+  name.replace(BATCH_YEAR_RE, ' ').trim();
+
 /** Лента дат пн–вс недели выбранной даты + навигация по неделям */
 const DayStrip: React.FC<{ selected: string; onSelect: (iso: string) => void }> = ({ selected, onSelect }) => {
   const selDate = new Date(selected + 'T00:00:00');
@@ -362,9 +367,20 @@ export const TimetablePage: React.FC<TimetablePageProps> = ({ id, onOpenLesson }
                   }
                   subtitle={l.faculty}
                   // Badge в VKUI — точка 6x6 без текста. Текстовый бейдж — Counter.
+                  // Год в имени класса режем на фронте: batch приходит из
+                  // op.session и содержит «2026/2027» (в /api/batches режем
+                  // на бэкенде, а тут второй источник).
                   after={
-                    <Counter mode="tertiary" size="s" style={{ flexShrink: 0 }}>
-                      {l.batch}
+                    <Counter
+                      mode="tertiary"
+                      size="s"
+                      style={{
+                        flexShrink: 0,
+                        fontSize: 15,
+                        fontWeight: 500,
+                      }}
+                    >
+                      {shortBatchName(l.batch)}
                     </Counter>
                   }
                 >

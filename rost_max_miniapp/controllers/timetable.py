@@ -978,7 +978,19 @@ class RostMaxTimetableController(http.Controller):
         if not user.has_group('base.group_system'):
             return request.make_json_response({"batches": []})
 
-        batches = request.env['op.batch'].search([], order='sequence, name')
+        # Только классы ТЕКУЩЕГО учебного года: без фильтра в списке
+        # задвоенные «2А» из прошлого года (батчи живут год, потом заводят
+        # новые на новый набор). Логика та же, что в _get_quarter_terms.
+        today = fields.Date.today()
+        year = request.env['op.academic.year'].sudo().search([
+            ('start_date', '<=', today), ('end_date', '>=', today)
+        ], limit=1)
+        domain = []
+        if year:
+            domain.append(('end_date', '>=', year.start_date))
+            domain.append(('start_date', '<=', year.end_date))
+
+        batches = request.env['op.batch'].search(domain, order='sequence, name')
         # Из имени класса убираем учебный год («5А 2026/2027» -> «5А»):
         # год дублирует информацию и ломает компактный бейдж в списке уроков.
         year_re = re.compile(r'\s*\d{4}[/\-–]\d{4}\s*')
