@@ -7,7 +7,7 @@ import {
   SimpleCell,
   Box,
   Group,
-  Badge,
+  Counter,
   Avatar,
   Placeholder,
   IconButton,
@@ -176,6 +176,40 @@ export const TimetablePage: React.FC<TimetablePageProps> = ({ id, onOpenLesson }
     return parts[0] || timing;
   };
 
+  /**
+   * Статус урока относительно текущего момента: 'past' | 'now' | 'future'.
+   * Красим ТОЛЬКО при просмотре сегодняшней даты: прошлые/будущие дни
+   * нейтральны (весь день в прошлом/будущем). Время берём из timing
+   * («09:30 - 10:15») — локальное устройство, школа в той же зоне.
+   */
+  type LessonStatus = 'past' | 'now' | 'future';
+  const isToday = globalDate === toISO(new Date());
+  const lessonStatus = (timing: string): LessonStatus | null => {
+    if (!isToday || !timing) return null;
+    const parts = timing.split(' - ');
+    if (parts.length < 2) return null;
+    const parseHM = (s: string): number | null => {
+      const m = s.trim().match(/^(\d{1,2}):(\d{2})$/);
+      return m ? Number(m[1]) * 60 + Number(m[2]) : null;
+    };
+    const start = parseHM(parts[0]);
+    const end = parseHM(parts[1]);
+    if (start === null || end === null) return null;
+    const now = new Date();
+    const minutes = now.getHours() * 60 + now.getMinutes();
+    if (minutes < start) return 'future';
+    if (minutes >= end) return 'past';
+    return 'now';
+  };
+
+  /** Фон карточки по статусу: past — серый, now — акцентная подложка. */
+  const statusBackground: Record<LessonStatus | 'none', string | undefined> = {
+    past: 'var(--vkui--color_background_secondary)',
+    now: 'var(--vkui--color_background_accent_tinted)',
+    future: undefined,
+    none: undefined,
+  };
+
   const formatDate = (dateStr: string): string => {
     const date = new Date(dateStr);
     return date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' });
@@ -188,7 +222,14 @@ export const TimetablePage: React.FC<TimetablePageProps> = ({ id, onOpenLesson }
 
   const batchOptions: SelectOption[] = [
     { value: '', label: 'Все классы' },
-    ...batches.map(b => ({ value: String(b.id), label: b.name })),
+    // Натуральная сортировка: «1А, 2А, ... 10А, 11А», а не «1, 10, 11, 2».
+    // sequence у всех классов одинаковый (дефолт), серверный order не спасает.
+    ...batches
+      .slice()
+      .sort((a, b) =>
+        a.name.localeCompare(b.name, 'ru', { numeric: true })
+      )
+      .map(b => ({ value: String(b.id), label: b.name })),
   ];
 
   // Переключение недели относительно текущей выбранной даты
@@ -246,14 +287,23 @@ export const TimetablePage: React.FC<TimetablePageProps> = ({ id, onOpenLesson }
             ВАЖНО: у VKUI Flex по умолчанию flex-wrap — без noWrap селекты
             уходят друг под друга. flexBasis:0 + flexGrow:1 делят строку
             поровну. Дропдаун раскрывается на всю ширину своего поля
-            (floating-ui sameWidth, dropdownAutoWidth=false по умолчанию). */}
+            (floating-ui sameWidth, dropdownAutoWidth=false по умолчанию).
+            Белый фон + рамка, чтобы не сливались с серым фоном панели. */}
         {isAdmin && (
-          <Flex gap={8} noWrap>
+          <Flex
+            gap={8}
+            noWrap
+            style={{
+              paddingInline: 16,
+              paddingBlockEnd: 12,
+            }}
+          >
             <CustomSelect
               style={{
                 flexGrow: 1,
                 flexBasis: 0,
                 minWidth: 0,
+                background: 'var(--vkui--color_background_content)',
                 border: '1px solid var(--vkui--color_separator_primary)',
                 borderRadius: 10,
               }}
@@ -268,6 +318,7 @@ export const TimetablePage: React.FC<TimetablePageProps> = ({ id, onOpenLesson }
                 flexGrow: 1,
                 flexBasis: 0,
                 minWidth: 0,
+                background: 'var(--vkui--color_background_content)',
                 border: '1px solid var(--vkui--color_separator_primary)',
                 borderRadius: 10,
               }}
@@ -292,37 +343,45 @@ export const TimetablePage: React.FC<TimetablePageProps> = ({ id, onOpenLesson }
               </Text>
             }
           >
-            {lessons.map(l => (
-              // Без sheet_id (ученик/родитель) журнал недоступен —
-              // урок без открытия журнала.
-              <SimpleCell
-                key={l.id}
-                onClick={l.sheet_id ? () => onOpenLesson(l.sheet_id!) : undefined}
-                before={
-                  <Avatar
-                    size={40}
-                    src={l.faculty_avatar || undefined}
-                    objectPosition="center top"
-                    style={{ borderRadius: 8, flexShrink: 0 }}
-                  />
-                }
-                subtitle={l.faculty}
-                after={
-                  <Badge
-                    mode="new"
+            {lessons.map(l => {
+              const status = lessonStatus(l.timing);
+              return (
+                // Без sheet_id (ученик/родитель) журнал недоступен —
+                // урок без открытия журнала.
+                <SimpleCell
+                  key={l.id}
+                  onClick={l.sheet_id ? () => onOpenLesson(l.sheet_id!) : undefined}
+                  style={{ backgroundColor: statusBackground[status ?? 'none'] }}
+                  before={
+                    <Avatar
+                      size={40}
+                      src={l.faculty_avatar || undefined}
+                      objectPosition="center top"
+                      style={{ borderRadius: 8, flexShrink: 0 }}
+                    />
+                  }
+                  subtitle={l.faculty}
+                  // Badge в VKUI — точка 6x6 без текста. Текстовый бейдж — Counter.
+                  after={
+                    <Counter mode="tertiary" size="s" style={{ flexShrink: 0 }}>
+                      {l.batch}
+                    </Counter>
+                  }
+                >
+                  <Text
+                    weight="2"
+                    inline
                     style={{
-                      flexShrink: 0,
-                      border: '1px solid var(--vkui--color_stroke_accent)',
+                      marginRight: 6,
+                      color: 'var(--vkui--color_text_accent)',
                     }}
                   >
-                    {l.batch}
-                  </Badge>
-                }
-              >
-                <Text weight="2" inline style={{ marginRight: 6 }}>{formatTime(l.timing)}</Text>
-                {l.subject}
-              </SimpleCell>
-            ))}
+                    {formatTime(l.timing)}
+                  </Text>
+                  {l.subject}
+                </SimpleCell>
+              );
+            })}
           </Group>
         ) : (
           <Placeholder icon={<Icon56CalendarOutline />}>

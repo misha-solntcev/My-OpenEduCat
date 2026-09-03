@@ -979,9 +979,12 @@ class RostMaxTimetableController(http.Controller):
             return request.make_json_response({"batches": []})
 
         batches = request.env['op.batch'].search([], order='sequence, name')
+        # Из имени класса убираем учебный год («5А 2026/2027» -> «5А»):
+        # год дублирует информацию и ломает компактный бейдж в списке уроков.
+        year_re = re.compile(r'\s*\d{4}[/\-–]\d{4}\s*')
         return request.make_json_response({
             "batches": [
-                {"id": b.id, "name": b.name}
+                {"id": b.id, "name": year_re.sub(' ', b.name).strip()}
                 for b in batches
             ]
         })
