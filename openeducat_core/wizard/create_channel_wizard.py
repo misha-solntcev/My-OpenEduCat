@@ -15,7 +15,10 @@ class CreateChannelWizard(models.TransientModel):
     )
     course_ids = fields.Many2many('op.course', string='Курсы/Классы')
     create_general_channel = fields.Boolean('Создать общий канал', default=True)
-    general_channel_name = fields.Char('Имя общего канала', default='Школа РОСТ')
+    # Фактическое имя общего канала на проде («- Школа РОСТ» — дефис ставили,
+    # чтобы канал был первым в списке). Wizard ищет/обновляет существующий
+    # канал по точному имени, поэтому значение должно совпадать с базой.
+    general_channel_name = fields.Char('Имя общего канала', default='- Школа РОСТ')
     course_line_ids = fields.One2many(
         'create.channel.wizard.course', 'wizard_id', string='Классы/Потоки'
     )
