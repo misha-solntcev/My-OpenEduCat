@@ -27,7 +27,10 @@ TRUSTED_DEVICE_AGE = 90 * 86400  # 90 days
 # домена. Разрешаем встраивание только для доменов MAX.
 MAX_FRAME_HEADERS = {
     'X-Frame-Options': 'ALLOW-FROM https://web.max.ru',
-    'Content-Security-Policy': 'frame-ancestors https://*.max.ru',
+    'Content-Security-Policy': (
+        'frame-ancestors https://*.max.ru https://web.telegram.org '
+        'https://telegram.org https://*.telegram.org'
+    ),
 }
 
 
