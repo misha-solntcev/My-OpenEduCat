@@ -1,7 +1,6 @@
 import React from 'react';
 import {
   Panel,
-  PanelHeader,
   Flex,
   Text,
   Spinner,
@@ -17,6 +16,8 @@ import {
   PanelHeaderButton,
 } from '@vkontakte/vkui';
 import {
+  Icon24ChevronLeftOutline,
+  Icon24ChevronRightOutline,
   Icon20FilterOutline,
   Icon56CalendarOutline,
   Icon24CalendarOutline,
@@ -186,29 +187,18 @@ export const TimetablePage: React.FC<TimetablePageProps> = ({ id, onOpenLesson }
 
   return (
     <Panel id={id}>
-      <PanelHeader
-        after={
-          isAdmin && (
-            <IconButton
-              label="Фильтры"
-              onClick={() => setShowFilters(!showFilters)}
-            >
-              <Icon20FilterOutline />
-            </IconButton>
-          )
-        }
-      >
-        Расписание
-      </PanelHeader>
-
-      <Box padding="m">
-        {/* Лента дат пн-вс + переключение недель */}
+      {/* Корневой таб: без PanelHeader — активный таб и так подсвечен в
+          таббаре. Кнопка фильтра (админ) переехала в ленту дат. */}
+      <Box padding="m" paddingInline="none">
+        {/* Лента дат пн-вс + переключение недель. Стрелки — крупные
+            тапабельные зоны (44px) со своим отступом от края экрана. */}
         <Flex align="center" justify="space-between">
           <IconButton
             label="Предыдущая неделя"
+            style={{ width: 44, height: 44, marginLeft: 4, flexShrink: 0 }}
             onClick={() => shiftWeek(-7)}
           >
-            <Text>‹</Text>
+            <Icon24ChevronLeftOutline />
           </IconButton>
           <Flex align="center" gap={2}>
             <Text weight="2">{formatDate(globalDate)}</Text>
@@ -218,6 +208,14 @@ export const TimetablePage: React.FC<TimetablePageProps> = ({ id, onOpenLesson }
             >
               <Icon24CalendarOutline />
             </IconButton>
+            {isAdmin && (
+              <IconButton
+                label="Фильтры"
+                onClick={() => setShowFilters(!showFilters)}
+              >
+                <Icon20FilterOutline />
+              </IconButton>
+            )}
             <Text
               weight="1"
               style={{ cursor: 'pointer', color: 'var(--vkui--color_text_accent)' }}
@@ -228,9 +226,10 @@ export const TimetablePage: React.FC<TimetablePageProps> = ({ id, onOpenLesson }
           </Flex>
           <IconButton
             label="Следующая неделя"
+            style={{ width: 44, height: 44, marginRight: 4, flexShrink: 0 }}
             onClick={() => shiftWeek(7)}
           >
-            <Text>›</Text>
+            <Icon24ChevronRightOutline />
           </IconButton>
         </Flex>
 
