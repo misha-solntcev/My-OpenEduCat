@@ -1,7 +1,6 @@
 import React from 'react';
 import {
   Panel,
-  PanelHeader,
   Box,
   Flex,
   Text,
@@ -55,7 +54,7 @@ export const SubjectsPage: React.FC<SubjectsPageProps> = ({ id, onOpenSubject })
 
   return (
     <Panel id={id}>
-      <PanelHeader>Успеваемость</PanelHeader>
+      {/* Корневой таб: без PanelHeader — активный таб виден в таббаре */}
 
       <Box padding="m">
         {loading ? (

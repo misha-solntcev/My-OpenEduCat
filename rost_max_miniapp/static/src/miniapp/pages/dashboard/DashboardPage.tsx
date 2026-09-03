@@ -1,5 +1,5 @@
 import React from 'react';
-import { Panel, PanelHeader, Spinner, Div, Button } from '@vkontakte/vkui';
+import { Panel, Spinner, Div, Button } from '@vkontakte/vkui';
 import { useAppStore, selectGlobalDate } from '@/shared/lib/store';
 import { apiGet } from '@/shared/lib/api';
 import { useToast } from '@/shared/components/Toast';
@@ -54,7 +54,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
 
   return (
     <Panel id={id}>
-      <PanelHeader>Главная</PanelHeader>
+      {/* Корневой таб: без PanelHeader — активный таб виден в таббаре */}
 
       {loading && !data ? (
         <Div style={{ display: 'flex', justifyContent: 'center', padding: 40 }}>
