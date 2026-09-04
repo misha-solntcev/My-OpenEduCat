@@ -41,9 +41,7 @@ export const TimedGroups: React.FC<{
   onOpenLesson?: (sheetId: number) => void;
   /** Ключ для reset'а раскрытия при смене дня/фильтров. */
   resetKey?: string;
-  /** Скроллить раскрытый слот в зону видимости при монтировании/смене дня. */
-  autoScroll?: boolean;
-}> = ({ lessons, isToday, onOpenLesson, resetKey, autoScroll }) => (
+}> = ({ lessons, isToday, onOpenLesson, resetKey }) => (
   <>
     {groupByTiming(lessons).map(g => (
       <TimedGroup
@@ -53,7 +51,6 @@ export const TimedGroups: React.FC<{
         isToday={isToday}
         onOpenLesson={onOpenLesson}
         resetKey={resetKey}
-        autoScroll={autoScroll}
       />
     ))}
   </>
@@ -65,28 +62,15 @@ const TimedGroup: React.FC<{
   isToday: boolean;
   onOpenLesson?: (sheetId: number) => void;
   resetKey?: string;
-  autoScroll?: boolean;
-}> = ({ timing, lessons, isToday, onOpenLesson, resetKey, autoScroll }) => {
+}> = ({ timing, lessons, isToday, onOpenLesson, resetKey }) => {
   const status = lessons.map(l => lessonStatus(l.timing, isToday));
   const hasNow = status.includes('now');
   const hasPast = status.every(s => s === 'past');
   const [expanded, setExpanded] = React.useState(hasNow);
-  const rootRef = React.useRef<HTMLDivElement | null>(null);
 
   // Переход на другой день / смена фильтров: перечитываем дефолт
   // (раскрыт только «сейчас»); пользовательский выбор живёт до этого.
   React.useEffect(() => { setExpanded(hasNow); }, [hasNow, timing, lessons.length, resetKey]);
-
-  // Длинный админский список: при смене дня/возврате на экран раскрытый
-  // слот может быть за пределами вьюпорта — подтягиваем его.
-  React.useEffect(() => {
-    if (autoScroll && hasNow && rootRef.current) {
-      const t = window.setTimeout(() => {
-        rootRef.current?.scrollIntoView({ block: 'center', behavior: 'smooth' });
-      }, 250); // ждём завершения анимации раскрытия Accordion
-      return () => window.clearTimeout(t);
-    }
-  }, [autoScroll, hasNow, resetKey]);
 
   const stateColor = hasNow
     ? 'var(--vkui--color_text_accent)'
@@ -96,7 +80,6 @@ const TimedGroup: React.FC<{
 
   return (
     <Accordion expanded={expanded} onChange={setExpanded} id={`slot-${timing}`}>
-      <div ref={rootRef}>
       <Accordion.Summary
         after={
           <Caption style={{ color: 'var(--vkui--color_text_secondary)' }}>
@@ -121,7 +104,6 @@ const TimedGroup: React.FC<{
           />
         ))}
       </Accordion.Content>
-      </div>
     </Accordion>
   );
 };

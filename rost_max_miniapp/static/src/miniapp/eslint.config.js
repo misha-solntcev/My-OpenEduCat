@@ -28,8 +28,6 @@ export default [
         alert: 'readonly',
         setTimeout: 'readonly',
         HTMLInputElement: 'readonly',
-        HTMLDivElement: 'readonly',
-        HTMLElement: 'readonly',
       },
     },
     plugins: {
