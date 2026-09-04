@@ -250,7 +250,8 @@ export const TimetablePage: React.FC<TimetablePageProps> = ({ id, onOpenLesson }
                 minWidth: 0,
                 background: 'var(--vkui--color_background_content)',
                 border: '1px solid var(--vkui--color_separator_primary)',
-                borderRadius: 10,
+                // Как у Card уроков (size_card_border_radius).
+                borderRadius: 'var(--vkui--size_card_border_radius--regular)',
               }}
               selectType="plain"
               options={facultyOptions}
@@ -265,7 +266,8 @@ export const TimetablePage: React.FC<TimetablePageProps> = ({ id, onOpenLesson }
                 minWidth: 0,
                 background: 'var(--vkui--color_background_content)',
                 border: '1px solid var(--vkui--color_separator_primary)',
-                borderRadius: 10,
+                // Как у Card уроков (size_card_border_radius).
+                borderRadius: 'var(--vkui--size_card_border_radius--regular)',
               }}
               selectType="plain"
               options={batchOptions}
