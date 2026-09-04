@@ -10,6 +10,8 @@
  * из разных экранов не затирали чужие поля (date глобальный, faculty локальный).
  */
 
+import { schoolTodayISO } from './date';
+
 const FILTERS_KEY = 'rost_max_timetable_filters';
 
 export interface TimetableFilters {
@@ -18,8 +20,10 @@ export interface TimetableFilters {
   selectedBatch: number | null;
 }
 
+/** Сегодняшняя дата школы (Europe/Moscow), не UTC: миниапп открывают
+ * из других часовых поясов, toISOString() отстаёт на день до 07:00 Иркутска. */
 export function today(): string {
-  return new Date().toISOString().split('T')[0];
+  return schoolTodayISO();
 }
 
 export function getSavedFilters(): TimetableFilters {
