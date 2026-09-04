@@ -1,11 +1,12 @@
 // Лента дня (вариант A) — общие компоненты главной страницы.
 // Стили: VKUI токены + vkitokens (--vkui--*), никаких кастомных css-классов.
 import React from 'react';
-import { Group, Header, SimpleCell, Text, Caption, Badge, Div, Counter, Placeholder } from '@vkontakte/vkui';
+import { Group, Header, SimpleCell, Text, Caption, Div, Counter, Placeholder } from '@vkontakte/vkui';
 import {
   Icon28ClockOutline,
   Icon56EventOutline,
 } from '@vkontakte/icons';
+import { LessonRow } from '@/shared/components/LessonRow';
 
 const WEEKDAYS = ['воскресенье', 'понедельник', 'вторник', 'среда', 'четверг', 'пятница', 'суббота'];
 const MONTHS = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
@@ -55,6 +56,7 @@ export interface FeedLesson {
   subject: string;
   batch: string;
   faculty: string;
+  faculty_avatar?: string;
   timing: string;
   is_now: boolean;
   journal_unfilled: boolean;
@@ -103,23 +105,18 @@ export const TodayLessons: React.FC<{
     }
   >
     {lessons.map(l => (
-      <SimpleCell
+      // Строка урока общая с расписанием (LessonRow): аватар учителя,
+      // время акцентом, класс в Counter справа, чипы «Журнал не заполнен» /
+      // «Есть ДЗ» как в макете dashboard-teacher-admin.html.
+      <LessonRow
         key={l.id}
+        lesson={l}
+        showBatch={showBatch}
+        journalUnfilled={showBatch && l.journal_unfilled}
+        hasHomework={Boolean(l.homework)}
+        isNow={l.is_now}
         onClick={onOpenJournal && l.sheet_id ? () => onOpenJournal(l.sheet_id!) : undefined}
-        before={
-          <span style={{ color: 'var(--vkui--color_text_accent)', fontWeight: 600, fontSize: 15, flexShrink: 0, minWidth: 48 }}>
-            {startTimeOf(l.timing)}
-          </span>
-        }
-        after={l.is_now ? <Badge mode="prominent">Сейчас</Badge> : undefined}
-        subtitle={[
-          [showBatch ? l.batch : '', l.faculty].filter(Boolean).join(' · ') || undefined,
-          l.journal_unfilled ? 'Журнал не заполнен' : undefined,
-          l.homework ? `ДЗ: ${l.homework}` : undefined,
-        ].filter(Boolean).join(' — ') || undefined}
-      >
-        {showBatch ? `${l.batch} · ${l.subject}` : l.subject}
-      </SimpleCell>
+      />
     ))}
   </Group></Card>
 );

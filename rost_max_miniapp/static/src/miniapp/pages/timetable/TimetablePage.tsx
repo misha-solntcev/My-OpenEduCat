@@ -4,11 +4,8 @@ import {
   Flex,
   Text,
   Spinner,
-  SimpleCell,
   Box,
   Group,
-  Counter,
-  Avatar,
   Placeholder,
   IconButton,
   CustomSelect,
@@ -27,6 +24,8 @@ import { Calendar } from '@vkontakte/vkui';
 import { useAppStore, selectGlobalDate, setGlobalDate } from '@/shared/lib/store';
 import { apiGet } from '@/shared/lib/api';
 import { useToast } from '@/shared/components/Toast';
+import { LessonRow, lessonStatus } from '@/shared/components/LessonRow';
+import { toISO, startOfWeek, SHORT_WEEKDAYS } from '@/shared/lib/date';
 import type { Lesson, Faculty, Batch, TimetableResponse, FacultiesResponse, BatchesResponse } from '@/shared/lib/types';
 
 interface TimetablePageProps {
@@ -35,30 +34,6 @@ interface TimetablePageProps {
 }
 
 type SelectOption = { value: string; label: string };
-
-/** Понедельник недели, содержащей d */
-const startOfWeek = (d: Date): Date => {
-  const date = new Date(d);
-  const day = (date.getDay() + 6) % 7; // 0=пн ... 6=вс
-  date.setDate(date.getDate() - day);
-  date.setHours(0, 0, 0, 0);
-  return date;
-};
-
-const toISO = (d: Date): string => {
-  // Локальная дата без TZ-сдвига
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${y}-${m}-${day}`;
-};
-
-const WEEKDAYS = ['пн', 'вт', 'ср', 'чт', 'пт', 'сб', 'вс'];
-
-/** «5А 2026/2027» -> «5А»: учебный год в имени класса не нужен. */
-const BATCH_YEAR_RE = /\s*\d{4}[/\-–]\d{4}\s*/;
-const shortBatchName = (name: string): string =>
-  name.replace(BATCH_YEAR_RE, ' ').trim();
 
 /** Лента дат пн–вс недели выбранной даты + навигация по неделям */
 const DayStrip: React.FC<{ selected: string; onSelect: (iso: string) => void }> = ({ selected, onSelect }) => {
@@ -100,7 +75,7 @@ const DayStrip: React.FC<{ selected: string; onSelect: (iso: string) => void }> 
                     : 'var(--vkui--color_text_secondary)',
                 }}
               >
-                {WEEKDAYS[i]}
+                {SHORT_WEEKDAYS[i]}
               </Text>
               <Text
                 weight={isSel || isToday ? '2' : '3'}
@@ -115,11 +90,11 @@ const DayStrip: React.FC<{ selected: string; onSelect: (iso: string) => void }> 
               </Text>
             </Flex>
           );
-          })}
-          </Flex>
-          </Box>
-          );
-          };
+        })}
+      </Flex>
+    </Box>
+  );
+};
 
 export const TimetablePage: React.FC<TimetablePageProps> = ({ id, onOpenLesson }) => {
   const globalDate = useAppStore(selectGlobalDate);
@@ -175,45 +150,7 @@ export const TimetablePage: React.FC<TimetablePageProps> = ({ id, onOpenLesson }
 
   React.useEffect(() => { loadLessons(); }, [loadLessons]);
 
-  const formatTime = (timing: string): string => {
-    if (!timing) return '';
-    const parts = timing.split(' - ');
-    return parts[0] || timing;
-  };
-
-  /**
-   * Статус урока относительно текущего момента: 'past' | 'now' | 'future'.
-   * Красим ТОЛЬКО при просмотре сегодняшней даты: прошлые/будущие дни
-   * нейтральны (весь день в прошлом/будущем). Время берём из timing
-   * («09:30 - 10:15») — локальное устройство, школа в той же зоне.
-   */
-  type LessonStatus = 'past' | 'now' | 'future';
   const isToday = globalDate === toISO(new Date());
-  const lessonStatus = (timing: string): LessonStatus | null => {
-    if (!isToday || !timing) return null;
-    const parts = timing.split(' - ');
-    if (parts.length < 2) return null;
-    const parseHM = (s: string): number | null => {
-      const m = s.trim().match(/^(\d{1,2}):(\d{2})$/);
-      return m ? Number(m[1]) * 60 + Number(m[2]) : null;
-    };
-    const start = parseHM(parts[0]);
-    const end = parseHM(parts[1]);
-    if (start === null || end === null) return null;
-    const now = new Date();
-    const minutes = now.getHours() * 60 + now.getMinutes();
-    if (minutes < start) return 'future';
-    if (minutes >= end) return 'past';
-    return 'now';
-  };
-
-  /** Фон карточки по статусу: past — серый, now — акцентная подложка. */
-  const statusBackground: Record<LessonStatus | 'none', string | undefined> = {
-    past: 'var(--vkui--color_background_secondary)',
-    now: 'var(--vkui--color_background_accent_tinted)',
-    future: undefined,
-    none: undefined,
-  };
 
   const formatDate = (dateStr: string): string => {
     const date = new Date(dateStr);
@@ -348,56 +285,18 @@ export const TimetablePage: React.FC<TimetablePageProps> = ({ id, onOpenLesson }
               </Text>
             }
           >
-            {lessons.map(l => {
-              const status = lessonStatus(l.timing);
-              return (
-                // Без sheet_id (ученик/родитель) журнал недоступен —
-                // урок без открытия журнала.
-                <SimpleCell
-                  key={l.id}
-                  onClick={l.sheet_id ? () => onOpenLesson(l.sheet_id!) : undefined}
-                  style={{ backgroundColor: statusBackground[status ?? 'none'] }}
-                  before={
-                    <Avatar
-                      size={40}
-                      src={l.faculty_avatar || undefined}
-                      objectPosition="center top"
-                      style={{ borderRadius: 8, flexShrink: 0 }}
-                    />
-                  }
-                  subtitle={l.faculty}
-                  // Badge в VKUI — точка 6x6 без текста. Текстовый бейдж — Counter.
-                  // Год в имени класса режем на фронте: batch приходит из
-                  // op.session и содержит «2026/2027» (в /api/batches режем
-                  // на бэкенде, а тут второй источник).
-                  after={
-                    <Counter
-                      mode="tertiary"
-                      size="s"
-                      style={{
-                        flexShrink: 0,
-                        fontSize: 15,
-                        fontWeight: 500,
-                      }}
-                    >
-                      {shortBatchName(l.batch)}
-                    </Counter>
-                  }
-                >
-                  <Text
-                    weight="2"
-                    inline
-                    style={{
-                      marginRight: 6,
-                      color: 'var(--vkui--color_text_accent)',
-                    }}
-                  >
-                    {formatTime(l.timing)}
-                  </Text>
-                  {l.subject}
-                </SimpleCell>
-              );
-            })}
+            {lessons.map(l => (
+              // Без sheet_id (ученик/родитель) журнал недоступен —
+              // урок без открытия журнала.
+              <LessonRow
+                key={l.id}
+                lesson={l}
+                status={lessonStatus(l.timing, isToday)}
+                showBatch
+                showFaculty
+                onClick={l.sheet_id ? () => onOpenLesson(l.sheet_id!) : undefined}
+              />
+            ))}
           </Group>
         ) : (
           <Placeholder icon={<Icon56CalendarOutline />}>
