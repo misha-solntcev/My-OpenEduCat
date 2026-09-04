@@ -19,6 +19,8 @@ export interface Student {
   grade_2: number | null;
   grade_3: number | null;
   attendance_type_id: number | null;
+  /** Примечание к строке (op.attendance.line.remark). Пусто — нет. */
+  remark: string;
 }
 
 // GradeField вывод из ключей Student
@@ -68,12 +70,28 @@ export interface LessonInfo {
   date: string;
   timing: string;
   can_edit?: boolean;
+  /** Тема урока (op.attendance.sheet.lesson_topic). */
+  topic: string;
+  /** Домашнее задание (rost_lesson_homework.lesson_homework). */
+  homework: string;
+  /** id созданного op.assignment (задание по ДЗ). null — ДЗ не задано. */
+  homework_assignment_id: number | null;
+}
+
+/** Персональная настройка колонок журнала. О1 и посещаемость всегда true. */
+export interface JournalColumns {
+  grade_1: boolean;
+  grade_2: boolean;
+  grade_3: boolean;
+  note: boolean;
+  attendance: boolean;
 }
 
 export interface LessonJournalResponse {
   lesson: LessonInfo | null;
   students: Student[];
   attendance_types: AttendanceType[];
+  columns?: JournalColumns;
 }
 
 // --- Успеваемость (ученик / родитель, read-only) ---

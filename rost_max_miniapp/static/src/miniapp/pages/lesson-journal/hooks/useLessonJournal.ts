@@ -6,6 +6,7 @@ import type {
   AttendanceType,
   GradeField,
   LessonInfo,
+  JournalColumns,
   LessonJournalResponse,
 } from '@/shared/lib/types';
 
@@ -13,6 +14,7 @@ interface UseLessonJournalReturn {
   lesson: LessonInfo | null;
   students: Student[];
   attendanceTypes: AttendanceType[];
+  columns: JournalColumns;
   loading: boolean;
   error: string | null;
   dirty: boolean;
@@ -21,7 +23,11 @@ interface UseLessonJournalReturn {
   setShowExitBanner: (v: boolean) => void;
   cycleGradeField: (student: Student, field: GradeField, next: number | null) => void;
   cycleAttendance: (student: Student, next: number | null) => void;
+  setRemark: (student: Student, remark: string) => void;
+  setTopic: (topic: string) => void;
+  setHomework: (homework: string) => void;
   saveAll: () => Promise<void>;
+  toggleColumn: (key: 'grade_2' | 'grade_3' | 'note', value: boolean) => Promise<void>;
   handleBack: () => void;
   exitSave: () => Promise<void>;
   exitDiscard: () => void;
@@ -32,9 +38,17 @@ interface UseLessonJournalReturn {
   clearAll: () => void;
 }
 
+const DEFAULT_COLUMNS: JournalColumns = {
+  grade_1: true,
+  grade_2: false,
+  grade_3: false,
+  note: false,
+  attendance: true,
+};
+
 /**
  * Хук бизнес-логики журнала урока:
- * - загрузка учеников/типов посещаемости
+ * - загрузка учеников/типов посещаемости + тема/ДЗ + настройка колонок
  * - локальный буфер изменений (dirty-трекинг)
  * - сохранение на сервер (через Toast, не alert)
  * - обработка выхода с несохранёнными правками
@@ -44,6 +58,7 @@ export function useLessonJournal(lessonId: number | null, onBack: () => void): U
   const [lesson, setLesson] = React.useState<LessonInfo | null>(null);
   const [students, setStudents] = React.useState<Student[]>([]);
   const [attendanceTypes, setAttendanceTypes] = React.useState<AttendanceType[]>([]);
+  const [columns, setColumns] = React.useState<JournalColumns>(DEFAULT_COLUMNS);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
   const [dirty, setDirty] = React.useState(false);
@@ -55,6 +70,7 @@ export function useLessonJournal(lessonId: number | null, onBack: () => void): U
       setLesson(null);
       setStudents([]);
       setAttendanceTypes([]);
+      setColumns(DEFAULT_COLUMNS);
       setLoading(false);
       setError(null);
       return;
@@ -66,6 +82,7 @@ export function useLessonJournal(lessonId: number | null, onBack: () => void): U
         setLesson(data.lesson || null);
         setStudents(data.students || []);
         setAttendanceTypes(data.attendance_types || []);
+        if (data.columns) setColumns(data.columns);
         setDirty(false);
       })
       .catch(() => {
@@ -91,6 +108,20 @@ export function useLessonJournal(lessonId: number | null, onBack: () => void): U
     patchStudent(student.id, { attendance_type_id: next });
   };
 
+  const setRemark = (student: Student, remark: string) => {
+    patchStudent(student.id, { remark });
+  };
+
+  const setTopic = (topic: string) => {
+    setLesson(prev => prev ? { ...prev, topic } : prev);
+    setDirty(true);
+  };
+
+  const setHomework = (homework: string) => {
+    setLesson(prev => prev ? { ...prev, homework } : prev);
+    setDirty(true);
+  };
+
   const saveAll = async () => {
     if (saving || !dirty) return;
     setSaving(true);
@@ -101,10 +132,19 @@ export function useLessonJournal(lessonId: number | null, onBack: () => void): U
         grade_2: s.grade_2,
         grade_3: s.grade_3,
         attendance_type_id: s.attendance_type_id,
+        remark: s.remark || '',
       }));
       const res = await apiPost<{ success?: boolean; error?: string }>(
         `/rost_max/api/lesson/${lessonId}/save`,
-        { students: payload }
+        {
+          students: payload,
+          // Тема/ДЗ шлём всегда: бэкенд пишет их в sheet (write() модуля ДЗ
+          // сам создаст op.assignment). Бэкенд отбрасывает ДЗ на state=done.
+          lesson: {
+            topic: lesson?.topic ?? '',
+            homework: lesson?.homework ?? '',
+          },
+        }
       );
       if (res.error) throw new Error(res.error);
       setDirty(false);
@@ -112,6 +152,22 @@ export function useLessonJournal(lessonId: number | null, onBack: () => void): U
       setError('Не удалось сохранить. Изменения сохранены локально, повторите позже.');
     } finally {
       setSaving(false);
+    }
+  };
+
+  // Настройка колонок: состояние локальное и мгновенное (как тумблер в
+  // BulkSheet), сервер сохраняем в фоне без отката UI — при сбое настройки
+  // досинхронизируются с сервера при следующем открытии журнала.
+  const toggleColumn = async (key: 'grade_2' | 'grade_3' | 'note', value: boolean) => {
+    setColumns(prev => ({ ...prev, [key]: value }));
+    try {
+      const res = await apiPost<{ columns?: JournalColumns }>(
+        '/rost_max/api/journal/columns',
+        { [key]: value }
+      );
+      if (res.columns) setColumns(res.columns);
+    } catch {
+      // Тихо: UI уже переключён, синк произойдёт при следующей загрузке.
     }
   };
 
@@ -178,6 +234,7 @@ export function useLessonJournal(lessonId: number | null, onBack: () => void): U
     lesson,
     students,
     attendanceTypes,
+    columns,
     loading,
     error,
     dirty,
@@ -186,7 +243,11 @@ export function useLessonJournal(lessonId: number | null, onBack: () => void): U
     setShowExitBanner,
     cycleGradeField,
     cycleAttendance,
+    setRemark,
+    setTopic,
+    setHomework,
     saveAll,
+    toggleColumn,
     handleBack,
     exitSave,
     exitDiscard,
