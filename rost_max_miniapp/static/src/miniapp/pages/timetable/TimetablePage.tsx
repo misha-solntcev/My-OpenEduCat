@@ -299,6 +299,7 @@ export const TimetablePage: React.FC<TimetablePageProps> = ({ id, onOpenLesson }
                   isToday={isToday}
                   resetKey={globalDate}
                   onOpenLesson={onOpenLesson}
+                  autoScroll
                 />
               ) : (
                 lessons.map(l => (
