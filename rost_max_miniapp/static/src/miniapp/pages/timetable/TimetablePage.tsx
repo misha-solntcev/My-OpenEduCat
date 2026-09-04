@@ -67,18 +67,16 @@ const AdminTimedGroup: React.FC<{
   return (
     <Accordion expanded={expanded} onChange={setExpanded} id={`slot-${timing}`}>
       <Accordion.Summary
-        before={
-          <Text weight="2" style={{ color: stateColor, flexShrink: 0, minWidth: 92 }}>
-            {startTimeLabel(timing)}
-          </Text>
-        }
         after={
           <Caption style={{ color: 'var(--vkui--color_text_secondary)' }}>
             {lessons.length} {pluralRu(lessons.length)}
           </Caption>
         }
       >
-        {hasNow ? 'Идёт сейчас' : startTimeLabel(timing)}
+        <Text weight="2" style={{ color: stateColor }}>
+          {startTimeLabel(timing)}
+        </Text>
+        {hasNow ? ' · Идёт сейчас' : ''}
       </Accordion.Summary>
       <Accordion.Content>
         {lessons.map((l, i) => (
@@ -371,29 +369,28 @@ export const TimetablePage: React.FC<TimetablePageProps> = ({ id, onOpenLesson }
         ) : lessons.length > 0 ? (
           // Список в карточке (Card mode="shadow" — фон/скругление/тень
           // по умолчанию VKUI): Group в MAX WebView рендерится plain и
-          // прилипает к краям экрана без отступов.
+          // прилипает к краям экрана без отступов. Заголовок «Уроки» —
+          // НАД карточкой: header внутри Group красит полосу белым и
+          // обрезает верхнее скругление Card.
           <Box paddingInline="s">
+            <Text weight="2" style={{ textAlign: 'center', display: 'block', paddingBlock: 8 }}>
+              Уроки
+            </Text>
             <Card mode="shadow">
-              <Group
-                header={
-                  <Text weight="2" style={{ textAlign: 'center', display: 'block' }}>
-                    Уроки
-                  </Text>
-                }
-              >
-                {isAdmin ? (
-                  // Админ: слоты по таймингу, раскрыт текущий.
-                  groupByTiming(lessons).map(g => (
-                    <AdminTimedGroup
-                      key={g.timing}
-                      timing={g.timing}
-                      lessons={g.lessons}
-                      isToday={isToday}
-                      onOpenLesson={onOpenLesson}
-                    />
-                  ))
-                ) : (
-                  lessons.map(l => (
+              {isAdmin ? (
+                // Админ: слоты по таймингу, раскрыт текущий.
+                groupByTiming(lessons).map(g => (
+                  <AdminTimedGroup
+                    key={g.timing}
+                    timing={g.timing}
+                    lessons={g.lessons}
+                    isToday={isToday}
+                    onOpenLesson={onOpenLesson}
+                  />
+                ))
+              ) : (
+                <Group>
+                  {lessons.map(l => (
                     // Без sheet_id (ученик/родитель) журнал недоступен —
                     // урок без открытия журнала.
                     <LessonRow
@@ -404,9 +401,9 @@ export const TimetablePage: React.FC<TimetablePageProps> = ({ id, onOpenLesson }
                       showFaculty
                       onClick={l.sheet_id ? () => onOpenLesson(l.sheet_id!) : undefined}
                     />
-                  ))
-                )}
-              </Group>
+                  ))}
+                </Group>
+              )}
             </Card>
           </Box>
         ) : (
