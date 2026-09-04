@@ -508,6 +508,22 @@ class RostMaxTimetableController(http.Controller):
                 {"error": "Доступ к уроку запрещен"}, status=403
             )
 
+        # Аватары учеников — как учителя в /api/timetable (см. b2575ef):
+        # URL на /web/image БЕЗ суффикса /WxH — иначе Одоо серверно кропнет
+        # квадрат по центру (срежет лоб). Отдаём avatar_1920 целиком, квадрат
+        # режет браузер (objectPosition='center top' — голова всегда в кадре).
+        # Наличие фото проверяем ОДНИМ батч-search() ДО цикла БЕЗ выгрузки
+        # BLOB (EXISTS в SQL); URL только для залогиненных, иначе 404.
+        avatar_map = {}
+        if request.session.uid:
+            student_ids = sheet.attendance_line.student_id.ids
+            with_photo = request.env['op.student'].sudo().search(
+                [('id', 'in', student_ids), ('avatar_128', '!=', False)])
+            avatar_map = {
+                s.id: '/web/image/op.student/%s/avatar_1920' % s.id
+                for s in with_photo
+            }
+
         attend_types = request.env['op.attendance.type'].search([])
         attendance_types = [{"id": at.id, "name": at.name} for at in attend_types]
 
@@ -518,24 +534,7 @@ class RostMaxTimetableController(http.Controller):
                 continue
             # Учитель/админ видят весь класс (student/parent отсечены выше).
 
-            # Аватар: отдаём относительный URL на встроенный роутинг Odoo
-            # /web/image/<model>/<id>/<field>/<W>x<H> вместо base64-строки.
-            # Odoo сам ресайзит картинку на лету до 128x128, кеширует ответ
-            # (Cache-Control) и отдаёт с корректным Content-Type — браузер/WebView
-            # не качает бинарь заново. Бинарь из БД в JSON больше не тащим
-            # (экономим RAM/CPU и режем размер ответа в разы).
-            # Наличие картинки проверяем search() БЕЗ выгрузки BLOB:
-            # search фильтрует по ir.rule и делает EXISTS в SQL, не читая
-            # бинарное поле в память процесса. URL формируем только для
-            # залогиненного юзера — иначе /web/image вернёт 404 и <img>
-            # покажет broken-image вместо инициалов.
-            avatar = ''
-            if request.session.uid:
-                if request.env['op.attendance.line'].search(
-                        [('id', '=', ln.id), ('student_avatar', '!=', False)], limit=1):
-                    avatar = '/web/image/op.attendance.line/%s/student_avatar/128x128' % ln.id
-                elif student.avatar_1920:
-                    avatar = '/web/image/op.student/%s/avatar_1920/128x128' % student.id
+            avatar = avatar_map.get(student.id, '')
 
             last = student.last_name or ''
             first = student.first_name or ''
