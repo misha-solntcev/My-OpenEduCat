@@ -285,13 +285,13 @@ export const TimetablePage: React.FC<TimetablePageProps> = ({ id, onOpenLesson }
           // НАД карточкой: header внутри Group красит полосу белым и
           // обрезает верхнее скругление Card.
           <Box paddingInline="s">
-            <Text weight="2" style={{ textAlign: 'center', display: 'block', paddingBlock: 8 }}>
-              Уроки
-            </Text>
-            {/* ВАЖНО: без Group внутри Card — у .vkuiGroup__host:first-of-type
-                в VKUI жёсткое border-top-*-radius: 0, Group съедает верхнее
-                скругление Card. Card сам даёт поверхность, «Уроки» — снаружи. */}
             <Card mode="shadow" style={{ overflow: 'hidden' }}>
+              {/* Заголовок ВНУТРИ Card (без Group!): у .vkuiGroup__host:
+                  first-of-type в VKUI жёсткое border-top-*-radius: 0 —
+                  Group съедает верхнее скругление Card. */}
+              <Text weight="2" style={{ textAlign: 'center', display: 'block', padding: '12px 16px 8px' }}>
+                Уроки
+              </Text>
               {isAdmin ? (
                 // Админ: слоты по таймингу, раскрыт текущий.
                 <TimedGroups

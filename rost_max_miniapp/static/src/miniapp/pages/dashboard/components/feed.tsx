@@ -65,12 +65,12 @@ export interface FeedLesson {
 }
 
 /**
- * Карточка блока: заголовок НАД карточкой + Card mode="shadow" с
- * overflow:hidden. ВАЖНО: контент кладём напрямую в Card, без Group —
- * у .vkuiGroup__host:first-of-type в VKUI жёсткое border-top-*-radius: 0,
- * и съеденное верхнее скругление Card очень заметно.
- * Header используется только для строки «текст + after» — он НА сером
- * фоне панели, вне Card, поэтому скругления не трогает.
+ * Карточка блока: заголовок ВНУТРИ карточки (строка с паддингом),
+ * контент ниже. ВАЖНО: контент кладём напрямую в Card, без Group —
+ * у .vkuiGroup__host:first-of-type в VKUI жёсткое
+ * border-top-*-radius: 0, Group съедает верхнее скругление Card.
+ * Обычный div ничего не ломает: Card c overflow:hidden сам режет
+ * содержимое по своим скруглениям.
  */
 const CardBlock: React.FC<{
   title: React.ReactNode;
@@ -78,16 +78,16 @@ const CardBlock: React.FC<{
   children: React.ReactNode;
 }> = ({ title, after, children }) => (
   <div style={{ margin: '8px 8px' }}>
-    <div style={{
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      padding: '0 4px 4px',
-    }}>
-      {title}
-      {after}
-    </div>
     <VkCard mode="shadow" style={{ overflow: 'hidden' }}>
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        padding: '12px 16px 8px',
+      }}>
+        {title}
+        {after}
+      </div>
       {children}
     </VkCard>
   </div>
