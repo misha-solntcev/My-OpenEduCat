@@ -35,6 +35,7 @@ interface UseLessonJournalReturn {
   // Массовые операции для BulkSheet
   bulkSetGrade: (field: GradeField, value: number | null, overwriteFilled: boolean, baselineRef: React.MutableRefObject<Student[]>) => void;
   bulkSetAtt: (attId: number | null, overwriteFilled: boolean, baselineRef: React.MutableRefObject<Student[]>) => void;
+  bulkSetRemark: (remark: string, overwriteFilled: boolean, baselineRef: React.MutableRefObject<Student[]>) => void;
   clearAll: () => void;
 }
 
@@ -213,6 +214,14 @@ export function useLessonJournal(lessonId: number | null, onBack: () => void): U
     setDirty(true);
   };
 
+  // Примечание всему классу: одно значение всем строкам (пустая строка
+  // в шторке ничего не меняет — чтобы случайно не затереть).
+  const bulkSetRemark = (remark: string, _overwriteFilled: boolean, _baselineRef: React.MutableRefObject<Student[]>) => {
+    if (!remark) return;
+    setStudents(prev => prev.map(s => ({ ...s, remark })));
+    setDirty(true);
+  };
+
   const clearAll = () => {
     setStudents(prev => {
       const next = prev.map(s => ({
@@ -254,6 +263,7 @@ export function useLessonJournal(lessonId: number | null, onBack: () => void): U
     loadStudents,
     bulkSetGrade,
     bulkSetAtt,
+    bulkSetRemark,
     clearAll,
   };
 }

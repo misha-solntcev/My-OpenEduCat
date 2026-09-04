@@ -42,6 +42,7 @@ export const LessonJournalPage: React.FC<LessonJournalPageProps> = ({ id, lesson
     // Массовые операции для BulkSheet
     bulkSetGrade: bulkSetGradeLocal,
     bulkSetAtt: bulkSetAttLocal,
+    bulkSetRemark: bulkSetRemarkLocal,
     clearAll: clearAllLocal,
   } = useLessonJournal(lessonId, onBack);
 
@@ -54,6 +55,9 @@ export const LessonJournalPage: React.FC<LessonJournalPageProps> = ({ id, lesson
   };
   const bulkSetAtt = (attId: number | null) => {
     bulkSetAttLocal(attId, overwriteFilled, baselineRef);
+  };
+  const bulkSetRemark = (remark: string) => {
+    bulkSetRemarkLocal(remark, overwriteFilled, baselineRef);
   };
   const clearAll = () => {
     clearAllLocal();
@@ -162,6 +166,7 @@ export const LessonJournalPage: React.FC<LessonJournalPageProps> = ({ id, lesson
             onOverwriteFilledChange={setOverwriteFilled}
             onBulkGrade={bulkSetGrade}
             onBulkAtt={bulkSetAtt}
+            onBulkRemark={bulkSetRemark}
             onClearAll={clearAll}
             columns={columns}
           />
