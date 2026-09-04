@@ -5,8 +5,9 @@
  * Используется на странице расписания и в ленте дня на главной.
  */
 import React from 'react';
-import { Accordion, Caption, Text } from '@vkontakte/vkui';
-import { LessonRow, lessonStatus, startTimeOf, type LessonRowData } from '@/shared/components/LessonRow';
+import { Accordion, Badge, Caption, Text } from '@vkontakte/vkui';
+import { LessonRow, lessonStatus, startTimeOf, type ChipTone, type LessonRowData } from '@/shared/components/LessonRow';
+import { schoolNowMinutes } from '@/shared/lib/date';
 
 /** Группировка по таймингу (сохраняя порядок прихода с сервера). */
 export const groupByTiming = <T extends { timing: string }>(lessons: T[]): { timing: string; lessons: T[] }[] => {
@@ -41,36 +42,83 @@ export const TimedGroups: React.FC<{
   onOpenLesson?: (sheetId: number) => void;
   /** Ключ для reset'а раскрытия при смене дня/фильтров. */
   resetKey?: string;
-}> = ({ lessons, isToday, onOpenLesson, resetKey }) => (
-  <>
-    {groupByTiming(lessons).map(g => (
-      <TimedGroup
-        key={g.timing}
-        timing={g.timing}
-        lessons={g.lessons}
-        isToday={isToday}
-        onOpenLesson={onOpenLesson}
-        resetKey={resetKey}
-      />
-    ))}
-  </>
-);
+}> = ({ lessons, isToday, onOpenLesson, resetKey }) => {
+  // Дефолт раскрытия: слот «сейчас», а в его отсутствие (перемена, обед,
+  // до первого урока) — ближайший будущий; когда все прошли — последний.
+  // Бейдж объясняет, почему слот раскрыт, когда урока «сейчас» нет.
+  const groups = groupByTiming(lessons);
+  let defaultTiming = '';
+  let badge: { tone: ChipTone; label: string } | null = null;
+  if (isToday && groups.length) {
+    // Начало слота в минутах («09:30 - 10:15» -> 570).
+    const starts = (timing: string): number => {
+      const [h, m] = startTimeOf(timing).split(':').map(Number);
+      return Number.isFinite(h) && Number.isFinite(m) ? h * 60 + m : -1;
+    };
+    const nowMin = schoolNowMinutes();
+    const nowIdx = groups.findIndex(g =>
+      g.lessons.some(l => lessonStatus(l.timing, isToday) === 'now'));
+    const nextIdx = nowIdx >= 0 ? nowIdx : groups.findIndex(g => starts(g.timing) > nowMin);
+    const idx = nowIdx >= 0 ? nowIdx : (nextIdx >= 0 ? nextIdx : groups.length - 1);
+    defaultTiming = groups[idx].timing;
+    if (nowIdx >= 0) {
+      badge = { tone: 'blue', label: 'Идёт сейчас' };
+    } else if (nextIdx >= 0) {
+      // Перерыв/обед: зазор от конца предыдущего слота до начала выбранного.
+      // Большой зазор (>= 60 мин) считаем обедом; до первого урока — тоже
+      // «Перемена» (отдельного состояния не заводим).
+      const prev = groups[idx - 1];
+      const prevEnd = prev
+        ? (prev.timing.split(' - ')[1] || '').trim()
+        : '';
+      const [eh, em] = prevEnd.split(':').map(Number);
+      const gapMin = Number.isFinite(eh) && Number.isFinite(em)
+        ? starts(groups[idx].timing) - (eh * 60 + em)
+        : 0;
+      badge = gapMin >= 60
+        ? { tone: 'blue', label: 'Обед' }
+        : { tone: 'blue', label: 'Перемена' };
+    }
+  }
+  return (
+    <>
+      {groups.map(g => (
+        <TimedGroup
+          key={g.timing}
+          timing={g.timing}
+          lessons={g.lessons}
+          isToday={isToday}
+          defaultExpanded={isToday && g.timing === defaultTiming}
+          badge={g.timing === defaultTiming ? badge : null}
+          onOpenLesson={onOpenLesson}
+          resetKey={resetKey}
+        />
+      ))}
+    </>
+  );
+};
 
 const TimedGroup: React.FC<{
   timing: string;
   lessons: (LessonRowData & Record<string, unknown>)[];
   isToday: boolean;
+  defaultExpanded: boolean;
+  /** Пилюля в заголовке («Идёт сейчас», «Перемена», «Обед»). */
+  badge: { tone: ChipTone; label: string } | null;
   onOpenLesson?: (sheetId: number) => void;
   resetKey?: string;
-}> = ({ timing, lessons, isToday, onOpenLesson, resetKey }) => {
+}> = ({ timing, lessons, isToday, defaultExpanded, badge, onOpenLesson, resetKey }) => {
   const status = lessons.map(l => lessonStatus(l.timing, isToday));
   const hasNow = status.includes('now');
   const hasPast = status.every(s => s === 'past');
-  const [expanded, setExpanded] = React.useState(hasNow);
+  const [expanded, setExpanded] = React.useState(defaultExpanded);
 
   // Переход на другой день / смена фильтров: перечитываем дефолт
-  // (раскрыт только «сейчас»); пользовательский выбор живёт до этого.
-  React.useEffect(() => { setExpanded(hasNow); }, [hasNow, timing, lessons.length, resetKey]);
+  // (раскрыт «сейчас» или ближайший слот); пользовательский выбор
+  // живёт до этого.
+  React.useEffect(
+    () => { setExpanded(defaultExpanded); },
+    [defaultExpanded, timing, lessons.length, resetKey]);
 
   const stateColor = hasNow
     ? 'var(--vkui--color_text_accent)'
@@ -82,15 +130,17 @@ const TimedGroup: React.FC<{
     <Accordion expanded={expanded} onChange={setExpanded} id={`slot-${timing}`}>
       <Accordion.Summary
         after={
-          <Caption style={{ color: 'var(--vkui--color_text_secondary)' }}>
-            {lessons.length} {pluralRu(lessons.length)}
-          </Caption>
+          <>
+            {badge && <Badge mode="prominent">{badge.label}</Badge>}
+            <Caption style={{ color: 'var(--vkui--color_text_secondary)' }}>
+              {lessons.length} {pluralRu(lessons.length)}
+            </Caption>
+          </>
         }
       >
         <Text weight="2" style={{ color: stateColor }}>
           {startTimeOf(timing)}
         </Text>
-        {hasNow ? ' · Идёт сейчас' : ''}
       </Accordion.Summary>
       <Accordion.Content>
         {lessons.map((l, i) => (
