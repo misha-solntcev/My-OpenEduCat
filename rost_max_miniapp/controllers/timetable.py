@@ -2,6 +2,7 @@
 import secrets
 import re
 import base64
+import os
 from datetime import timedelta
 from odoo import http
 from odoo.http import request
@@ -36,9 +37,24 @@ MAX_FRAME_HEADERS = {
 
 
 def _spa_response(template, **ctx):
-    """Рендер SPA-страницы с заголовками, разрешающими iframe из MAX."""
+    """Рендер SPA-страницы с заголовками, разрешающими iframe из MAX.
+
+    no-cache обязателен: Telegram WebView кеширует HTML, и без этого
+    заголовка показывает старую страницу со старой ссылкой на бандл
+    (в MAX «сброс кэша» есть, в Telegram — нет).
+    """
+    # Версия бандла = mtime index.js: при каждом деплое URL меняется,
+    # кеш WebView инвалидируется сам, ручные ?v=N не нужны.
+    bundle = os.path.join(
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+        'static', 'src', 'bundle', 'index.js')
+    try:
+        ctx['bundle_v'] = int(os.path.getmtime(bundle))
+    except OSError:
+        ctx['bundle_v'] = 0
     response = request.render(template, ctx)
     response.headers.update(MAX_FRAME_HEADERS)
+    response.headers['Cache-Control'] = 'no-cache'
     return response
 
 

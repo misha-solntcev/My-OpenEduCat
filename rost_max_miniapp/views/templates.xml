@@ -45,11 +45,12 @@
                     })();
                 </script>
 
-                <!-- Compiled CSS -->
-                <link rel="stylesheet" href="/rost_max_miniapp/static/src/bundle/styles.css"/>
+                <!-- Compiled CSS (та же версия, что у JS) -->
+                <link rel="stylesheet" t-att-href="'/rost_max_miniapp/static/src/bundle/styles.css?v=%s' % bundle_v"/>
 
-                <!-- Compiled JS (UMD format, no module) -->
-                <script defer="defer" src="/rost_max_miniapp/static/src/bundle/index.js?v=10"></script>
+                <!-- Compiled JS (UMD format, no module). ?v= mtime бандла:
+                     при деплое меняется сам, WebView не держит старый кеш. -->
+                <script defer="defer" t-att-src="'/rost_max_miniapp/static/src/bundle/index.js?v=%s' % bundle_v"></script>
 
                 <!-- Error catcher for MAX WebView (no console) -->
                 <script>
