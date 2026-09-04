@@ -425,6 +425,26 @@ class RostMaxTimetableController(http.Controller):
 
         return request.env['op.session'].search(domain, order='start_datetime asc')
 
+    def _faculty_avatar_map(self, sessions):
+        """URL аватарок учителей для набора сессий.
+
+        Без суффикса /WxH — иначе Одоо серверно кропнет квадрат по центру
+        (срежет лоб). Отдаём image_512 целиком, квадрат режет браузер
+        (objectPosition='center top' — голова всегда в кадре). Наличие фото
+        проверяем search() БЕЗ выгрузки BLOB (EXISTS в SQL); URL только для
+        залогиненных, иначе 404.
+        """
+        avatar_map = {}
+        if sessions:
+            faculty_ids = sessions.mapped('faculty_id').ids
+            with_photo = request.env['op.faculty'].sudo().search(
+                [('id', 'in', faculty_ids), ('image_128', '!=', False)])
+            avatar_map = {
+                f.id: '/web/image/op.faculty/%s/image_512' % f.id
+                for f in with_photo
+            }
+        return avatar_map
+
     @http.route("/rost_max/api/timetable", type="http", auth="public", methods=["GET"])
     def api_timetable(self, date=None, faculty_id=None, batch_id=None):
         """API: список занятий на дате"""
@@ -456,20 +476,7 @@ class RostMaxTimetableController(http.Controller):
 
         # Аватары учителей: URL на /web/image (Odoo ресайзит и кеширует,
         # плейсхолдер с первой буквой при отсутствии фото — как в журнале).
-        # ВАЖНО: без суффикса /WxH — иначе Одоо серверно кропнет квадрат по
-        # центру (срежет лоб). Отдаём image_512 целиком, квадрат режет
-        # браузер (objectPosition='center top' — голова всегда в кадре).
-        # Наличие фото проверяем search() БЕЗ выгрузки BLOB (EXISTS в SQL);
-        # URL только для залогиненных, иначе 404.
-        avatar_map = {}
-        if lessons and request.session.uid:
-            faculty_ids = lessons.mapped('faculty_id').ids
-            with_photo = request.env['op.faculty'].sudo().search(
-                [('id', 'in', faculty_ids), ('image_128', '!=', False)])
-            avatar_map = {
-                f.id: '/web/image/op.faculty/%s/image_512' % f.id
-                for f in with_photo
-            }
+        avatar_map = self._faculty_avatar_map(lessons) if request.session.uid else {}
 
         return request.make_json_response({
             "date": date_str,
@@ -903,6 +910,7 @@ class RostMaxTimetableController(http.Controller):
         """
         now = fields.Datetime.now()
         role, own_students = _get_user_students(user)
+        avatar_map = self._faculty_avatar_map(sessions) if request.session.uid else {}
 
         # --- Лента уроков (все роли) ---
         sheets_map = {}
@@ -924,6 +932,7 @@ class RostMaxTimetableController(http.Controller):
                 "subject": l.subject_id.name if l.subject_id else "Урок",
                 "batch": self._batch_short(l.batch_id.name) if l.batch_id else "",
                 "faculty": self._faculty_name(l.faculty_id),
+                "faculty_avatar": avatar_map.get(l.faculty_id.id, ''),
                 "timing": l.timing or "",
                 "start": str(l.start_datetime) if l.start_datetime else "",
                 "end": str(l.end_datetime) if l.end_datetime else "",
