@@ -59,8 +59,9 @@ export const TimedGroups: React.FC<{
     const nowIdx = groups.findIndex(g =>
       g.lessons.some(l => lessonStatus(l.timing, isToday) === 'now'));
     const nextIdx = nowIdx >= 0 ? nowIdx : groups.findIndex(g => starts(g.timing) > nowMin);
-    const idx = nowIdx >= 0 ? nowIdx : (nextIdx >= 0 ? nextIdx : groups.length - 1);
-    defaultTiming = groups[idx].timing;
+    // Все уроки прошли — ничего не раскрываем (день закончился).
+    const idx = nowIdx >= 0 ? nowIdx : nextIdx;
+    if (idx >= 0) defaultTiming = groups[idx].timing;
     if (nowIdx >= 0) {
       badge = { tone: 'blue', label: 'Идёт сейчас' };
     } else if (nextIdx >= 0) {
