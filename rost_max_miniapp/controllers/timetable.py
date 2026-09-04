@@ -551,6 +551,7 @@ class RostMaxTimetableController(http.Controller):
                 "grade_2": ln.grade_2 or None,
                 "grade_3": ln.grade_3 or None,
                 "attendance_type_id": ln.attendance_type_id.id if ln.attendance_type_id else None,
+                "remark": ln.remark or '',
             })
 
         lesson = {
@@ -559,12 +560,31 @@ class RostMaxTimetableController(http.Controller):
             "batch": sheet.batch_id.name if sheet.batch_id else '',
             "date": str(sheet.attendance_date) if sheet.attendance_date else '',
             "timing": sheet.timing or '',
+            # Тема урока и ДЗ (rost_lesson_homework). ДЗ пишем в sheet —
+            # write() модуля сам создаст/обновит op.assignment (см. /save).
+            # rost_lesson_homework может быть не установлен — getattr.
+            "topic": sheet.lesson_topic or '',
+            "homework": getattr(sheet, 'lesson_homework', '') or '',
+            "homework_assignment_id": (
+                sheet.homework_assignment_id.id
+                if getattr(sheet, 'homework_assignment_id', False) else None),
+        }
+
+        # Персональная настройка колонок (вариант B, res.users).
+        u = request.env.user
+        columns = {
+            "grade_1": True,
+            "grade_2": bool(u.miniapp_show_grade_2),
+            "grade_3": bool(u.miniapp_show_grade_3),
+            "note": bool(u.miniapp_show_note),
+            "attendance": True,
         }
 
         return request.make_json_response({
             "lesson": lesson,
             "attendance_types": attendance_types,
             "students": students,
+            "columns": columns,
         })
 
     @http.route("/rost_max/api/lesson/<int:lesson_id>/save", type="http", auth="public", methods=["POST"], cors="*", csrf=False)
@@ -630,12 +650,78 @@ class RostMaxTimetableController(http.Controller):
             if 'attendance_type_id' in row:
                 att = row['attendance_type_id']
                 vals['attendance_type_id'] = (int(att) if att not in (None, '') else False)
+            # Примечание (Char 256): null/'' = очистка
+            if 'remark' in row:
+                vals['remark'] = (row['remark'] or '').strip() or False
 
             if vals:
                 line.write(vals)
                 written += 1
 
+        # Тема урока (Char 256) — top-level ключи, пишутся один раз на урок.
+        sheet_vals = {}
+        if isinstance(body.get('lesson'), dict):
+            lv = body['lesson']
+            if 'topic' in lv:
+                sheet_vals['lesson_topic'] = (lv['topic'] or '').strip() or False
+
+        # ДЗ: пишем ТОЛЬКО если rost_lesson_homework установлен — его write()
+        # создаёт op.assignment; без модуля поле отсутствует и писать некуда.
+        if isinstance(body.get('lesson'), dict) and 'homework' in body['lesson'] \
+                and hasattr(type(sheet), 'lesson_homework'):
+            sheet_vals['lesson_homework'] = (body['lesson']['homework'] or '').strip() or False
+
+        if sheet_vals:
+            # state done/cancel: тема закрытого урока не редактируется
+            # (та же семантика, что readonly="state == 'done'" в веб-форме).
+            if sheet.state == 'done':
+                sheet_vals.pop('lesson_homework', None)
+            sheet.write(sheet_vals)
+
         return request.make_json_response({"success": True, "written": written})
+
+    @http.route("/rost_max/api/journal/columns", type="http", auth="public", methods=["GET", "POST"], cors="*", csrf=False)
+    def api_journal_columns(self, **kw):
+        """GET/POST: персональная настройка колонок журнала (res.users).
+
+        GET  -> {"columns": {...}} (О1 и посещаемость всегда True)
+        POST -> {"grade_2": bool, "grade_3": bool, "note": bool}
+        Веб-версию Odoo не трогает.
+        CSRF: как у /save — системный валидатор Odoo для http-роутов ищет
+        токен только в query/form-data, а фронт шлёт его в заголовке
+        X-CSRF-Token, поэтому роут с csrf=False + ручная _check_spa_csrf()
+        для POST.
+        """
+        restore_session_if_needed()
+        if request.httprequest.method == "POST":
+            csrf_err = _check_spa_csrf()
+            if csrf_err:
+                return csrf_err
+        if not request.session.uid:
+            return request.make_json_response({"error": "Unauthorized"}, status=401)
+
+        user = request.env.user
+        if request.httprequest.method == "POST":
+            try:
+                body = request.get_json_data()
+            except Exception:
+                return request.make_json_response({"error": "Invalid JSON"}, status=400)
+            vals = {}
+            for key, field in (('grade_2', 'miniapp_show_grade_2'),
+                               ('grade_3', 'miniapp_show_grade_3'),
+                               ('note', 'miniapp_show_note')):
+                if key in body:
+                    vals[field] = bool(body[key])
+            if vals:
+                user.write(vals)
+
+        return request.make_json_response({"columns": {
+            "grade_1": True,
+            "grade_2": bool(user.miniapp_show_grade_2),
+            "grade_3": bool(user.miniapp_show_grade_3),
+            "note": bool(user.miniapp_show_note),
+            "attendance": True,
+        }})
 
     @http.route("/rost_max/api/user/info", type="http", auth="public", methods=["GET"])
     def api_user_info(self):
