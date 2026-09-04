@@ -237,8 +237,10 @@ export const TimetablePage: React.FC<TimetablePageProps> = ({ id, onOpenLesson }
             gap={8}
             noWrap
             style={{
-              paddingInline: 16,
-              paddingBlockEnd: 12,
+              // Отступы как у карточки уроков ниже (Box paddingInline="s"),
+              // снизу минимальный зазор до списка.
+              paddingInline: 'var(--vkui--spacing_size_s)',
+              paddingBlockEnd: 'var(--vkui--spacing_size_xs)',
             }}
           >
             <CustomSelect
