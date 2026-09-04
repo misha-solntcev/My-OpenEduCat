@@ -292,8 +292,10 @@ export const TimetablePage: React.FC<TimetablePageProps> = ({ id, onOpenLesson }
               <Text weight="2" style={{ textAlign: 'center', display: 'block', padding: '12px 16px 8px' }}>
                 Уроки
               </Text>
-              {isAdmin ? (
-                // Админ: слоты по таймингу, раскрыт текущий.
+              {isAdmin && !selectedFaculty && !selectedBatch ? (
+                // Без фильтров: слоты по таймингу, раскрыт текущий.
+                // С фильтром (учитель/класс) записей мало — плоский список,
+                // аккордеоны только мешают (каждый слот надо открывать).
                 <TimedGroups
                   lessons={lessons}
                   isToday={isToday}
