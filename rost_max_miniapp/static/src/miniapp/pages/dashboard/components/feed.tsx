@@ -1,7 +1,7 @@
 // Лента дня (вариант A) — общие компоненты главной страницы.
 // Стили: VKUI токены + vkitokens (--vkui--*), никаких кастомных css-классов.
 import React from 'react';
-import { Group, Header, SimpleCell, Text, Caption, Div, Counter, Placeholder, Card as VkCard } from '@vkontakte/vkui';
+import { SimpleCell, Text, Caption, Div, Counter, Placeholder, Card as VkCard } from '@vkontakte/vkui';
 import {
   Icon28ClockOutline,
   Icon56EventOutline,
@@ -64,14 +64,48 @@ export interface FeedLesson {
   homework: string;
 }
 
-// Обёртка-карточка: нативная VKUI Card (mode="shadow": фон + скругление +
-// тень) с видом по умолчанию — самодельные стили не задаём.
-const Card: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+/**
+ * Карточка блока: заголовок НАД карточкой + Card mode="shadow" с
+ * overflow:hidden. ВАЖНО: контент кладём напрямую в Card, без Group —
+ * у .vkuiGroup__host:first-of-type в VKUI жёсткое border-top-*-radius: 0,
+ * и съеденное верхнее скругление Card очень заметно.
+ * Header используется только для строки «текст + after» — он НА сером
+ * фоне панели, вне Card, поэтому скругления не трогает.
+ */
+const CardBlock: React.FC<{
+  title: React.ReactNode;
+  after?: React.ReactNode;
+  children: React.ReactNode;
+}> = ({ title, after, children }) => (
   <div style={{ margin: '8px 8px' }}>
-    <VkCard mode="shadow">
+    <div style={{
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      padding: '0 4px 4px',
+    }}>
+      {title}
+      {after}
+    </div>
+    <VkCard mode="shadow" style={{ overflow: 'hidden' }}>
       {children}
     </VkCard>
   </div>
+);
+
+/** Заголовок блока (без Header после рефакторинга — просто Text). */
+const BlockTitle: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+  <Text weight="2">{children}</Text>
+);
+
+/** Ссылка «… →» справа от заголовка блока. */
+const BlockLink: React.FC<{ onClick?: () => void; children: React.ReactNode }> = ({ onClick, children }) => (
+  <span
+    style={{ color: 'var(--vkui--color_text_accent)', fontWeight: 500, cursor: 'pointer', fontSize: 13 }}
+    onClick={onClick}
+  >
+    {children}
+  </span>
 );
 
 export const TodayLessons: React.FC<{
@@ -82,23 +116,9 @@ export const TodayLessons: React.FC<{
   /** Админ: слоты-аккордеоны по таймингу (в расписании вся школа). */
   grouped?: boolean;
 }> = ({ lessons, onOpenJournal, onOpenTimetable, showBatch, grouped }) => (
-  <Card><Group
-    header={
-      <Header
-        after={
-          onOpenTimetable ? (
-            <span
-              style={{ color: 'var(--vkui--color_text_accent)', fontWeight: 500, cursor: 'pointer', fontSize: 13 }}
-              onClick={onOpenTimetable}
-            >
-              Вся неделя →
-            </span>
-          ) : undefined
-        }
-      >
-        Сегодня · {lessons.length} {plural(lessons.length, 'урок', 'урока', 'уроков')}
-      </Header>
-    }
+  <CardBlock
+    title={<BlockTitle>Сегодня · {lessons.length} {plural(lessons.length, 'урок', 'урока', 'уроков')}</BlockTitle>}
+    after={onOpenTimetable ? <BlockLink onClick={onOpenTimetable}>Вся неделя →</BlockLink> : undefined}
   >
     {grouped ? (
       // Админ: слоты по таймингу, раскрыт текущий (как в расписании).
@@ -124,7 +144,7 @@ export const TodayLessons: React.FC<{
         />
       ))
     )}
-  </Group></Card>
+  </CardBlock>
 );
 
 // --- Оценки за сегодня (ученик) ------------------------------------------
@@ -140,23 +160,9 @@ export const GradesToday: React.FC<{
   onOpenGrades?: () => void;
   average?: number | null;
 }> = ({ grades, onOpenGrades, average }) => (
-  <Card><Group
-    header={
-      <Header
-        after={
-          onOpenGrades ? (
-            <span
-              style={{ color: 'var(--vkui--color_text_accent)', fontWeight: 500, cursor: 'pointer', fontSize: 13 }}
-              onClick={onOpenGrades}
-            >
-              Все оценки →
-            </span>
-          ) : undefined
-        }
-      >
-        Оценки за сегодня
-      </Header>
-    }
+  <CardBlock
+    title={<BlockTitle>Оценки за сегодня</BlockTitle>}
+    after={onOpenGrades ? <BlockLink onClick={onOpenGrades}>Все оценки →</BlockLink> : undefined}
   >
     {grades.length === 0 ? (
       <Div><Caption style={{ color: 'var(--vkui--color_text_secondary)' }}>Оценок пока нет</Caption></Div>
@@ -191,7 +197,7 @@ export const GradesToday: React.FC<{
         </Caption>
       </Div>
     )}
-  </Group></Card>
+  </CardBlock>
 );
 
 // --- Домашние задания (ученик) -------------------------------------------
@@ -206,7 +212,7 @@ export interface HomeworkItem {
 }
 
 export const HomeworkList: React.FC<{ items: HomeworkItem[] }> = ({ items }) => (
-  <Card><Group header={<Header>Домашние задания</Header>}>
+  <CardBlock title={<BlockTitle>Домашние задания</BlockTitle>}>
     {items.length === 0 ? (
       <Div><Caption style={{ color: 'var(--vkui--color_text_secondary)' }}>Заданий нет — можно отдыхать</Caption></Div>
     ) : (
@@ -231,7 +237,7 @@ export const HomeworkList: React.FC<{ items: HomeworkItem[] }> = ({ items }) => 
         </SimpleCell>
       ))
     )}
-  </Group></Card>
+  </CardBlock>
 );
 
 // --- Журналы к заполнению (учитель) ---------------------------------------
@@ -249,7 +255,7 @@ export const JournalsToFill: React.FC<{
   items: JournalToFill[];
   onOpenJournal: (sheetId: number) => void;
 }> = ({ items, onOpenJournal }) => (
-  <Card><Group header={<Header>Журналы к заполнению</Header>}>
+  <CardBlock title={<BlockTitle>Журналы к заполнению</BlockTitle>}>
     {items.length === 0 ? (
       <Div><Caption style={{ color: 'var(--vkui--color_text_secondary)' }}>Все журналы заполнены 👍</Caption></Div>
     ) : (
@@ -264,7 +270,7 @@ export const JournalsToFill: React.FC<{
         </SimpleCell>
       ))
     )}
-  </Group></Card>
+  </CardBlock>
 );
 
 // --- Задано моими уроками (учитель) ---------------------------------------
@@ -280,7 +286,7 @@ export interface MyHomeworkItem {
 }
 
 export const MyHomework: React.FC<{ items: MyHomeworkItem[] }> = ({ items }) => (
-  <Card><Group header={<Header>Домашние задания</Header>}>
+  <CardBlock title={<BlockTitle>Домашние задания</BlockTitle>}>
     {items.length === 0 ? (
       <Div><Caption style={{ color: 'var(--vkui--color_text_secondary)' }}>Активных заданий нет</Caption></Div>
     ) : (
@@ -305,7 +311,7 @@ export const MyHomework: React.FC<{ items: MyHomeworkItem[] }> = ({ items }) => 
         </SimpleCell>
       ))
     )}
-  </Group></Card>
+  </CardBlock>
 );
 
 // --- Полоса цифр + требует внимания (админ) --------------------------------
@@ -344,7 +350,7 @@ export const AdminStatStrip: React.FC<{ stats: AdminStats }> = ({ stats }) => {
 };
 
 export const AdminAlerts: React.FC<{ unfilled: number; morningPassed: number }> = ({ unfilled, morningPassed }) => (
-  <Card><Group header={<Header>Требует внимания</Header>}>
+  <CardBlock title={<BlockTitle>Требует внимания</BlockTitle>}>
     {unfilled > 0 ? (
       <SimpleCell
         before={<Icon28ClockOutline />}
@@ -357,7 +363,7 @@ export const AdminAlerts: React.FC<{ unfilled: number; morningPassed: number }> 
     ) : (
       <Div><Caption style={{ color: 'var(--vkui--color_text_secondary)' }}>Всё в порядке</Caption></Div>
     )}
-  </Group></Card>
+  </CardBlock>
 );
 
 // --- Пустой день ------------------------------------------------------------

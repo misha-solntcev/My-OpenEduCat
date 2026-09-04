@@ -5,7 +5,6 @@ import {
   Text,
   Spinner,
   Box,
-  Group,
   Placeholder,
   IconButton,
   CustomSelect,
@@ -289,7 +288,10 @@ export const TimetablePage: React.FC<TimetablePageProps> = ({ id, onOpenLesson }
             <Text weight="2" style={{ textAlign: 'center', display: 'block', paddingBlock: 8 }}>
               Уроки
             </Text>
-            <Card mode="shadow">
+            {/* ВАЖНО: без Group внутри Card — у .vkuiGroup__host:first-of-type
+                в VKUI жёсткое border-top-*-radius: 0, Group съедает верхнее
+                скругление Card. Card сам даёт поверхность, «Уроки» — снаружи. */}
+            <Card mode="shadow" style={{ overflow: 'hidden' }}>
               {isAdmin ? (
                 // Админ: слоты по таймингу, раскрыт текущий.
                 <TimedGroups
@@ -299,20 +301,18 @@ export const TimetablePage: React.FC<TimetablePageProps> = ({ id, onOpenLesson }
                   onOpenLesson={onOpenLesson}
                 />
               ) : (
-                <Group>
-                  {lessons.map(l => (
-                    // Без sheet_id (ученик/родитель) журнал недоступен —
-                    // урок без открытия журнала.
-                    <LessonRow
-                      key={l.id}
-                      lesson={l}
-                      status={lessonStatus(l.timing, isToday)}
-                      showBatch
-                      showFaculty
-                      onClick={l.sheet_id ? () => onOpenLesson(l.sheet_id!) : undefined}
-                    />
-                  ))}
-                </Group>
+                lessons.map(l => (
+                  // Без sheet_id (ученик/родитель) журнал недоступен —
+                  // урок без открытия журнала.
+                  <LessonRow
+                    key={l.id}
+                    lesson={l}
+                    status={lessonStatus(l.timing, isToday)}
+                    showBatch
+                    showFaculty
+                    onClick={l.sheet_id ? () => onOpenLesson(l.sheet_id!) : undefined}
+                  />
+                ))
               )}
             </Card>
           </Box>
