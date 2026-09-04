@@ -1,7 +1,7 @@
 // Лента дня (вариант A) — общие компоненты главной страницы.
 // Стили: VKUI токены + vkitokens (--vkui--*), никаких кастомных css-классов.
 import React from 'react';
-import { Group, Header, SimpleCell, Text, Caption, Div, Counter, Placeholder } from '@vkontakte/vkui';
+import { Group, Header, SimpleCell, Text, Caption, Div, Counter, Placeholder, Card as VkCard } from '@vkontakte/vkui';
 import {
   Icon28ClockOutline,
   Icon56EventOutline,
@@ -63,20 +63,13 @@ export interface FeedLesson {
   homework: string;
 }
 
-// Обёртка-карточка: фон поверхности + скругление. Group в MAX WebView
-// рендерится в plain-режиме (мобильный адаптив), поэтому карточный вид
-// даём явным инлайн-стилем контейнера (не кастомный css-класс).
+// Обёртка-карточка: нативная VKUI Card (mode="shadow": фон + скругление +
+// тень) с видом по умолчанию — самодельные стили не задаём.
 const Card: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <div style={{
-    // content = белая карточка в светлой теме / тёмная поверхность в тёмной
-    // (VKUI токен адаптивен, тёмная тема подхватывается автоматически)
-    background: 'var(--vkui--color_background_content)',
-    borderRadius: 12,
-    margin: '8px 8px',
-    overflow: 'hidden',
-    boxShadow: '0 2px 8px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)',
-  }}>
-    {children}
+  <div style={{ margin: '8px 8px' }}>
+    <VkCard mode="shadow">
+      {children}
+    </VkCard>
   </div>
 );
 
