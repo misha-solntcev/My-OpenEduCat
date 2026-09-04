@@ -2,7 +2,7 @@ import React from 'react';
 import { Flex } from '@vkontakte/vkui';
 import { JournalButton } from './JournalButton';
 import { GRADE_FIELDS } from '@/shared/lib/colors';
-import type { GradeField, AttendanceType } from '@/shared/lib/types';
+import type { GradeField, AttendanceType, JournalColumns } from '@/shared/lib/types';
 
 interface GradeColumnsProps {
   gradeValues: Record<GradeField, number | null>;
@@ -13,9 +13,13 @@ interface GradeColumnsProps {
   attendanceVariant?: 'grade' | 'attendance' | 'bulk-grade' | 'bulk-attendance';
   attendanceTypes?: AttendanceType[];
   attendanceTitle?: string;
+  gradeTitlePrefix?: string;
+  /** Персональная настройка колонок: О2/О3 выключенные не рендерятся. */
+  columns?: JournalColumns;
 }
 
-/** Колонка с тремя оценками + посещаемостью (используется в StudentRow и BulkSheet) */
+/** Колонка с оценками + посещаемостью (StudentRow и BulkSheet).
+ *  grade_1 и attendance показываются всегда, О2/О3 — по настройке. */
 export const GradeColumns: React.FC<GradeColumnsProps> = ({
   gradeValues,
   onCycleGrade,
@@ -25,30 +29,37 @@ export const GradeColumns: React.FC<GradeColumnsProps> = ({
   attendanceVariant,
   attendanceTypes = [],
   attendanceTitle,
-}) => (
-  <Flex gap={4} wrap="wrap" minInlineSize={0}>
-    {GRADE_FIELDS.map((field) => (
-      <JournalButton
-        key={field}
-        kind="grade"
-        value={gradeValues[field]}
-        onCycle={onCycleGrade ? (next) => onCycleGrade(field, next) : undefined}
-        title={`Оценка ${field === 'grade_1' ? 'О1' : field === 'grade_2' ? 'О2' : 'О3'}`}
-        variant={gradeVariant}
-        size="s"
-      />
-    ))}
+  gradeTitlePrefix,
+  columns,
+}) => {
+  const visible = (f: GradeField) =>
+    !columns || f === 'grade_1' || Boolean(columns[f]);
 
-    {onCycleAttendance && (
-      <JournalButton
-        kind="attendance"
-        value={attendanceValue}
-        attendanceTypes={attendanceTypes}
-        onCycle={onCycleAttendance}
-        title={attendanceTitle ?? 'Нажмите, чтобы сменить отметку посещаемости'}
-        variant={attendanceVariant ?? 'attendance'}
-        size="s"
-      />
-    )}
-  </Flex>
-);
+  return (
+    <Flex gap={4} wrap="wrap" minInlineSize={0}>
+      {GRADE_FIELDS.filter(visible).map((field) => (
+        <JournalButton
+          key={field}
+          kind="grade"
+          value={gradeValues[field]}
+          onCycle={onCycleGrade ? (next) => onCycleGrade(field, next) : undefined}
+          title={`${gradeTitlePrefix ?? 'Оценка'} ${field === 'grade_1' ? 'О1' : field === 'grade_2' ? 'О2' : 'О3'}`}
+          variant={gradeVariant}
+          size="m"
+        />
+      ))}
+
+      {onCycleAttendance && (
+        <JournalButton
+          kind="attendance"
+          value={attendanceValue}
+          attendanceTypes={attendanceTypes}
+          onCycle={onCycleAttendance}
+          title={attendanceTitle ?? 'Нажмите, чтобы сменить отметку посещаемости'}
+          variant={attendanceVariant ?? 'attendance'}
+          size="m"
+        />
+      )}
+    </Flex>
+  );
+};

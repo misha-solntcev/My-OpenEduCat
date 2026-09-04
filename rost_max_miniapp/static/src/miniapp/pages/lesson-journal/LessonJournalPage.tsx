@@ -1,6 +1,8 @@
 import React from 'react';
 import { Box, Flex, Panel, Button } from '@vkontakte/vkui';
 import { BulkSheet } from '@/pages/lesson-journal/components/BulkSheet';
+import { ColumnsSettingsSheet } from '@/pages/lesson-journal/components/ColumnsSettingsSheet';
+import { TopicHomeworkCard } from '@/pages/lesson-journal/components/TopicHomeworkCard';
 import { LessonJournalContent } from '@/pages/lesson-journal/components/LessonJournalContent';
 import { LessonJournalToolbar } from '@/pages/lesson-journal/components/LessonJournalToolbar';
 import { useLessonJournal } from '@/pages/lesson-journal/hooks/useLessonJournal';
@@ -19,6 +21,7 @@ export const LessonJournalPage: React.FC<LessonJournalPageProps> = ({ id, lesson
     lesson,
     students,
     attendanceTypes,
+    columns,
     loading,
     error,
     dirty,
@@ -27,7 +30,11 @@ export const LessonJournalPage: React.FC<LessonJournalPageProps> = ({ id, lesson
     setShowExitBanner,
     cycleGradeField,
     cycleAttendance,
+    setRemark,
+    setTopic,
+    setHomework,
     saveAll,
+    toggleColumn,
     handleBack,
     exitSave,
     exitDiscard,
@@ -67,12 +74,17 @@ export const LessonJournalPage: React.FC<LessonJournalPageProps> = ({ id, lesson
   );
 
   const [sheetOpen, setSheetOpen] = React.useState(false);
+  const [columnsOpen, setColumnsOpen] = React.useState(false);
 
   const onOpenBulkSheet = canEdit
     ? () => {
         resetBaseline(students);
         setSheetOpen(true);
       }
+    : undefined;
+
+  const onOpenColumnsSettings = canEdit
+    ? () => setColumnsOpen(true)
     : undefined;
 
   // Если lessonId не передан (null) — показываем пустое состояние
@@ -88,9 +100,11 @@ export const LessonJournalPage: React.FC<LessonJournalPageProps> = ({ id, lesson
           showExitBanner={showExitBanner}
           setShowExitBanner={setShowExitBanner}
           onOpenBulkSheet={onOpenBulkSheet}
+          onOpenColumnsSettings={onOpenColumnsSettings}
           exitSave={exitSave}
           exitDiscard={exitDiscard}
           handleBack={handleBack}
+          saving={saving}
         />
 
         <Box
@@ -99,20 +113,33 @@ export const LessonJournalPage: React.FC<LessonJournalPageProps> = ({ id, lesson
           padding="xl"
           paddingBlockEnd={canEdit && dirty ? 84 : 24}
         >
+          {lesson && (
+            <Box paddingBlockEnd="l">
+              <TopicHomeworkCard
+                lesson={lesson}
+                canEdit={canEdit}
+                onTopicChange={setTopic}
+                onHomeworkChange={setHomework}
+              />
+            </Box>
+          )}
+
           <LessonJournalContent
             loading={loading}
             error={error}
             onRetry={loadStudents}
             students={students}
             attendanceTypes={attendanceTypes}
+            columns={columns}
             canEdit={canEdit}
             onCycleGrade={cycleGradeField}
             onCycleAttendance={cycleAttendance}
+            onRemarkChange={setRemark}
           />
         </Box>
 
         {canEdit && dirty && (
-          <Box position="sticky" insetBlockEnd={0} zIndex="popout" padding="m" paddingInline="l" border="top" background="content">
+          <Box position="sticky" insetBlockEnd={0} zIndex="popout" padding="m" paddingInline="l" style={{ borderTop: '1px solid var(--vkui--color_separator_primary)', backgroundColor: 'var(--vkui--color_background_content)' }}>
             <Button
               stretched
               size="l"
@@ -125,16 +152,29 @@ export const LessonJournalPage: React.FC<LessonJournalPageProps> = ({ id, lesson
             </Button>
           </Box>
         )}
-        <BulkSheet
-          attendanceTypes={attendanceTypes}
-          overwriteFilled={overwriteFilled}
-          onOverwriteFilledChange={setOverwriteFilled}
-          onBulkGrade={bulkSetGrade}
-          onBulkAtt={bulkSetAtt}
-          onClearAll={clearAll}
-          onClose={() => setSheetOpen(false)}
-          open={canEdit && sheetOpen}
-        />
+
+        {canEdit && (
+          <BulkSheet
+            open={sheetOpen}
+            onClose={() => setSheetOpen(false)}
+            attendanceTypes={attendanceTypes}
+            overwriteFilled={overwriteFilled}
+            onOverwriteFilledChange={setOverwriteFilled}
+            onBulkGrade={bulkSetGrade}
+            onBulkAtt={bulkSetAtt}
+            onClearAll={clearAll}
+            columns={columns}
+          />
+        )}
+
+        {canEdit && (
+          <ColumnsSettingsSheet
+            open={columnsOpen}
+            onClose={() => setColumnsOpen(false)}
+            columns={columns}
+            onToggle={toggleColumn}
+          />
+        )}
       </Flex>
     </Panel>
   );

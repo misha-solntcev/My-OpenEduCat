@@ -7,9 +7,11 @@ interface LessonJournalToolbarProps {
   showExitBanner: boolean;
   setShowExitBanner: (v: boolean) => void;
   onOpenBulkSheet?: () => void;
+  onOpenColumnsSettings?: () => void;
   exitSave: () => Promise<void>;
   exitDiscard: () => void;
   handleBack: () => void;
+  saving: boolean;
 }
 
 /** Тулбар журнала: хедер + SaveBar + ExitBanner */
@@ -18,15 +20,18 @@ export const LessonJournalToolbar: React.FC<LessonJournalToolbarProps> = ({
   showExitBanner,
   setShowExitBanner,
   onOpenBulkSheet,
+  onOpenColumnsSettings,
   exitSave,
   exitDiscard,
   handleBack,
+  saving: savingProp,
 }) => {
   const header = (
     <LessonHeader
       lesson={lesson}
       onBack={handleBack}
       onOpenBulkSheet={onOpenBulkSheet}
+      onOpenColumnsSettings={onOpenColumnsSettings}
     />
   );
 
@@ -38,6 +43,7 @@ export const LessonJournalToolbar: React.FC<LessonJournalToolbarProps> = ({
         onClose={() => setShowExitBanner(false)}
         onSave={exitSave}
         onDiscard={exitDiscard}
+        saving={savingProp}
       />
     </>
   );

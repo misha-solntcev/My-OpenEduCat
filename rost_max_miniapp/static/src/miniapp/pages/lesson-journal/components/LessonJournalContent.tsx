@@ -2,16 +2,18 @@ import React from 'react';
 import { Flex, List, Text, Button } from '@vkontakte/vkui';
 import { StudentRow } from './StudentRow';
 import { EmptyState } from '@/shared/components/EmptyState';
-import type { Student, AttendanceType, GradeField } from '@/shared/lib/types';
+import type { Student, AttendanceType, GradeField, JournalColumns } from '@/shared/lib/types';
 
 interface LessonJournalContentProps {
   loading: boolean;
   error: string | null;
   students: Student[];
   attendanceTypes: AttendanceType[];
+  columns: JournalColumns;
   canEdit?: boolean;
   onCycleGrade?: (student: Student, field: GradeField, next: number | null) => void;
   onCycleAttendance?: (student: Student, next: number | null) => void;
+  onRemarkChange?: (student: Student, remark: string) => void;
   onRetry?: () => void;
 }
 
@@ -21,9 +23,11 @@ export const LessonJournalContent: React.FC<LessonJournalContentProps> = ({
   error,
   students,
   attendanceTypes,
+  columns,
   canEdit = true,
   onCycleGrade,
   onCycleAttendance,
+  onRemarkChange,
   onRetry,
 }) => {
   if (loading) {
@@ -61,8 +65,10 @@ export const LessonJournalContent: React.FC<LessonJournalContentProps> = ({
           student={student}
           attendanceTypes={attendanceTypes}
           canEdit={canEdit}
+          columns={columns}
           onCycleGrade={onCycleGrade}
           onCycleAttendance={onCycleAttendance}
+          onRemarkChange={onRemarkChange}
         />
       ))}
     </List>

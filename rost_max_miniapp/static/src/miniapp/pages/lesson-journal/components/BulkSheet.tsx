@@ -2,7 +2,7 @@ import React from 'react';
 import { Flex, Avatar, Switch, IconButton, ModalPage, ModalPageHeader, PanelHeaderClose, Button, ButtonGroup, unstable_ModalPageFooter as ModalPageFooter, AppRootPortal, Box } from '@vkontakte/vkui';
 import { Icon28DeleteOutline } from '@vkontakte/icons';
 import { GradeColumns } from './GradeColumns';
-import type { AttendanceType, GradeField } from '@/shared/lib/types';
+import type { AttendanceType, GradeField, JournalColumns } from '@/shared/lib/types';
 
 interface BulkSheetProps {
   attendanceTypes: AttendanceType[];
@@ -13,6 +13,8 @@ interface BulkSheetProps {
   onClearAll: () => void;
   onClose: () => void;
   open: boolean;
+  /** Персональная настройка колонок: скрытая О2/О3 недоступна и в шторке. */
+  columns?: JournalColumns;
 }
 
 // Шторка массового проставления оценок/посещаемости всему классу.
@@ -26,6 +28,7 @@ export const BulkSheet: React.FC<BulkSheetProps> = ({
   onClearAll,
   onClose,
   open,
+  columns,
 }) => {
   // Локальное состояние шаблонных значений для кнопок в шторке (UI-only)
   const [bulkGradeValues, setBulkGradeValues] = React.useState<Record<GradeField, number | null>>({
@@ -101,6 +104,7 @@ export const BulkSheet: React.FC<BulkSheetProps> = ({
                 attendanceTypes={attendanceTypes}
                 gradeTitlePrefix="Оценка"
                 attendanceTitle="Посещаемость — нажмите, чтобы сменить у всего класса"
+                columns={columns}
               />
             </Flex>
           </Flex>
