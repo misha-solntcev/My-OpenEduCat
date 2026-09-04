@@ -11,6 +11,18 @@ import logging
 from odoo.exceptions import AccessDenied
 from .session_middleware import restore_session_if_needed
 
+# Школа работает в Europe/Moscow (UTC+3): тайминги уроков и «сейчас»
+# считаем в школьной зоне, а не по UTC сервера / зоне пользователя.
+SCHOOL_TZ = 'Europe/Moscow'
+
+
+def _school_now():
+    """Текущий момент naive-datetime в школьной зоне (Europe/Moscow)."""
+    return fields.Datetime.context_timestamp(
+        request.env.user.with_context(tz=SCHOOL_TZ),
+        fields.Datetime.now(),
+    ).replace(tzinfo=None)
+
 _logger = logging.getLogger(__name__)
 
 # Ключ сессии для нашего стабильного CSRF-токена (без o<timestamp>, в отличие
@@ -908,7 +920,7 @@ class RostMaxTimetableController(http.Controller):
         построению): ученик — только свои оценки/ДЗ своего класса,
         учитель — только свои уроки/задания.
         """
-        now = fields.Datetime.now()
+        now = _school_now()
         role, own_students = _get_user_students(user)
         avatar_map = self._faculty_avatar_map(sessions) if request.session.uid else {}
 

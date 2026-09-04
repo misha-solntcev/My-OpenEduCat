@@ -9,6 +9,7 @@
 import React from 'react';
 import { Avatar, SimpleCell, Text, Counter } from '@vkontakte/vkui';
 import { initialsOf } from '@/shared/lib/initials';
+import { schoolNowMinutes } from '@/shared/lib/date';
 
 /** «5А 2026/2027» -> «5А»: учебный год в имени класса не нужен. */
 const BATCH_YEAR_RE = /\s*\d{4}[/\-–]\d{4}\s*/;
@@ -35,7 +36,8 @@ export type LessonStatus = 'past' | 'now' | 'future';
 /**
  * Статус урока относительно текущего момента. Красим ТОЛЬКО при просмотре
  * сегодняшней даты (isToday): прошлые/будущие дни нейтральны (весь день
- * в прошлом/будущем). Время — локальное устройство, школа в той же зоне.
+ * в прошлом/будущем). Время — школьная зона (Europe/Moscow), тайминг
+ * из Odoo тоже в ней: миниапп открывают из других часовых поясов.
  */
 export const lessonStatus = (
   timing: string,
@@ -48,8 +50,7 @@ export const lessonStatus = (
     const [h, m] = s.split(':').map(Number);
     return h * 60 + m;
   };
-  const now = new Date();
-  const minutes = now.getHours() * 60 + now.getMinutes();
+  const minutes = schoolNowMinutes();
   if (minutes < toMin(hm[0])) return 'future';
   if (minutes >= toMin(hm[1])) return 'past';
   return 'now';

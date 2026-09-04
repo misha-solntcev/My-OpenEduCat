@@ -26,7 +26,7 @@ import { apiGet } from '@/shared/lib/api';
 import { useToast } from '@/shared/components/Toast';
 import { LessonRow, lessonStatus } from '@/shared/components/LessonRow';
 import { TimedGroups } from '@/shared/components/TimedGroups';
-import { toISO, startOfWeek, SHORT_WEEKDAYS } from '@/shared/lib/date';
+import { toISO, schoolTodayISO, startOfWeek, SHORT_WEEKDAYS } from '@/shared/lib/date';
 import type { Lesson, Faculty, Batch, TimetableResponse, FacultiesResponse, BatchesResponse } from '@/shared/lib/types';
 
 interface TimetablePageProps {
@@ -40,7 +40,7 @@ type SelectOption = { value: string; label: string };
 const DayStrip: React.FC<{ selected: string; onSelect: (iso: string) => void }> = ({ selected, onSelect }) => {
   const selDate = new Date(selected + 'T00:00:00');
   const monday = startOfWeek(selDate || new Date());
-  const todayISO = toISO(new Date());
+  const todayISO = schoolTodayISO();
 
   return (
     <Box paddingBlockEnd="m">
@@ -151,7 +151,7 @@ export const TimetablePage: React.FC<TimetablePageProps> = ({ id, onOpenLesson }
 
   React.useEffect(() => { loadLessons(); }, [loadLessons]);
 
-  const isToday = globalDate === toISO(new Date());
+  const isToday = globalDate === schoolTodayISO();
 
   const formatDate = (dateStr: string): string => {
     const date = new Date(dateStr);
@@ -182,7 +182,7 @@ export const TimetablePage: React.FC<TimetablePageProps> = ({ id, onOpenLesson }
     setGlobalDate(toISO(d));
   };
 
-  const goToday = () => setGlobalDate(toISO(new Date()));
+  const goToday = () => setGlobalDate(schoolTodayISO());
 
   return (
     <Panel id={id}>
