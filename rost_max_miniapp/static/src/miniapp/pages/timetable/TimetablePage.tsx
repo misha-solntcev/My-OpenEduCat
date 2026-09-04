@@ -13,8 +13,6 @@ import {
   ModalPageHeader,
   PanelHeaderButton,
   Card,
-  Accordion,
-  Caption,
 } from '@vkontakte/vkui';
 import {
   Icon24ChevronLeftOutline,
@@ -28,6 +26,7 @@ import { useAppStore, selectGlobalDate, setGlobalDate } from '@/shared/lib/store
 import { apiGet } from '@/shared/lib/api';
 import { useToast } from '@/shared/components/Toast';
 import { LessonRow, lessonStatus } from '@/shared/components/LessonRow';
+import { TimedGroups } from '@/shared/components/TimedGroups';
 import { toISO, startOfWeek, SHORT_WEEKDAYS } from '@/shared/lib/date';
 import type { Lesson, Faculty, Batch, TimetableResponse, FacultiesResponse, BatchesResponse } from '@/shared/lib/types';
 
@@ -37,92 +36,6 @@ interface TimetablePageProps {
 }
 
 type SelectOption = { value: string; label: string };
-
-/**
- * Слот расписания для админа: группа уроков с одинаковым таймингом
- * («09:30 - 10:15»). Раскрыт слот, в котором сейчас идёт урок
- * (только для сегодняшней даты).
- */
-const AdminTimedGroup: React.FC<{
-  timing: string;
-  lessons: Lesson[];
-  isToday: boolean;
-  onOpenLesson: (id: number) => void;
-}> = ({ timing, lessons, isToday, onOpenLesson }) => {
-  const status = lessons.map(l => lessonStatus(l.timing, isToday));
-  const hasNow = status.includes('now');
-  const hasPast = status.every(s => s === 'past');
-  const [expanded, setExpanded] = React.useState(hasNow);
-
-  // Переход на другой день / смена фильтров: перечитываем дефолт
-  // (раскрыт только «сейчас»); пользовательский выбор живёт до этого.
-  React.useEffect(() => { setExpanded(hasNow); }, [hasNow, timing, lessons.length]);
-
-  const stateColor = hasNow
-    ? 'var(--vkui--color_text_accent)'
-    : hasPast
-      ? 'var(--vkui--color_text_secondary)'
-      : 'var(--vkui--color_text_primary)';
-
-  return (
-    <Accordion expanded={expanded} onChange={setExpanded} id={`slot-${timing}`}>
-      <Accordion.Summary
-        after={
-          <Caption style={{ color: 'var(--vkui--color_text_secondary)' }}>
-            {lessons.length} {pluralRu(lessons.length)}
-          </Caption>
-        }
-      >
-        <Text weight="2" style={{ color: stateColor }}>
-          {startTimeLabel(timing)}
-        </Text>
-        {hasNow ? ' · Идёт сейчас' : ''}
-      </Accordion.Summary>
-      <Accordion.Content>
-        {lessons.map((l, i) => (
-          <LessonRow
-            key={l.id}
-            lesson={l}
-            status={status[i]}
-            showBatch
-            showFaculty
-            onClick={l.sheet_id ? () => onOpenLesson(l.sheet_id!) : undefined}
-          />
-        ))}
-      </Accordion.Content>
-    </Accordion>
-  );
-};
-
-/** «09:30 - 10:15» -> «09:30», для заголовка группы. */
-const startTimeLabel = (timing: string): string =>
-  (timing || '').split(' - ')[0] || timing;
-
-const pluralRu = (n: number): string => {
-  const mod10 = n % 10;
-  const mod100 = n % 100;
-  if (mod10 === 1 && mod100 !== 11) return 'урок';
-  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 10 || mod100 >= 20)) return 'урока';
-  return 'уроков';
-};
-
-/** Группировка уроков по таймингу (сохраняя порядок прихода с сервера). */
-const groupByTiming = (lessons: Lesson[]): { timing: string; lessons: Lesson[] }[] => {
-  const groups: { timing: string; lessons: Lesson[] }[] = [];
-  const index = new Map<string, { timing: string; lessons: Lesson[] }>();
-  for (const l of lessons) {
-    const key = l.timing || '';
-    let g = index.get(key);
-    if (!g) {
-      g = { timing: key, lessons: [] };
-      index.set(key, g);
-      groups.push(g);
-    }
-    g.lessons.push(l);
-  }
-  return groups;
-};
-
 
 /** Лента дат пн–вс недели выбранной даты + навигация по неделям */
 const DayStrip: React.FC<{ selected: string; onSelect: (iso: string) => void }> = ({ selected, onSelect }) => {
@@ -379,15 +292,12 @@ export const TimetablePage: React.FC<TimetablePageProps> = ({ id, onOpenLesson }
             <Card mode="shadow">
               {isAdmin ? (
                 // Админ: слоты по таймингу, раскрыт текущий.
-                groupByTiming(lessons).map(g => (
-                  <AdminTimedGroup
-                    key={g.timing}
-                    timing={g.timing}
-                    lessons={g.lessons}
-                    isToday={isToday}
-                    onOpenLesson={onOpenLesson}
-                  />
-                ))
+                <TimedGroups
+                  lessons={lessons}
+                  isToday={isToday}
+                  resetKey={globalDate}
+                  onOpenLesson={onOpenLesson}
+                />
               ) : (
                 <Group>
                   {lessons.map(l => (

@@ -7,6 +7,7 @@ import {
   Icon56EventOutline,
 } from '@vkontakte/icons';
 import { LessonRow } from '@/shared/components/LessonRow';
+import { TimedGroups } from '@/shared/components/TimedGroups';
 
 const WEEKDAYS = ['воскресенье', 'понедельник', 'вторник', 'среда', 'четверг', 'пятница', 'суббота'];
 const MONTHS = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
@@ -78,7 +79,9 @@ export const TodayLessons: React.FC<{
   onOpenJournal?: (sheetId: number) => void;
   onOpenTimetable?: () => void;
   showBatch?: boolean;
-}> = ({ lessons, onOpenJournal, onOpenTimetable, showBatch }) => (
+  /** Админ: слоты-аккордеоны по таймингу (в расписании вся школа). */
+  grouped?: boolean;
+}> = ({ lessons, onOpenJournal, onOpenTimetable, showBatch, grouped }) => (
   <Card><Group
     header={
       <Header
@@ -97,20 +100,30 @@ export const TodayLessons: React.FC<{
       </Header>
     }
   >
-    {lessons.map(l => (
-      // Строка урока общая с расписанием (LessonRow): аватар учителя,
-      // время акцентом, класс в Counter справа, чипы «Журнал не заполнен» /
-      // «Есть ДЗ» как в макете dashboard-teacher-admin.html.
-      <LessonRow
-        key={l.id}
-        lesson={l}
-        showBatch={showBatch}
-        journalUnfilled={showBatch && l.journal_unfilled}
-        hasHomework={Boolean(l.homework)}
-        isNow={l.is_now}
-        onClick={onOpenJournal && l.sheet_id ? () => onOpenJournal(l.sheet_id!) : undefined}
+    {grouped ? (
+      // Админ: слоты по таймингу, раскрыт текущий (как в расписании).
+      <TimedGroups
+        lessons={lessons}
+        isToday
+        resetKey={lessons[0]?.id != null ? 'dashboard' + lessons[0].id : 'dashboard'}
+        onOpenLesson={onOpenJournal}
       />
-    ))}
+    ) : (
+      lessons.map(l => (
+        // Строка урока общая с расписанием (LessonRow): аватар учителя,
+        // время акцентом, класс в Counter справа, чипы «Журнал не заполнен» /
+        // «Есть ДЗ» как в макете dashboard-teacher-admin.html.
+        <LessonRow
+          key={l.id}
+          lesson={l}
+          showBatch={showBatch}
+          journalUnfilled={showBatch && l.journal_unfilled}
+          hasHomework={Boolean(l.homework)}
+          isNow={l.is_now}
+          onClick={onOpenJournal && l.sheet_id ? () => onOpenJournal(l.sheet_id!) : undefined}
+        />
+      ))
+    )}
   </Group></Card>
 );
 

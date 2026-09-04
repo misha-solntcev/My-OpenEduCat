@@ -83,12 +83,13 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
             </>
           )}
 
-          {/* Лента уроков дня */}
+          {/* Лента уроков дня; админу — слоты-аккордеоны (как в расписании) */}
           <TodayLessons
             lessons={data.lessons}
             onOpenJournal={isAdmin || isTeacher ? onOpenLesson : undefined}
             onOpenTimetable={onOpenTimetable}
             showBatch={isAdmin || isTeacher}
+            grouped={isAdmin}
           />
 
           {/* Ученик: оценки за сегодня + ДЗ */}
