@@ -12,6 +12,9 @@ import {
   ModalPage,
   ModalPageHeader,
   PanelHeaderButton,
+  Card,
+  Accordion,
+  Caption,
 } from '@vkontakte/vkui';
 import {
   Icon24ChevronLeftOutline,
@@ -34,6 +37,94 @@ interface TimetablePageProps {
 }
 
 type SelectOption = { value: string; label: string };
+
+/**
+ * Слот расписания для админа: группа уроков с одинаковым таймингом
+ * («09:30 - 10:15»). Раскрыт слот, в котором сейчас идёт урок
+ * (только для сегодняшней даты).
+ */
+const AdminTimedGroup: React.FC<{
+  timing: string;
+  lessons: Lesson[];
+  isToday: boolean;
+  onOpenLesson: (id: number) => void;
+}> = ({ timing, lessons, isToday, onOpenLesson }) => {
+  const status = lessons.map(l => lessonStatus(l.timing, isToday));
+  const hasNow = status.includes('now');
+  const hasPast = status.every(s => s === 'past');
+  const [expanded, setExpanded] = React.useState(hasNow);
+
+  // Переход на другой день / смена фильтров: перечитываем дефолт
+  // (раскрыт только «сейчас»); пользовательский выбор живёт до этого.
+  React.useEffect(() => { setExpanded(hasNow); }, [hasNow, timing, lessons.length]);
+
+  const stateColor = hasNow
+    ? 'var(--vkui--color_text_accent)'
+    : hasPast
+      ? 'var(--vkui--color_text_secondary)'
+      : 'var(--vkui--color_text_primary)';
+
+  return (
+    <Accordion expanded={expanded} onChange={setExpanded} id={`slot-${timing}`}>
+      <Accordion.Summary
+        before={
+          <Text weight="2" style={{ color: stateColor, flexShrink: 0, minWidth: 92 }}>
+            {startTimeLabel(timing)}
+          </Text>
+        }
+        after={
+          <Caption style={{ color: 'var(--vkui--color_text_secondary)' }}>
+            {lessons.length} {pluralRu(lessons.length)}
+          </Caption>
+        }
+      >
+        {hasNow ? 'Идёт сейчас' : startTimeLabel(timing)}
+      </Accordion.Summary>
+      <Accordion.Content>
+        {lessons.map((l, i) => (
+          <LessonRow
+            key={l.id}
+            lesson={l}
+            status={status[i]}
+            showBatch
+            showFaculty
+            onClick={l.sheet_id ? () => onOpenLesson(l.sheet_id!) : undefined}
+          />
+        ))}
+      </Accordion.Content>
+    </Accordion>
+  );
+};
+
+/** «09:30 - 10:15» -> «09:30», для заголовка группы. */
+const startTimeLabel = (timing: string): string =>
+  (timing || '').split(' - ')[0] || timing;
+
+const pluralRu = (n: number): string => {
+  const mod10 = n % 10;
+  const mod100 = n % 100;
+  if (mod10 === 1 && mod100 !== 11) return 'урок';
+  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 10 || mod100 >= 20)) return 'урока';
+  return 'уроков';
+};
+
+/** Группировка уроков по таймингу (сохраняя порядок прихода с сервера). */
+const groupByTiming = (lessons: Lesson[]): { timing: string; lessons: Lesson[] }[] => {
+  const groups: { timing: string; lessons: Lesson[] }[] = [];
+  const index = new Map<string, { timing: string; lessons: Lesson[] }>();
+  for (const l of lessons) {
+    const key = l.timing || '';
+    let g = index.get(key);
+    if (!g) {
+      g = { timing: key, lessons: [] };
+      index.set(key, g);
+      groups.push(g);
+    }
+    g.lessons.push(l);
+  }
+  return groups;
+};
+
 
 /** Лента дат пн–вс недели выбранной даты + навигация по неделям */
 const DayStrip: React.FC<{ selected: string; onSelect: (iso: string) => void }> = ({ selected, onSelect }) => {
@@ -278,26 +369,46 @@ export const TimetablePage: React.FC<TimetablePageProps> = ({ id, onOpenLesson }
             <Spinner />
           </Flex>
         ) : lessons.length > 0 ? (
-          <Group
-            header={
-              <Text weight="2" style={{ textAlign: 'center', display: 'block' }}>
-                Уроки
-              </Text>
-            }
-          >
-            {lessons.map(l => (
-              // Без sheet_id (ученик/родитель) журнал недоступен —
-              // урок без открытия журнала.
-              <LessonRow
-                key={l.id}
-                lesson={l}
-                status={lessonStatus(l.timing, isToday)}
-                showBatch
-                showFaculty
-                onClick={l.sheet_id ? () => onOpenLesson(l.sheet_id!) : undefined}
-              />
-            ))}
-          </Group>
+          // Список в карточке (Card mode="shadow" — фон/скругление/тень
+          // по умолчанию VKUI): Group в MAX WebView рендерится plain и
+          // прилипает к краям экрана без отступов.
+          <Box paddingInline="s">
+            <Card mode="shadow">
+              <Group
+                header={
+                  <Text weight="2" style={{ textAlign: 'center', display: 'block' }}>
+                    Уроки
+                  </Text>
+                }
+              >
+                {isAdmin ? (
+                  // Админ: слоты по таймингу, раскрыт текущий.
+                  groupByTiming(lessons).map(g => (
+                    <AdminTimedGroup
+                      key={g.timing}
+                      timing={g.timing}
+                      lessons={g.lessons}
+                      isToday={isToday}
+                      onOpenLesson={onOpenLesson}
+                    />
+                  ))
+                ) : (
+                  lessons.map(l => (
+                    // Без sheet_id (ученик/родитель) журнал недоступен —
+                    // урок без открытия журнала.
+                    <LessonRow
+                      key={l.id}
+                      lesson={l}
+                      status={lessonStatus(l.timing, isToday)}
+                      showBatch
+                      showFaculty
+                      onClick={l.sheet_id ? () => onOpenLesson(l.sheet_id!) : undefined}
+                    />
+                  ))
+                )}
+              </Group>
+            </Card>
+          </Box>
         ) : (
           <Placeholder icon={<Icon56CalendarOutline />}>
             <Text weight="2">Занятий не найдено</Text>
