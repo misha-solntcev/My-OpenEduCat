@@ -561,6 +561,14 @@
                 <filter string="📍Сегодня" name="today"
                     domain="[('attendance_date', '=', context_today().strftime('%Y-%m-%d'))]" />
 
+                <!-- Текущий учебный год (начало 1 сентября) — как в
+                     Расписании (timetable_view.xml): k = месяцев с прошлого
+                     сентября, старт = 1-е число месяца минус k месяцев.
+                     Снимаемый дефолт (search_default) в act_window. -->
+                <filter string="🎓 Текущий год" name="current_year"
+                    domain="[
+                        ('attendance_date', '&gt;=', (context_today() + relativedelta(months=-(((context_today().month) - 9) % 12), day=1)).strftime('%Y-%m-%d')),
+                        ('attendance_date', '&lt;=', (context_today() + relativedelta(months=-(((context_today().month) - 9) % 12), day=1, years=1, days=-1)).strftime('%Y-%m-%d'))]" />
 
                 <separator />
 
@@ -652,7 +660,8 @@
         <field name="search_view_id" ref="view_op_attendance_sheet_search" />
         <field name="context">{
             'search_default_this_week': 1,
-            'search_default_group_day': 1
+            'search_default_current_year': 1,
+            'search_default_group_day': 1,
             'pivot_measures': ['attendance_rate'],
             }</field>
     </record>
