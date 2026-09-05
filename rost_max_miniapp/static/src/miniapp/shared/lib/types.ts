@@ -1,5 +1,7 @@
 export interface UserInfo {
   user_name: string;
+  /** URL своей аватарки ('' — рисуем инициалы). */
+  avatar: string;
   is_admin: boolean;
   is_teacher: boolean;
   is_student: boolean;

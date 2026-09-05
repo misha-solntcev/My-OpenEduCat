@@ -780,8 +780,22 @@ class RostMaxTimetableController(http.Controller):
             ('name', '=', user.partner_id.id)
         ], limit=1))
 
+        # Аватар: своя фотка из профиля роли (faculty/student), URL только
+        # если фото есть (иначе фронт рисует инициалы). /web/image отдаёт
+        # только залогиненным — роут auth="public" уже за сессией.
+        avatar = ''
+        faculty_rec = request.env['op.faculty'].sudo().search(
+            [('partner_id', '=', user.partner_id.id)], limit=1) if is_teacher else None
+        student_rec = request.env['op.student'].sudo().search(
+            [('partner_id', '=', user.partner_id.id)], limit=1) if is_student else None
+        if faculty_rec and faculty_rec.image_128:
+            avatar = '/web/image/op.faculty/%s/image_512' % faculty_rec.id
+        elif student_rec and student_rec.avatar_128:
+            avatar = '/web/image/op.student/%s/avatar_1920' % student_rec.id
+
         return request.make_json_response({
             "user_name": user.name,
+            "avatar": avatar,
             "is_admin": is_admin,
             "is_teacher": is_teacher,
             "is_student": is_student,

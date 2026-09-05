@@ -1,13 +1,14 @@
 // Лента дня (вариант A) — общие компоненты главной страницы.
 // Стили: VKUI токены + vkitokens (--vkui--*), никаких кастомных css-классов.
 import React from 'react';
-import { SimpleCell, Text, Caption, Div, Counter, Placeholder, Card as VkCard } from '@vkontakte/vkui';
+import { SimpleCell, Text, Caption, Div, Counter, Placeholder, Card as VkCard, Avatar } from '@vkontakte/vkui';
 import {
   Icon28ClockOutline,
   Icon56EventOutline,
 } from '@vkontakte/icons';
 import { LessonRow } from '@/shared/components/LessonRow';
 import { TimedGroups } from '@/shared/components/TimedGroups';
+import { initialsOf } from '@/shared/lib/initials';
 
 const WEEKDAYS = ['воскресенье', 'понедельник', 'вторник', 'среда', 'четверг', 'пятница', 'суббота'];
 const MONTHS = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
@@ -38,15 +39,32 @@ const firstNamePatronymic = (full: string): string => {
 
 // Ученик: «Макаров Михаил Игоревич» -> «Михаил» (второе слово ФИО).
 // Учителю/админу — имя-отчество.
-export const Greeting: React.FC<{ name: string; date: string; short?: boolean }> = ({ name, date, short }) => {
+export const Greeting: React.FC<{ name: string; date: string; avatar?: string; short?: boolean }> = ({ name, date, avatar, short }) => {
   const parts = (name || '').trim().split(/\s+/);
   const display = short
     ? (parts.length >= 2 ? parts[1] : name)
     : firstNamePatronymic(name);
   return (
-    <Div style={{ paddingBottom: 4 }}>
-      <Text weight="2" style={{ fontSize: 20 }}>Привет, {display}</Text>
-      <Caption style={{ color: 'var(--vkui--color_text_secondary)' }}>{formatDateLong(date)}</Caption>
+    <Div style={{ paddingBottom: 12 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        <Avatar
+          size={48}
+          src={avatar || undefined}
+          fallbackIcon={
+            <span style={{ fontSize: 18, fontWeight: 600 }}>
+              {initialsOf(display)}
+            </span>
+          }
+          objectPosition="center top"
+        />
+        <div>
+          <Text weight="2" style={{ fontSize: 20, display: 'block' }}>Привет, {display}</Text>
+          {/* Зазор имя -> дата: ощутимый, даты придаточное предложение */}
+          <Caption style={{ color: 'var(--vkui--color_text_secondary)', display: 'block', marginTop: 6 }}>
+            {formatDateLong(date)}
+          </Caption>
+        </div>
+      </div>
     </Div>
   );
 };
@@ -77,7 +95,7 @@ const CardBlock: React.FC<{
   after?: React.ReactNode;
   children: React.ReactNode;
 }> = ({ title, after, children }) => (
-  <div style={{ margin: '8px 8px' }}>
+  <div style={{ margin: '0 8px 8px' }}>
     <VkCard mode="shadow" style={{ overflow: 'hidden' }}>
       <div style={{
         display: 'flex',

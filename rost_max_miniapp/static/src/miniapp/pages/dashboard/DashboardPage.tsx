@@ -70,7 +70,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
         </Div>
       ) : (
         <>
-          <Greeting name={userName} date={data.date} short={isStudentOrParent} />
+          <Greeting name={userName} date={data.date} avatar={userInfo?.avatar} short={isStudentOrParent} />
 
           {/* Админ: полоса цифр + требует внимания */}
           {isAdmin && data.admin_stats && (
@@ -112,17 +112,19 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
             <MyHomework items={data.my_homework} />
           )}
 
-          {/* Выход — реальная навигация, чтобы Odoo закрыл сессию серверно */}
-          <Div style={{ paddingTop: 8, paddingBottom: 24 }}>
+          {/* Выход — реальная навигация, чтобы Odoo закрыл сессию серверно.
+              Парящая кнопка поверх контента: доступна всегда, не только
+              после прокрутки в самый низ. */}
+          <div style={{ position: 'fixed', right: 16, bottom: 24, zIndex: 10 }}>
             <Button
-              mode="outline"
+              mode="primary"
               appearance="negative"
-              stretched
+              size="m"
               onClick={() => { window.location.href = '/rost_max/logout'; }}
             >
               Выйти
             </Button>
-          </Div>
+          </div>
         </>
       )}
     </Panel>
