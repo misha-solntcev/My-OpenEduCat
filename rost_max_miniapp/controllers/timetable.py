@@ -975,16 +975,27 @@ class RostMaxTimetableController(http.Controller):
                 ('assignment_id', 'in', asgs.ids),
                 ('student_id', 'in', own_students.ids),
             ])
-            done_ids = {s.assignment_id.id for s in subs
-                        if s.state in ('submit', 'accept')}
-            feed["homework"] = [{
-                "id": a.id,
-                "subject": a.subject_id.name if a.subject_id else "",
-                "task": tools.html2plaintext(a.description) or a.name,
-                "due": str(a.submission_date) if a.submission_date else "",
-                "overdue": bool(a.submission_date and a.submission_date < now),
-                "done": a.id in done_ids,
-            } for a in asgs]
+            sub_map = {s.assignment_id.id: s for s in subs}
+            # can_submit: ученик из allocation (родитель сдаёт false).
+            hw_items = []
+            for a in asgs:
+                sub = sub_map.get(a.id)
+                st = sub.state if sub else 'none'
+                hw_items.append({
+                    "id": a.id,
+                    "subject": a.subject_id.name if a.subject_id else "",
+                    "task": tools.html2plaintext(a.description) or a.name,
+                    "due": str(a.submission_date) if a.submission_date else "",
+                    "overdue": bool(a.submission_date and a.submission_date < now),
+                    "answer_required": a.answer_required,
+                    "state": st,
+                    "answer": (sub.note or '') if sub else '',
+                    "teacher_note": (sub.teacher_note or '') if sub else '',
+                    "submitted_at": str(sub.submission_date) if sub else '',
+                    "late": bool(sub and a.submission_date
+                                 and sub.submission_date > a.submission_date),
+                })
+            feed["homework"] = hw_items
 
         # --- Учитель: журналы к заполнению + задано моими уроками ---
         if role == 'teacher' and faculty:
@@ -1016,6 +1027,13 @@ class RostMaxTimetableController(http.Controller):
                      ('state', 'in', ['submit', 'accept'])],
                     ['assignment_id'], ['assignment_id'])
             }
+            to_review_counts = {
+                s['assignment_id'][0]: s['__count']
+                for s in request.env['op.assignment.sub.line'].sudo().read_group(
+                    [('assignment_id', 'in', my_asgs.ids),
+                     ('state', '=', 'submit')],
+                    ['assignment_id'], ['assignment_id'])
+            }
             feed["my_homework"] = [{
                 "id": a.id,
                 "subject": a.subject_id.name if a.subject_id else "",
@@ -1024,6 +1042,8 @@ class RostMaxTimetableController(http.Controller):
                 "due": str(a.submission_date) if a.submission_date else "",
                 "submitted": submitted_counts.get(a.id, 0),
                 "total": len(a.allocation_ids),
+                # Есть ли что проверять (сдачи в submit — не принятые)
+                "to_review": to_review_counts.get(a.id, 0),
             } for a in my_asgs]
 
         # --- Админ: полоса цифр + требует внимания ---
@@ -1061,6 +1081,173 @@ class RostMaxTimetableController(http.Controller):
             return ""
         return f"{f.last_name or ''} {f.first_name or ''} {f.middle_name or ''}".strip()
 
+
+    # --- ДЗ: сдача ученика + проверка учителем -----------------------------
+
+    @http.route("/rost_max/api/homework/<int:assignment_id>/submit",
+                type="http", auth="public", methods=["POST"], cors="*",
+                csrf=False)
+    def api_homework_submit(self, assignment_id, **kw):
+        """API: ученик сдаёт ДЗ -> op.assignment.sub.line в state submit.
+
+        Строка сдачи ОДНА на задание: повторная сдача (доработка после
+        change/reject) обновляет ту же строку и возвращает её в submit.
+        Родителям сдача запрещена (та же семантика, что в core). Ответ
+        обязателен, если у задания флаг answer_required.
+        """
+        restore_session_if_needed()
+        csrf_err = _check_spa_csrf()
+        if csrf_err:
+            return csrf_err
+        if not request.session.uid:
+            return request.make_json_response(
+                {"error": "Unauthorized"}, status=401)
+
+        user = request.env.user
+        role, own_students = _get_user_students(user)
+        if role != 'student' or not own_students:
+            return request.make_json_response(
+                {"error": "Сдавать может только ученик"}, status=403)
+        student = own_students[0]
+
+        try:
+            body = request.get_json_data()
+        except Exception:
+            return request.make_json_response(
+                {"error": "Invalid JSON"}, status=400)
+
+        asg = request.env['op.assignment'].sudo().browse(assignment_id)
+        if not asg.exists() or asg.state != 'publish':
+            return request.make_json_response(
+                {"error": "Задание не найдено"}, status=404)
+
+        # IDOR-защита: сдавать может только ученик из allocation задания
+        if student not in asg.allocation_ids:
+            return request.make_json_response(
+                {"error": "Вам не назначено это задание"}, status=403)
+
+        answer = (body.get('answer') or '').strip()
+        if asg.answer_required and not answer:
+            return request.make_json_response(
+                {"error": "Ответ обязателен"}, status=400)
+
+        sub = request.env['op.assignment.sub.line'].sudo().search([
+            ('assignment_id', '=', asg.id),
+            ('student_id', '=', student.id),
+        ], limit=1)
+        vals = {
+            'state': 'submit',
+            'submission_date': fields.Datetime.now(),
+        }
+        if answer:
+            # Char, не Html: plain text, экранирование не требуется
+            vals['note'] = answer
+        if sub:
+            sub.write(vals)
+        else:
+            request.env['op.assignment.sub.line'].sudo().create(dict(
+                vals, assignment_id=asg.id, student_id=student.id))
+
+        return request.make_json_response({"success": True})
+
+    @http.route("/rost_max/api/homework/<int:assignment_id>/submissions",
+                type="http", auth="public", methods=["GET"])
+    def api_homework_submissions(self, assignment_id, **kw):
+        """API: сдачи класса по заданию — только автору задания и админу."""
+        restore_session_if_needed()
+        if not request.session.uid:
+            return request.make_json_response(
+                {"error": "Unauthorized"}, status=401)
+
+        user = request.env.user
+        is_admin = user.has_group('base.group_system')
+        faculty = request.env['op.faculty'].sudo().search([
+            ('partner_id', '=', user.partner_id.id)], limit=1)
+
+        asg = request.env['op.assignment'].sudo().browse(assignment_id)
+        if not asg.exists():
+            return request.make_json_response(
+                {"error": "Задание не найдено"}, status=404)
+        if not is_admin and (not faculty or asg.faculty_id != faculty):
+            return request.make_json_response(
+                {"error": "Доступно только автору задания"}, status=403)
+
+        students = []
+        for st in asg.allocation_ids:
+            sub = request.env['op.assignment.sub.line'].sudo().search([
+                ('assignment_id', '=', asg.id),
+                ('student_id', '=', st.id),
+            ], limit=1)
+            name = ("%s %s %s" % (
+                st.last_name or '', st.first_name or '',
+                st.middle_name or '')).strip()
+            students.append({
+                "student_id": st.id,
+                "name": name,
+                "state": sub.state if sub else 'none',
+                "answer": (sub.note or '') if sub else '',
+                "submitted_at": str(sub.submission_date) if sub else '',
+                "late": bool(sub and asg.submission_date
+                             and sub.submission_date > asg.submission_date),
+                "teacher_note": (sub.teacher_note or '') if sub else '',
+            })
+        # Несдавшие — в конец списка
+        students.sort(key=lambda s: (
+            s['state'] == 'none', s['name']))
+        return request.make_json_response({
+            "assignment": {
+                "id": asg.id,
+                "subject": asg.subject_id.name or '',
+                "task": tools.html2plaintext(asg.description) or asg.name,
+                "due": str(asg.submission_date) if asg.submission_date else '',
+                "answer_required": asg.answer_required,
+            },
+            "students": students,
+        })
+
+    @http.route("/rost_max/api/homework/submission/<int:sub_id>/review",
+                type="http", auth="public", methods=["POST"], cors="*",
+                csrf=False)
+    def api_homework_review(self, sub_id, **kw):
+        """API: учитель принимает (accept) или возвращает на доработку
+        (change) конкретную сдачу. Пишет только автор задания/админ."""
+        restore_session_if_needed()
+        csrf_err = _check_spa_csrf()
+        if csrf_err:
+            return csrf_err
+        if not request.session.uid:
+            return request.make_json_response(
+                {"error": "Unauthorized"}, status=401)
+
+        user = request.env.user
+        is_admin = user.has_group('base.group_system')
+        faculty = request.env['op.faculty'].sudo().search([
+            ('partner_id', '=', user.partner_id.id)], limit=1)
+
+        sub = request.env['op.assignment.sub.line'].sudo().browse(sub_id)
+        if not sub.exists():
+            return request.make_json_response(
+                {"error": "Сдача не найдена"}, status=404)
+        if not is_admin and (not faculty
+                             or sub.assignment_id.faculty_id != faculty):
+            return request.make_json_response(
+                {"error": "Доступно только автору задания"}, status=403)
+
+        try:
+            body = request.get_json_data()
+        except Exception:
+            return request.make_json_response(
+                {"error": "Invalid JSON"}, status=400)
+        action = body.get('action')
+        if action not in ('accept', 'change'):
+            return request.make_json_response(
+                {"error": "action должен быть accept|change"}, status=400)
+
+        vals = {'state': 'accept' if action == 'accept' else 'change'}
+        if 'teacher_note' in body:
+            vals['teacher_note'] = (body.get('teacher_note') or '').strip()
+        sub.write(vals)
+        return request.make_json_response({"success": True})
 
     @http.route("/rost_max/api/faculties", type="http", auth="public", methods=["GET"])
     def api_faculties(self):
