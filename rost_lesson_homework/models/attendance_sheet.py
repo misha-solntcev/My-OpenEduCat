@@ -67,6 +67,7 @@ class OpAttendanceSheet(models.Model):
                     'Создайте его в модуле Задания.')
             sheet.homework_assignment_id = self.env['op.assignment'].create({
                 'name': hw,
+                'answer_required': sheet.homework_answer_required,
                 'course_id': sheet.course_id.id,
                 'subject_id': sheet.subject_id.id,
                 'faculty_id': (sheet.faculty_id or sheet.session_id.faculty_id).id,

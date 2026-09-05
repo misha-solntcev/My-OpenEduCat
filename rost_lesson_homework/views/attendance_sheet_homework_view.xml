@@ -47,6 +47,12 @@
                                 readonly="state in ('done', 'cancel')"/>
                         </div>
                         <field name="homework_assignment_id" invisible="1" force_save="1"/>
+                        <div class="form-check" style="margin-top: 8px;">
+                            <field name="homework_answer_required"/>
+                            <label for="homework_answer_required" class="form-check-label text-muted">
+                                Требуется ответ при сдаче (текст от ученика)
+                            </label>
+                        </div>
                     </div>
                 </div>
             </xpath>
