@@ -555,6 +555,20 @@
 
                 <separator />
 
+                <!-- Текущий учебный год (начало 1 сентября) — как в
+                     Расписании (timetable_view.xml): k = месяцев с прошлого
+                     сентября, старт = 1-е число месяца минус k месяцев.
+                     У карточки успеваемости нет даты урока, но batch живёт
+                     год (на новый набор заводят новые), поэтому фильтруем
+                     по пересечению дат класса с окном учебного года.
+                     Снимаемый дефолт (search_default) в act_window. -->
+                <filter string="🎓 Текущий год" name="current_year"
+                    domain="[
+                        ('batch_id.end_date', '&gt;=', (context_today() + relativedelta(months=-(((context_today().month) - 9) % 12), day=1)).strftime('%Y-%m-%d')),
+                        ('batch_id.start_date', '&lt;=', (context_today() + relativedelta(months=-(((context_today().month) - 9) % 12), day=1, years=1, days=-1)).strftime('%Y-%m-%d'))]" />
+
+                <separator />
+
                 <!-- Блок фильтров по баллам -->
                 <filter string="⭐ Отличники (>= 4.5)" name="high_performers"
                     domain="[('average_mark', '>=', 4.5)]" />
@@ -624,6 +638,8 @@
     <record id="act_open_op_subject_grades_view" model="ir.actions.act_window">
         <field name="name">Успеваемость</field>
         <field name="res_model">op.subject.grades</field>
-        <field name="view_mode">kanban,list,form</field>        
+        <field name="view_mode">kanban,list,form</field>
+        <field name="search_view_id" ref="view_op_subject_grades_search" />
+        <field name="context">{'search_default_current_year': 1}</field>
     </record>
 </odoo>
