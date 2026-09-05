@@ -37,6 +37,16 @@ export function clearSessionId(): void {
   }
 }
 
+// Есть ли сохранённая сессия (без чтения значения) — для бутстрапа App:
+// решаем, стоит ли спрашивать сервер /api/user/info при загрузке страницы.
+export function hasSavedSession(): boolean {
+  try {
+    return Boolean(localStorage.getItem(SESSION_ID_KEY));
+  } catch {
+    return false;
+  }
+}
+
 export async function apiGet<T>(url: string): Promise<T> {
   const sid = getSessionId();
   const headers: HeadersInit = { 'X-CSRF-TOKEN': getCsrfToken() };
@@ -53,6 +63,9 @@ export async function apiGet<T>(url: string): Promise<T> {
     // Только 401 = реально нет сессии -> на логин. 403 (нет прав на
     // конкретные данные) редиректом НЕ лечим: student с валидной сессией
     // не должен вылетать на логин из-за ACL-ошибки бэкенда.
+    // Сохранённый sid мёртв — убираем, иначе бутстрап на /rost_max/login
+    // снова его подхватит и получится цикл перезагрузок.
+    clearSessionId();
     window.location.href = '/rost_max/login';
     throw new Error('Session expired');
   }
@@ -78,6 +91,8 @@ export async function apiPost<T>(url: string, data: unknown): Promise<T> {
   });
 
   if (res.status === 401) {
+    // Аналогично apiGet: мёртвый sid убираем до редиректа.
+    clearSessionId();
     window.location.href = '/rost_max/login';
     throw new Error('Session expired');
   }

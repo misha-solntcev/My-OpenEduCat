@@ -1,12 +1,14 @@
 import React from 'react';
-import { 
-  Root, 
+import {
+  Root,
   SplitLayout,
-  SplitCol, 
+  SplitCol,
   View,
   Epic,
   Tabbar,
-  TabbarItem, 
+  TabbarItem,
+  Panel,
+  Spinner,
 } from '@vkontakte/vkui';
 import { Icon28HomeOutline, Icon28CalendarOutline, Icon28BookSpreadOutline } from '@vkontakte/icons';
 import { LoginPage } from '@/pages/auth/LoginPage';
@@ -17,22 +19,64 @@ import { SubjectGradesPage } from '@/pages/subjects/SubjectGradesPage';
 import { LessonJournalPage } from '@/pages/lesson-journal/LessonJournalPage';
 import { ToastContainer } from '@/shared/components/Toast';
 import { useAppStore } from '@/shared/lib/store';
-
-type TabId = 'dashboard' | 'timetable' | 'subjects';
+import { hasSavedSession } from '@/shared/lib/api';
+import { loadNavState, saveNavState, clearNavState } from '@/shared/lib/navRestore';
+import type { TabId } from '@/shared/lib/navTypes';
 
 export default function App() {
   const authSuccess = useAppStore(s => s.authSuccess);
   const userInfo = useAppStore(s => s.userInfo);
-  const [activeView, setActiveView] = React.useState<'login' | 'main' | 'lesson-journal'>('login');
-  const [activeTab, setActiveTab] = React.useState<TabId>('dashboard');
+  // Синхронный флаг: true уже при создании стора, если есть сохранённый sid
+  const authChecking = useAppStore(s => s.authChecking);
+  const setAuthChecking = useAppStore(s => s.setAuthChecking);
+
+  // Восстановление навигации — синхронно до первого рендера, чтобы юзер
+  // сразу увидел свой экран (журнал урока, вкладку), а не прыжок
+  // «главная -> расписание». Работает только при живой сессии: если sid
+  // в localStorage нет, сохранённое состояние навигации неактуально.
+  const savedNav = hasSavedSession() ? loadNavState() : {};
+  const [activeView, setActiveView] = React.useState<'login' | 'main' | 'lesson-journal'>(
+    savedNav.view === 'lesson-journal' && savedNav.selectedLessonId != null
+      ? 'lesson-journal'
+      : 'login'
+  );
+  const [activeTab, setActiveTab] = React.useState<TabId>(savedNav.tab ?? 'dashboard');
 
   // Состояние для вложенной навигации внутри таба "Расписание"
-  const [timetableHistory, setTimetableHistory] = React.useState<string[]>(['timetable-panel']);
-  const [selectedLessonId, setSelectedLessonId] = React.useState<number | null>(null);
+  const [timetableHistory, setTimetableHistory] = React.useState<string[]>(
+    savedNav.timetableHistory?.length ? savedNav.timetableHistory : ['timetable-panel']
+  );
+  const [selectedLessonId, setSelectedLessonId] = React.useState<number | null>(
+    savedNav.selectedLessonId ?? null
+  );
 
   // Вложенная навигация внутри таба "Успеваемость"
-  const [subjectsHistory, setSubjectsHistory] = React.useState<string[]>(['subjects-panel']);
-  const [selectedSubject, setSelectedSubject] = React.useState<{ id: number; name: string } | null>(null);
+  const [subjectsHistory, setSubjectsHistory] = React.useState<string[]>(
+    savedNav.subjectsHistory?.length ? savedNav.subjectsHistory : ['subjects-panel']
+  );
+  const [selectedSubject, setSelectedSubject] = React.useState<{ id: number; name: string } | null>(
+    savedNav.selectedSubject ?? null
+  );
+
+  // Валидацию сохранённого таба под роли не делаем: Epic рендерит все
+  // View независимо от ролей, условен только TabbarItem, поэтому
+  // восстановленный «subjects» у учителя не ломает ничего.
+  // Автосохранение навигации при каждом изменении.
+  React.useEffect(() => {
+    if (activeView === 'login') {
+      // На логине сохранённое состояние неактуально (в т.ч. после logout)
+      clearNavState();
+      return;
+    }
+    saveNavState({
+      view: activeView,
+      tab: activeTab,
+      timetableHistory,
+      subjectsHistory,
+      selectedLessonId,
+      selectedSubject,
+    });
+  }, [activeView, activeTab, timetableHistory, subjectsHistory, selectedLessonId, selectedSubject]);
 
   const activeTimetablePanel = timetableHistory[timetableHistory.length - 1];
   const activeSubjectsPanel = subjectsHistory[subjectsHistory.length - 1];
@@ -77,8 +121,11 @@ export default function App() {
     return undefined;
   };
 
-  // Управляем глобальным переключением экранов
+  // Управляем глобальным переключением экранов. Пока идёт проверка
+  // сохранённой сессии (authChecking) не трогаем восстановленный вид —
+  // иначе пустой стор в первом кадре перебросит lesson-journal на login.
   React.useEffect(() => {
+    if (authChecking) return;
     if (authSuccess || userInfo) {
       if (activeView === 'login') {
         setActiveView('main');
@@ -86,7 +133,21 @@ export default function App() {
     } else {
       setActiveView('login');
     }
-  }, [authSuccess, userInfo]);
+  }, [authSuccess, userInfo, authChecking]);
+
+  // Бутстрап: при загрузке страницы (перезапуск WebView после звонка,
+  // refresh, возврат из фона) zustand-стор пуст, но серверная сессия и
+  // session_id в localStorage живы. Спрашиваем сервер /api/user/info —
+  // если сессия валидна, userInfo выставится и эффект выше сам переведёт
+  // на main. Если нет — останемся на логине, как раньше.
+  React.useEffect(() => {
+    if (!hasSavedSession()) {
+      setAuthChecking(false);
+      return;
+    }
+    setAuthChecking(true);
+    useAppStore.getState().loadUserInfo().finally(() => setAuthChecking(false));
+  }, [setAuthChecking]);
 
   return (
     <SplitLayout>
@@ -94,9 +155,17 @@ export default function App() {
         {/* Root переключает глобальные независимые экраны */}
         <Root activeView={activeView}>
        
-          {/* 1. Экран авторизации (без нижнего меню) */}
-          <View id="login" activePanel="login-panel">
-            <LoginPage id="login-panel" />
+          {/* 1. Экран авторизации (без нижнего меню). Пока идёт проверка
+              сохранённой сессии — спиннер вместо формы, чтобы логин
+              не мигал при каждом перезапуске WebView. */}
+          <View id="login" activePanel={authChecking ? 'auth-check-panel' : 'login-panel'}>
+            {authChecking ? (
+              <Panel id="auth-check-panel" centered>
+                <Spinner size="l" />
+              </Panel>
+            ) : (
+              <LoginPage id="login-panel" />
+            )}
           </View>
 
           {/* 2. Экран приложения с таббаром внутри Epic */}
