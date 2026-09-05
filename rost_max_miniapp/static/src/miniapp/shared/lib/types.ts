@@ -207,8 +207,6 @@ export interface DashboardInfoResponse {
   is_teacher: boolean;
   is_student: boolean;
   date: string;
-  is_fallback: boolean;
-  fallback_date: string;
   lessons: FeedLesson[];
   grades_today?: GradeToday[];
   homework?: HomeworkItem[];

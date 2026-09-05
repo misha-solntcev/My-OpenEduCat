@@ -800,37 +800,14 @@ class RostMaxTimetableController(http.Controller):
         faculty = request.env['op.faculty'].sudo().search([('partner_id', '=', user.partner_id.id)], limit=1)
         student = request.env['op.student'].sudo().search([('partner_id', '=', user.partner_id.id)], limit=1)
 
-        # 1. Определение целевой даты
+        # 1. Целевая дата: строго та, что попросили (дефолт — сегодня).
+        # Никаких подмен: если уроков нет (выходной/каникулы), главная
+        # честно показывает пустой день. Раньше здесь был fallback на
+        # «последний активный день» — он подсовывал будущую последнюю
+        # неделю расписания (напр. 23 октября при открытии в сентябре).
         date_str = date or str(fields.Date.today())
         date_val = fields.Date.from_string(date_str)
-        is_fallback = False
-        fallback_date = ""
-
-        # Проверяем, есть ли уроки на выбранную дату (op.session — см.
-        # docstring _get_user_timetable: sheet недоступен ученикам, rule 629)
         sessions = self._get_user_timetable(user, date_val)
-        if not sessions:
-            # На выбранную дату уроков нет (лето/выходной). Ищем последний
-            # активный день в истории
-            domain = [('state', '!=', 'cancel')]
-            if not is_admin:
-                if faculty:
-                    domain.append(('faculty_id.user_id', '=', user.id))
-                elif student:
-                    # Право доступа (rule 173) само срежет до класса
-                    # ребёнка/ученика — домен не сужаем, ищем дату.
-                    pass
-                else:
-                    domain.append(('id', '=', 0))  # пустой результат
-
-            last_session = request.env['op.session'].sudo().search(
-                domain, order='timetable_date desc', limit=1)
-            if last_session:
-                date_val = last_session.timetable_date
-                date_str = str(date_val)
-                is_fallback = True
-                fallback_date = date_str
-                sessions = self._get_user_timetable(user, date_val)
 
         # 2. Расчет показателей на целевую дату
         metrics = {}
@@ -902,8 +879,6 @@ class RostMaxTimetableController(http.Controller):
             "is_teacher": bool(faculty),
             "is_student": bool(student),
             "date": date_str,
-            "is_fallback": is_fallback,
-            "fallback_date": fallback_date,
             "metrics": metrics,
             "next_lesson": next_lesson,
             **self._dashboard_feed(user, is_admin, faculty, student, sessions, date_val),
