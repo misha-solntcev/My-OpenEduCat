@@ -1,10 +1,10 @@
 import React from 'react';
 import { Panel, Spinner, Div, Button } from '@vkontakte/vkui';
 import { useAppStore } from '@/shared/lib/store';
-import { apiGet } from '@/shared/lib/api';
+import { apiGet, apiPost } from '@/shared/lib/api';
 import { useToast } from '@/shared/components/Toast';
 import { today } from '@/shared/lib/date';
-import type { DashboardInfoResponse } from '@/shared/lib/types';
+import type { DashboardInfoResponse, HomeworkSubmissionsResponse } from '@/shared/lib/types';
 import {
   Greeting,
   TodayLessons,
@@ -12,6 +12,7 @@ import {
   HomeworkList,
   JournalsToFill,
   MyHomework,
+  SubmissionReviewCard,
   AdminStatStrip,
   AdminAlerts,
 } from './components/feed';
@@ -31,6 +32,9 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
 
   const [data, setData] = React.useState<DashboardInfoResponse | null>(null);
   const [loading, setLoading] = React.useState(false);
+  // Учитель: открытый экран сдач по заданию (id = op.assignment.id)
+  const [reviewId, setReviewId] = React.useState<number | null>(null);
+  const [reviewData, setReviewData] = React.useState<HomeworkSubmissionsResponse | null>(null);
 
   // Главная всегда про сегодняшний день (Europe/Moscow) — независимо от
   // навигации по расписанию. Дата фиксируется на монтирование.
@@ -50,6 +54,61 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
   }, [feedDate, addToast]);
 
   React.useEffect(() => { load(); }, [load]);
+
+  const openReview = async (assignmentId: number) => {
+    setReviewId(assignmentId);
+    setReviewData(null);
+    try {
+      const res = await apiGet<HomeworkSubmissionsResponse>(
+        `/rost_max/api/homework/${assignmentId}/submissions`);
+      setReviewData(res);
+    } catch {
+      addToast('Не удалось загрузить сдачи', 'error');
+      setReviewId(null);
+    }
+  };
+
+  const reviewSubmission = async (
+    subId: number,
+    action: 'accept' | 'change',
+    note: string,
+  ): Promise<string | null> => {
+    try {
+      const res = await apiPost<{ success?: boolean; error?: string }>(
+        `/rost_max/api/homework/submission/${subId}/review`,
+        { action, teacher_note: note });
+      if (res.error) {
+        addToast(res.error, 'error');
+        return res.error;
+      }
+      if (reviewId != null) await openReview(reviewId);
+      addToast(action === 'accept' ? 'Принято' : 'Отправлено на доработку', 'success');
+      return null;
+    } catch {
+      addToast('Не удалось сохранить проверку', 'error');
+      return 'error';
+    }
+  };
+
+  const submitHomework = async (
+    assignmentId: number,
+    answer: string,
+  ): Promise<string | null> => {
+    try {
+      const res = await apiPost<{ success?: boolean; error?: string }>(
+        `/rost_max/api/homework/${assignmentId}/submit`,
+        { answer });
+      if (res.error) {
+        addToast(res.error, 'error');
+        return res.error;
+      }
+      addToast('Домашнее задание сдано', 'success');
+      return null;
+    } catch {
+      addToast('Не удалось сдать задание', 'error');
+      return 'error';
+    }
+  };
 
   const userName = userInfo?.user_name ?? '';
   const isAdmin = Boolean(data?.is_admin);
@@ -101,15 +160,28 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
             <GradesToday grades={data.grades_today} onOpenGrades={onOpenGrades} />
           )}
           {isStudentOrParent && data.homework && (
-            <HomeworkList items={data.homework} />
+            <HomeworkList
+              items={data.homework}
+              canSubmit={Boolean(data.is_student)}
+              onSubmit={submitHomework}
+              onUpdated={load}
+            />
           )}
 
           {/* Учитель: журналы к заполнению + задано моими уроками */}
           {isTeacher && data.journals_to_fill && (
             <JournalsToFill items={data.journals_to_fill} onOpenJournal={onOpenLesson} />
           )}
+          {isTeacher && reviewId != null && (
+            <SubmissionReviewCard
+              submission={reviewData}
+              onClose={() => { setReviewId(null); setReviewData(null); }}
+              onReview={reviewSubmission}
+              onUpdated={load}
+            />
+          )}
           {isTeacher && data.my_homework && (
-            <MyHomework items={data.my_homework} />
+            <MyHomework items={data.my_homework} onOpen={openReview} />
           )}
 
           {/* Выход — реальная навигация, чтобы Odoo закрыл сессию серверно.

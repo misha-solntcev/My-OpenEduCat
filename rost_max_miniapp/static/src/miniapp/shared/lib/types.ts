@@ -176,7 +176,13 @@ export interface HomeworkItem {
   task: string;
   due: string;
   overdue: boolean;
-  done: boolean;
+  /** none | draft | submit | reject | change | accept */
+  state: string;
+  answer_required: boolean;
+  answer: string;
+  teacher_note: string;
+  submitted_at: string;
+  late: boolean;
 }
 
 export interface JournalToFill {
@@ -196,6 +202,30 @@ export interface MyHomeworkItem {
   due: string;
   submitted: number;
   total: number;
+  /** Сдач в состоянии submit (ждут проверки учителя). */
+  to_review: number;
+}
+
+export interface HomeworkSubmissionStudent {
+  student_id: number;
+  name: string;
+  /** none | draft | submit | reject | change | accept */
+  state: string;
+  answer: string;
+  submitted_at: string;
+  late: boolean;
+  teacher_note: string;
+}
+
+export interface HomeworkSubmissionsResponse {
+  assignment: {
+    id: number;
+    subject: string;
+    task: string;
+    due: string;
+    answer_required: boolean;
+  };
+  students: HomeworkSubmissionStudent[];
 }
 
 export interface AdminStats {

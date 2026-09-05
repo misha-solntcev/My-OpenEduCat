@@ -1,7 +1,7 @@
 // Лента дня (вариант A) — общие компоненты главной страницы.
 // Стили: VKUI токены + vkitokens (--vkui--*), никаких кастомных css-классов.
 import React from 'react';
-import { SimpleCell, Text, Caption, Div, Counter, Placeholder, Card as VkCard, Avatar } from '@vkontakte/vkui';
+import { SimpleCell, Text, Caption, Div, Counter, Placeholder, Card as VkCard, Avatar, Input, Button } from '@vkontakte/vkui';
 import {
   Icon28ClockOutline,
   Icon56EventOutline,
@@ -9,6 +9,7 @@ import {
 import { LessonRow } from '@/shared/components/LessonRow';
 import { TimedGroups } from '@/shared/components/TimedGroups';
 import { initialsOf } from '@/shared/lib/initials';
+import type { HomeworkSubmissionsResponse, HomeworkSubmissionStudent } from '@/shared/lib/types';
 
 const WEEKDAYS = ['воскресенье', 'понедельник', 'вторник', 'среда', 'четверг', 'пятница', 'суббота'];
 const MONTHS = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
@@ -228,37 +229,153 @@ export interface HomeworkItem {
   task: string;
   due: string;
   overdue: boolean;
-  done: boolean;
+  /** none | draft | submit | reject | change | accept */
+  state: string;
+  answer_required: boolean;
+  answer: string;
+  teacher_note: string;
+  submitted_at: string;
+  late: boolean;
 }
 
-export const HomeworkList: React.FC<{ items: HomeworkItem[] }> = ({ items }) => (
-  <CardBlock title={<BlockTitle>Домашние задания</BlockTitle>}>
-    {items.length === 0 ? (
-      <Div><Caption style={{ color: 'var(--vkui--color_text_secondary)' }}>Заданий нет — можно отдыхать</Caption></Div>
-    ) : (
-      items.map(h => (
-        <SimpleCell
-          key={h.id}
-          before={
-            <span style={{
-              width: 8, height: 8, borderRadius: '50%', flexShrink: 0, marginTop: 2,
-              background: h.done
-                ? 'var(--vkui--color_background_positive)'
-                : 'var(--vkui--color_background_negative)',
-            }} />
-          }
-          after={h.overdue && !h.done ? <Counter mode="primary">Просрочено</Counter> : undefined}
-          subtitle={[
-            fmtDue(h.due),
-            h.task.length > 80 ? h.task.slice(0, 80) + '…' : h.task,
-          ].filter(Boolean).join(' · ') || undefined}
-        >
-          {h.subject}
-        </SimpleCell>
-      ))
-    )}
-  </CardBlock>
-);
+const HW_STATE_LABEL: Record<string, string> = {
+  submit: 'Сдано',
+  accept: 'Принято',
+  change: 'На доработку',
+  reject: 'Отклонено',
+};
+
+export const HomeworkList: React.FC<{
+  items: HomeworkItem[];
+  canSubmit?: boolean;
+  onSubmit?: (id: number, answer: string) => Promise<string | null>;
+  onUpdated?: () => void;
+}> = ({ items, canSubmit, onSubmit, onUpdated }) => {
+  const [expandedId, setExpandedId] = React.useState<number | null>(null);
+  const [answer, setAnswer] = React.useState('');
+  const [busy, setBusy] = React.useState(false);
+
+  const open = (h: HomeworkItem) => {
+    setExpandedId(prev => (prev === h.id ? null : h.id));
+    setAnswer(h.state === 'none' || h.state === 'change' ? (h.answer || '') : '');
+  };
+
+  const send = async (h: HomeworkItem) => {
+    if (!onSubmit) return;
+    setBusy(true);
+    const err = await onSubmit(h.id, answer.trim());
+    setBusy(false);
+    if (err === null) {
+      setExpandedId(null);
+      onUpdated?.();
+    }
+  };
+
+  return (
+    <CardBlock title={<BlockTitle>Домашние задания</BlockTitle>}>
+      {items.length === 0 ? (
+        <Div><Caption style={{ color: 'var(--vkui--color_text_secondary)' }}>Заданий нет — можно отдыхать</Caption></Div>
+      ) : (
+        items.map(h => {
+          const label = HW_STATE_LABEL[h.state];
+          const expanded = expandedId === h.id;
+          return (
+            <div key={h.id} style={{ borderTop: '1px solid var(--vkui--color_background_secondary)' }}>
+              <SimpleCell
+                onClick={() => open(h)}
+                before={
+                  <span style={{
+                    width: 8, height: 8, borderRadius: '50%', flexShrink: 0, marginTop: 2,
+                    background: h.state === 'accept' || h.state === 'submit'
+                      ? 'var(--vkui--color_background_positive)'
+                      : 'var(--vkui--color_background_negative)',
+                  }} />
+                }
+                after={
+                  <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                    {label && (
+                      <Counter mode={h.state === 'accept' ? 'positive' : h.state === 'change' ? 'warning' : 'primary'}>
+                        {label}
+                      </Counter>
+                    )}
+                    {h.overdue && (h.state === 'none' || h.state === 'change') && (
+                      <Counter mode="primary">Просрочено</Counter>
+                    )}
+                  </div>
+                }
+                subtitle={[
+                  fmtDue(h.due),
+                  h.late && h.state !== 'none' ? 'сдано с опозданием' : '',
+                  h.task.length > 80 ? h.task.slice(0, 80) + '…' : h.task,
+                ].filter(Boolean).join(' · ') || undefined}
+              >
+                {h.subject}
+              </SimpleCell>
+
+              {expanded && (
+                <div style={{ padding: '0 16px 12px' }}>
+                  <Caption style={{
+                    color: 'var(--vkui--color_text_secondary)',
+                    display: 'block', whiteSpace: 'pre-wrap', marginBottom: 8,
+                  }}>
+                    {h.task}
+                  </Caption>
+
+                  {h.state === 'change' && h.teacher_note && (
+                    <Caption style={{
+                      color: 'var(--vkui--color_text_warning)',
+                      display: 'block', marginBottom: 8,
+                    }}>
+                      Учитель: {h.teacher_note}
+                    </Caption>
+                  )}
+
+                  {h.answer_required && h.answer && h.state !== 'change' && (
+                    <Caption style={{
+                      color: 'var(--vkui--color_text_secondary)',
+                      display: 'block', marginBottom: 8,
+                    }}>
+                      Ваш ответ: {h.answer}
+                    </Caption>
+                  )}
+
+                  {canSubmit && (h.state === 'none' || h.state === 'draft' || h.state === 'change' || h.state === 'reject') ? (
+                    <>
+                      {h.answer_required && (
+                        <Input
+                          value={answer}
+                          onChange={e => setAnswer(e.target.value)}
+                          placeholder="Ваш ответ"
+                          aria-label="Ответ на задание"
+                          style={{ marginBottom: 8 }}
+                        />
+                      )}
+                      <Button
+                        size="s"
+                        stretched
+                        loading={busy}
+                        disabled={h.answer_required && !answer.trim()}
+                        onClick={() => send(h)}
+                      >
+                        Сдать
+                      </Button>
+                    </>
+                  ) : (
+                    h.state === 'submit' && (
+                      <Caption style={{ color: 'var(--vkui--color_text_secondary)' }}>
+                        Ждёт проверки учителя
+                      </Caption>
+                    )
+                  )}
+                </div>
+              )}
+            </div>
+          );
+        })
+      )}
+    </CardBlock>
+  );
+};
 
 // --- Журналы к заполнению (учитель) ---------------------------------------
 
@@ -303,9 +420,11 @@ export interface MyHomeworkItem {
   due: string;
   submitted: number;
   total: number;
+  /** Сдач в состоянии submit (ждут проверки учителя). */
+  to_review: number;
 }
 
-export const MyHomework: React.FC<{ items: MyHomeworkItem[] }> = ({ items }) => (
+export const MyHomework: React.FC<{ items: MyHomeworkItem[]; onOpen?: (id: number) => void }> = ({ items, onOpen }) => (
   <CardBlock title={<BlockTitle>Домашние задания</BlockTitle>}>
     {items.length === 0 ? (
       <Div><Caption style={{ color: 'var(--vkui--color_text_secondary)' }}>Активных заданий нет</Caption></Div>
@@ -313,6 +432,7 @@ export const MyHomework: React.FC<{ items: MyHomeworkItem[] }> = ({ items }) => 
       items.map(h => (
         <SimpleCell
           key={h.id}
+          onClick={onOpen ? () => onOpen(h.id) : undefined}
           before={
             <span style={{
               width: 8, height: 8, borderRadius: '50%', flexShrink: 0, marginTop: 2,
@@ -321,7 +441,14 @@ export const MyHomework: React.FC<{ items: MyHomeworkItem[] }> = ({ items }) => 
                 : 'var(--vkui--color_background_negative)',
             }} />
           }
-          after={<Counter mode="primary">{`Сдали ${h.submitted} из ${h.total}`}</Counter>}
+          after={
+            <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+              {h.to_review > 0 && (
+                <Counter mode="accent">{`${h.to_review} к проверке`}</Counter>
+              )}
+              <Counter mode="primary">{`Сдали ${h.submitted} из ${h.total}`}</Counter>
+            </div>
+          }
           subtitle={[
             `${h.batch} · ${fmtDue(h.due)}`,
             h.task.length > 70 ? h.task.slice(0, 70) + '…' : h.task,
@@ -333,6 +460,122 @@ export const MyHomework: React.FC<{ items: MyHomeworkItem[] }> = ({ items }) => 
     )}
   </CardBlock>
 );
+
+// --- Сдачи по заданию (учитель: проверка) ----------------------------------
+
+export const STATE_LABEL: Record<string, string> = {
+  submit: 'Сдано',
+  accept: 'Принято',
+  change: 'На доработку',
+  reject: 'Отклонено',
+  none: 'Не сдал',
+  draft: 'Черновик',
+};
+
+export const SubmissionReviewCard: React.FC<{
+  submission: HomeworkSubmissionsResponse;
+  onClose: () => void;
+  onReview: (subId: number, action: 'accept' | 'change', note: string) => Promise<string | null>;
+  onUpdated?: () => void;
+}> = ({ submission, onClose, onReview, onUpdated }) => {
+  const { assignment, students } = submission;
+  const [busyId, setBusyId] = React.useState<number | null>(null);
+  const [notes, setNotes] = React.useState<Record<number, string>>({});
+
+  const review = async (student: HomeworkSubmissionStudent, action: 'accept' | 'change') => {
+    setBusyId(student.student_id);
+    const err = await onReview(student.student_id, action, (notes[student.student_id] || '').trim());
+    setBusyId(null);
+    if (err === null) onUpdated?.();
+  };
+
+  const submittedCount = students.filter(s => s.state === 'submit' || s.state === 'accept').length;
+
+  return (
+    <Div style={{ paddingInline: 8 }}>
+      <VkCard mode="shadow" style={{ overflow: 'hidden', marginBottom: 8 }}>
+        <div style={{ padding: '12px 16px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+            <Text weight="2">{assignment.subject} — сдачи</Text>
+            <span
+              style={{ color: 'var(--vkui--color_text_accent)', cursor: 'pointer', fontSize: 13 }}
+              onClick={onClose}
+            >
+              Закрыть
+            </span>
+          </div>
+          <Caption style={{ color: 'var(--vkui--color_text_secondary)', display: 'block' }}>
+            {assignment.task.length > 120 ? assignment.task.slice(0, 120) + '…' : assignment.task}
+          </Caption>
+          <Caption style={{ color: 'var(--vkui--color_text_secondary)', display: 'block', marginTop: 4 }}>
+            Сдали {submittedCount} из {students.length}
+            {assignment.answer_required ? ' · требуется ответ' : ''}
+          </Caption>
+        </div>
+
+        {students.map(s => {
+          const subId = s.student_id;
+          const canReview = s.state === 'submit';
+          return (
+            <div key={s.student_id} style={{ borderTop: '1px solid var(--vkui--color_background_secondary)', padding: '10px 16px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <Text weight="2">{s.name}</Text>
+                <Counter
+                  mode={s.state === 'accept' ? 'positive' : s.state === 'change' ? 'warning' : s.state === 'submit' ? 'accent' : 'primary'}
+                >
+                  {STATE_LABEL[s.state] || s.state}
+                </Counter>
+              </div>
+              {s.late && s.state !== 'none' && (
+                <Caption style={{ color: 'var(--vkui--color_text_warning)', display: 'block', marginTop: 2 }}>
+                  сдано с опозданием
+                </Caption>
+              )}
+              {s.answer && (
+                <Caption style={{
+                  color: 'var(--vkui--color_text_secondary)',
+                  display: 'block', marginTop: 4, whiteSpace: 'pre-wrap',
+                }}>
+                  Ответ: {s.answer}
+                </Caption>
+              )}
+              {canReview && (
+                <>
+                  <Input
+                    value={notes[subId] || ''}
+                    onChange={e => setNotes(prev => ({ ...prev, [subId]: e.target.value }))}
+                    placeholder="Комментарий (для доработки)"
+                    aria-label="Комментарий учителя"
+                    style={{ marginTop: 6 }}
+                  />
+                  <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+                    <Button
+                      size="s"
+                      appearance="positive"
+                      loading={busyId === subId}
+                      onClick={() => review(s, 'accept')}
+                    >
+                      Принять
+                    </Button>
+                    <Button
+                      size="s"
+                      mode="outline"
+                      appearance="negative"
+                      disabled={busyId === subId}
+                      onClick={() => review(s, 'change')}
+                    >
+                      На доработку
+                    </Button>
+                  </div>
+                </>
+              )}
+            </div>
+          );
+        })}
+      </VkCard>
+    </Div>
+  );
+};
 
 // --- Полоса цифр + требует внимания (админ) --------------------------------
 
