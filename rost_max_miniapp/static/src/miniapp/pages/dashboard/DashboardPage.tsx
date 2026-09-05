@@ -113,13 +113,22 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
           )}
 
           {/* Выход — реальная навигация, чтобы Odoo закрыл сессию серверно.
-              Парящая кнопка поверх контента: доступна всегда, не только
-              после прокрутки в самый низ. */}
-          <div style={{ position: 'fixed', right: 16, bottom: 24, zIndex: 10 }}>
+              Парящая кнопка по центру над таббаром: fixed + left/right 0 +
+              margin auto. bottom = высота таббара (~56) + зазор. */}
+          <div style={{
+            position: 'fixed',
+            left: 0, right: 0,
+            bottom: 'calc(56px + var(--vkui--spacing_size_m))',
+            display: 'flex',
+            justifyContent: 'center',
+            zIndex: 10,
+            pointerEvents: 'none',
+          }}>
             <Button
               mode="primary"
               appearance="negative"
               size="m"
+              style={{ pointerEvents: 'auto' }}
               onClick={() => { window.location.href = '/rost_max/logout'; }}
             >
               Выйти

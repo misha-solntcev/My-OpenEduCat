@@ -49,6 +49,7 @@ export const Greeting: React.FC<{ name: string; date: string; avatar?: string; s
       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
         <Avatar
           size={48}
+          mode="app"
           src={avatar || undefined}
           fallbackIcon={
             <span style={{ fontSize: 18, fontWeight: 600 }}>
@@ -56,6 +57,7 @@ export const Greeting: React.FC<{ name: string; date: string; avatar?: string; s
             </span>
           }
           objectPosition="center top"
+          style={{ borderRadius: 8, flexShrink: 0 }}
         />
         <div>
           <Text weight="2" style={{ fontSize: 20, display: 'block' }}>Привет, {display}</Text>
