@@ -92,6 +92,7 @@ class OpAttendanceSheet(models.Model):
                 students = self.env['op.student'].sudo().search([
                     ('course_detail_ids.course_id', '=', rec.session_id.course_id.id),
                     ('course_detail_ids.batch_id', '=', rec.batch_id.id),
+                    ('course_detail_ids.state', '=', 'running'),
                     ('active', '=', True)
                 ])
                 lines = [(0, 0, {'student_id': s.id, 'attendance_type_id': False}) for s in students]
@@ -110,6 +111,7 @@ class OpAttendanceSheet(models.Model):
             current_students = self.env['op.student'].sudo().search([
                 ('course_detail_ids.course_id', '=', rec.session_id.course_id.id),
                 ('course_detail_ids.batch_id', '=', rec.batch_id.id),
+                ('course_detail_ids.state', '=', 'running'),
                 ('active', '=', True)
             ])
             existing = {l.student_id.id: l for l in rec.attendance_line}
