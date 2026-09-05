@@ -21,12 +21,11 @@ import {
   Icon24Dismiss,
 } from '@vkontakte/icons';
 import { Calendar } from '@vkontakte/vkui';
-import { useAppStore, selectGlobalDate, setGlobalDate } from '@/shared/lib/store';
 import { apiGet } from '@/shared/lib/api';
 import { useToast } from '@/shared/components/Toast';
 import { LessonRow, lessonStatus } from '@/shared/components/LessonRow';
 import { TimedGroups } from '@/shared/components/TimedGroups';
-import { toISO, schoolTodayISO, startOfWeek, SHORT_WEEKDAYS } from '@/shared/lib/date';
+import { toISO, today, schoolTodayISO, startOfWeek, SHORT_WEEKDAYS } from '@/shared/lib/date';
 import type { Lesson, Faculty, Batch, TimetableResponse, FacultiesResponse, BatchesResponse } from '@/shared/lib/types';
 
 interface TimetablePageProps {
@@ -98,11 +97,12 @@ const DayStrip: React.FC<{ selected: string; onSelect: (iso: string) => void }> 
 };
 
 export const TimetablePage: React.FC<TimetablePageProps> = ({ id, onOpenLesson }) => {
-  const globalDate = useAppStore(selectGlobalDate);
-  const filters = useAppStore(s => s.filters);
-  const setFilters = useAppStore(s => s.setFilters);
-  const selectedFaculty = filters.selectedFaculty;
-  const selectedBatch = filters.selectedBatch;
+  // Дата и фильтры — локальный стейт экрана: всегда стартуем с «сегодня»
+  // (Europe/Moscow) и без фильтров. Эпик держит View смонтированным,
+  // поэтому выбор переживает переключение вкладок, но не перезапуск.
+  const [globalDate, setGlobalDate] = React.useState(today);
+  const [selectedFaculty, setSelectedFaculty] = React.useState<number | null>(null);
+  const [selectedBatch, setSelectedBatch] = React.useState<number | null>(null);
   const addToast = useToast();
 
   const [lessons, setLessons] = React.useState<Lesson[]>([]);
@@ -256,7 +256,7 @@ export const TimetablePage: React.FC<TimetablePageProps> = ({ id, onOpenLesson }
               selectType="plain"
               options={facultyOptions}
               value={selectedFaculty ? String(selectedFaculty) : ''}
-              onChange={(_, v) => setFilters({ selectedFaculty: v ? Number(v) : null })}
+              onChange={(_, v) => setSelectedFaculty(v ? Number(v) : null)}
               placeholder="Все учителя"
             />
             <CustomSelect
@@ -272,7 +272,7 @@ export const TimetablePage: React.FC<TimetablePageProps> = ({ id, onOpenLesson }
               selectType="plain"
               options={batchOptions}
               value={selectedBatch ? String(selectedBatch) : ''}
-              onChange={(_, v) => setFilters({ selectedBatch: v ? Number(v) : null })}
+              onChange={(_, v) => setSelectedBatch(v ? Number(v) : null)}
               placeholder="Все классы"
             />
           </Flex>

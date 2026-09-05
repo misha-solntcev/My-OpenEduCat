@@ -1,8 +1,9 @@
 import React from 'react';
 import { Panel, Spinner, Div, Button } from '@vkontakte/vkui';
-import { useAppStore, selectGlobalDate } from '@/shared/lib/store';
+import { useAppStore } from '@/shared/lib/store';
 import { apiGet } from '@/shared/lib/api';
 import { useToast } from '@/shared/components/Toast';
+import { today } from '@/shared/lib/date';
 import type { DashboardInfoResponse } from '@/shared/lib/types';
 import {
   Greeting,
@@ -26,24 +27,27 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
   id, onOpenLesson, onOpenTimetable, onOpenGrades,
 }) => {
   const userInfo = useAppStore(s => s.userInfo);
-  const globalDate = useAppStore(selectGlobalDate);
   const addToast = useToast();
 
   const [data, setData] = React.useState<DashboardInfoResponse | null>(null);
   const [loading, setLoading] = React.useState(false);
 
+  // Главная всегда про сегодняшний день (Europe/Moscow) — независимо от
+  // навигации по расписанию. Дата фиксируется на монтирование.
+  const [feedDate] = React.useState(today);
+
   const load = React.useCallback(async () => {
     setLoading(true);
     try {
       const res = await apiGet<DashboardInfoResponse>(
-        `/rost_max/api/dashboard_info?date=${globalDate}`);
+        `/rost_max/api/dashboard_info?date=${feedDate}`);
       setData(res);
     } catch {
       addToast('Не удалось загрузить главную', 'error');
     } finally {
       setLoading(false);
     }
-  }, [globalDate, addToast]);
+  }, [feedDate, addToast]);
 
   React.useEffect(() => { load(); }, [load]);
 

@@ -21,6 +21,9 @@ export const schoolTodayISO = (): string => {
   return `${y}-${m}-${day}`;
 };
 
+/** Синоним для экранов: «дата по умолчанию» = сегодня по школе. */
+export const today = schoolTodayISO;
+
 /** Локальная дата -> 'YYYY-MM-DD' (для дат, выбранных в календаре). */
 export const toISO = (d: Date): string => {
   const y = d.getFullYear();
