@@ -28,6 +28,10 @@ export default [
         alert: 'readonly',
         setTimeout: 'readonly',
         HTMLInputElement: 'readonly',
+        File: 'readonly',
+        FileList: 'readonly',
+        FileReader: 'readonly',
+        URL: 'readonly',
       },
     },
     plugins: {

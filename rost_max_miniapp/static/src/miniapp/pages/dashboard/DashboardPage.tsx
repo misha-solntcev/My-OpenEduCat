@@ -93,11 +93,12 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
   const submitHomework = async (
     assignmentId: number,
     answer: string,
+    files: { filename: string; mimetype: string; b64: string }[],
   ): Promise<string | null> => {
     try {
       const res = await apiPost<{ success?: boolean; error?: string }>(
         `/rost_max/api/homework/${assignmentId}/submit`,
-        { answer });
+        { answer, files });
       if (res.error) {
         addToast(res.error, 'error');
         return res.error;

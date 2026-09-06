@@ -5,11 +5,16 @@ import { SimpleCell, Text, Caption, Div, Counter, Placeholder, Card as VkCard, A
 import {
   Icon28ClockOutline,
   Icon56EventOutline,
+  Icon28AttachOutline,
 } from '@vkontakte/icons';
 import { LessonRow } from '@/shared/components/LessonRow';
 import { TimedGroups } from '@/shared/components/TimedGroups';
 import { initialsOf } from '@/shared/lib/initials';
-import type { HomeworkSubmissionsResponse, HomeworkSubmissionStudent } from '@/shared/lib/types';
+import { fileToBase64 } from '@/shared/lib/api';
+import type {
+  HomeworkSubmissionsResponse,
+  HomeworkSubmissionStudent,
+} from '@/shared/lib/types';
 
 const WEEKDAYS = ['воскресенье', 'понедельник', 'вторник', 'среда', 'четверг', 'пятница', 'суббота'];
 const MONTHS = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
@@ -248,25 +253,50 @@ const HW_STATE_LABEL: Record<string, string> = {
 export const HomeworkList: React.FC<{
   items: HomeworkItem[];
   canSubmit?: boolean;
-  onSubmit?: (id: number, answer: string) => Promise<string | null>;
+  onSubmit?: (id: number, answer: string, files: { filename: string; mimetype: string; b64: string }[]) => Promise<string | null>;
   onUpdated?: () => void;
 }> = ({ items, canSubmit, onSubmit, onUpdated }) => {
   const [expandedId, setExpandedId] = React.useState<number | null>(null);
   const [answer, setAnswer] = React.useState('');
+  const [files, setFiles] = React.useState<File[]>([]);
   const [busy, setBusy] = React.useState(false);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   const open = (h: HomeworkItem) => {
     setExpandedId(prev => (prev === h.id ? null : h.id));
+    setFiles([]);
     setAnswer(h.state === 'none' || h.state === 'change' ? (h.answer || '') : '');
+  };
+
+  const addFiles = (list: FileList | null) => {
+    if (!list) return;
+    // Лимиты бэкенда: 5 файлов, 10 МБ, фото/pdf.
+    const MAX_MB = 10;
+    const ok: File[] = [];
+    for (const f of Array.from(list)) {
+      const goodType = f.type.startsWith('image/') || f.type === 'application/pdf';
+      if (goodType && f.size <= MAX_MB * 1024 * 1024) ok.push(f);
+    }
+    setFiles(prev => [...prev, ...ok].slice(0, 5));
   };
 
   const send = async (h: HomeworkItem) => {
     if (!onSubmit) return;
     setBusy(true);
-    const err = await onSubmit(h.id, answer.trim());
+    const payload = [];
+    for (const f of files) {
+      try {
+        payload.push({ filename: f.name, mimetype: f.type, b64: await fileToBase64(f) });
+      } catch {
+        setBusy(false);
+        return;
+      }
+    }
+    const err = await onSubmit(h.id, answer.trim(), payload);
     setBusy(false);
     if (err === null) {
       setExpandedId(null);
+      setFiles([]);
       onUpdated?.();
     }
   };
@@ -350,15 +380,51 @@ export const HomeworkList: React.FC<{
                           style={{ marginBottom: 8 }}
                         />
                       )}
-                      <Button
-                        size="s"
-                        stretched
-                        loading={busy}
-                        disabled={h.answer_required && !answer.trim()}
-                        onClick={() => send(h)}
-                      >
-                        Сдать
-                      </Button>
+                      {/* Вложения: фото с камеры/галереи или pdf.
+                          capture не ставим — выбор «камера/галерея»
+                          даёт сам WebView. */}
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept="image/*,application/pdf"
+                        multiple
+                        style={{ display: 'none' }}
+                        onChange={e => { addFiles(e.target.files); e.target.value = ''; }}
+                      />
+                      <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                        <Button
+                          size="s"
+                          mode="tertiary"
+                          before={<Icon28AttachOutline width={20} height={20} />}
+                          onClick={() => fileInputRef.current?.click()}
+                        >
+                          Прикрепить
+                        </Button>
+                        <Button
+                          size="s"
+                          stretched
+                          loading={busy}
+                          disabled={h.answer_required && !answer.trim()}
+                          onClick={() => send(h)}
+                        >
+                          Сдать
+                        </Button>
+                      </div>
+                      {files.length > 0 && (
+                        <div style={{ marginTop: 6 }}>
+                          {files.map((f, i) => (
+                            <Caption
+                              key={`${f.name}-${i}`}
+                              style={{
+                                color: 'var(--vkui--color_text_secondary)',
+                                display: 'block',
+                              }}
+                            >
+                              {f.name} ({Math.round(f.size / 1024)} КБ)
+                            </Caption>
+                          ))}
+                        </div>
+                      )}
                     </>
                   ) : (
                     h.state === 'submit' && (
@@ -538,6 +604,26 @@ export const SubmissionReviewCard: React.FC<{
                 }}>
                   Ответ: {s.answer}
                 </Caption>
+              )}
+              {s.attachments.length > 0 && (
+                <div style={{ marginTop: 6 }}>
+                  {s.attachments.map(a => (
+                    <a
+                      key={a.url}
+                      href={a.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: 6,
+                        color: 'var(--vkui--color_text_accent)',
+                        textDecoration: 'none', paddingBlock: 3,
+                      }}
+                    >
+                      <Icon28AttachOutline width={16} height={16} />
+                      <Caption>{a.name}</Caption>
+                    </a>
+                  ))}
+                </div>
               )}
               {canReview && (
                 <>

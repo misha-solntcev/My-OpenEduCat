@@ -206,6 +206,13 @@ export interface MyHomeworkItem {
   to_review: number;
 }
 
+export interface HomeworkAttachment {
+  name: string;
+  mimetype: string;
+  /** Одноразовая ссылка /rost_max/hw_att/<token> (живёт 24 ч). */
+  url: string;
+}
+
 export interface HomeworkSubmissionStudent {
   student_id: number;
   name: string;
@@ -215,6 +222,7 @@ export interface HomeworkSubmissionStudent {
   submitted_at: string;
   late: boolean;
   teacher_note: string;
+  attachments: HomeworkAttachment[];
 }
 
 export interface HomeworkSubmissionsResponse {
