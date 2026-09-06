@@ -23,3 +23,31 @@ class OpAssignmentSubLine(models.Model):
     # Комментарий учителя при «на доработку»/приёмке. Отдельно от note:
     # note хранит ответ ученика (миниапп пишет его при сдаче).
     teacher_note = fields.Text('Комментарий учителя')
+
+    # Вложения сдачи (фото/файл из миниаппа). ir.attachment c res_field:
+    # доступ через /web/content по id + токен не раскрывает прочие
+    # вложения; выдача миниаппу — подписанные ссылки в /submissions.
+    attachment_ids = fields.One2many(
+        'ir.attachment', 'res_id', string='Вложения сдачи',
+        domain=[('res_model', '=', 'op.assignment.sub.line')])
+
+    def _hw_store_attachments(self, files):
+        """files: [{filename, mimetype, b64}] — заменить вложения сдачи."""
+        self.ensure_one()
+        Att = self.env['ir.attachment'].sudo()
+        old = Att.search([
+            ('res_model', '=', self._name),
+            ('res_id', '=', self.id),
+            ('res_field', '=', 'hw_attachment'),
+        ])
+        old.unlink()
+        for f in files or []:
+            Att.create({
+                'name': f.get('filename') or 'attachment',
+                'mimetype': f.get('mimetype') or 'application/octet-stream',
+                'datas': f.get('b64') or '',
+                'res_model': self._name,
+                'res_id': self.id,
+                'res_field': 'hw_attachment',
+                'public': False,
+            })

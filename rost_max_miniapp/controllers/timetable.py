@@ -1131,6 +1131,42 @@ class RostMaxTimetableController(http.Controller):
             return request.make_json_response(
                 {"error": "Ответ обязателен"}, status=400)
 
+        # Вложения: base64 в JSON. Лимиты: 5 файлов, 10 МБ каждый,
+        # только изображения/pdf. Тело запроса целиком ограничено
+        # limiter'ом Odoo; 10 МБ base64 ~ 13.7 МБ — в лимите по умолчанию.
+        files = body.get('files') or []
+        if not isinstance(files, list) or len(files) > 5:
+            return request.make_json_response(
+                {"error": "Не более 5 вложений"}, status=400)
+        ALLOWED_MIMES = (
+            'image/jpeg', 'image/png', 'image/webp',
+            'image/heic', 'image/heif', 'application/pdf',
+        )
+        MAX_SIZE = 10 * 1024 * 1024
+        clean_files = []
+        for f in files:
+            if not isinstance(f, dict) or not f.get('b64'):
+                continue
+            mime = (f.get('mimetype') or '').split(';')[0].strip().lower()
+            if mime not in ALLOWED_MIMES:
+                return request.make_json_response(
+                    {"error": "Только фото (JPEG/PNG/HEIC) или PDF"},
+                    status=400)
+            import base64 as b64mod
+            try:
+                raw = b64mod.b64decode(f['b64'], validate=True)
+            except Exception:
+                return request.make_json_response(
+                    {"error": "Некорректный файл"}, status=400)
+            if len(raw) > MAX_SIZE:
+                return request.make_json_response(
+                    {"error": "Файл больше 10 МБ"}, status=400)
+            clean_files.append({
+                'filename': (f.get('filename') or 'attachment')[:128],
+                'mimetype': mime,
+                'b64': f['b64'],
+            })
+
         sub = request.env['op.assignment.sub.line'].sudo().search([
             ('assignment_id', '=', asg.id),
             ('student_id', '=', student.id),
@@ -1145,8 +1181,10 @@ class RostMaxTimetableController(http.Controller):
         if sub:
             sub.write(vals)
         else:
-            request.env['op.assignment.sub.line'].sudo().create(dict(
+            sub = request.env['op.assignment.sub.line'].sudo().create(dict(
                 vals, assignment_id=asg.id, student_id=student.id))
+        if clean_files:
+            sub._hw_store_attachments(clean_files)
 
         return request.make_json_response({"success": True})
 
@@ -1178,6 +1216,25 @@ class RostMaxTimetableController(http.Controller):
                 ('assignment_id', '=', asg.id),
                 ('student_id', '=', st.id),
             ], limit=1)
+            # Вложения: одноразовые токены на скачивание. Ссылка
+            # /rost_max/hw_att/<token> отдаёт файл только владельцу
+            # токена в таблице; токен живёт 24 часа.
+            attachments = []
+            if sub:
+                atts = request.env['ir.attachment'].sudo().search([
+                    ('res_model', '=', 'op.assignment.sub.line'),
+                    ('res_id', '=', sub.id),
+                    ('res_field', '=', 'hw_attachment'),
+                ], order='id asc')
+                for att in atts:
+                    token = request.env['hw.attachment.token'].sudo().create({
+                        'attachment_id': att.id,
+                    })
+                    attachments.append({
+                        'name': att.name or 'attachment',
+                        'mimetype': att.mimetype or '',
+                        'url': '/rost_max/hw_att/%s' % token.token,
+                    })
             name = ("%s %s %s" % (
                 st.last_name or '', st.first_name or '',
                 st.middle_name or '')).strip()
@@ -1190,6 +1247,7 @@ class RostMaxTimetableController(http.Controller):
                 "late": bool(sub and asg.submission_date
                              and sub.submission_date > asg.submission_date),
                 "teacher_note": (sub.teacher_note or '') if sub else '',
+                "attachments": attachments,
             })
         # Несдавшие — в конец списка
         students.sort(key=lambda s: (
@@ -1248,6 +1306,26 @@ class RostMaxTimetableController(http.Controller):
             vals['teacher_note'] = (body.get('teacher_note') or '').strip()
         sub.write(vals)
         return request.make_json_response({"success": True})
+
+    @http.route("/rost_max/hw_att/<string:token>", type="http",
+                methods=["GET"], readonly=True)
+    def hw_attachment_download(self, token):
+        """Скачивание вложения сдачи по одноразовому токену (24 ч).
+
+        Токен сам является секретом: ссылка живёт в ответе /submissions
+        сутки, вложение приватное (public=False). Прощелкать чужой токен
+        нельзя — 128 бит энтропии. Просроченный токен удаляется при
+        обращении. Отдача через ir.binary (как /web/content).
+        """
+        att = request.env['hw.attachment.token'].sudo().get_valid(token)
+        if not att:
+            return request.make_response(
+                'Ссылка устарела. Откройте сдачу заново.',
+                status=410,
+                headers=[('Content-Type', 'text/plain; charset=utf-8')])
+        stream = request.env['ir.binary']._get_stream_from(
+            att, 'raw', att.name, 'name', att.mimetype)
+        return stream.get_response(as_attachment=True)
 
     @http.route("/rost_max/api/faculties", type="http", auth="public", methods=["GET"])
     def api_faculties(self):
