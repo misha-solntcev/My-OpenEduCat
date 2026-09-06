@@ -541,6 +541,27 @@
                 <!-- Группа 1: ПЕРИОДЫ (Исправлено для Odoo 18 / Owl) -->
 
                 <!-- Предыдущая неделя -->
+                <filter string="📍Сегодня" name="today"
+                    domain="[('attendance_date', '=', context_today().strftime('%Y-%m-%d'))]" />
+
+                <!-- Отдельная группа (после separator): фильтры одной группы
+                     склеиваются OR, разные группы — AND. Год должен
+                     сужать выбор недели, а не расширять его.
+                     Идёт ПЕРВЫМ: широкий фильтр логично ставить выше
+                     узких недельных. Снимаемый дефолт (search_default)
+                     в act_window. -->
+                <separator />
+
+                <!-- Текущий учебный год (начало 1 сентября) — как в
+                     Расписании (timetable_view.xml): k = месяцев с прошлого
+                     сентября, старт = 1-е число месяца минус k месяцев. -->
+                <filter string="🎓 Текущий год" name="current_year"
+                    domain="[
+                        ('attendance_date', '&gt;=', (context_today() + relativedelta(months=-(((context_today().month) - 9) % 12), day=1)).strftime('%Y-%m-%d')),
+                        ('attendance_date', '&lt;=', (context_today() + relativedelta(months=-(((context_today().month) - 9) % 12), day=1, years=1, days=-1)).strftime('%Y-%m-%d'))]" />
+
+                <separator />
+
                 <filter string="🗓️ Предыдущая неделя" name="previous_week"
                     domain="[
                         ('attendance_date', '&gt;=', (context_today() + relativedelta(weeks=-2, days=1, weekday=0)).strftime('%Y-%m-%d')),
@@ -557,23 +578,6 @@
                     domain="[
                         ('attendance_date', '&gt;=', (context_today() + relativedelta(days=1, weekday=0)).strftime('%Y-%m-%d')),
                         ('attendance_date', '&lt;=', (context_today() + relativedelta(days=7, weekday=6)).strftime('%Y-%m-%d'))]" />
-
-                <filter string="📍Сегодня" name="today"
-                    domain="[('attendance_date', '=', context_today().strftime('%Y-%m-%d'))]" />
-
-                <!-- Отдельная группа (после separator): фильтры одной группы
-                     склеиваются OR, разные группы — AND. Год должен
-                     сужать выбор недели, а не расширять его. -->
-                <separator />
-
-                <!-- Текущий учебный год (начало 1 сентября) — как в
-                     Расписании (timetable_view.xml): k = месяцев с прошлого
-                     сентября, старт = 1-е число месяца минус k месяцев.
-                     Снимаемый дефолт (search_default) в act_window. -->
-                <filter string="🎓 Текущий год" name="current_year"
-                    domain="[
-                        ('attendance_date', '&gt;=', (context_today() + relativedelta(months=-(((context_today().month) - 9) % 12), day=1)).strftime('%Y-%m-%d')),
-                        ('attendance_date', '&lt;=', (context_today() + relativedelta(months=-(((context_today().month) - 9) % 12), day=1, years=1, days=-1)).strftime('%Y-%m-%d'))]" />
 
                 <separator />
 
