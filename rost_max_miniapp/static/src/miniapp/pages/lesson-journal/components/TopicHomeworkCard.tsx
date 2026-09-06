@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Flex, Text, Caption, Input, Button } from '@vkontakte/vkui';
+import { Box, Flex, Text, Caption, Input, Button, Checkbox } from '@vkontakte/vkui';
 import { Icon24ChevronDown, Icon24ChevronUp } from '@vkontakte/icons';
 import type { LessonInfo } from '@/shared/lib/types';
 
@@ -8,6 +8,7 @@ interface TopicHomeworkCardProps {
   canEdit: boolean;
   onTopicChange: (topic: string) => void;
   onHomeworkChange: (homework: string) => void;
+  onAnswerRequiredChange: (value: boolean) => void;
 }
 
 /**
@@ -19,6 +20,7 @@ export const TopicHomeworkCard: React.FC<TopicHomeworkCardProps> = ({
   canEdit,
   onTopicChange,
   onHomeworkChange,
+  onAnswerRequiredChange,
 }) => {
   const [expanded, setExpanded] = React.useState(false);
   const hasContent = Boolean(lesson.topic || lesson.homework);
@@ -89,6 +91,17 @@ export const TopicHomeworkCard: React.FC<TopicHomeworkCardProps> = ({
               </Caption>
             )}
           </Flex>
+
+          {canEdit && lesson.homework && (
+            <Checkbox
+              checked={lesson.homework_answer_required}
+              onChange={e => onAnswerRequiredChange(e.target.checked)}
+            >
+              <Caption level="1" style={{ color: 'var(--vkui--color_text_secondary)' }}>
+                Требуется ответ при сдаче
+              </Caption>
+            </Checkbox>
+          )}
 
           <Button
             size="s"

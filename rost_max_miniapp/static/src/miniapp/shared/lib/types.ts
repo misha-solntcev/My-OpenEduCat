@@ -78,6 +78,8 @@ export interface LessonInfo {
   homework: string;
   /** id созданного op.assignment (задание по ДЗ). null — ДЗ не задано. */
   homework_assignment_id: number | null;
+  /** «Требуется ответ при сдаче» (с задания или sheet). */
+  homework_answer_required: boolean;
 }
 
 /** Персональная настройка колонок журнала. О1 и посещаемость всегда true. */
@@ -183,6 +185,8 @@ export interface HomeworkItem {
   teacher_note: string;
   submitted_at: string;
   late: boolean;
+  /** Материалы задания (вложения учителя), одноразовые ссылки. */
+  materials: HomeworkAttachment[];
 }
 
 export interface JournalToFill {
@@ -204,6 +208,8 @@ export interface MyHomeworkItem {
   total: number;
   /** Сдач в состоянии submit (ждут проверки учителя). */
   to_review: number;
+  answer_required: boolean;
+  materials_count: number;
 }
 
 export interface HomeworkAttachment {

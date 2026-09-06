@@ -603,6 +603,12 @@ class RostMaxTimetableController(http.Controller):
             "homework_assignment_id": (
                 sheet.homework_assignment_id.id
                 if getattr(sheet, 'homework_assignment_id', False) else None),
+            # Флаг «Требуется ответ при сдаче» — с задания (источник
+            # правды), фолбэк на sheet для несозданных заданий.
+            "homework_answer_required": (
+                sheet.homework_assignment_id.answer_required
+                if getattr(sheet, 'homework_assignment_id', False)
+                else getattr(sheet, 'homework_answer_required', False)),
         }
 
         # Персональная настройка колонок (вариант B, res.users).
@@ -705,6 +711,16 @@ class RostMaxTimetableController(http.Controller):
         if isinstance(body.get('lesson'), dict) and 'homework' in body['lesson'] \
                 and hasattr(type(sheet), 'lesson_homework'):
             sheet_vals['lesson_homework'] = (body['lesson']['homework'] or '').strip() or False
+        # Флаг «Требуется ответ» — на sheet; синк переносит его на задание
+        # при создании. Для СУЩЕСТВУЮЩЕГО задания меняем флаг прямо на
+        # задании (синк его задним числом не переносит).
+        if isinstance(body.get('lesson'), dict) \
+                and 'homework_answer_required' in body['lesson'] \
+                and hasattr(type(sheet), 'homework_answer_required'):
+            flag = bool(body['lesson']['homework_answer_required'])
+            sheet_vals['homework_answer_required'] = flag
+            if getattr(sheet, 'homework_assignment_id', False):
+                sheet.homework_assignment_id.answer_required = flag
 
         if sheet_vals:
             # state done/cancel: тема закрытого урока не редактируется
@@ -994,6 +1010,9 @@ class RostMaxTimetableController(http.Controller):
                     "submitted_at": str(sub.submission_date) if sub else '',
                     "late": bool(sub and a.submission_date
                                  and sub.submission_date > a.submission_date),
+                    # Материалы задания (вложения учителя) с одноразовыми
+                    # ссылками (24 ч) — как вложения сдач в /submissions.
+                    "materials": a._hw_material_payload(),
                 })
             feed["homework"] = hw_items
 
@@ -1044,6 +1063,10 @@ class RostMaxTimetableController(http.Controller):
                 "total": len(a.allocation_ids),
                 # Есть ли что проверять (сдачи в submit — не принятые)
                 "to_review": to_review_counts.get(a.id, 0),
+                "answer_required": a.answer_required,
+                # Только счётчик: сами файлы учитель открывает через
+                # GET /materials (свежие токены на каждый показ).
+                "materials_count": len(a._hw_material_payload()),
             } for a in my_asgs]
 
         # --- Админ: полоса цифр + требует внимания ---
@@ -1134,38 +1157,44 @@ class RostMaxTimetableController(http.Controller):
         # Вложения: base64 в JSON. Лимиты: 5 файлов, 10 МБ каждый,
         # только изображения/pdf. Тело запроса целиком ограничено
         # limiter'ом Odoo; 10 МБ base64 ~ 13.7 МБ — в лимите по умолчанию.
-        files = body.get('files') or []
-        if not isinstance(files, list) or len(files) > 5:
-            return request.make_json_response(
-                {"error": "Не более 5 вложений"}, status=400)
-        ALLOWED_MIMES = (
-            'image/jpeg', 'image/png', 'image/webp',
-            'image/heic', 'image/heif', 'application/pdf',
-        )
-        MAX_SIZE = 10 * 1024 * 1024
-        clean_files = []
-        for f in files:
-            if not isinstance(f, dict) or not f.get('b64'):
-                continue
-            mime = (f.get('mimetype') or '').split(';')[0].strip().lower()
-            if mime not in ALLOWED_MIMES:
-                return request.make_json_response(
-                    {"error": "Только фото (JPEG/PNG/HEIC) или PDF"},
-                    status=400)
+        def _clean_files(files):
+            """[(filename, mimetype, b64)] или Response с ошибкой."""
+            if not isinstance(files, list) or len(files) > 5:
+                return None, request.make_json_response(
+                    {"error": "Не более 5 вложений"}, status=400)
+            ALLOWED_MIMES = (
+                'image/jpeg', 'image/png', 'image/webp',
+                'image/heic', 'image/heif', 'application/pdf',
+            )
+            MAX_SIZE = 10 * 1024 * 1024
             import base64 as b64mod
-            try:
-                raw = b64mod.b64decode(f['b64'], validate=True)
-            except Exception:
-                return request.make_json_response(
-                    {"error": "Некорректный файл"}, status=400)
-            if len(raw) > MAX_SIZE:
-                return request.make_json_response(
-                    {"error": "Файл больше 10 МБ"}, status=400)
-            clean_files.append({
-                'filename': (f.get('filename') or 'attachment')[:128],
-                'mimetype': mime,
-                'b64': f['b64'],
-            })
+            clean = []
+            for f in files:
+                if not isinstance(f, dict) or not f.get('b64'):
+                    continue
+                mime = (f.get('mimetype') or '').split(';')[0].strip().lower()
+                if mime not in ALLOWED_MIMES:
+                    return None, request.make_json_response(
+                        {"error": "Только фото (JPEG/PNG/HEIC) или PDF"},
+                        status=400)
+                try:
+                    raw = b64mod.b64decode(f['b64'], validate=True)
+                except Exception:
+                    return None, request.make_json_response(
+                        {"error": "Некорректный файл"}, status=400)
+                if len(raw) > MAX_SIZE:
+                    return None, request.make_json_response(
+                        {"error": "Файл больше 10 МБ"}, status=400)
+                clean.append({
+                    'filename': (f.get('filename') or 'attachment')[:128],
+                    'mimetype': mime,
+                    'b64': f['b64'],
+                })
+            return clean, None
+
+        clean_files, err = _clean_files(body.get('files') or [])
+        if err:
+            return err
 
         sub = request.env['op.assignment.sub.line'].sudo().search([
             ('assignment_id', '=', asg.id),
@@ -1187,6 +1216,82 @@ class RostMaxTimetableController(http.Controller):
             sub._hw_store_attachments(clean_files)
 
         return request.make_json_response({"success": True})
+
+    @http.route("/rost_max/api/homework/<int:assignment_id>/materials",
+                type="http", auth="public", methods=["GET"])
+    def api_homework_materials(self, assignment_id):
+        """API: материалы задания (вложения учителя) — ученику/родителю
+        из allocation, автору и админу."""
+        restore_session_if_needed()
+        if not request.session.uid:
+            return request.make_json_response(
+                {"error": "Unauthorized"}, status=401)
+
+        user = request.env.user
+        asg = request.env['op.assignment'].sudo().browse(assignment_id)
+        if not asg.exists():
+            return request.make_json_response(
+                {"error": "Задание не найдено"}, status=404)
+
+        is_admin = user.has_group('base.group_system')
+        role, own_students = _get_user_students(user)
+        faculty = request.env['op.faculty'].sudo().search([
+            ('partner_id', '=', user.partner_id.id)], limit=1)
+        allowed = is_admin or (faculty and asg.faculty_id == faculty) or (
+            role in ('student', 'parent') and own_students
+            and own_students & asg.allocation_ids)
+        if not allowed:
+            return request.make_json_response(
+                {"error": "Нет доступа к заданию"}, status=403)
+
+        return request.make_json_response({
+            "materials": asg._hw_material_payload(),
+        })
+
+    @http.route("/rost_max/api/homework/<int:assignment_id>/materials",
+                type="http", auth="public", methods=["POST"], cors="*",
+                csrf=False)
+    def api_homework_materials_set(self, assignment_id):
+        """API: учитель прикрепляет материалы задания (замена пачкой).
+
+        Тот же формат files, что в /submit; пишет только автор задания
+        или админ. Материалы видны ученикам задания в миниаппе.
+        """
+        restore_session_if_needed()
+        csrf_err = _check_spa_csrf()
+        if csrf_err:
+            return csrf_err
+        if not request.session.uid:
+            return request.make_json_response(
+                {"error": "Unauthorized"}, status=401)
+
+        user = request.env.user
+        is_admin = user.has_group('base.group_system')
+        faculty = request.env['op.faculty'].sudo().search([
+            ('partner_id', '=', user.partner_id.id)], limit=1)
+
+        asg = request.env['op.assignment'].sudo().browse(assignment_id)
+        if not asg.exists():
+            return request.make_json_response(
+                {"error": "Задание не найдено"}, status=404)
+        if not is_admin and (not faculty or asg.faculty_id != faculty):
+            return request.make_json_response(
+                {"error": "Доступно только автору задания"}, status=403)
+
+        try:
+            body = request.get_json_data()
+        except Exception:
+            return request.make_json_response(
+                {"error": "Invalid JSON"}, status=400)
+
+        clean_files, err = _clean_files(body.get('files') or [])
+        if err:
+            return err
+        asg._hw_store_attachments(clean_files)
+        return request.make_json_response({
+            "success": True,
+            "materials": asg._hw_material_payload(),
+        })
 
     @http.route("/rost_max/api/homework/<int:assignment_id>/submissions",
                 type="http", auth="public", methods=["GET"])

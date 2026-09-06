@@ -26,6 +26,7 @@ interface UseLessonJournalReturn {
   setRemark: (student: Student, remark: string) => void;
   setTopic: (topic: string) => void;
   setHomework: (homework: string) => void;
+  setAnswerRequired: (value: boolean) => void;
   saveAll: () => Promise<void>;
   toggleColumn: (key: 'grade_2' | 'grade_3' | 'note', value: boolean) => Promise<void>;
   handleBack: () => void;
@@ -123,6 +124,11 @@ export function useLessonJournal(lessonId: number | null, onBack: () => void): U
     setDirty(true);
   };
 
+  const setAnswerRequired = (value: boolean) => {
+    setLesson(prev => prev ? { ...prev, homework_answer_required: value } : prev);
+    setDirty(true);
+  };
+
   const saveAll = async () => {
     if (saving || !dirty) return;
     setSaving(true);
@@ -144,6 +150,7 @@ export function useLessonJournal(lessonId: number | null, onBack: () => void): U
           lesson: {
             topic: lesson?.topic ?? '',
             homework: lesson?.homework ?? '',
+            homework_answer_required: lesson?.homework_answer_required ?? false,
           },
         }
       );
@@ -255,6 +262,7 @@ export function useLessonJournal(lessonId: number | null, onBack: () => void): U
     setRemark,
     setTopic,
     setHomework,
+    setAnswerRequired,
     saveAll,
     toggleColumn,
     handleBack,

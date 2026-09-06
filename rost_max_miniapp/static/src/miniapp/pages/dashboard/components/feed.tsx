@@ -10,10 +10,11 @@ import {
 import { LessonRow } from '@/shared/components/LessonRow';
 import { TimedGroups } from '@/shared/components/TimedGroups';
 import { initialsOf } from '@/shared/lib/initials';
-import { fileToBase64 } from '@/shared/lib/api';
+import { apiGet, apiPost, fileToBase64 } from '@/shared/lib/api';
 import type {
   HomeworkSubmissionsResponse,
   HomeworkSubmissionStudent,
+  HomeworkAttachment,
 } from '@/shared/lib/types';
 
 const WEEKDAYS = ['воскресенье', 'понедельник', 'вторник', 'среда', 'четверг', 'пятница', 'суббота'];
@@ -241,6 +242,8 @@ export interface HomeworkItem {
   teacher_note: string;
   submitted_at: string;
   late: boolean;
+  /** Материалы задания (вложения учителя), одноразовые ссылки. */
+  materials: HomeworkAttachment[];
 }
 
 const HW_STATE_LABEL: Record<string, string> = {
@@ -369,6 +372,33 @@ export const HomeworkList: React.FC<{
                     </Caption>
                   )}
 
+                  {h.materials.length > 0 && (
+                    <div style={{ marginBottom: 8 }}>
+                      <Caption style={{
+                        color: 'var(--vkui--color_text_secondary)',
+                        display: 'block', marginBottom: 4,
+                      }}>
+                        Материалы:
+                      </Caption>
+                      {h.materials.map(a => (
+                        <a
+                          key={a.url}
+                          href={a.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          style={{
+                            display: 'flex', alignItems: 'center', gap: 6,
+                            color: 'var(--vkui--color_text_accent)',
+                            textDecoration: 'none', paddingBlock: 3,
+                          }}
+                        >
+                          <Icon28AttachOutline width={16} height={16} />
+                          <Caption>{a.name}</Caption>
+                        </a>
+                      ))}
+                    </div>
+                  )}
+
                   {canSubmit && (h.state === 'none' || h.state === 'draft' || h.state === 'change' || h.state === 'reject') ? (
                     <>
                       {h.answer_required && (
@@ -407,7 +437,10 @@ export const HomeworkList: React.FC<{
                           disabled={h.answer_required && !answer.trim()}
                           onClick={() => send(h)}
                         >
-                          Сдать
+                          {/* Есть что сдать (обязателен ответ или
+                              прикреплены файлы) — «Сдать»; нечего
+                              сдавать — «Сделано» (как в Classroom). */}
+                          {(h.answer_required || files.length > 0) ? 'Сдать' : 'Сделано'}
                         </Button>
                       </div>
                       {files.length > 0 && (
@@ -488,7 +521,90 @@ export interface MyHomeworkItem {
   total: number;
   /** Сдач в состоянии submit (ждут проверки учителя). */
   to_review: number;
+  answer_required: boolean;
+  materials_count: number;
 }
+
+/** Материалы задания (учитель): прикрепление + список. */
+const MaterialsEditor: React.FC<{ assignmentId: number }> = ({ assignmentId }) => {
+  const [materials, setMaterials] = React.useState<HomeworkAttachment[] | null>(null);
+  const [busy, setBusy] = React.useState(false);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+
+  const load = React.useCallback(async () => {
+    try {
+      const res = await apiGet<{ materials: HomeworkAttachment[] }>(
+        `/rost_max/api/homework/${assignmentId}/materials`);
+      setMaterials(res.materials || []);
+    } catch {
+      setMaterials([]);
+    }
+  }, [assignmentId]);
+
+  React.useEffect(() => { load(); }, [load]);
+
+  const addFiles = async (list: FileList | null) => {
+    if (!list || list.length === 0) return;
+    const MAX_MB = 10;
+    const payload = [];
+    for (const f of Array.from(list)) {
+      const goodType = f.type.startsWith('image/') || f.type === 'application/pdf';
+      if (goodType && f.size <= MAX_MB * 1024 * 1024) {
+        try {
+          payload.push({ filename: f.name, mimetype: f.type, b64: await fileToBase64(f) });
+        } catch { /* пропускаем нечитаемый файл */ }
+      }
+    }
+    if (payload.length === 0) return;
+    setBusy(true);
+    try {
+      const res = await apiPost<{ materials?: HomeworkAttachment[] }>(
+        `/rost_max/api/homework/${assignmentId}/materials`,
+        { files: payload });
+      if (res.materials) setMaterials(res.materials);
+    } catch { /* оставляем прежний список */ }
+    setBusy(false);
+  };
+
+  return (
+    <div onClick={e => e.stopPropagation()} style={{ marginTop: 6 }}>
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*,application/pdf"
+        multiple
+        style={{ display: 'none' }}
+        onChange={e => { addFiles(e.target.files); e.target.value = ''; }}
+      />
+      <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+        <Button
+          size="s"
+          mode="tertiary"
+          loading={busy}
+          before={<Icon28AttachOutline width={18} height={18} />}
+          onClick={() => fileInputRef.current?.click()}
+        >
+          Материалы
+        </Button>
+        {materials && materials.length > 0 && materials.map(a => (
+          <a
+            key={a.url}
+            href={a.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              color: 'var(--vkui--color_text_accent)',
+              textDecoration: 'none',
+              fontSize: 12,
+            }}
+          >
+            {a.name}
+          </a>
+        ))}
+      </div>
+    </div>
+  );
+};
 
 export const MyHomework: React.FC<{ items: MyHomeworkItem[]; onOpen?: (id: number) => void }> = ({ items, onOpen }) => (
   <CardBlock title={<BlockTitle>Домашние задания</BlockTitle>}>
@@ -496,32 +612,36 @@ export const MyHomework: React.FC<{ items: MyHomeworkItem[]; onOpen?: (id: numbe
       <Div><Caption style={{ color: 'var(--vkui--color_text_secondary)' }}>Активных заданий нет</Caption></Div>
     ) : (
       items.map(h => (
-        <SimpleCell
-          key={h.id}
-          onClick={onOpen ? () => onOpen(h.id) : undefined}
-          before={
-            <span style={{
-              width: 8, height: 8, borderRadius: '50%', flexShrink: 0, marginTop: 2,
-              background: h.submitted >= h.total && h.total > 0
-                ? 'var(--vkui--color_background_positive)'
-                : 'var(--vkui--color_background_negative)',
-            }} />
-          }
-          after={
-            <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-              {h.to_review > 0 && (
-                <Counter mode="accent">{`${h.to_review} к проверке`}</Counter>
-              )}
-              <Counter mode="primary">{`Сдали ${h.submitted} из ${h.total}`}</Counter>
-            </div>
-          }
-          subtitle={[
-            `${h.batch} · ${fmtDue(h.due)}`,
-            h.task.length > 70 ? h.task.slice(0, 70) + '…' : h.task,
-          ].filter(Boolean).join(' · ') || undefined}
-        >
-          {h.subject}
-        </SimpleCell>
+        <div key={h.id} style={{ borderBottom: '1px solid var(--vkui--color_background_secondary)' }}>
+          <SimpleCell
+            onClick={onOpen ? () => onOpen(h.id) : undefined}
+            before={
+              <span style={{
+                width: 8, height: 8, borderRadius: '50%', flexShrink: 0, marginTop: 2,
+                background: h.submitted >= h.total && h.total > 0
+                  ? 'var(--vkui--color_background_positive)'
+                  : 'var(--vkui--color_background_negative)',
+              }} />
+            }
+            after={
+              <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                {h.to_review > 0 && (
+                  <Counter mode="accent">{`${h.to_review} к проверке`}</Counter>
+                )}
+                <Counter mode="primary">{`Сдали ${h.submitted} из ${h.total}`}</Counter>
+              </div>
+            }
+            subtitle={[
+              `${h.batch} · ${fmtDue(h.due)}`,
+              h.task.length > 70 ? h.task.slice(0, 70) + '…' : h.task,
+            ].filter(Boolean).join(' · ') || undefined}
+          >
+            {h.subject}
+          </SimpleCell>
+          <div style={{ padding: '0 16px 10px' }}>
+            <MaterialsEditor assignmentId={h.id} />
+          </div>
+        </div>
       ))
     )}
   </CardBlock>
