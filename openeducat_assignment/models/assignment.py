@@ -60,6 +60,13 @@ class OpAssignment(models.Model):
                                           'assignment_id', 'Submission')
     reviewer = fields.Many2one('op.faculty', 'Reviewer')
     active = fields.Boolean(default=True)
+    # Материалы задания (фото/pdf от учителя). X2many на ir.attachment
+    # нужен только для вью миниаппа/ПК — хранение через res_field
+    # hw_material (см. rost_lesson_homework).
+    material_ids = fields.One2many(
+        'ir.attachment', 'res_id', string='Материалы задания',
+        domain=[('res_model', '=', 'op.assignment'),
+                ('res_field', '=', 'hw_material')])
     grading_assignment_id = fields.Many2one('grading.assignment', 'Grading Assignment',
                                             required=True, ondelete="cascade")
     assignment_sub_line_count = fields.Integer(

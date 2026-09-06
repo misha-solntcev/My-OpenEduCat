@@ -53,6 +53,15 @@
                                 Требуется ответ при сдаче (текст от ученика)
                             </label>
                         </div>
+                        <!-- Материалы задания: вложения учителя (фото/pdf),
+                             видны ученикам в миниаппе. Прямое X2many
+                             поле material_ids на задании. -->
+                        <field name="material_ids" readonly="state in ('done', 'cancel')">
+                            <list>
+                                <field name="name" string="Файл"/>
+                                <field name="mimetype"/>
+                            </list>
+                        </field>
                     </div>
                 </div>
             </xpath>
