@@ -10,7 +10,7 @@
                     name="get_attendance" string="Attendance Sheet"
                     style="border-right: 1px solid;"
                     icon="fa-book"
-                    groups="openeducat_attendance.group_op_attendance_manager,openeducat_attendance.group_op_attendance_user"/>
+                    groups="openeducat_attendance.group_op_attendance_manager,openeducat_attendance.group_op_attendance_user,openeducat_attendance.group_teacher_attendance"/>
             </xpath>
         </field>
     </record>
