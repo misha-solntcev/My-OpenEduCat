@@ -9,8 +9,9 @@ import {
 } from '@vkontakte/icons';
 import { LessonRow } from '@/shared/components/LessonRow';
 import { TimedGroups } from '@/shared/components/TimedGroups';
+import { MaterialsEditor } from '@/shared/components/MaterialsEditor';
 import { initialsOf } from '@/shared/lib/initials';
-import { apiGet, apiPost, fileToBase64 } from '@/shared/lib/api';
+import { fileToBase64 } from '@/shared/lib/api';
 import type {
   HomeworkSubmissionsResponse,
   HomeworkSubmissionStudent,
@@ -524,87 +525,6 @@ export interface MyHomeworkItem {
   answer_required: boolean;
   materials_count: number;
 }
-
-/** Материалы задания (учитель): прикрепление + список. */
-const MaterialsEditor: React.FC<{ assignmentId: number }> = ({ assignmentId }) => {
-  const [materials, setMaterials] = React.useState<HomeworkAttachment[] | null>(null);
-  const [busy, setBusy] = React.useState(false);
-  const fileInputRef = React.useRef<HTMLInputElement>(null);
-
-  const load = React.useCallback(async () => {
-    try {
-      const res = await apiGet<{ materials: HomeworkAttachment[] }>(
-        `/rost_max/api/homework/${assignmentId}/materials`);
-      setMaterials(res.materials || []);
-    } catch {
-      setMaterials([]);
-    }
-  }, [assignmentId]);
-
-  React.useEffect(() => { load(); }, [load]);
-
-  const addFiles = async (list: FileList | null) => {
-    if (!list || list.length === 0) return;
-    const MAX_MB = 10;
-    const payload = [];
-    for (const f of Array.from(list)) {
-      const goodType = f.type.startsWith('image/') || f.type === 'application/pdf';
-      if (goodType && f.size <= MAX_MB * 1024 * 1024) {
-        try {
-          payload.push({ filename: f.name, mimetype: f.type, b64: await fileToBase64(f) });
-        } catch { /* пропускаем нечитаемый файл */ }
-      }
-    }
-    if (payload.length === 0) return;
-    setBusy(true);
-    try {
-      const res = await apiPost<{ materials?: HomeworkAttachment[] }>(
-        `/rost_max/api/homework/${assignmentId}/materials`,
-        { files: payload });
-      if (res.materials) setMaterials(res.materials);
-    } catch { /* оставляем прежний список */ }
-    setBusy(false);
-  };
-
-  return (
-    <div onClick={e => e.stopPropagation()} style={{ marginTop: 6 }}>
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept="image/*,application/pdf"
-        multiple
-        style={{ display: 'none' }}
-        onChange={e => { addFiles(e.target.files); e.target.value = ''; }}
-      />
-      <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-        <Button
-          size="s"
-          mode="tertiary"
-          loading={busy}
-          before={<Icon28AttachOutline width={18} height={18} />}
-          onClick={() => fileInputRef.current?.click()}
-        >
-          Материалы
-        </Button>
-        {materials && materials.length > 0 && materials.map(a => (
-          <a
-            key={a.url}
-            href={a.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{
-              color: 'var(--vkui--color_text_accent)',
-              textDecoration: 'none',
-              fontSize: 12,
-            }}
-          >
-            {a.name}
-          </a>
-        ))}
-      </div>
-    </div>
-  );
-};
 
 export const MyHomework: React.FC<{ items: MyHomeworkItem[]; onOpen?: (id: number) => void }> = ({ items, onOpen }) => (
   <CardBlock title={<BlockTitle>Домашние задания</BlockTitle>}>

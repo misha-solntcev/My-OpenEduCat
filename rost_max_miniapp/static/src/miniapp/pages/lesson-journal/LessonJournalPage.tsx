@@ -34,6 +34,7 @@ export const LessonJournalPage: React.FC<LessonJournalPageProps> = ({ id, lesson
     setTopic,
     setHomework,
     setAnswerRequired,
+    setAssignmentId,
     saveAll,
     toggleColumn,
     handleBack,
@@ -122,10 +123,12 @@ export const LessonJournalPage: React.FC<LessonJournalPageProps> = ({ id, lesson
             <Box paddingBlockEnd="l">
               <TopicHomeworkCard
                 lesson={lesson}
+                lessonId={lessonId}
                 canEdit={canEdit}
                 onTopicChange={setTopic}
                 onHomeworkChange={setHomework}
                 onAnswerRequiredChange={setAnswerRequired}
+                onAssignmentCreated={setAssignmentId}
               />
             </Box>
           )}

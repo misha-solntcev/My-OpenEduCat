@@ -27,6 +27,7 @@ interface UseLessonJournalReturn {
   setTopic: (topic: string) => void;
   setHomework: (homework: string) => void;
   setAnswerRequired: (value: boolean) => void;
+  setAssignmentId: (id: number) => void;
   saveAll: () => Promise<void>;
   toggleColumn: (key: 'grade_2' | 'grade_3' | 'note', value: boolean) => Promise<void>;
   handleBack: () => void;
@@ -129,6 +130,12 @@ export function useLessonJournal(lessonId: number | null, onBack: () => void): U
     setDirty(true);
   };
 
+  // Задание создано прикреплением материалов прямо из журнала — запоминаем
+  // id, чтобы дальше работать с ним (MaterialsEditor), без перезагрузки.
+  const setAssignmentId = (id: number) => {
+    setLesson(prev => prev ? { ...prev, homework_assignment_id: id } : prev);
+  };
+
   const saveAll = async () => {
     if (saving || !dirty) return;
     setSaving(true);
@@ -156,6 +163,9 @@ export function useLessonJournal(lessonId: number | null, onBack: () => void): U
       );
       if (res.error) throw new Error(res.error);
       setDirty(false);
+      // Перезачитываем: при первом сохранении ДЗ write() на sheet создаёт
+      // op.assignment — без reload журнала не узнает его id (материалы).
+      loadStudents();
     } catch {
       setError('Не удалось сохранить. Изменения сохранены локально, повторите позже.');
     } finally {
@@ -263,6 +273,7 @@ export function useLessonJournal(lessonId: number | null, onBack: () => void): U
     setTopic,
     setHomework,
     setAnswerRequired,
+    setAssignmentId,
     saveAll,
     toggleColumn,
     handleBack,

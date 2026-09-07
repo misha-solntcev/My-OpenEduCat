@@ -10,6 +10,16 @@ class OpAttendanceSheet(models.Model):
     lesson_homework = fields.Char('Домашнее задание', size=512)
     homework_assignment_id = fields.Many2one(
         'op.assignment', 'ДЗ (op.assignment)', readonly=True, copy=False)
+    # Материалы задания (вложения учителя) — related на задание для
+    # ПК-формы журнала. X2many related без инверсии: только чтение/список.
+    material_ids = fields.Many2many(
+        'ir.attachment', string='Материалы задания',
+        compute='_compute_material_ids')
+
+    def _compute_material_ids(self):
+        for sheet in self:
+            asg = sheet.homework_assignment_id
+            sheet.material_ids = asg.material_ids if asg else False
 
     # ------------------------------------------------------------------
     # Срок сдачи: следующий урок того же предмета у того же batch
@@ -38,8 +48,14 @@ class OpAttendanceSheet(models.Model):
             asg = sheet.homework_assignment_id
 
             if not hw:
-                # ДЗ убрали из журнала — отменяем задание
-                if asg and asg.state not in ('cancel', 'finish'):
+                # ДЗ убрали из журнала — отменяем задание. НО: если у задания
+                # есть материалы (фото доски как единственное содержимое ДЗ),
+                # задание оставляем — это полноценное ДЗ без текста.
+                if asg and asg.state not in ('cancel', 'finish') \
+                        and not self.env['ir.attachment'].sudo().search_count([
+                            ('res_model', '=', asg._name),
+                            ('res_id', '=', asg.id),
+                            ('res_field', '=', 'hw_material')]):
                     asg.act_cancel()
                 continue
 

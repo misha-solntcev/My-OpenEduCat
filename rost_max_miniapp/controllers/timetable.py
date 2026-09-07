@@ -182,6 +182,47 @@ def _check_lesson_write_access(sheet):
     return None
 
 
+def _clean_hw_files(files):
+    """Валидация вложений (base64 в JSON) — общая для сдач, материалов
+    задания и материалов урока. Лимиты: 5 файлов, 10 МБ каждый, только
+    изображения/pdf. Тело запроса целиком ограничено limiter'ом Odoo;
+    10 МБ base64 ~ 13.7 МБ — в лимите по умолчанию.
+
+    Возвращает (clean, None) или (None, Response) с ошибкой.
+    """
+    if not isinstance(files, list) or len(files) > 5:
+        return None, request.make_json_response(
+            {"error": "Не более 5 вложений"}, status=400)
+    ALLOWED_MIMES = (
+        'image/jpeg', 'image/png', 'image/webp',
+        'image/heic', 'image/heif', 'application/pdf',
+    )
+    MAX_SIZE = 10 * 1024 * 1024
+    clean = []
+    for f in files:
+        if not isinstance(f, dict) or not f.get('b64'):
+            continue
+        mime = (f.get('mimetype') or '').split(';')[0].strip().lower()
+        if mime not in ALLOWED_MIMES:
+            return None, request.make_json_response(
+                {"error": "Только фото (JPEG/PNG/HEIC) или PDF"},
+                status=400)
+        try:
+            raw = base64.b64decode(f['b64'], validate=True)
+        except Exception:
+            return None, request.make_json_response(
+                {"error": "Некорректный файл"}, status=400)
+        if len(raw) > MAX_SIZE:
+            return None, request.make_json_response(
+                {"error": "Файл больше 10 МБ"}, status=400)
+        clean.append({
+            'filename': (f.get('filename') or 'attachment')[:128],
+            'mimetype': mime,
+            'b64': f['b64'],
+        })
+    return clean, None
+
+
 class RostMaxTimetableController(http.Controller):
     """Мини-приложение для MAX: расписание занятий"""
 
@@ -731,6 +772,74 @@ class RostMaxTimetableController(http.Controller):
 
         return request.make_json_response({"success": True, "written": written})
 
+    @http.route("/rost_max/api/lesson/<int:lesson_id>/materials",
+                type="http", auth="public", methods=["POST"], cors="*",
+                csrf=False)
+    def api_lesson_materials(self, lesson_id):
+        """API: учитель прикрепляет материалы к ДЗ ПРЯМО ИЗ ЖУРНАЛА УРОКА,
+        текст ДЗ не обязателен (фото доски = полноценное ДЗ).
+
+        Задания нет -> создаём через sheet.write({'lesson_homework': ...})
+        (тот же проверенный синк: срок «до следующего урока», allocation,
+        publish); при пустом тексте — заглушка «Домашнее задание (фото)».
+        Права — те же, что у /save (_check_lesson_write_access); на
+        state=done — 403 (readonly-семантика журнала).
+        """
+        restore_session_if_needed()
+        csrf_err = _check_spa_csrf()
+        if csrf_err:
+            return csrf_err
+        if not request.session.uid:
+            return request.make_json_response(
+                {"error": "Unauthorized"}, status=401)
+
+        sheet = request.env['op.attendance.sheet'].sudo().browse(lesson_id)
+        if not sheet.exists():
+            return request.make_json_response(
+                {"error": "Урок не найден"}, status=404)
+
+        access_err = _check_lesson_write_access(sheet)
+        if access_err:
+            return access_err
+        if sheet.state == 'done':
+            return request.make_json_response(
+                {"error": "Урок закрыт — ДЗ нельзя изменить"}, status=403)
+
+        try:
+            body = request.get_json_data()
+        except Exception:
+            return request.make_json_response(
+                {"error": "Invalid JSON"}, status=400)
+
+        clean_files, err = _clean_hw_files(body.get('files') or [])
+        if err:
+            return err
+        if not clean_files:
+            return request.make_json_response(
+                {"error": "Не передано ни одного файла"}, status=400)
+
+        created = False
+        if not getattr(sheet, 'homework_assignment_id', False):
+            created = True
+            hw = (getattr(sheet, 'lesson_homework', '') or '').strip()
+            # Пишем lesson_homework только если текста ещё нет: иначе
+            # write() воспримет это как правку и тронет существующее задание.
+            sheet.write({'lesson_homework': hw or 'Домашнее задание (фото)'})
+        asg = sheet.homework_assignment_id
+        if not asg:
+            # Синк создаёт задание только при state start/done (семантика
+            # модуля ДЗ) — например, журнал ещё не начат.
+            return request.make_json_response(
+                {"error": "Журнал не начат — сначала откройте урок"},
+                status=409)
+        asg._hw_store_attachments(clean_files)
+        return request.make_json_response({
+            "success": True,
+            "created": created,
+            "assignment_id": asg.id,
+            "materials": asg._hw_material_payload(),
+        })
+
     @http.route("/rost_max/api/journal/columns", type="http", auth="public", methods=["GET", "POST"], cors="*", csrf=False)
     def api_journal_columns(self, **kw):
         """GET/POST: персональная настройка колонок журнала (res.users).
@@ -1154,45 +1263,8 @@ class RostMaxTimetableController(http.Controller):
             return request.make_json_response(
                 {"error": "Ответ обязателен"}, status=400)
 
-        # Вложения: base64 в JSON. Лимиты: 5 файлов, 10 МБ каждый,
-        # только изображения/pdf. Тело запроса целиком ограничено
-        # limiter'ом Odoo; 10 МБ base64 ~ 13.7 МБ — в лимите по умолчанию.
-        def _clean_files(files):
-            """[(filename, mimetype, b64)] или Response с ошибкой."""
-            if not isinstance(files, list) or len(files) > 5:
-                return None, request.make_json_response(
-                    {"error": "Не более 5 вложений"}, status=400)
-            ALLOWED_MIMES = (
-                'image/jpeg', 'image/png', 'image/webp',
-                'image/heic', 'image/heif', 'application/pdf',
-            )
-            MAX_SIZE = 10 * 1024 * 1024
-            import base64 as b64mod
-            clean = []
-            for f in files:
-                if not isinstance(f, dict) or not f.get('b64'):
-                    continue
-                mime = (f.get('mimetype') or '').split(';')[0].strip().lower()
-                if mime not in ALLOWED_MIMES:
-                    return None, request.make_json_response(
-                        {"error": "Только фото (JPEG/PNG/HEIC) или PDF"},
-                        status=400)
-                try:
-                    raw = b64mod.b64decode(f['b64'], validate=True)
-                except Exception:
-                    return None, request.make_json_response(
-                        {"error": "Некорректный файл"}, status=400)
-                if len(raw) > MAX_SIZE:
-                    return None, request.make_json_response(
-                        {"error": "Файл больше 10 МБ"}, status=400)
-                clean.append({
-                    'filename': (f.get('filename') or 'attachment')[:128],
-                    'mimetype': mime,
-                    'b64': f['b64'],
-                })
-            return clean, None
-
-        clean_files, err = _clean_files(body.get('files') or [])
+        # Вложения: base64 в JSON — валидация в общем хелпере _clean_hw_files.
+        clean_files, err = _clean_hw_files(body.get('files') or [])
         if err:
             return err
 
