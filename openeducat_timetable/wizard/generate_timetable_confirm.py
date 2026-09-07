@@ -16,6 +16,14 @@ class GenerateTimeTableConfirm(models.TransientModel):
         ('overlap', 'Заменить совпадающие'),
         ('all', 'Перезаписать весь период'),
     ], default='add', required=True)
+    # «Утвердить конфликты автоматически»: новые уроки, попавшие на занятый
+    # слот, создаются с conflict_override=True (класс/кабинет). Учительские
+    # пересечения НЕ утверждаются автоматически — их разрешает человек.
+    auto_approve = fields.Boolean(
+        'Утвердить конфликты автоматически',
+        help='Новые уроки, попавшие на занятое время, будут созданы '
+             'с отметкой «Конфликт утверждён» (класс и кабинет). '
+             'Конфликты учителей останутся красными — их разрешает завуч.')
 
     # --- Предрасчитанная сводка (заполняется при открытии) ---
     stat_new = fields.Integer('Будет создано')
@@ -27,6 +35,7 @@ class GenerateTimeTableConfirm(models.TransientModel):
     can_overlap = fields.Boolean(compute='_compute_mode_availability')
     can_all = fields.Boolean(compute='_compute_mode_availability')
     empty_period = fields.Boolean(compute='_compute_mode_availability')
+    has_soft_conflicts = fields.Boolean(compute='_compute_mode_availability')
     summary_html = fields.Html(compute='_compute_summary_html')
 
     @api.depends('stat_existing', 'stat_overlap')
@@ -35,6 +44,12 @@ class GenerateTimeTableConfirm(models.TransientModel):
             rec.can_overlap = rec.stat_overlap > 0
             rec.can_all = rec.stat_existing > 0
             rec.empty_period = rec.stat_existing == 0
+            # Мягкие конфликты = новые уроки на занятые слоты в режиме add
+            # (stat_overlap считался только по точному совпадению день+слот;
+            # фактические пересечения по времени могут быть шире, но для
+            # чекбокса этой оценки достаточно — точный список смотрит
+            # action_apply).
+            rec.has_soft_conflicts = rec.stat_overlap > 0
             if not rec.can_overlap and rec.mode == 'overlap':
                 rec.mode = 'add'
 
@@ -71,11 +86,17 @@ class GenerateTimeTableConfirm(models.TransientModel):
                 if rec.mode == 'overlap' else \
                 min(rec.stat_protected, rec.stat_existing)
             if rec.mode == 'add':
-                rows.append(
-                    "<div class='alert alert-info py-2 px-3 mb-1'>"
-                    "При применении: существующие уроки <b>не изменятся</b>, "
-                    "добавится <b>%s</b> новых. Если новый урок попадёт на "
-                    "занятый слот — будет ошибка.</div>" % rec.stat_new)
+                if rec.has_soft_conflicts:
+                    rows.append(
+                        "<div class='alert alert-warning py-2 px-3 mb-1'>"
+                        "Некоторые новые уроки попадут на занятое время — "
+                        "они будут созданы и <b>подсвечены красным</b> "
+                        "(конфликт разрешается вручную в расписании).</div>")
+                else:
+                    rows.append(
+                        "<div class='alert alert-info py-2 px-3 mb-1'>"
+                        "При применении: существующие уроки <b>не изменятся</b>, "
+                        "добавится <b>%s</b> новых.</div>" % rec.stat_new)
             elif rec.mode == 'overlap':
                 rows.append(
                     "<div class='alert alert-info py-2 px-3 mb-1'>"
@@ -174,7 +195,10 @@ class GenerateTimeTableConfirm(models.TransientModel):
         to_delete = to_delete - protected
         to_delete.unlink()
 
-        # 4. Контроль занятости слотов (после удаления)
+        # 4. Конфликты слотов: точные дубли пропускаем, пересечения — мягко.
+        # Режим add больше НЕ блокирует занятые слоты (возврат к прежнему
+        # поведению «красная карточка + ручное разрешение»): новые уроки
+        # создаются, конфликт виден в расписании, завуч решает.
         remaining = Session.search([
             ('batch_id', '=', target_batch.id),
             ('state', '!=', 'cancel'),
@@ -184,23 +208,65 @@ class GenerateTimeTableConfirm(models.TransientModel):
         occupied = defaultdict(list)
         for sess in remaining:
             occupied[(sess.timetable_date, sess.timing_id.id)].append(sess)
+
+        sessions_to_create = []
         for d in sessions_data:
             hits = occupied.get((d['timetable_date'], d['timing_id']))
             if hits:
-                raise ValidationError(
-                    "Слот уже занят: %s, %s — там стоит урок «%s». "
-                    "Выберите «Заменить совпадающие» или освободите слот."
-                    % (d['timetable_date'].strftime('%d.%m.%Y'),
-                       hits[0].timing_id.name or '',
-                       hits[0].subject_id.name or ''))
+                exact = [s for s in hits
+                         if s.subject_id.id == d['subject_id']
+                         and s.faculty_id.id == d['faculty_id']]
+                if exact:
+                    # Точный дубль (класс+день+слот+предмет+учитель) —
+                    # повторная генерация не должна плодить копии.
+                    continue
+            sessions_to_create.append(d)
+            occupied[(d['timetable_date'], d['timing_id'])].append(d)
 
         # 5. Конфликт-чекер учителей/кабинетов
         get_param = self.env['ir.config_parameter'].sudo().get_param
         allow_f = get_param('timetable.allow_faculty_overlap', 'True') == 'True'
         allow_b = get_param('timetable.allow_batch_overlap', 'True') == 'True'
         allow_c = get_param('timetable.allow_classroom_overlap', 'True') == 'True'
-        wizard._check_batch_conflicts(sessions_data, allow_f, allow_c, allow_b)
+        wizard._check_batch_conflicts(sessions_to_create, allow_f, allow_c, allow_b)
 
-        # 6. Создание
-        Session.create(sessions_data)
+        # 6. Создание. При auto_approve — precreate-оценка пересечений:
+        # новым урокам с конфликтом КЛАССА или КАБИНЕТА ставится
+        # conflict_override=True. Учительские пересечения не утверждаются.
+        if self.auto_approve:
+            for d in sessions_to_create:
+                d['conflict_override'] = False
+            fac_iv = defaultdict(list)
+            cls_iv = defaultdict(list)
+            bat_iv = defaultdict(list)
+            for sess in remaining:
+                iv = (sess.start_datetime, sess.end_datetime)
+                if sess.faculty_id.id:
+                    fac_iv[sess.faculty_id.id].append(iv)
+                if sess.classroom_id.id:
+                    cls_iv[sess.classroom_id.id].append(iv)
+                bat_iv[sess.batch_id.id].append(iv)
+
+            def _hit(iv_map, key, d):
+                return any(s < d['end_datetime'] and e > d['start_datetime']
+                           for s, e in iv_map.get(key, []))
+
+            for d in sessions_to_create:
+                fac = _hit(fac_iv, d['faculty_id'], d)
+                cls = _hit(cls_iv, d['classroom_id'], d)
+                bat = _hit(bat_iv, d['batch_id'], d)
+                # Утверждаем только класс/кабинет; пересечение учителя
+                # оставляем красным — его разрешает человек.
+                if (bat or cls) and not fac:
+                    d['conflict_override'] = True
+                # Занятость наращиваем: два новых урока в одном слоте
+                # должны видеть пересечение друг с другом.
+                iv = (d['start_datetime'], d['end_datetime'])
+                if d['faculty_id']:
+                    fac_iv[d['faculty_id']].append(iv)
+                if d['classroom_id']:
+                    cls_iv[d['classroom_id']].append(iv)
+                bat_iv[d['batch_id']].append(iv)
+
+        Session.create(sessions_to_create)
         return {'type': 'ir.actions.act_window_close'}

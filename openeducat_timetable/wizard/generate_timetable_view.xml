@@ -32,6 +32,11 @@
                             <field name="mode" widget="radio"
                                 options="{'horizontal': true}" nolabel="1" />
                         </group>
+                        <field name="has_soft_conflicts" invisible="1" />
+                        <field name="auto_approve" widget="boolean_toggle"
+                            invisible="mode != 'add' or not has_soft_conflicts" />
+                        <label for="auto_approve" string=" "
+                            invisible="mode != 'add' or not has_soft_conflicts" />
                     </div>
                     <div class="alert alert-info py-2 px-3" role="status" invisible="not empty_period">
                         Расписание на этот период свободно. Просто нажмите «Применить».
