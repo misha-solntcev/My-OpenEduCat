@@ -213,12 +213,16 @@ class GenerateTimeTableConfirm(models.TransientModel):
         for d in sessions_data:
             hits = occupied.get((d['timetable_date'], d['timing_id']))
             if hits:
+                # hits = записи из БД (recordset) + dict-и новых уроков этой
+                # же пачки. Точный дубль ищем только среди записей из БД —
+                # дубли ВНУТРИ пачки недопустимы по определению (два урока
+                # в одном слоте одной генерации), их оставляем — далее
+                # конфликт-чекер/автоутверждение разберут пересечение.
                 exact = [s for s in hits
-                         if s.subject_id.id == d['subject_id']
+                         if not isinstance(s, dict)
+                         and s.subject_id.id == d['subject_id']
                          and s.faculty_id.id == d['faculty_id']]
                 if exact:
-                    # Точный дубль (класс+день+слот+предмет+учитель) —
-                    # повторная генерация не должна плодить копии.
                     continue
             sessions_to_create.append(d)
             occupied[(d['timetable_date'], d['timing_id'])].append(d)
