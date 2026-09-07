@@ -16,12 +16,16 @@ class GenerateTimeTableConfirm(models.TransientModel):
         ('overlap', 'Заменить совпадающие'),
         ('all', 'Перезаписать весь период'),
     ], default='add', required=True)
-    # «Утвердить конфликты автоматически»: новые уроки, попавшие на занятый
-    # слот, создаются с conflict_override=True (класс/кабинет). Учительские
+    # «Утвердить конфликты автоматически»: урок, попавший на занятое время,
+    # создаётся с conflict_override=True (класс/кабинет). Учительские
     # пересечения НЕ утверждаются автоматически — их разрешает человек.
+    # Пересечения ВНУТРИ одной генерации («два электива параллельно»)
+    # разбираются вторым проходом: если пара утверждается целиком, флаг
+    # ставится ОБЕИМ карточкам (иначе первая остаётся красной — она
+    # обрабатывается раньше, чем «увидит» вторую).
     auto_approve = fields.Boolean(
         'Утвердить конфликты автоматически',
-        help='Новые уроки, попавшие на занятое время, будут созданы '
+        help='Уроки, попавшие на занятое время, будут созданы '
              'с отметкой «Конфликт утверждён» (класс и кабинет). '
              'Конфликты учителей останутся красными — их разрешает завуч.')
 
@@ -261,6 +265,7 @@ class GenerateTimeTableConfirm(models.TransientModel):
                 bat = _hit(bat_iv, d['batch_id'], d)
                 # Утверждаем только класс/кабинет; пересечение учителя
                 # оставляем красным — его разрешает человек.
+                d['_fac_hit'] = fac
                 if (bat or cls) and not fac:
                     d['conflict_override'] = True
                 # Занятость наращиваем: два новых урока в одном слоте
@@ -271,6 +276,32 @@ class GenerateTimeTableConfirm(models.TransientModel):
                 if d['classroom_id']:
                     cls_iv[d['classroom_id']].append(iv)
                 bat_iv[d['batch_id']].append(iv)
+
+            # Второй проход по внутрипачечным пересечениям: урок A утверждён
+            # (класс/кабинет), а урок B, пересекающийся с ним, был обработан
+            # РАНЬШЕ и флаг не получил (A тогда ещё «не существовал»). Если B
+            # сам не имеет учительского пересечения — утверждаем его тоже,
+            # чтобы не оставлять половину пары красной.
+            for i, a in enumerate(sessions_to_create):
+                if not a.get('conflict_override'):
+                    continue
+                for b in sessions_to_create[:i]:
+                    if b.get('conflict_override'):
+                        continue
+                    same_slot = (a['timetable_date'] == b['timetable_date']
+                                 and a['timing_id'] == b['timing_id'])
+                    if not same_slot:
+                        continue
+                    if b['_fac_hit']:
+                        continue
+                    # bat/cls пересечение уже гарантировано: a и b в одном
+                    # слоте одной генерации одного класса (same_slot) —
+                    # batch совпадает по построению.
+                    b['conflict_override'] = True
+
+        # служебный ключ не должен уйти в create()
+        for d in sessions_to_create:
+            d.pop('_fac_hit', None)
 
         Session.create(sessions_to_create)
         return {'type': 'ir.actions.act_window_close'}
