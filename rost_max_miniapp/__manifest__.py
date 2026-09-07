@@ -5,7 +5,7 @@
     'category': 'Tools',
     'summary': 'Мини-приложение для MAX с расписанием занятий',
     'depends': ['web', 'openeducat_core', 'openeducat_attendance'],
-    'data': ['views/templates.xml'],
+    'data': ['security/ir.model.access.csv', 'views/templates.xml'],
     'installable': True,
     'application': True,
     'auto_install': False,
