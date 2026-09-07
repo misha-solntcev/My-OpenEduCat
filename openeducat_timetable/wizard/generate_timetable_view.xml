@@ -50,7 +50,6 @@
                     <button string="Применить" type="object" name="action_apply"
                         class="btn-primary shadow-sm"
                         confirm="Применить выбранные изменения расписания?" />
-                    <button special="cancel" string="Отмена" class="btn-secondary" />
                 </footer>
             </form>
         </field>
@@ -95,8 +94,8 @@
 
                     <!-- 2. Переключатель блока импорта -->
                     <div class="d-flex align-items-center mt-2 mb-1">
-                        <span class="me-2" title="Копирование прошлого расписания">📄</span>
-                        <span class="text-dark fw-bold small me-2">Копировать прошлое расписание:</span>
+                        <i class="fa fa-download me-2" title="Копирование прошлого расписания" role="img"/>
+                        <span class="text-dark fw-bold small me-2">Импорт:</span>
                         <field name="show_import" widget="boolean_toggle" nolabel="1" class="m-0" />
                     </div>
 

@@ -20,8 +20,11 @@ class GenerateSession(models.TransientModel):
     # «вручную»: даты редактируются свободно, селектор только подставляет.
     term_id = fields.Many2one('op.academic.term', 'Период',
         domain="[('academic_year_id', '=', current_year_id)]")
+    # Обычное поле с default (НЕ computed): non-stored computed без полевых
+    # зависимостей не попадает в payload первого onchange — домен term_id
+    # оставался пустым до первого любого onchange.
     current_year_id = fields.Many2one('op.academic.year',
-        compute='_compute_current_year')
+        default=lambda self: self._default_current_year())
 
     import_start_date = fields.Date('Начало периода импорта')
     import_end_date = fields.Date('Конец периода импорта')
@@ -60,15 +63,13 @@ class GenerateSession(models.TransientModel):
         return (today + datetime.timedelta(days=30)).replace(day=1) \
             - datetime.timedelta(days=1)
 
-    @api.depends_context('uid')
-    def _compute_current_year(self):
+    @api.model
+    def _default_current_year(self):
         today = fields.Date.context_today(self)
-        year = self.env['op.academic.year'].search([
+        return self.env['op.academic.year'].search([
             ('start_date', '<=', today),
             ('end_date', '>=', today),
-        ], limit=1)
-        for rec in self:
-            rec.current_year_id = year.id
+        ], limit=1).id
 
     @api.onchange('term_id')
     def _onchange_term_id(self):
