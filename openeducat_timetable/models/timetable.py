@@ -45,7 +45,8 @@ class OpSession(models.Model):
     # --- TIME FIELDS ---
     timetable_date = fields.Date(
         string='Дата урока', required=True, index=True,
-        compute='_compute_day_info', store=True, readonly=False)
+        compute='_compute_day_info', store=True, readonly=False,
+        precompute=True)
 
     days_id = fields.Many2one(
         'op.day', string='День недели',
