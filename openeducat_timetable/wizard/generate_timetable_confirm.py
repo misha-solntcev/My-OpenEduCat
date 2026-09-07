@@ -144,7 +144,7 @@ class GenerateTimeTableConfirm(models.TransientModel):
         wizard = self.gen_wizard_id
         if not wizard.time_table_lines:
             raise ValidationError("Таблица расписания не заполнена.")
-        target_batch = wizard.target_batch_id or wizard.batch_id
+        target_batch = wizard.batch_id
         target_course = target_batch.course_id
 
         # 1. Собрать новые уроки (тот же движок, что и раньше)

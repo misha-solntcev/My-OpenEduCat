@@ -64,26 +64,25 @@
                 <sheet>
                     <!-- 1. ВЕРХНИЙ БЛОК: Параметры генерации -->
                     <div class="row align-items-center g-2">
-                        <!-- Первая строка: 3 элемента в один ряд -->
                         <div class="col-lg-4">
                             <div class="d-flex align-items-center">
-                                <label for="course_id" string="Класс" class="me-2 fw-bold text-nowrap"/>
-                                <field name="course_id" 
-                                    options="{'no_create': True, 'no_open': True}" 
-                                    placeholder="Из какого"/>
+                                <label for="batch_id" string="Класс" class="me-2 fw-bold text-nowrap"/>
+                                <field name="batch_id"
+                                    options="{'no_create': True, 'no_open': True}"
+                                    placeholder="Для кого расписание"/>
                             </div>
                         </div>
-                        
+
                         <div class="col-lg-4">
                             <div class="d-flex align-items-center">
-                                <label for="batch_id" string="Параллель" class="me-2 fw-bold text-nowrap"/>
-                                <field name="batch_id" 
-                                    context="{'course_id': course_id}" 
-                                    options="{'no_create': True, 'no_open': True}" 
-                                    placeholder="Из какого"/>
+                                <label for="term_id" string="Период" class="me-2 fw-bold text-nowrap"/>
+                                <field name="current_year_id" invisible="1" />
+                                <field name="term_id"
+                                    options="{'no_create': True, 'no_open': True}"
+                                    placeholder="Вручную"/>
                             </div>
                         </div>
-                        
+
                         <div class="col-lg-4">
                             <div class="d-flex align-items-center">
                                 <label for="start_date" class="fa fa-calendar-plus-o me-2" string=" " title="Период создания"/>
@@ -92,38 +91,30 @@
                                 <field name="end_date" widget="date"/>
                             </div>
                         </div>
-
-                        <!-- Вторая строка: И класс снизу на всю ширину -->
-                        <div class="col-12 mt-2">
-                            <div class="d-flex align-items-center">
-                                <label for="target_batch_id" string="Класс" class="me-2 fw-bold text-nowrap"/>
-                                <field name="target_batch_id" 
-                                    options="{'no_create': True, 'no_open': True}" 
-                                    placeholder="В какой" 
-                                    class="w-100"/>
-                            </div>
-                        </div>
                     </div>
 
-                    <!-- 2. ВТОРОЙ БЛОК: Инструмент импорта -->
+                    <!-- 2. Переключатель блока импорта -->
+                    <div class="d-flex align-items-center mt-2 mb-1">
+                        <span class="me-2" title="Копирование прошлого расписания">📄</span>
+                        <span class="text-dark fw-bold small me-2">Копировать прошлое расписание:</span>
+                        <field name="show_import" widget="boolean_toggle" nolabel="1" class="m-0" />
+                    </div>
+
+                    <!-- 3. БЛОК ИМПОРТА (виден только при show_import) -->
                     <div
                         class="alert alert-light border-0 border-start border-4 border-secondary py-2 px-3 mb-1"
-                        style="background-color: #f8f9fa;" role="status">
-                        <div class="text-muted small mb-1">
-                            <i class="fa fa-magic me-1" /> Копирование прошлого расписания
-                            (опционально) </div>
+                        style="background-color: #f8f9fa;" role="status"
+                        invisible="not show_import">
                         <div class="row align-items-center">
-                            <div class="col-lg-3">
-                                <button name="action_import_last_week" type="object" string="Импорт"
-                                    class="btn-secondary btn-sm w-100" icon="fa-download"
-                                    invisible="import_start_date and import_end_date" />
-                                <button name="action_import_last_week" type="object" string="Импорт"
-                                    class="btn-primary btn-sm w-100" icon="fa-download"
-                                    invisible="not import_start_date or not import_end_date" />
+                            <div class="col-lg-4">
+                                <div class="d-flex align-items-center">
+                                    <label for="source_batch_id" string="Из класса" class="me-2 fw-bold text-nowrap"/>
+                                    <field name="source_batch_id"
+                                        options="{'no_create': True, 'no_open': True}"
+                                        placeholder="Источник"/>
+                                </div>
                             </div>
-                            <div class="col-lg-3"></div>
-
-                            <div class="col-lg-6">
+                            <div class="col-lg-4">
                                 <group class="m-0 p-0">
                                     <label for="import_start_date" class="fa fa-calendar" string=" "
                                         title="Период импорта" />
@@ -133,6 +124,16 @@
                                         <field name="import_end_date" widget="date" />
                                     </div>
                                 </group>
+                            </div>
+                            <div class="col-lg-4 text-end">
+                                <button name="action_import_last_week" type="object" string="Импорт"
+                                    class="btn-secondary btn-sm"
+                                    icon="fa-download"
+                                    invisible="import_start_date and import_end_date and source_batch_id" />
+                                <button name="action_import_last_week" type="object" string="Импорт"
+                                    class="btn-primary btn-sm"
+                                    icon="fa-download"
+                                    invisible="not import_start_date or not import_end_date or not source_batch_id" />
                             </div>
                         </div>
                     </div>

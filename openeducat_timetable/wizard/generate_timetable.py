@@ -7,22 +7,29 @@ import datetime
 class GenerateSession(models.TransientModel):
     _name = "generate.time.table"
     _description = "Generate Sessions"
-    _rec_name = "course_id"
+    _rec_name = "batch_id"
     _inherit = ['op.time.mixin']
 
-    course_id = fields.Many2one('op.course', 'Класс', required=True)
-    batch_id = fields.Many2one('op.batch', 'Параллель', required=True)
+    batch_id = fields.Many2one('op.batch', 'Класс', required=True,
+        help='Класс, для которого создаётся расписание.')
 
     start_date = fields.Date('Дата начала генерации', required=True, default=fields.Date.context_today)
     end_date = fields.Date('Дата окончания генерации', required=True,
-        default=lambda self: (fields.Date.context_today(self) + datetime.timedelta(days=30)).replace(day=1) - datetime.timedelta(days=1))
+        default=lambda self: self._default_end_date())
+    # Селектор периода (четверть/семестр из op.academic.term). Пусто =
+    # «вручную»: даты редактируются свободно, селектор только подставляет.
+    term_id = fields.Many2one('op.academic.term', 'Период',
+        domain="[('academic_year_id', '=', current_year_id)]")
+    current_year_id = fields.Many2one('op.academic.year',
+        compute='_compute_current_year')
 
     import_start_date = fields.Date('Начало периода импорта')
     import_end_date = fields.Date('Конец периода импорта')
-    target_batch_id = fields.Many2one(
-        'op.batch', 'Создать расписание для класса',
-        help='Класс, в который будет создано расписание. '
-             'Пусто = класс, выбранный выше.')
+    source_batch_id = fields.Many2one(
+        'op.batch', 'Копировать из класса',
+        help='Класс, чьё расписание копируется кнопкой «Импорт». '
+             'Пусто = импорт невозможен.')
+    show_import = fields.Boolean('Показать импорт', default=False)
 
     time_table_lines = fields.One2many(
         'gen.time.table.line', 'gen_time_table', 'Time Table Lines')
@@ -38,17 +45,45 @@ class GenerateSession(models.TransientModel):
     subject_stats_info = fields.Html('Статистика нагрузки', compute='_compute_all_stats')
     faculty_stats_info = fields.Html('Нагрузка учителей', compute='_compute_all_stats')
 
-    @api.onchange('start_date')
-    def _onchange_start_date(self):
-        if self.start_date:
-            next_month = self.start_date.replace(day=28) + datetime.timedelta(days=4)
-            self.end_date = next_month.replace(day=1) - datetime.timedelta(days=1)
+    @api.model
+    def _default_end_date(self):
+        """Конец текущего семестра; если сегодня не накрыт ни одним
+        семестром — конец месяца (прежнее поведение)."""
+        today = fields.Date.context_today(self)
+        Term = self.env['op.academic.term']
+        term = Term.search([
+            ('term_start_date', '<=', today),
+            ('term_end_date', '>=', today),
+        ], order='term_start_date desc', limit=1)
+        if term:
+            return term.term_end_date
+        return (today + datetime.timedelta(days=30)).replace(day=1) \
+            - datetime.timedelta(days=1)
 
-    @api.onchange('course_id')
-    def _onchange_course_id(self):
-        if self.course_id:
-            batches = self.env['op.batch'].search([('course_id', '=', self.course_id.id)])
-            self.batch_id = batches[0].id if len(batches) == 1 else False
+    @api.depends_context('uid')
+    def _compute_current_year(self):
+        today = fields.Date.context_today(self)
+        year = self.env['op.academic.year'].search([
+            ('start_date', '<=', today),
+            ('end_date', '>=', today),
+        ], limit=1)
+        for rec in self:
+            rec.current_year_id = year.id
+
+    @api.onchange('term_id')
+    def _onchange_term_id(self):
+        if self.term_id:
+            self.start_date = self.term_id.term_start_date
+            self.end_date = self.term_id.term_end_date
+
+    @api.onchange('start_date', 'end_date')
+    def _onchange_dates_manual(self):
+        """Ручная правка дат сбрасывает селектор периода — он не должен
+        показывать терм, которому даты уже не соответствуют."""
+        if self.term_id and (
+                self.start_date != self.term_id.term_start_date
+                or self.end_date != self.term_id.term_end_date):
+            self.term_id = False
 
     @api.onchange('batch_id')
     def _onchange_batch_id(self):
@@ -158,7 +193,7 @@ class GenerateSession(models.TransientModel):
         self.ensure_one()
         if not self.time_table_lines:
             raise ValidationError("Таблица расписания не заполнена.")
-        target_batch = self.target_batch_id or self.batch_id
+        target_batch = self.batch_id
         target_course = target_batch.course_id
 
         # Собираем новые уроки (день недели x строки мастера)
@@ -283,11 +318,14 @@ class GenerateSession(models.TransientModel):
 
     def action_import_last_week(self):
         self.ensure_one()
+        if not self.source_batch_id:
+            raise ValidationError(
+                "Укажите класс-источник: из какого класса копировать расписание.")
         if not (self.import_start_date and self.import_end_date):
             raise ValidationError("Выберите даты для импорта.")
 
         sessions = self.env['op.session'].search([
-            ('batch_id', '=', self.batch_id.id),
+            ('batch_id', '=', self.source_batch_id.id),
             ('timetable_date', '>=', self.import_start_date),
             ('timetable_date', '<=', self.import_end_date),
             ('state', '!=', 'cancel'),
