@@ -400,7 +400,7 @@ class GenerateSessionLine(models.TransientModel):
             other_used_ids = [tid for tid in used_timing_ids if tid != current_id]
             return {'domain': {'timing_id': [('id', 'not in', other_used_ids)]}}
 
-    @api.onchange('gen_time_table.batch_id')
+    @api.onchange('classroom_id')
     def _onchange_classroom_id(self):
         for rec in self:
             if rec.gen_time_table.batch_id:
