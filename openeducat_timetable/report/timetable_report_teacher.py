@@ -59,7 +59,10 @@ class ReportTimeTableTeacherGenerate(models.AbstractModel):
                 'batch': timetable_obj.batch_id.name,
             }
             data_list.append(timetable_data)
-        ttdl = sorted(data_list, key=lambda k: k['start_datetime'])
+        # По времени суток, не по полной дате — иначе строки периодов
+        # выстраиваются «день за днём» (слот без уроков в понедельник
+        # уезжает в середину таблицы). См. timetable_report_student.py.
+        ttdl = sorted(data_list, key=lambda k: k['start_datetime'][11:])
         return self.sort_tt(ttdl)
 
     @api.model

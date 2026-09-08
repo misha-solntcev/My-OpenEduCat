@@ -91,7 +91,11 @@ class ReportTimetableStudentGenerate(models.AbstractModel):
                 'subject': timetable_obj.subject_id.name,
             }
             data_list.append(timetable_data)
-        ttdl = sorted(data_list, key=lambda k: k['start_datetime'])
+        # Сортировка по ВРЕМЕНИ СУТОК, а не по полной datetime: периоды
+        # собираются из уроков разных дней недели, сортировка по полной
+        # дате ставила новые строки в порядке «день за днём» (слот 09:30,
+        # отсутствующий в понедельник, уезжал в середину таблицы).
+        ttdl = sorted(data_list, key=lambda k: k['start_datetime'][11:])
         return self.sort_tt(ttdl)
 
     @api.model
