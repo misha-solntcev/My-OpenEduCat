@@ -824,7 +824,11 @@ class RostMaxTimetableController(http.Controller):
             hw = (getattr(sheet, 'lesson_homework', '') or '').strip()
             # Пишем lesson_homework только если текста ещё нет: иначе
             # write() воспримет это как правку и тронет существующее задание.
-            sheet.write({'lesson_homework': hw or 'Домашнее задание (фото)'})
+            # Объявление в канал здесь подавляем — запостим ниже, уже
+            # с вложениями (фото доски = содержимое ДЗ).
+            sheet.with_context(
+                hw_skip_channel_announce=True,
+            ).write({'lesson_homework': hw or 'Домашнее задание (фото)'})
         asg = sheet.homework_assignment_id
         if not asg:
             # Синк создаёт задание только при state start/done (семантика
@@ -833,6 +837,14 @@ class RostMaxTimetableController(http.Controller):
                 {"error": "Журнал не начат — сначала откройте урок"},
                 status=409)
         asg._hw_store_attachments(clean_files)
+        if created and hasattr(type(sheet), '_hw_channel_announce'):
+            # Задание создано контроллером (ДЗ = фото доски): синк уже запостил
+            # объявление, но без вложений — дополним сообщение материалами.
+            try:
+                sheet._hw_channel_announce(
+                    asg, 'created', attachments=asg.material_ids)
+            except Exception:
+                request.env.cr.savepoint()
         return request.make_json_response({
             "success": True,
             "created": created,
