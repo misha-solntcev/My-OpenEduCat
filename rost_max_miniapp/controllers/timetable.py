@@ -593,8 +593,10 @@ class RostMaxTimetableController(http.Controller):
         avatar_map = {}
         if request.session.uid:
             student_ids = sheet.attendance_line.student_id.ids
+            # image_128 (stored binary), НЕ avatar_128: avatar_* — non-stored
+            # compute, в домен search не годится (ERROR 'cannot be searched').
             with_photo = request.env['op.student'].sudo().search(
-                [('id', 'in', student_ids), ('avatar_128', '!=', False)])
+                [('id', 'in', student_ids), ('image_128', '!=', False)])
             avatar_map = {
                 s.id: '/web/image/op.student/%s/avatar_1920' % s.id
                 for s in with_photo
