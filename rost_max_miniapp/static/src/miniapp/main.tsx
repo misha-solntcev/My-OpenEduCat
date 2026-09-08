@@ -46,7 +46,7 @@ const Root = () => {
             = content (белый/#19191a) — как в настройках MAX. Без layout Panel
             в WebView получает mode=none и красит всю страницу в content,
             из-за чего карточки на том же токене сливаются с фоном. */}
-        <AppRoot mode="full" layout="card" style={{ background: 'var(--vkui--color_background)' }}>
+        <AppRoot mode="full" layout="card" safeAreaInsets={{ top: 0 }} style={{ background: 'var(--vkui--color_background)' }}>
           {/* В MAX WebView нет консоли: без Boundary render-error = белый экран */}
           <ErrorBoundary>
             <App />
