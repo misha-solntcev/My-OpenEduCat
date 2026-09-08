@@ -8,6 +8,7 @@
     'depends': [
         'openeducat_attendance',
         'openeducat_assignment',
+        'mail',
     ],
     'data': [
         'views/attendance_sheet_homework_view.xml',

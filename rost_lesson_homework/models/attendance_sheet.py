@@ -1,7 +1,10 @@
 from datetime import timedelta
 
+from markupsafe import Markup
+
 from odoo import api, fields, models
 from odoo.exceptions import UserError
+from odoo.tools import html2plaintext
 
 
 class OpAttendanceSheet(models.Model):
@@ -24,6 +27,61 @@ class OpAttendanceSheet(models.Model):
     # ------------------------------------------------------------------
     # Срок сдачи: следующий урок того же предмета у того же batch
     # ------------------------------------------------------------------
+    # ------------------------------------------------------------------
+    # Дублирование ДЗ в канал класса/предмета (Discuss)
+    # ------------------------------------------------------------------
+    def _hw_channel(self):
+        """Канал предмета «<batch> — <subject>», фолбэк — канал класса «<batch>»."""
+        self.ensure_one()
+        Channel = self.env['discuss.channel'].sudo()
+        names = []
+        if self.batch_id and self.subject_id:
+            names.append(f"{self.batch_id.name} — {self.subject_id.name}")
+        if self.batch_id:
+            names.append(self.batch_id.name)
+        for name in names:
+            ch = Channel.search([
+                ('name', '=', name),
+                ('channel_type', '=', 'channel'),
+            ], limit=1)
+            if ch:
+                return ch
+        return Channel.browse(())
+
+    def _hw_channel_post(self, asg, body, attachments=None):
+        """Пост в канал от текущего юзера. Безопасно: любая ошибка — только warning."""
+        self.ensure_one()
+        channel = self._hw_channel()
+        if not channel:
+            return
+        try:
+            channel.with_context(mail_create_nosubscribe=True).message_post(
+                body=body,
+                message_type='comment',
+                subtype_xmlid='mail.mt_comment',
+                attachment_ids=[(4, a.id) for a in (attachments or [])],
+            )
+        except Exception:
+            self.env.cr.savepoint()  # откатить недописанный пост, не уронить синк
+
+    def _hw_channel_announce(self, asg, event, attachments=None):
+        if self.env.context.get('hw_skip_channel_announce'):
+            return
+        self.ensure_one()
+        if event == 'created':
+            deadline = asg.submission_date
+            body = Markup(
+                '<b>Новое домашнее задание</b> (%(subject)s)<br/>%(hw)s<br/>'
+                'Срок сдачи: %(deadline)s'
+            ) % {
+                'subject': self.subject_id.name,
+                'hw': asg.name,
+                'deadline': deadline.strftime('%d.%m.%Y %H:%M') if deadline else '—',
+            }
+        else:  # 'edited'
+            body = Markup('<i>Текст домашнего задания изменён.</i>')
+        self._hw_channel_post(asg, body, attachments=attachments)
+
     def _next_lesson_datetime(self):
         self.ensure_one()
         now = fields.Datetime.now()
@@ -57,6 +115,7 @@ class OpAttendanceSheet(models.Model):
                             ('res_id', '=', asg.id),
                             ('res_field', '=', 'hw_material')]):
                     asg.act_cancel()
+                    self._hw_channel_delete(asg)
                 continue
 
             if asg:
@@ -72,6 +131,10 @@ class OpAttendanceSheet(models.Model):
                     # Задание заново ввели после очистки — перепубликуем
                     asg.act_set_to_draft()
                     asg.act_publish()
+                elif vals:
+                    self._hw_channel_announce(
+                        asg, 'edited',
+                        attachments=asg.material_ids)
                 continue
 
             # Создаём новое задание
@@ -99,6 +162,30 @@ class OpAttendanceSheet(models.Model):
                         ('state', '=', 'studying'),
                     ]).ids)],
             })
+            sheet._hw_channel_announce(
+                sheet.homework_assignment_id, 'created',
+                attachments=sheet.homework_assignment_id.material_ids)
+
+    def _hw_channel_delete(self, asg):
+        """ДЗ очистили — удалить сообщение в канале (отменённое ДЗ не постим)."""
+        self.ensure_one()
+        channel = self._hw_channel()
+        if not channel:
+            return
+        needle = (html2plaintext(asg.name or '') or '').strip()[:100]
+        if not needle:
+            return
+        msg = self.env['mail.message'].sudo().search([
+            ('model', '=', 'discuss.channel'),
+            ('res_id', '=', channel.id),
+            ('body', 'ilike', needle),
+            ('message_type', '=', 'comment'),
+        ], order='id desc', limit=1)
+        if msg:
+            try:
+                self.env['mail.message'].sudo().browse(msg.id).unlink()
+            except Exception:
+                self.env.cr.savepoint()
 
     def write(self, vals):
         res = super().write(vals)
