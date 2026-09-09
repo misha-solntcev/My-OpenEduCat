@@ -98,7 +98,9 @@ class ReportTimetableStudentGenerate(models.AbstractModel):
                     tools.DEFAULT_SERVER_DATETIME_FORMAT),
                 'day': day,
                 'subject': timetable_obj.subject_id.name,
-                'faculty': timetable_obj.faculty_surname,
+                # Имя Отчество без фамилии: "Фамилия Имя Отчество" -> [1:]
+                'faculty': ' '.join(
+                    (timetable_obj.faculty_id.name or '').split()[1:]),
             }
             data_list.append(timetable_data)
         # Сортировка по ВРЕМЕНИ СУТОК, а не по полной datetime: периоды
