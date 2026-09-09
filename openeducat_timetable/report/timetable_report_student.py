@@ -27,12 +27,16 @@ class TimetableReportMixin(models.AbstractModel):
     _name = 'report.openeducat_timetable.timetable_mixin'
     _description = 'Timetable Report Mixin'
 
+    # Школа в СПб: отчёт всегда в московском времени, независимо от
+    # таймзоны того, кто печатает (иначе у каждого своя версия документа).
+    REPORT_TZ = 'Europe/Moscow'
+
     def _convert_to_local_timezone(self, time):
         '''
-            Converts time as per local timezone.
+            Converts time to the school timezone (Europe/Moscow).
         '''
         if time:
-            timezone = pytz.timezone(self._context['tz'] or 'UTC')
+            timezone = pytz.timezone(self.REPORT_TZ)
             utc_in_time = pytz.UTC.localize(fields.Datetime.from_string(time))
             local_time = utc_in_time.astimezone(timezone)
             return local_time
@@ -83,14 +87,14 @@ class ReportTimetableStudentGenerate(models.AbstractModel):
         data_list = []
         for timetable_obj in self.env['op.session'].browse(
                 data['time_table_ids']):
-            oldDate = pytz.UTC.localize(
-                fields.Datetime.from_string(timetable_obj.start_datetime))
-            day = str(oldDate.weekday())
+            # День недели от московской даты, а не UTC — иначе у раннего
+            # урока понедельника день уехал бы в воскресенье.
+            local_dt = self._convert_to_local_timezone(
+                timetable_obj.start_datetime)
+            day = str(local_dt.weekday())
             timetable_data = {
-                'period': self._convert_to_local_timezone(
-                    timetable_obj.start_datetime).strftime('%H:%M'),
-                'start_datetime': self._convert_to_local_timezone(
-                    timetable_obj.start_datetime).strftime(
+                'period': local_dt.strftime('%H:%M'),
+                'start_datetime': local_dt.strftime(
                     tools.DEFAULT_SERVER_DATETIME_FORMAT),
                 'day': day,
                 'subject': timetable_obj.subject_id.name,
