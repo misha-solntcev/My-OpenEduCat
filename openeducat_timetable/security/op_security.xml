@@ -29,13 +29,18 @@
                    eval="[(4, ref('openeducat_timetable.group_op_timetable_user'))]"/>
         </record>
 
-        <!-- Студент видит свои сессии (через user_ids в session) -->
+        <!-- Студент видит сессии своего класса (по batch), родитель — класса
+             ребёнка (child_ids), плюс fallback user_ids. Batch-ветка нужна,
+             потому что user_ids — stored compute (см. _compute_user_ids):
+             он замораживает состав учеников НА МОМЕНТ создания сессии.
+             Ученик, получивший пользователя ПОЗЖЕ генерации расписания,
+             через user_ids сессии не видит вовсе (кейс Климовских, 2026-09). -->
         <record model="ir.rule" id="student_session_rule">
             <field name="name">Student Session rule</field>
             <field name="model_id" ref="model_op_session"/>
             <field name="groups"
                    eval="[(4, ref('openeducat_core.group_op_students'))]"/>
-            <field name="domain_force">['|', ('user_ids','in',user.id), ('user_ids','in',user.child_ids.ids)]</field>
+            <field name="domain_force">['|','|', ('batch_id','in',user.user_line.active_batch_id.ids), ('user_ids','in',user.id), ('user_ids','in',user.child_ids.ids)]</field>
         </record>
 
         <!-- Учитель: ВЕСЬ тайминг школы (матрица 2026-08-23).
