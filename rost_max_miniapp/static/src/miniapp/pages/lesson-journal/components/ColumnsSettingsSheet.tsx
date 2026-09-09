@@ -5,7 +5,6 @@ import {
   ModalPageHeader,
   PanelHeaderClose,
   Button,
-  ButtonGroup,
   Switch,
   Box,
   Flex,
@@ -54,11 +53,11 @@ export const ColumnsSettingsSheet: React.FC<ColumnsSettingsSheetProps> = ({
           </ModalPageHeader>
         }
         footer={
-          <ButtonGroup gap="m" mode="vertical" stretched>
+          <Flex justify="center">
             <Button size="l" mode="primary" appearance="accent" onClick={onClose}>
-              Готово
+              ОК
             </Button>
-          </ButtonGroup>
+          </Flex>
         }
       >
         <Box padding="m" paddingInline="l" paddingBlockEnd="xl">

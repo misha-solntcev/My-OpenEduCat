@@ -1,5 +1,5 @@
 import React from 'react';
-import { Flex, Avatar, Switch, IconButton, ModalPage, ModalPageHeader, PanelHeaderClose, Button, ButtonGroup, unstable_ModalPageFooter as ModalPageFooter, AppRootPortal, Box, Caption, Input } from '@vkontakte/vkui';
+import { Flex, Avatar, Switch, IconButton, ModalPage, ModalPageHeader, PanelHeaderClose, Button, unstable_ModalPageFooter as ModalPageFooter, AppRootPortal, Box, Caption, Input } from '@vkontakte/vkui';
 import { Icon28DeleteOutline } from '@vkontakte/icons';
 import { GradeColumns } from './GradeColumns';
 import type { AttendanceType, GradeField, JournalColumns } from '@/shared/lib/types';
@@ -79,16 +79,16 @@ export const BulkSheet: React.FC<BulkSheetProps> = ({
         }
         footer={
           <ModalPageFooter>
-            <ButtonGroup gap="m" mode="vertical" stretched>
+            <Flex justify="center">
               <Button
                 size="l"
                 mode="primary"
                 appearance="accent"
                 onClick={onClose}
               >
-                Готово
+                ОК
               </Button>
-            </ButtonGroup>
+            </Flex>
           </ModalPageFooter>
         }
       >
