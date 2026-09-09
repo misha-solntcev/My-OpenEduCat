@@ -14,12 +14,10 @@
                                     <b>Расписание занятий</b>
                                 </h2>
                                 <div style="font-size: 14px; color: #666;">
-                                    <span t-esc="data['course_id'][1]"/>
                                     <t t-if="data.get('batch_id')">
-                                        <span> &#183; </span>
                                         <span t-esc="data['batch_id'][1]"/>
+                                        <span> &#183; </span>
                                     </t>
-                                    <span> &#183; </span>
                                     <span t-esc="data['start_date']" t-options="{'widget':'date'}"/>
                                     &#8212;
                                     <span t-esc="data['end_date']" t-options="{'widget':'date'}"/>
