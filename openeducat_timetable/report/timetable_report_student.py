@@ -87,12 +87,14 @@ class ReportTimetableStudentGenerate(models.AbstractModel):
                 fields.Datetime.from_string(timetable_obj.start_datetime))
             day = str(oldDate.weekday())
             timetable_data = {
-                'period': timetable_obj.timing,
+                'period': self._convert_to_local_timezone(
+                    timetable_obj.start_datetime).strftime('%H:%M'),
                 'start_datetime': self._convert_to_local_timezone(
                     timetable_obj.start_datetime).strftime(
                     tools.DEFAULT_SERVER_DATETIME_FORMAT),
                 'day': day,
                 'subject': timetable_obj.subject_id.name,
+                'faculty': timetable_obj.faculty_surname,
             }
             data_list.append(timetable_data)
         # Сортировка по ВРЕМЕНИ СУТОК, а не по полной datetime: периоды

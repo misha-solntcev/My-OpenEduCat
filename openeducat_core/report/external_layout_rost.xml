@@ -21,7 +21,11 @@
                     </td>
                     <td style="vertical-align: middle;">
                         <div style="font-size: 18px; font-weight: 700; color: #2d4383;">ЧОУ СПбГШ «РОСТ»</div>
-                        <div style="font-size: 16px; font-weight: 600; color: #555555; margin-top: 2px;">Библиотека</div>
+                        <!-- Подзаголовок задаёт отчёт через t-set="doc_subtitle";
+                             без него строка не выводится -->
+                        <div t-if="doc_subtitle" style="font-size: 16px; font-weight: 600; color: #555555; margin-top: 2px;">
+                            <t t-out="doc_subtitle"/>
+                        </div>
                     </td>
                     <td style="text-align: right; vertical-align: middle;">
                         <div style="font-size: 14px; color: #555555; line-height: 1.5;">
