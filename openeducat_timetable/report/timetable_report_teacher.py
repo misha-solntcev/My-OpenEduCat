@@ -25,6 +25,15 @@ class ReportTimeTableTeacherGenerate(models.AbstractModel):
         faculty_name = self.env['op.faculty'].browse(data['faculty_id'][0])
         return faculty_name.name
 
+    @staticmethod
+    def _short_name(full_name):
+        """Фамилия + инициалы: "Рудик Екатерина Сергеевна" -> "Рудик Е. С."."""
+        parts = (full_name or '').split()
+        if len(parts) < 2:
+            return full_name or ''
+        initials = ' '.join('%s.' % p[0] for p in parts[1:])
+        return '%s %s' % (parts[0], initials)
+
     def sort_tt(self, data_list):
         """Строка на период; ячейка дня — список уроков (см. mixin)."""
         main_list = []
@@ -57,7 +66,9 @@ class ReportTimeTableTeacherGenerate(models.AbstractModel):
                 'subject': timetable_obj.subject_id.name,
                 'course': timetable_obj.course_id.name,
                 'batch': timetable_obj.batch_id.name,
-                'faculty': timetable_obj.faculty_surname,
+                # Фамилия + инициалы: "Рудик Екатерина Сергеевна" ->
+                # "Рудик Е. С."
+                'faculty': self._short_name(timetable_obj.faculty_id.name),
             }
             data_list.append(timetable_data)
         # По времени суток, не по полной дате — иначе строки периодов
