@@ -264,12 +264,32 @@ class OpSession(models.Model):
             }
 
     # ---------------------------------------------------------------
-    # WRITE — snap time to nearest grid slot
+    # WRITE / CREATE — sync conflict flags of intersecting sessions
     # ---------------------------------------------------------------
 
+    def _conflict_neighbor_ids(self):
+        """Ids of other sessions intersecting any of these records."""
+        ids = set()
+        for rec in self:
+            if rec.id:
+                ids.update(rec._find_overlapping_sessions().ids)
+        return list(ids)
+
+    def _recompute_conflict_flags(self):
+        """Recalculate stored has_conflict/color on this recordset.
+        Needed for *neighbors*: a stored compute only triggers on the
+        record whose own fields changed, but moving session A also
+        changes whether session B has a conflict."""
+        for rec in self:
+            rec._compute_has_conflict()
+        for rec in self:
+            rec._compute_session_color()
+        self.env['op.session'].flush_model(['has_conflict', 'color',
+                                            'conflict_override'])
+
     def write(self, vals):
-        """Override: snap time to grid + reset conflict override
-        when conflict-relevant fields change."""
+        """Override: snap time to grid + drop conflict override only
+        when the conflict persists after the move."""
         if any(f in vals for f in ('start_datetime', 'timing_id', 'timetable_date')):
             for rec in self:
                 sync = rec._sync_time_values(
@@ -279,16 +299,51 @@ class OpSession(models.Model):
                 )
                 if sync:
                     vals.update(sync)
-        # Reset conflict_override if time or resources changed
-        # (unless user is explicitly setting it to True right now)
         _RESET_FIELDS = {
             'start_datetime', 'end_datetime',
             'faculty_id', 'batch_id', 'classroom_id',
             'timing_id', 'timetable_date',
         }
-        if vals.get('conflict_override') is not True and _RESET_FIELDS.intersection(vals):
-            vals['conflict_override'] = False
-        return super(OpSession, self).write(vals)
+        # Auto-reset is deferred: the override survives the move if the
+        # session lands in a free slot (e.g. drag away and drag back).
+        # Writes that carry only conflict-flag fields (from our own
+        # _recompute_conflict_flags) must skip this logic entirely,
+        # otherwise flag compute -> write -> compute recursion.
+        _FLAG_ONLY = {'has_conflict', 'color', 'conflict_override'}
+        if _FLAG_ONLY.issuperset(vals):
+            return super(OpSession, self).write(vals)
+        auto_reset = (vals.get('conflict_override') is None
+                      and _RESET_FIELDS.intersection(vals))
+        if auto_reset:
+            vals.pop('conflict_override', None)
+        # Neighbors BEFORE the move: sessions that intersected the old
+        # time/resources — they may stop conflicting once we move.
+        pre_neighbors = self.browse(self._conflict_neighbor_ids())
+        res = super(OpSession, self).write(vals)
+        # Neighbors AFTER the move: new intersections.
+        post_neighbors = self.browse(self._conflict_neighbor_ids())
+        (self | pre_neighbors | post_neighbors)._recompute_conflict_flags()
+        if auto_reset:
+            # Reset approval only where a conflict still exists.
+            self.filtered(lambda r: r.has_conflict).write(
+                {'conflict_override': False})
+            (self | pre_neighbors | post_neighbors)._recompute_conflict_flags()
+        return res
+
+    @api.model_create_multi
+    def create(self, vals_list):
+        sessions = super(OpSession, self).create(vals_list)
+        # New session may put neighbors into conflict.
+        (sessions | sessions.browse(
+            sessions._conflict_neighbor_ids()))._recompute_conflict_flags()
+        return sessions
+
+    def unlink(self):
+        # Neighbors before deletion: their conflict may disappear with us.
+        pre_neighbors = self.browse(self._conflict_neighbor_ids())
+        res = super(OpSession, self).unlink()
+        pre_neighbors._recompute_conflict_flags()
+        return res
 
     # ---------------------------------------------------------------
     # CONSTRAINS — blocking validation
