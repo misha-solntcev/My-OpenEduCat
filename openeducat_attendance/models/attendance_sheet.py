@@ -84,36 +84,54 @@ class OpAttendanceSheet(models.Model):
             'attendance_line': []
         })
 
+    # --- СОСТАВ КЛАССА (с учётом разбивки на уровни) ---
+    def _get_session_students(self):
+        """Ученики для строк журнала.
+
+        Если предмет урока не записан ни у одной записи зачисления
+        класса (course_id, batch_id, state=running) — класс не разбит
+        по предметам, возвращаем всех активных учеников (старое
+        поведение). Если предмет записан хотя бы у части детей —
+        берём только записанных на него (базовый/профильный уровень).
+        """
+        self.ensure_one()
+        details = self.env['op.student.course'].sudo().search([
+            ('course_id', '=', self.session_id.course_id.id),
+            ('batch_id', '=', self.batch_id.id),
+            ('state', '=', 'running'),
+        ])
+        students = details.mapped('student_id').filtered(
+            lambda s: s.active)
+        subject = self.session_id.subject_id
+        enrolled = details.filtered(
+            lambda d: subject.id in d.subject_ids.ids)
+        if not enrolled:
+            return students
+        return enrolled.mapped('student_id').filtered(
+            lambda s: s.active)
+
     # --- ГЕНЕРАЦИЯ СПИСКА ДЕТЕЙ ---
     def action_generate_lines(self):
         """Создает строки учеников, если их еще нет"""
         for rec in self:
             if not rec.attendance_line:
-                students = self.env['op.student'].sudo().search([
-                    ('course_detail_ids.course_id', '=', rec.session_id.course_id.id),
-                    ('course_detail_ids.batch_id', '=', rec.batch_id.id),
-                    ('course_detail_ids.state', '=', 'running'),
-                    ('active', '=', True)
-                ])
+                students = rec._get_session_students()
                 lines = [(0, 0, {'student_id': s.id, 'attendance_type_id': False}) for s in students]
                 rec.write({'attendance_line': lines})
 
     def _sync_lines(self):
-        """Синхронизация строк журнала с текущим составом batch.
+        """Синхронизация строк журнала с текущим составом класса.
 
-        В отличие от action_generate_lines() работает не только с пустым
-        журналом: досоздаёт строки новеньким и удаляет строки выбывших /
-        неактивных. Данные (оценки/посещаемость) при пересоздании строки
+        Состав берётся из _get_session_students() — с учётом разбивки
+        класса на уровни (база/профиль) по subject_ids зачисления.
+        Работает не только с пустым журналом: досоздаёт строки
+        новеньким и удаляет строки выбывших / неактивных. Данные
+        (оценки/посещаемость) при пересоздании строки
         теряются, поэтому удаление делаем только для строк БЕЗ данных.
         Строки выбывшего с данными оставляем (история не должна пропасть).
         """
         for rec in self:
-            current_students = self.env['op.student'].sudo().search([
-                ('course_detail_ids.course_id', '=', rec.session_id.course_id.id),
-                ('course_detail_ids.batch_id', '=', rec.batch_id.id),
-                ('course_detail_ids.state', '=', 'running'),
-                ('active', '=', True)
-            ])
+            current_students = rec._get_session_students()
             existing = {l.student_id.id: l for l in rec.attendance_line}
             to_add = [(0, 0, {'student_id': s.id, 'attendance_type_id': False})
                       for s in current_students if s.id not in existing]
