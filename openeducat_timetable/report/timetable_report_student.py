@@ -38,19 +38,23 @@ class TimetableReportMixin(models.AbstractModel):
             return local_time
 
     def sort_tt(self, data_list):
+        """Строка на каждый период времени; ячейка дня — СПИСОК уроков.
+
+        В один слот может попадать несколько уроков (совмещённые занятия,
+        разбитые группы) — все они должны попасть в отчёт, а не
+        перезаписывать друг друга.
+        """
         main_list = []
-        f = []
         for d in data_list:
-            if d['period'] not in f:
-                f.append(d['period'])
+            for m in main_list:
+                if m['name'] == d['period']:
+                    m['line'].setdefault(d['day'], []).append(d)
+                    break
+            else:
                 main_list.append({
                     'name': d['period'],
-                    'line': {d['day']: d},
+                    'line': {d['day']: [d]},
                 })
-            else:
-                for m in main_list:
-                    if m['name'] == d['period']:
-                        m['line'][d['day']] = d
         return main_list
 
     def get_days(self, lines, data):

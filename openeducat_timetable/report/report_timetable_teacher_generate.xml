@@ -43,16 +43,19 @@
                                         </td>
                                         <t t-foreach="days" t-as="d">
                                             <td style="font-size: 12px; padding: 10px 6px; border: 1px solid #999; text-align: center; vertical-align: middle;">
-                                                <t t-set="cell" t-value="a['line'].get(d[0])"/>
-                                                <span t-if="cell and cell.get('course')" t-esc="cell['course']"/>
-                                                <t t-if="cell and cell.get('batch')">
-                                                    <br/>
-                                                    <span t-esc="cell['batch']"/>
-                                                </t>
-                                                <t t-if="cell and cell.get('subject')">
-                                                    <br/>
-                                                    <b><span t-esc="cell['subject']"/></b>
-                                                </t>
+                                                <t t-foreach="a['line'].get(d[0]) or []" t-as="cell">
+                                                <div>
+                                                    <span t-if="cell.get('course')" t-esc="cell['course']"/>
+                                                    <t t-if="cell.get('batch')">
+                                                        <span t-if="cell.get('course')"> </span>
+                                                        <span t-esc="cell['batch']"/>
+                                                    </t>
+                                                    <t t-if="cell.get('subject')">
+                                                        <br/>
+                                                        <b><span t-esc="cell['subject']"/></b>
+                                                    </t>
+                                                </div>
+                                            </t>
                                             </td>
                                         </t>
                                     </tr>
