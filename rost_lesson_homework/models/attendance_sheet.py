@@ -60,7 +60,7 @@ class OpAttendanceSheet(models.Model):
         except Exception:
             self.env.cr.savepoint()  # откатить недописанный пост, не уронить синк
 
-    def _hw_channel_announce(self, asg, event, attachments=None):
+    def _hw_channel_announce(self, asg, event, attachments=None, find_needle=None):
         if self.env.context.get('hw_skip_channel_announce'):
             return
         self.ensure_one()
@@ -74,9 +74,31 @@ class OpAttendanceSheet(models.Model):
                 'hw': asg.name,
                 'deadline': deadline.strftime('%d.%m.%Y %H:%M') if deadline else '—',
             }
-        else:  # 'edited'
-            body = Markup('<i>Текст домашнего задания изменён.</i>')
-        self._hw_channel_post(asg, body, attachments=attachments)
+            self._hw_channel_post(asg, body, attachments=attachments)
+        else:  # 'edited' — перезаписать исходное сообщение (Odoo сам пометит
+            # «(изменено)»), а не плодить новые посты. Ищем по find_needle
+            # (старый текст ДЗ): в теле сообщения текст ещё старый.
+            deadline = asg.submission_date
+            body = Markup(
+                '<b>Новое домашнее задание</b> (%(subject)s)<br/>%(hw)s<br/>'
+                'Срок сдачи: %(deadline)s'
+            ) % {
+                'subject': self.subject_id.name,
+                'hw': asg.name,
+                'deadline': deadline.strftime('%d.%m.%Y %H:%M') if deadline else '—',
+            }
+            msg = self._hw_channel_find_message(find_needle or asg.name)
+            if msg:
+                try:
+                    msg.write({
+                        'body': body,
+                        'attachment_ids': [(6, 0, [
+                            a.id for a in (attachments or [])])],
+                    })
+                except Exception:
+                    self.env.cr.savepoint()
+            # Сообщения нет (создавали до включения дубля в канал) — молча
+            # не восстанавливаем: ученик видит актуальное ДЗ в миниаппе.
 
     def _next_lesson_datetime(self):
         self.ensure_one()
@@ -112,22 +134,28 @@ class OpAttendanceSheet(models.Model):
                 continue
 
             if asg:
-                # Обновляем текст существующего задания
-                vals = {}
-                if asg.grading_assignment_id.name != hw:
+                # Обновляем текст существующего задания. Сравнение нормализованное:
+                # lesson_homework (Char) и description (Text) расходятся хвостовыми
+                # переводами строки -> иначе каждое сохранение журнала постит
+                # «изменён» в канал (пачки дублей у Ермаковой 10.09).
+                old_hw = (asg.description or '').strip()
+                text_changed = old_hw != hw
+                if (asg.grading_assignment_id.name or '').strip() != hw:
                     asg.grading_assignment_id.name = hw
-                if asg.description != hw:
-                    vals['description'] = hw
-                if vals:
-                    asg.write(vals)
+                if text_changed:
+                    asg.description = hw
                 if asg.state == 'cancel':
                     # Задание заново ввели после очистки — перепубликуем
                     asg.act_set_to_draft()
                     asg.act_publish()
-                elif vals:
+                elif text_changed:
+                    # Текст правлен — перезаписываем исходное сообщение в канале.
+                    # Odoo сам пометит его «(изменено)». Новые посты не плодим.
+                    # Ищем по СТАРОМУ тексту: в теле сообщения он ещё старый.
                     sheet._hw_channel_announce(
                         asg, 'edited',
-                        attachments=asg.material_ids)
+                        attachments=asg.material_ids,
+                        find_needle=old_hw)
                 continue
 
             # Создаём новое задание
@@ -158,6 +186,23 @@ class OpAttendanceSheet(models.Model):
             sheet._hw_channel_announce(
                 sheet.homework_assignment_id, 'created',
                 attachments=sheet.homework_assignment_id.material_ids)
+
+    def _hw_channel_find_message(self, needle_text):
+        """Исходное сообщение о ДЗ в канале — тело содержит текст задания."""
+        self.ensure_one()
+        channel = self._hw_channel()
+        if not channel:
+            return self.env['mail.message'].browse(())
+        needle = (html2plaintext(needle_text or '') or '').strip()[:100]
+        if not needle:
+            return self.env['mail.message'].browse(())
+        msg = self.env['mail.message'].sudo().search([
+            ('model', '=', 'discuss.channel'),
+            ('res_id', '=', channel.id),
+            ('body', 'ilike', needle),
+            ('message_type', '=', 'comment'),
+        ], order='id asc', limit=1)
+        return msg
 
     def _hw_channel_delete(self, asg):
         """ДЗ очистили — удалить сообщение в канале (отменённое ДЗ не постим)."""
