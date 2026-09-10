@@ -94,6 +94,18 @@ class OpSubjectRegistration(models.Model):
     def get_subjects(self):
         for record in self:
             subject_ids = []
+            # Обязательные предметы ученика: сначала предметы ЕГО зачисления
+            # (subject_ids в op.student.course — там учтены группы/уровни:
+            # база/профиль, англ. А/Б). Fallback — предметы курса (старое
+            # поведение), если у зачисления предметный набор не заполнен.
+            enrollment = self.env['op.student.course'].search([
+                ('student_id', '=', record.student_id.id),
+                ('course_id', '=', record.course_id.id),
+                ('state', '=', 'running'),
+            ], limit=1)
+            if enrollment and enrollment.subject_ids:
+                record.compulsory_subject_ids = [(6, 0, enrollment.subject_ids.ids)]
+                continue
             if record.course_id and record.course_id.subject_ids:
                 for subject in record.course_id.subject_ids:
                     if subject.subject_type == 'compulsory':

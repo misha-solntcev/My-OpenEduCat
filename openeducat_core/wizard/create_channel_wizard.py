@@ -85,11 +85,20 @@ class CreateChannelWizard(models.TransientModel):
             batch_sessions = sessions_by_batch.get(batch.id, self.env['op.session'])
             faculty = (batch_sessions.mapped('faculty_id') | batch.homeroom_faculty_ids).filtered(lambda f: f.user_id)
 
+            # Предметы каналов = объединение предметов ЗАЧИСЛЕНИЙ класса,
+            # а не course.subject_ids: при разбивке класса на группы/уровни
+            # (база/профиль, англ. А/Б) каналы создаются только по реально
+            # преподаваемым предметам. Fallback — предметы курса, если у
+            # зачислений subject_ids не заполнены (старые классы).
+            line_subjects = batch_enrollments.mapped('subject_ids')
+            if not line_subjects:
+                line_subjects = batch.course_id.subject_ids
+
             commands.append(fields.Command.create({
                 'academic_year_id': self.academic_year_id.id,
                 'course_id': batch.course_id.id,
                 'batch_id': batch.id,
-                'subject_ids': [fields.Command.set(batch.course_id.subject_ids.ids)],
+                'subject_ids': [fields.Command.set(line_subjects.ids)],
                 'student_ids': [fields.Command.set(students.ids)],
                 'faculty_ids': [fields.Command.set(faculty.ids)],
                 'admin_ids': [fields.Command.set(
@@ -210,6 +219,34 @@ class CreateChannelWizard(models.TransientModel):
             return self.env['res.groups']
         return self._get_or_create_channel_group(num)
 
+    def _get_or_create_subject_channel_group(self, batch, subject):
+        """Группа доступа к предметному каналу «Канал N класс — Предмет».
+
+        Отдельная группа на пару (класс, предмет): в неё попадают только
+        ученики, записанные на предмет (subject_ids зачисления), и
+        преподаватели этого предмета. Импликаций нет — по той же причине,
+        что и у классных групп каналов (rule 613).
+        """
+        class_num_match = re.match(r'^(\d+)', batch.name or '')
+        class_num = class_num_match.group(1) if class_num_match else batch.name
+        name = f'Канал {class_num} класс — {subject.display_name}'
+        group = self.env['res.groups'].search([('name', '=', name)], limit=1)
+        if not group:
+            group = self.env['res.groups'].create({'name': name})
+        return group
+
+    def _sync_subject_channel_group(self, group, students, faculty):
+        """Синхронизирует состав группы предметного канала.
+
+        Не снимает никого: снятие (перевод между группами) — ручная
+        операция завуча, автоматика может только добавлять (безопасно).
+        """
+        users = students.filtered(lambda s: s.user_id).mapped('user_id')
+        users |= faculty.filtered(lambda f: f.user_id).mapped('user_id')
+        for user in users:
+            if group not in user.groups_id:
+                user.write({'groups_id': [fields.Command.link(group.id)]})
+
     def _load_sessions_cache(self):
         """Возвращает sessions_by_batch: {(batch_id, subject_id): op.session recordset}."""
         batch_ids = self.course_line_ids.mapped('batch_id').ids
@@ -265,10 +302,11 @@ class CreateChannelWizard(models.TransientModel):
             })
 
             for subject in line.subject_ids:
+                subject_group = self._get_or_create_subject_channel_group(batch, subject)
                 channel_data.append({
                     'name': self._subject_channel_name(ch_name, subject),
                     'description': f'Предмет: {subject.display_name} ({ch_name})',
-                    'class_group': class_group,
+                    'class_group': subject_group,
                 })
 
         return channel_data, channel_pool
@@ -335,18 +373,41 @@ class CreateChannelWizard(models.TransientModel):
 
             channel_partners[class_channel_id] |= all_partners
 
+            # Зачисления учеников этого класса — источник состава предметных
+            # каналов: в канал предмета попадают только те, у кого предмет
+            # есть в subject_ids зачисления (база/профиль, англ. А/Б).
+            enrollments = self.env['op.student.course'].search([
+                ('batch_id', '=', batch.id),
+                ('state', '=', 'running'),
+                ('academic_years_id', '=', self.academic_year_id.id),
+            ])
+
             for subject in line.subject_ids:
                 sub_name = self._subject_channel_name(ch_name, subject)
                 subj_channel_id = channel_pool[sub_name].id
 
+                enrolled_students = enrollments.filtered(
+                    lambda e: subject.id in e.subject_ids.ids).mapped('student_id')
+                enrolled_partner_ids = self._partner_ids(
+                    enrolled_students.filtered(lambda s: s.user_id))
+
                 sub_partners = admin_partner_ids.copy()
-                sub_partners |= student_partner_ids
+                sub_partners |= enrolled_partner_ids
                 # Учителя предмета (по расписанию) + классные руководители этого класса
                 sessions = sessions_by_batch.get((batch.id, subject.id), self.env['op.session'])
                 sub_faculty = sessions.mapped('faculty_id') | batch.homeroom_faculty_ids
                 sub_partners |= self._partner_ids(sub_faculty & line.faculty_ids)
 
                 channel_partners[subj_channel_id] |= sub_partners
+
+                # Группа доступа предметного канала: только записанные на
+                # предмет + его преподаватели (Rule 42 видимость).
+                subject_group = self._get_or_create_subject_channel_group(batch, subject)
+                self._sync_subject_channel_group(
+                    subject_group,
+                    enrolled_students.filtered(lambda s: s.user_id),
+                    (sub_faculty & line.faculty_ids),
+                )
 
         if general_channel_id:
             channel_partners[general_channel_id] = all_class_partners | admin_partner_ids
