@@ -54,14 +54,20 @@
                             </label>
                         </div>
                         <!-- Материалы задания: вложения учителя (фото/pdf),
-                             видны ученикам в миниаппе. Прямое X2many
-                             поле material_ids на задании. -->
-                        <field name="material_ids" readonly="state in ('done', 'cancel')">
-                            <list>
-                                <field name="name" string="Файл"/>
-                                <field name="mimetype"/>
-                            </list>
-                        </field>
+                             видны ученикам в миниаппе. Many2many_binary:
+                             нативный выбор файлов ОС, хранение в rel-таблице
+                             material_ids на задании. Задание появляется после
+                             первого сохранения ДЗ — до того поле скрыто,
+                             вместо него подсказка. -->
+                        <field name="material_ids" widget="many2many_binary"
+                            readonly="not homework_assignment_id or state in ('done', 'cancel')"
+                            nolabel="1"
+                            options="{'accepted_file_extensions': '.png,.jpg,.jpeg,.webp,.gif,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip,.rar,.7z'}"/>
+                        <div class="text-muted small"
+                            invisible="homework_assignment_id or state in ('done', 'cancel')">
+                            <i class="fa fa-info-circle me-1"/>Сохраните домашнее
+                            задание — после этого можно прикрепить файлы
+                        </div>
                     </div>
                 </div>
             </xpath>

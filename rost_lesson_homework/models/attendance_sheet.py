@@ -13,16 +13,12 @@ class OpAttendanceSheet(models.Model):
     lesson_homework = fields.Char('Домашнее задание', size=512)
     homework_assignment_id = fields.Many2one(
         'op.assignment', 'ДЗ (op.assignment)', readonly=True, copy=False)
-    # Материалы задания (вложения учителя) — related на задание для
-    # ПК-формы журнала. X2many related без инверсии: только чтение/список.
+    # Материалы задания (вложения учителя) — editable related на задание:
+    # запись с формы журнала прозрачно уходит в op.assignment.material_ids.
+    # Виджет many2many_binary вью требует записи — см. views/.
     material_ids = fields.Many2many(
         'ir.attachment', string='Материалы задания',
-        compute='_compute_material_ids')
-
-    def _compute_material_ids(self):
-        for sheet in self:
-            asg = sheet.homework_assignment_id
-            sheet.material_ids = asg.material_ids if asg else False
+        related='homework_assignment_id.material_ids', readonly=False)
 
     # ------------------------------------------------------------------
     # Срок сдачи: следующий урок того же предмета у того же batch
@@ -110,10 +106,7 @@ class OpAttendanceSheet(models.Model):
                 # есть материалы (фото доски как единственное содержимое ДЗ),
                 # задание оставляем — это полноценное ДЗ без текста.
                 if asg and asg.state not in ('cancel', 'finish') \
-                        and not self.env['ir.attachment'].sudo().search_count([
-                            ('res_model', '=', asg._name),
-                            ('res_id', '=', asg.id),
-                            ('res_field', '=', 'hw_material')]):
+                        and not asg.material_ids:
                     asg.act_cancel()
                     self._hw_channel_delete(asg)
                 continue
