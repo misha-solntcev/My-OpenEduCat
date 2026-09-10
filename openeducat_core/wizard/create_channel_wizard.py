@@ -239,17 +239,25 @@ class CreateChannelWizard(models.TransientModel):
         """Полная синхронизация группы предметного канала.
 
         Группа = ученики, записанные на предмет (subject_ids зачисления),
-        + его преподаватели. Лишние (были записаны раньше / попали при
-        старом прогоне) — СНЯТОСЬ через группу (write от имени группы,
-        иначе rel может не удалиться — проверено на prod).
-        Админов в per-subject группы не кладём: админ видит каналы через
-        классную группу и is_member.
+        + его преподаватели и классные руководители. Лишние (были записаны
+        раньше / попали при старом прогоне) — СНЯТОСЬ через группу
+        (write от имени группы, иначе rel может не удалиться — проверено
+        на prod).
+
+        Админы (back_office_admin) — исключение: их добавляем, но никогда
+        не снимаем. Иначе предметные каналы станут невидимы завучу/админу
+        (Rule 42 для channel смотрит group_public_id), а они должны видеть
+        все каналы школы. Участие админа в группе не мешает учителям.
         """
+        admin_group = self.env.ref(
+            'openeducat_core.group_op_back_office_admin', raise_if_not_found=False)
+        admin_user_ids = set(admin_group.users.ids) if admin_group else set()
+
         users = students.filtered(lambda s: s.user_id).mapped('user_id')
         users |= faculty.filtered(lambda f: f.user_id).mapped('user_id')
         target_ids = set(users.ids)
         for user in group.users:
-            if user.id not in target_ids:
+            if user.id not in target_ids and user.id not in admin_user_ids:
                 group.write({'users': [fields.Command.unlink(user.id)]})
         for user in users:
             if group not in user.groups_id:
