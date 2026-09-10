@@ -236,13 +236,21 @@ class CreateChannelWizard(models.TransientModel):
         return group
 
     def _sync_subject_channel_group(self, group, students, faculty):
-        """Синхронизирует состав группы предметного канала.
+        """Полная синхронизация группы предметного канала.
 
-        Не снимает никого: снятие (перевод между группами) — ручная
-        операция завуча, автоматика может только добавлять (безопасно).
+        Группа = ученики, записанные на предмет (subject_ids зачисления),
+        + его преподаватели. Лишние (были записаны раньше / попали при
+        старом прогоне) — СНЯТОСЬ через группу (write от имени группы,
+        иначе rel может не удалиться — проверено на prod).
+        Админов в per-subject группы не кладём: админ видит каналы через
+        классную группу и is_member.
         """
         users = students.filtered(lambda s: s.user_id).mapped('user_id')
         users |= faculty.filtered(lambda f: f.user_id).mapped('user_id')
+        target_ids = set(users.ids)
+        for user in group.users:
+            if user.id not in target_ids:
+                group.write({'users': [fields.Command.unlink(user.id)]})
         for user in users:
             if group not in user.groups_id:
                 user.write({'groups_id': [fields.Command.link(group.id)]})
@@ -355,9 +363,10 @@ class CreateChannelWizard(models.TransientModel):
             ch.write(update_vals)
 
     def _compute_channel_partners(self, channel_pool, sessions_by_batch, admin_partner_ids, get_cached_class_group):
-        """Возвращает dict: {channel_id: set(partner_ids)}."""
+        """Возвращает (channel_partners, subject_channel_ids)."""
         # Валидация учителей выполняется явно в action_create_channels
         channel_partners = {ch.id: set() for ch in channel_pool.values()}
+        subject_channel_ids = set()
         general_channel_id = channel_pool.get(self.general_channel_name).id if self.create_general_channel else None
         all_class_partners = set()
 
@@ -385,6 +394,7 @@ class CreateChannelWizard(models.TransientModel):
             for subject in line.subject_ids:
                 sub_name = self._subject_channel_name(ch_name, subject)
                 subj_channel_id = channel_pool[sub_name].id
+                subject_channel_ids.add(subj_channel_id)
 
                 enrolled_students = enrollments.filtered(
                     lambda e: subject.id in e.subject_ids.ids).mapped('student_id')
@@ -412,10 +422,17 @@ class CreateChannelWizard(models.TransientModel):
         if general_channel_id:
             channel_partners[general_channel_id] = all_class_partners | admin_partner_ids
 
-        return channel_partners
+        return channel_partners, subject_channel_ids
 
-    def _sync_channel_members(self, channel_partners):
-        """Batch create недостающих discuss.channel.member."""
+    def _sync_channel_members(self, channel_partners, subject_channel_ids):
+        """Полная синхронизация discuss.channel.member.
+
+        Добавляет недостающих и СНЯТОСЬ лишних в предметных каналах
+        (subject_channel_ids): состав предметного канала = зачисления +
+        учителя предмета. В классных/общем каналах лишних не трогаем
+        (там состав всегда «весь класс + учителя», снимать некого, а
+        ручные добавления завуча терять нельзя).
+        """
         all_partner_ids = set()
         for pids in channel_partners.values():
             all_partner_ids |= pids
@@ -435,9 +452,20 @@ class CreateChannelWizard(models.TransientModel):
                         'channel_id': channel_id,
                         'partner_id': partner_id,
                     })
-
         if members_to_create:
             self.env['discuss.channel.member'].create(members_to_create)
+
+        # Лишние в предметных каналах (могли попасть при старом прогоне
+        # или до переразбивки) — снимаем членство. Видимость у них всё
+        # равно режется group_public_id, но чистим для аккуратности.
+        if subject_channel_ids:
+            stale = self.env['discuss.channel.member'].search([
+                ('channel_id', 'in', list(subject_channel_ids)),
+            ])
+            stale = stale.filtered(
+                lambda m: m.partner_id.id not in channel_partners.get(m.channel_id.id, set()))
+            if stale:
+                stale.unlink()
 
     def _sync_faculty_class_groups(self, get_cached_class_group):
         """Добавляет ВСЕМ участникам каналов группы «Участники каналов N класса».
@@ -499,10 +527,10 @@ class CreateChannelWizard(models.TransientModel):
         channel_pool = self._create_new_channels(channel_data, channel_pool, admin_group_ids)
         self._update_existing_channels(channel_data, channel_pool, admin_group_ids)
 
-        channel_partners = self._compute_channel_partners(
+        channel_partners, subject_channel_ids = self._compute_channel_partners(
             channel_pool, sessions_by_batch, admin_partner_ids, get_cached_class_group
         )
-        self._sync_channel_members(channel_partners)
+        self._sync_channel_members(channel_partners, subject_channel_ids)
         self._sync_faculty_class_groups(get_cached_class_group)
 
         return self._build_result_notification()
