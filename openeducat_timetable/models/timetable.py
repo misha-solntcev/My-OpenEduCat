@@ -78,7 +78,6 @@ class OpSession(models.Model):
         store=True
     )
 
-    faculty_subject_ids = fields.Many2many('op.subject', related='faculty_id.faculty_subject_ids')
     user_ids = fields.Many2many('res.users', string='Allowed Users', compute='_compute_user_ids', store=True)
 
     has_conflict = fields.Boolean(
@@ -279,10 +278,17 @@ class OpSession(models.Model):
         """Recalculate stored has_conflict/color on this recordset.
         Needed for *neighbors*: a stored compute only triggers on the
         record whose own fields changed, but moving session A also
-        changes whether session B has a conflict."""
-        for rec in self:
+        changes whether session B has a conflict.
+
+        Работает под sudo: пишет только служебные флаговые поля
+        (has_conflict/color, отсечены _FLAG_ONLY в write), но соседом
+        может оказаться ЧУЖОЙ урок — teacher_session_write_rule
+        («учитель пишет только свои сессии») иначе роняет операцию
+        юзера AccessError'ом (кейс Ермаковой, 2026-09-10)."""
+        sudo_self = self.sudo()
+        for rec in sudo_self:
             rec._compute_has_conflict()
-        for rec in self:
+        for rec in sudo_self:
             rec._compute_session_color()
         self.env['op.session'].flush_model(['has_conflict', 'color',
                                             'conflict_override'])
@@ -316,6 +322,20 @@ class OpSession(models.Model):
                       and _RESET_FIELDS.intersection(vals))
         if auto_reset:
             vals.pop('conflict_override', None)
+        # ГЕЙТ: пересечения могут измениться только при смене «геометрии»
+        # урока (время/слот/дата/учитель/класс/кабинет) или при уходе в/
+        # выходе из cancel (cancel исключён из поиска пересечений).
+        # Обычный write({'state': 'confirm/start/done'}) с кнопок журнала
+        # соседей не трогает вовсе — раньше пересчёт флагов соседей гонялся
+        # на каждом write и ронял учителя AccessError'ом на чужом уроке
+        # (кейс Ермаковой, 2026-09-10), плюс давал два лишних SQL-поиска
+        # на каждое проведение.
+        is_cancel_transition = (
+            'state' in vals
+            and bool({'draft', 'cancel'}
+                     & ({vals['state']} | set(self.mapped('state')))))
+        if not (_RESET_FIELDS.intersection(vals) or is_cancel_transition):
+            return super(OpSession, self).write(vals)
         # Neighbors BEFORE the move: sessions that intersected the old
         # time/resources — they may stop conflicting once we move.
         pre_neighbors = self.browse(self._conflict_neighbor_ids())

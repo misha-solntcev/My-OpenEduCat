@@ -231,11 +231,16 @@ class GenerateTimeTableConfirm(models.TransientModel):
             sessions_to_create.append(d)
             occupied[(d['timetable_date'], d['timing_id'])].append(d)
 
-        # 5. Конфликт-чекер учителей/кабинетов
+        # 5. Конфликт-чекер учителей/кабинетов.
+        # Читаем ТЕ ЖЕ параметры, что и _check_hard_conflicts / настройки
+        # (timetable.prevent_*): раньше здесь были несуществующие
+        # timetable.allow_* с дефолтом True — предпроверка никогда
+        # не срабатывала, и блокировка всплывала только на create()
+        # уже посреди транзакции.
         get_param = self.env['ir.config_parameter'].sudo().get_param
-        allow_f = get_param('timetable.allow_faculty_overlap', 'True') == 'True'
-        allow_b = get_param('timetable.allow_batch_overlap', 'True') == 'True'
-        allow_c = get_param('timetable.allow_classroom_overlap', 'True') == 'True'
+        allow_f = get_param('timetable.prevent_faculty_overlap') != 'True'
+        allow_b = get_param('timetable.prevent_batch_overlap') != 'True'
+        allow_c = get_param('timetable.prevent_classroom_overlap') != 'True'
         wizard._check_batch_conflicts(sessions_to_create, allow_f, allow_c, allow_b)
 
         # 6. Создание. При auto_approve — precreate-оценка пересечений:
