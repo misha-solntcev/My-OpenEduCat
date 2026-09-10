@@ -1,129 +1,97 @@
-###############################################################################
-#
-#    OpenEduCat Inc
-#    Copyright (C) 2009-TODAY OpenEduCat Inc(<https://www.openeducat.org>).
-#
-#    This program is free software: you can redistribute it and/or modify
-#    it under the terms of the GNU Lesser General Public License as
-#    published by the Free Software Foundation, either version 3 of the
-#    License, or (at your option) any later version.
-#
-#    This program is distributed in the hope that it will be useful,
-#    but WITHOUT ANY WARRANTY; without even the implied warranty of
-#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#    GNU Lesser General Public License for more details.
-#
-#    You should have received a copy of the GNU Lesser General Public License
-#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#
-###############################################################################
+"""Смоук-тесты op.session (ROST, 2026-09).
 
-import time
-from logging import info
+Прежний tests/test_timetable.py (2016, апстрим OpenEduCat) вызывал
+методы, которых у модели давно нет (_compute_day, _compute_batch_users,
+_check_date_time, onchange_course, notify_user, get_subject,
+get_import_templates) и создавал wizard с удалённым course_id —
+любой прогон тестов падал с AttributeError. Удалён, вместо него —
 
-from .test_timetable_common import TestTimetableCommon
+проверки актуального контракта модели:
+- state machine кнопок (lecture_*);
+- гейт пересчёта conflict-флагов: write({'state': ...}) НЕ пересчитывает
+  соседей, изменение геометрии/отмена — пересчитывает (кейс Ермаковой);
+- день недели и учебный год проставляются compute'ами.
+"""
+from odoo.tests import common
+from odoo.exceptions import UserError
 
 
-class TestFacultySession(TestTimetableCommon):
+class TestSessionSmoke(common.TransactionCase):
 
-    def setUp(self):
-        super(TestFacultySession, self).setUp()
+    def _make_session(self, **over):
+        Timing = self.env['op.timing']
+        timing = Timing.search([], limit=1)
+        vals = {
+            'timing_id': timing.id,
+            'start_datetime': '2026-09-14 06:00:00',
+            'end_datetime': '2026-09-14 06:40:00',
+            'faculty_id': self.env['op.faculty'].search([], limit=1).id,
+            'batch_id': self.env['op.batch'].search([], limit=1).id,
+            'subject_id': self.env['op.subject'].search([], limit=1).id,
+            'course_id': self.env['op.course'].search([], limit=1).id,
+        }
+        vals.update(over)
+        return self.env['op.session'].create(vals)
 
-    def test_case_faculty(self):
-        faculty = self.op_faculty.search([])
-        if not faculty:
-            raise AssertionError(
-                'Error in data, please check for faculty session details')
-        info('  Details Of Faculty Sessions:.....')
-        for record in faculty:
-            info('      Sessions : %s' % record.session_ids.name)
+    def test_state_machine(self):
+        s = self._make_session()
+        s.lecture_confirm()
+        self.assertEqual(s.state, 'confirm')
+        s.lecture_start()
+        self.assertEqual(s.state, 'start')
+        s.lecture_done()
+        self.assertEqual(s.state, 'done')
+        s.lecture_edit()
+        self.assertEqual(s.state, 'start')
+        s.lecture_cancel()
+        self.assertEqual(s.state, 'cancel')
+        s.lecture_draft()
+        self.assertEqual(s.state, 'draft')
 
+    def test_day_and_year_computed(self):
+        s = self._make_session()  # 2026-09-14 = понедельник
+        self.assertEqual(s.timetable_date.strftime('%A').lower(), 'monday')
+        self.assertTrue(s.days_id)
+        # учебный год: сентябрь попадает в год 2026/2027 (тестовая БД
+        # может иметь любой конкретный год — проверяем сам факт заполнения)
+        self.assertTrue(s.academic_year_id)
 
-class TestTimetable(TestTimetableCommon):
+    def test_state_write_skips_neighbor_recompute(self):
+        """Гейт: state-переходы не запускают пересчёт флагов соседей."""
+        s = self._make_session()
+        called = []
 
-    def setUp(self):
-        super(TestTimetable, self).setUp()
+        def _fake_recompute(recset):
+            called.append(1)
 
-    def test_case_timetable(self):
-        session = self.op_session.create({
-            'timing_id': self.env.ref('openeducat_timetable.op_timing_1').id,
-            'start_datetime': time.strftime('%Y-%m-10 11:00'),
-            'end_datetime': time.strftime('%Y-%m-10 12:00'),
-            'course_id': self.env.ref('openeducat_core.op_course_2').id,
-            'faculty_id': self.env.ref('openeducat_core.op_faculty_1').id,
-            'batch_id': self.env.ref('openeducat_core.op_batch_1').id,
-            'subject_id': self.env.ref('openeducat_core.op_subject_1').id
-        })
-        info('  Details Of Timetable Sessions:.....')
-        session._compute_day()
-        session._compute_name()
-        session._compute_batch_users()
-        session._check_date_time()
-        session.onchange_course()
-        session.notify_user()
-        session.get_subject()
-        session.get_import_templates()
-        session.lecture_draft()
-        session.lecture_confirm()
-        session.lecture_done()
-        session.lecture_cancel()
+        s.lecture_confirm()
+        self.assertEqual(s.state, 'confirm')
+        # прямой контракт: write state не меняет геометрию — соседи
+        # не пересчитываются (функция не вызывается вообще).
+        # Патчим метод инстанса на время вызова.
+        env_session = type(s)
+        orig = env_session._recompute_conflict_flags
+        env_session._recompute_conflict_flags = _fake_recompute
+        try:
+            s.write({'state': 'start'})
+            self.assertEqual(called, [], 'state write must skip recompute')
+            # геометрия — должна вызвать (auto_reset добавляет второй
+            # вызов: основной + после сброса conflict_override)
+            s.write({'timetable_date': '2026-09-15'})
+            self.assertEqual(len(called), 2,
+                             'geometry write must recompute (2x with auto_reset)')
+        finally:
+            env_session._recompute_conflict_flags = orig
 
-
-class TestGenerateTimetable(TestTimetableCommon):
-
-    def setUp(self):
-        super(TestGenerateTimetable, self).setUp()
-
-    def test_case_wizard_generate_timetable(self):
-        wizard = self.generate_timetable.create({
-            'course_id': self.env.ref('openeducat_core.op_course_2').id,
-            'batch_id': self.env.ref('openeducat_core.op_batch_1').id,
-            'start_date': time.strftime('%Y-%m-01'),
-            'end_date':  time.strftime('%Y-%m-01')
-        })
-        info('  Details Of Sessions:.....')
-        wizard.act_gen_time_table()
-        wizard.check_dates()
-        wizard.onchange_course()
-
-
-class TestWizardSession(TestTimetableCommon):
-
-    def setUp(self):
-        super(TestWizardSession, self).setUp()
-
-    def test_case_wizard_session(self):
-        wizard = self.generate_timetable.create({
-            'course_id': self.env.ref('openeducat_core.op_course_2').id,
-            'batch_id': self.env.ref('openeducat_core.op_batch_1').id,
-            'start_date': time.strftime('%Y-%m-01'),
-            'end_date': time.strftime('%Y-%m-01')
-        })
-        session = self.wizard_session.create({
-            'gen_time_table': wizard.id,
-            'faculty_id': self.env.ref('openeducat_core.op_faculty_1').id,
-            'subject_id': self.env.ref('openeducat_core.op_subject_1').id,
-            'timing_id': self.env.ref('openeducat_timetable.op_timing_1').id,
-            'day': '2'
-        })
-        info('  Details Of Session lines:.....')
-        return session
-
-
-class TestTimetableReport(TestTimetableCommon):
-
-    def setUp(self):
-        super(TestTimetableReport, self).setUp()
-
-    def test_case_wizard_timetable_report(self):
-        report = self.timetable_report.create({
-            'state': 'student',
-            'course_id': self.env.ref('openeducat_core.op_course_2').id,
-            'batch_id': self.env.ref('openeducat_core.op_batch_1').id,
-            'start_date': time.strftime('%Y-%m-01'),
-            'end_date':  time.strftime('%Y-%m-01')
-        })
-        info('  Details Of Timetable Report:.....')
-        report._check_dates()
-        report.onchange_course()
-        report.gen_time_table_report()
+    def test_bad_time_raises(self):
+        # start >= end отсекается раньше: пишем время ОТНОСИТЕЛЬНО
+        # существующего, гарантируя end < start после сдвига на сутки.
+        s = self._make_session()
+        # отменённый урок не участвует в conflict-проверках, но
+        # проверку порядка времени проходит первой же — двигаем в cancel
+        # нельзя (skip), поэтому просто создаем новую запись с плохим временем
+        with self.assertRaises(UserError):
+            self._make_session(
+                start_datetime='2026-10-01 07:00:00',
+                end_datetime='2026-10-01 06:00:00',
+                timing_id=False)
