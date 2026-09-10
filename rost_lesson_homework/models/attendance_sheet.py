@@ -108,7 +108,7 @@ class OpAttendanceSheet(models.Model):
                 if asg and asg.state not in ('cancel', 'finish') \
                         and not asg.material_ids:
                     asg.act_cancel()
-                    self._hw_channel_delete(asg)
+                    sheet._hw_channel_delete(asg)
                 continue
 
             if asg:
@@ -125,7 +125,7 @@ class OpAttendanceSheet(models.Model):
                     asg.act_set_to_draft()
                     asg.act_publish()
                 elif vals:
-                    self._hw_channel_announce(
+                    sheet._hw_channel_announce(
                         asg, 'edited',
                         attachments=asg.material_ids)
                 continue
