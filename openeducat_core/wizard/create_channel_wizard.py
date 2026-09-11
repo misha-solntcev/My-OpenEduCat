@@ -496,13 +496,20 @@ class CreateChannelWizard(models.TransientModel):
                 stale.unlink()
 
     def _sync_faculty_class_groups(self, get_cached_class_group):
-        """Добавляет ВСЕМ участникам каналов группы «Участники каналов N класса».
+        """Полная синхронизация групп «Участники каналов N класса».
 
-        Видимость канала (Rule 42) определяется по group_public_id, а не по
-        членству, поэтому в группу доступа должны входить и ученики, и
-        учителя. Группа создается без импликаций — teacher-юзер не получает
-        Student (rule 613 иначе режет библиотечные карточки: 0 AND all = 0).
+        Состав группы = ученики класса + его учителя. Добавляет недостающих
+        и СНЯТОСЬ ушедших (перевод в другой класс, отчисление) — иначе
+        ушедший навсегда сохраняет доступ к каналам класса (Rule 42 смотрит
+        group_public_id). Снятие — со стороны группы: user-side
+        write({'groups_id': [(3, gid)]}) может вернуть True, не удалив
+        строку rel (проверено на prod). Админы (back_office_admin) не
+        снимаются никогда — по той же причине, что и в per-subject группах.
         """
+        admin_group = self.env.ref(
+            'openeducat_core.group_op_back_office_admin', raise_if_not_found=False)
+        admin_user_ids = set(admin_group.users.ids) if admin_group else set()
+
         for line in self.course_line_ids:
             class_group = self._get_channel_group_for_batch(line.batch_id.name)
             if not class_group:
@@ -511,6 +518,11 @@ class CreateChannelWizard(models.TransientModel):
             users = line.student_ids.filtered(lambda s: s.user_id).mapped('user_id')
             # учителя класса
             users |= line.faculty_ids.filtered(lambda f: f.user_id).mapped('user_id')
+            target_ids = set(users.ids)
+            # ушедшие (перевод/отчисление): снимаем со стороны группы
+            for user in class_group.users:
+                if user.id not in target_ids and user.id not in admin_user_ids:
+                    class_group.write({'users': [fields.Command.unlink(user.id)]})
             for user in users:
                 if class_group not in user.groups_id:
                     user.write({'groups_id': [fields.Command.link(class_group.id)]})
