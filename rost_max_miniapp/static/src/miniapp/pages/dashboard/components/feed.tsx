@@ -1,7 +1,7 @@
 // Лента дня (вариант A) — общие компоненты главной страницы.
 // Стили: VKUI токены + vkitokens (--vkui--*), никаких кастомных css-классов.
 import React from 'react';
-import { SimpleCell, Text, Caption, Div, Counter, Placeholder, Card as VkCard, Avatar, Input, Button } from '@vkontakte/vkui';
+import { Accordion, SimpleCell, Text, Caption, Div, Counter, Placeholder, Card as VkCard, Avatar, Input, Button } from '@vkontakte/vkui';
 import {
   Icon28ClockOutline,
   Icon56EventOutline,
@@ -328,12 +328,19 @@ export const HomeworkList: React.FC<{
                 after={
                   <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
                     {label && (
-                      <Counter mode={h.state === 'accept' ? 'positive' : h.state === 'change' ? 'warning' : 'primary'}>
+                      // VKUI 8: цвет — через appearance (mode только
+                      // primary/contrast/tertiary/inherit).
+                      <Counter
+                        mode="primary"
+                        appearance={h.state === 'accept' ? 'accent-green'
+                          : h.state === 'change' ? 'neutral'
+                            : h.state === 'reject' ? 'accent-red' : undefined}
+                      >
                         {label}
                       </Counter>
                     )}
                     {h.overdue && (h.state === 'none' || h.state === 'change') && (
-                      <Counter mode="primary">Просрочено</Counter>
+                      <Counter mode="primary" appearance="accent-red">Просрочено</Counter>
                     )}
                   </div>
                 }
@@ -526,43 +533,136 @@ export interface MyHomeworkItem {
   materials_count: number;
 }
 
-export const MyHomework: React.FC<{ items: MyHomeworkItem[]; onOpen?: (id: number) => void }> = ({ items, onOpen }) => (
+/** Группировка ДЗ по ключу (сохраняя порядок прихода с сервера). */
+const groupByKey = (
+  items: MyHomeworkItem[],
+  keyOf: (h: MyHomeworkItem) => string,
+): { key: string; items: MyHomeworkItem[] }[] => {
+  const groups: { key: string; items: MyHomeworkItem[] }[] = [];
+  const index = new Map<string, { key: string; items: MyHomeworkItem[] }>();
+  for (const h of items) {
+    const key = keyOf(h) || '';
+    let g = index.get(key);
+    if (!g) {
+      g = { key, items: [] };
+      index.set(key, g);
+      groups.push(g);
+    }
+    g.items.push(h);
+  }
+  return groups;
+};
+
+const pluralRu = (n: number): string => {
+  const mod10 = n % 10;
+  const mod100 = n % 100;
+  if (mod10 === 1 && mod100 !== 11) return 'задание';
+  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 10 || mod100 >= 20)) return 'задания';
+  return 'заданий';
+};
+
+const HomeworkGroup: React.FC<{
+  title: string;
+  items: MyHomeworkItem[];
+  defaultExpanded: boolean;
+  /** Скрывать ключ группы в строке (он уже в заголовке аккордеона). */
+  hideKeyInRow?: boolean;
+  onOpen?: (id: number) => void;
+}> = ({ title, items, defaultExpanded, hideKeyInRow, onOpen }) => {
+  const [expanded, setExpanded] = React.useState(defaultExpanded);
+  const toReview = items.reduce((s, h) => s + h.to_review, 0);
+  return (
+    <Accordion expanded={expanded} onChange={setExpanded}>
+      <Accordion.Summary
+        after={
+          // Flex с зазором: без него бейдж «к проверке» прилипает к счётчику.
+          <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+            {toReview > 0 && <Counter mode="primary" appearance="accent">{`${toReview} к проверке`}</Counter>}
+            <Caption style={{ color: 'var(--vkui--color_text_secondary)' }}>
+              {items.length} {pluralRu(items.length)}
+            </Caption>
+          </div>
+        }
+      >
+        <Text weight="2">{title}</Text>
+      </Accordion.Summary>
+      <Accordion.Content>
+        {items.map(h => <HomeworkRow key={h.id} h={h} hideKey={hideKeyInRow} onOpen={onOpen} />)}
+      </Accordion.Content>
+    </Accordion>
+  );
+};
+
+const HomeworkRow: React.FC<{
+  h: MyHomeworkItem;
+  onOpen?: (id: number) => void;
+  /** Ключ группировки уже в заголовке аккордеона — не дублируем. */
+  hideKey?: boolean;
+}> = ({ h, onOpen, hideKey }) => (
+  <div style={{ borderBottom: '1px solid var(--vkui--color_background_secondary)' }}>
+    <SimpleCell
+      onClick={onOpen ? () => onOpen(h.id) : undefined}
+      before={
+        <span style={{
+          width: 8, height: 8, borderRadius: '50%', flexShrink: 0, marginTop: 2,
+          background: h.submitted >= h.total && h.total > 0
+            ? 'var(--vkui--color_background_positive)'
+            : 'var(--vkui--color_background_negative)',
+        }} />
+      }
+      after={
+        <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+          {h.to_review > 0 && (
+            <Counter mode="primary" appearance="accent">{`${h.to_review} к проверке`}</Counter>
+          )}
+          <Counter mode="primary">{`Сдали ${h.submitted} из ${h.total}`}</Counter>
+        </div>
+      }
+      subtitle={[
+        hideKey ? fmtDue(h.due) : `${h.batch} · ${fmtDue(h.due)}`,
+        h.task.length > 70 ? h.task.slice(0, 70) + '…' : h.task,
+      ].filter(Boolean).join(' · ') || undefined}
+    >
+      {h.subject}
+    </SimpleCell>
+    <div style={{ padding: '0 16px 10px' }}>
+      <MaterialsEditor assignmentId={h.id} />
+    </div>
+  </div>
+);
+
+export const MyHomework: React.FC<{
+  items: MyHomeworkItem[];
+  onOpen?: (id: number) => void;
+  /** Админ: все ДЗ школы, аккордеон по учителям. */
+  groupBy?: 'faculty' | 'batch';
+}> = ({ items, onOpen, groupBy }) => (
   <CardBlock title={<BlockTitle>Домашние задания</BlockTitle>}>
     {items.length === 0 ? (
       <Div><Caption style={{ color: 'var(--vkui--color_text_secondary)' }}>Активных заданий нет</Caption></Div>
-    ) : (
-      items.map(h => (
-        <div key={h.id} style={{ borderBottom: '1px solid var(--vkui--color_background_secondary)' }}>
-          <SimpleCell
-            onClick={onOpen ? () => onOpen(h.id) : undefined}
-            before={
-              <span style={{
-                width: 8, height: 8, borderRadius: '50%', flexShrink: 0, marginTop: 2,
-                background: h.submitted >= h.total && h.total > 0
-                  ? 'var(--vkui--color_background_positive)'
-                  : 'var(--vkui--color_background_negative)',
-              }} />
-            }
-            after={
-              <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                {h.to_review > 0 && (
-                  <Counter mode="accent">{`${h.to_review} к проверке`}</Counter>
-                )}
-                <Counter mode="primary">{`Сдали ${h.submitted} из ${h.total}`}</Counter>
-              </div>
-            }
-            subtitle={[
-              `${h.batch} · ${fmtDue(h.due)}`,
-              h.task.length > 70 ? h.task.slice(0, 70) + '…' : h.task,
-            ].filter(Boolean).join(' · ') || undefined}
-          >
-            {h.subject}
-          </SimpleCell>
-          <div style={{ padding: '0 16px 10px' }}>
-            <MaterialsEditor assignmentId={h.id} />
-          </div>
-        </div>
+    ) : groupBy === 'faculty' ? (
+      groupByKey(items, h => h.faculty || '').map(g => (
+        <HomeworkGroup
+          key={g.key}
+          title={g.key}
+          items={g.items}
+          defaultExpanded={false}
+          onOpen={onOpen}
+        />
       ))
+    ) : groupBy === 'batch' ? (
+      groupByKey(items, h => h.batch).map(g => (
+        <HomeworkGroup
+          key={g.key}
+          title={g.key}
+          items={g.items}
+          defaultExpanded={false}
+          hideKeyInRow
+          onOpen={onOpen}
+        />
+      ))
+    ) : (
+      items.map(h => <HomeworkRow key={h.id} h={h} onOpen={onOpen} />)
     )}
   </CardBlock>
 );
@@ -627,7 +727,11 @@ export const SubmissionReviewCard: React.FC<{
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <Text weight="2">{s.name}</Text>
                 <Counter
-                  mode={s.state === 'accept' ? 'positive' : s.state === 'change' ? 'warning' : s.state === 'submit' ? 'accent' : 'primary'}
+                  mode="primary"
+                  // VKUI 8: цвет — через appearance, не mode.
+                  appearance={s.state === 'accept' ? 'accent-green'
+                    : s.state === 'change' ? 'neutral'
+                      : s.state === 'reject' ? 'accent-red' : undefined}
                 >
                   {STATE_LABEL[s.state] || s.state}
                 </Counter>

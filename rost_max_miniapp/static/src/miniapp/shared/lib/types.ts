@@ -210,6 +210,8 @@ export interface MyHomeworkItem {
   to_review: number;
   answer_required: boolean;
   materials_count: number;
+  /** Админ-лента: имя преподавателя для группировки по учителям. */
+  faculty?: string;
 }
 
 export interface HomeworkAttachment {

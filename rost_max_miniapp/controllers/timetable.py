@@ -1108,7 +1108,7 @@ class RostMaxTimetableController(http.Controller):
             asgs = request.env['op.assignment'].sudo().search([
                 ('state', '=', 'publish'),
                 ('batch_id', 'in', batches.ids),
-                ('submission_date', '>=', fields.Datetime.now() - timedelta(days=21)),
+                ('submission_date', '>=', fields.Datetime.now() - timedelta(days=7)),
             ], order='submission_date asc')
             subs = request.env['op.assignment.sub.line'].sudo().search([
                 ('assignment_id', 'in', asgs.ids),
@@ -1139,38 +1139,49 @@ class RostMaxTimetableController(http.Controller):
                 })
             feed["homework"] = hw_items
 
-        # --- Учитель: журналы к заполнению + задано моими уроками ---
-        if role == 'teacher' and faculty:
-            to_fill = []
-            for l in sessions:
-                sheet = sheets_map.get(l.id)
-                if sheet and any(
-                        not ln.attendance_type_id
-                        for ln in sheet.attendance_line):
-                    to_fill.append({
-                        "sheet_id": sheet.id,
-                        "subject": l.subject_id.name if l.subject_id else "",
-                        "batch": self._batch_short(l.batch_id.name) if l.batch_id else "",
-                        "timing": l.timing or "",
-                        "room": l.classroom_id.sudo().name or "",
-                        "students": len(sheet.attendance_line),
-                    })
-            feed["journals_to_fill"] = to_fill
+        # --- Учитель/админ: задано моими уроками -------------------------
+        # Админ (Макарова) не имеет faculty — role 'admin' из _get_user_students.
+        # Решение (утверждено): админ видит ДЗ ВСЕЙ школы (те же поля, плюс
+        # имя преподавателя — фронт группирует в аккордеон по учителям);
+        # учитель — только свои (фронт группирует по классам).
+        if role in ('teacher', 'admin'):
+            # «Журналы к заполнению» — только учителю (у админа свой блок
+            # «Требует внимания» по всей школе).
+            if role == 'teacher':
+                to_fill = []
+                for l in sessions:
+                    sheet = sheets_map.get(l.id)
+                    if sheet and any(
+                            not ln.attendance_type_id
+                            for ln in sheet.attendance_line):
+                        to_fill.append({
+                            "sheet_id": sheet.id,
+                            "subject": l.subject_id.name if l.subject_id else "",
+                            "batch": self._batch_short(l.batch_id.name) if l.batch_id else "",
+                            "timing": l.timing or "",
+                            "room": l.classroom_id.sudo().name or "",
+                            "students": len(sheet.attendance_line),
+                        })
+                feed["journals_to_fill"] = to_fill
 
-            my_asgs = request.env['op.assignment'].sudo().search([
-                ('faculty_id', '=', faculty.id),
+            hw_domain = [
                 ('state', '=', 'publish'),
-                ('submission_date', '>=', fields.Datetime.now() - timedelta(days=21)),
-            ], order='submission_date asc')
+                ('submission_date', '>=',
+                 fields.Datetime.now() - timedelta(days=7)),
+            ]
+            if role == 'teacher':
+                hw_domain.append(('faculty_id', '=', faculty.id))
+            my_asgs = request.env['op.assignment'].sudo().search(
+                hw_domain, order='submission_date asc')
             submitted_counts = {
-                s['assignment_id'][0]: s['__count']
+                s['assignment_id'][0]: s['assignment_id_count']
                 for s in request.env['op.assignment.sub.line'].sudo().read_group(
                     [('assignment_id', 'in', my_asgs.ids),
                      ('state', 'in', ['submit', 'accept'])],
                     ['assignment_id'], ['assignment_id'])
             }
             to_review_counts = {
-                s['assignment_id'][0]: s['__count']
+                s['assignment_id'][0]: s['assignment_id_count']
                 for s in request.env['op.assignment.sub.line'].sudo().read_group(
                     [('assignment_id', 'in', my_asgs.ids),
                      ('state', '=', 'submit')],
@@ -1190,6 +1201,8 @@ class RostMaxTimetableController(http.Controller):
                 # Только счётчик: сами файлы учитель открывает через
                 # GET /materials (свежие токены на каждый показ).
                 "materials_count": len(a._hw_material_payload()),
+                # Админ-лента: учитель для группировки в аккордеон.
+                "faculty": self._faculty_name(a.faculty_id) if role == 'admin' else "",
             } for a in my_asgs]
 
         # --- Админ: полоса цифр + требует внимания ---

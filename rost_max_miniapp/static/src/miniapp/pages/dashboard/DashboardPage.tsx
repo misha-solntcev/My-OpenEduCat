@@ -181,8 +181,14 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
               onUpdated={load}
             />
           )}
-          {isTeacher && data.my_homework && (
-            <MyHomework items={data.my_homework} onOpen={openReview} />
+          {/* Учитель — свои ДЗ (аккордеон по классам); админ — вся школа
+              (аккордеон по учителям; сервер кладёт их в тот же my_homework). */}
+          {(isTeacher || isAdmin) && data.my_homework && (
+            <MyHomework
+              items={data.my_homework}
+              groupBy={isAdmin ? 'faculty' : 'batch'}
+              onOpen={openReview}
+            />
           )}
 
           {/* Выход — реальная навигация, чтобы Odoo закрыл сессию серверно.
