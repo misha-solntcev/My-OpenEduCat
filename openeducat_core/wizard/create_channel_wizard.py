@@ -404,8 +404,8 @@ class CreateChannelWizard(models.TransientModel):
                 subj_channel_id = channel_pool[sub_name].id
                 subject_channel_ids.add(subj_channel_id)
 
-                enrolled_students = enrollments.filtered(
-                    lambda e: subject.id in e.subject_ids.ids).mapped('student_id')
+                enrolled_students = self._students_for_subject(
+                    enrollments, batch, subject)
                 enrolled_partner_ids = self._partner_ids(
                     enrolled_students.filtered(lambda s: s.user_id))
 
@@ -431,6 +431,26 @@ class CreateChannelWizard(models.TransientModel):
             channel_partners[general_channel_id] = all_class_partners | admin_partner_ids
 
         return channel_partners, subject_channel_ids
+
+    def _students_for_subject(self, enrollments, batch, subject):
+        """Ученики предметного канала: записанные на предмет (subject_ids
+        зачисления). Fallback — весь класс, если НИ У КОГО в классе
+        зачисления не заполнены (старые классы): предмет есть в курсе и
+        расписании, но завуч не заполнила предметы в зачислениях. Тогда
+        оставлять класс без предметного канала хуже, чем дать его всем.
+        Если предметы заполнены хотя бы у одного — fallback не срабатывает,
+        сплиты (база/профиль, англ. А/Б) работают как раньше.
+        """
+        enrolled = enrollments.filtered(
+            lambda e: subject.id in e.subject_ids.ids).mapped('student_id')
+        if enrolled:
+            return enrolled
+        if any(e.subject_ids for e in enrollments):
+            # Предметы заполнены хотя бы у одного — это сплит (база/профиль,
+            # А/Б), этот предмет просто не для всего класса.
+            return self.env['op.student']
+        # Ни у кого в классе предметы не заполнены — берём весь класс.
+        return enrollments.mapped('student_id')
 
     def _sync_channel_members(self, channel_partners, subject_channel_ids):
         """Полная синхронизация discuss.channel.member.
