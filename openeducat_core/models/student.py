@@ -171,6 +171,30 @@ class OpStudent(models.Model):
                     % dict(self._fields['state'].selection)[student.state]
                 )
 
+    def write(self, vals):
+        res = super().write(vals)
+        if 'state' in vals:
+            self._sync_user_active_with_state()
+        return res
+
+    def _sync_user_active_with_state(self):
+        """Учётка ученика следует за статусом: pass_out/left -> active=False.
+
+        Ушедший не должен оставаться active: internal-юзер с активной
+        учёткой видит «- Школа РОСТ» (group_public_id = base.group_user)
+        и логинится в школу. Деактивация закрывает всё разом: логин,
+        каналы, миниапп. При возврате в studying учётка активируется
+        обратно (ученик вернулся). sudo: архивация res.users требует
+        прав администрирования, а статус меняет завуч.
+        """
+        for student in self:
+            user = student.user_id
+            if not user:
+                continue
+            should_active = student.state == 'studying'
+            if user.active != should_active:
+                user.sudo().write({'active': should_active})
+
     @api.model
     def get_import_templates(self):
         return [{
