@@ -1,5 +1,6 @@
 /** @odoo-module **/
 
+import { DateTime } from "@web/core/l10n/dates";
 import { CalendarCommonRenderer } from "@web/views/calendar/calendar_common/calendar_common_renderer";
 
 // Ограничение сетки недели/дня рабочими часами школы (СПб):
@@ -21,6 +22,13 @@ export class SessionCalendarCommonRenderer extends CalendarCommonRenderer {
             // Школа работает по СПб: показываем сетку и уроки в Europe/Moscow
             // независимо от локального пояса пользователя.
             timeZone: "Europe/Moscow",
+            // «Сегодня» для сетки — календарная дата школы, не браузера:
+            // текущий момент в Europe/Moscow, зона - не суть (это просто
+            // опорный момент), FullCalendar сам вычислит неделю/день.
+            // initialDate модели (DateTime.local, зона браузера) здесь
+            // нельзя: у юзера в Иркутске (+08) полночь 14-го = вечер 13-го
+            // по Москве, и сетка уезжает на день назад.
+            initialDate: DateTime.now().setZone("Europe/Moscow").toISO(),
         };
     }
 }
