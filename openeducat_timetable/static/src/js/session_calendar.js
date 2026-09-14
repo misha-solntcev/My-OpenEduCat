@@ -1,7 +1,10 @@
 /** @odoo-module **/
 
-import { DateTime } from "@web/core/l10n/dates";
 import { CalendarCommonRenderer } from "@web/views/calendar/calendar_common/calendar_common_renderer";
+
+// В Odoo 18 @web/core/l10n/dates не экспортирует класс DateTime —
+// ядро берёт luxon из глобала (см. calendar_common_renderer.js).
+const { DateTime } = luxon;
 
 // Ограничение сетки недели/дня рабочими часами школы (СПб):
 // уроки начинаются не раньше 09:00, реальный максимум конца — 17:40 (см. op_session за 2025-09..2026-04).
