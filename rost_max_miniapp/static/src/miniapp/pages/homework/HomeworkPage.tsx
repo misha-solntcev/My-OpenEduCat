@@ -1,6 +1,7 @@
 /**
- * Вкладка «Задания» (ученик/родитель): группы «Срочно сдать / На этой
- * неделе / Проверенные». Статусы итерации 1: Задано/Сдано/Просрочено.
+ * Вкладка «Задания» (ученик/родитель): три блока — «Новые» (не сдано,
+ * включая «на доработку» с комментарием учителя) / «Сдано» (ждёт
+ * проверки) / «Проверено» (принято).
  */
 import React from 'react';
 import { Panel, Div, Spinner, Button, Placeholder, Caption } from '@vkontakte/vkui';
@@ -8,7 +9,6 @@ import { Icon56DocumentOutline } from '@vkontakte/icons';
 import { apiGet, apiPost } from '@/shared/lib/api';
 import { useToast } from '@/shared/components/Toast';
 import { HomeworkCardList } from '@/shared/components/HomeworkCardList';
-import { schoolTodayISO } from '@/shared/lib/date';
 import type { HomeworkItem, HomeworkListResponse } from '@/shared/lib/types';
 
 interface HomeworkPageProps {
@@ -24,44 +24,26 @@ const GroupTitle: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   </Div>
 );
 
-/** Парсер 'YYYY-MM-DD[ HH:MM[:SS]]' -> timestamp (без Date.parse и зон). */
-const dueTs = (due: string): number => {
-  const m = (due || '').match(/^(\d{4})-(\d{2})-(\d{2})/);
-  if (!m) return NaN;
-  return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]), 23, 59, 59).getTime();
-};
-
-/** Школьная дата 'YYYY-MM-DD' как upper bound «просрочено» (конец дня). */
-const dueTsOfToday = (): number => dueTs(schoolTodayISO() + ' 00:00:00');
-
-/** Группировка по срочности (утверждённые группы итерации 1).
+/** Группировка по состоянию сдачи.
  *
- * Срочно сдать: просроченные, дедлайн в ближайшие 3 дня и «на доработку».
- * На этой неделе: всё остальное ещё не сданное. Проверенные: сдано/
- * принято.
+ * Новые: ещё не сдано (none/draft), включая «на доработку» (change/reject)
+ * с комментарием учителя — их нужно переделать и пересдать.
+ * Сдано: submit, ждёт проверки. Проверено: принято.
  */
 const groupHomework = (items: HomeworkItem[]): {
-  urgent: HomeworkItem[];
-  week: HomeworkItem[];
+  fresh: HomeworkItem[];
+  submitted: HomeworkItem[];
   checked: HomeworkItem[];
 } => {
-  const todayEnd = dueTsOfToday();
-  const in3days = todayEnd + 2 * 86400_000;
-  const urgent: HomeworkItem[] = [];
-  const week: HomeworkItem[] = [];
+  const fresh: HomeworkItem[] = [];
+  const submitted: HomeworkItem[] = [];
   const checked: HomeworkItem[] = [];
   for (const h of items) {
-    if (h.state === 'submit' || h.state === 'accept') {
-      checked.push(h);
-      continue;
-    }
-    const ts = dueTs(h.due);
-    const urgentHit = h.overdue || h.state === 'change' || h.state === 'reject'
-      || (isNaN(ts) ? true : ts <= in3days);
-    if (urgentHit) urgent.push(h);
-    else week.push(h);
+    if (h.state === 'accept') checked.push(h);
+    else if (h.state === 'submit') submitted.push(h);
+    else fresh.push(h);
   }
-  return { urgent, week, checked };
+  return { fresh, submitted, checked };
 };
 
 export const HomeworkPage: React.FC<HomeworkPageProps> = ({ id }) => {
@@ -133,28 +115,27 @@ export const HomeworkPage: React.FC<HomeworkPageProps> = ({ id }) => {
         </Placeholder>
       ) : (
         <>
-          {groups.urgent.length > 0 && (
+          {groups.fresh.length > 0 && (
             <HomeworkCardList
-              items={groups.urgent}
-              title={<GroupTitle>Срочно сдать · {groups.urgent.length}</GroupTitle>}
+              items={groups.fresh}
+              title={<GroupTitle>Новые · {groups.fresh.length}</GroupTitle>}
               canSubmit
               onSubmit={submit}
               onUpdated={load}
             />
           )}
-          {groups.week.length > 0 && (
+          {groups.submitted.length > 0 && (
             <HomeworkCardList
-              items={groups.week}
-              title={<GroupTitle>На этой неделе · {groups.week.length}</GroupTitle>}
-              canSubmit
-              onSubmit={submit}
+              items={groups.submitted}
+              title={<GroupTitle>Сдано · {groups.submitted.length}</GroupTitle>}
+              canSubmit={false}
               onUpdated={load}
             />
           )}
           {groups.checked.length > 0 && (
             <HomeworkCardList
               items={groups.checked}
-              title={<GroupTitle>Проверенные · {groups.checked.length}</GroupTitle>}
+              title={<GroupTitle>Проверено · {groups.checked.length}</GroupTitle>}
               canSubmit={false}
               onUpdated={load}
             />

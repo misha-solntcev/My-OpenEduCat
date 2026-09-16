@@ -250,6 +250,32 @@ export interface HomeworkSubmissionsResponse {
   students: HomeworkSubmissionStudent[];
 }
 
+/** Элемент списка заданий учителя (GET /api/teacher_homework). */
+export interface TeacherHomeworkItem {
+  id: number;
+  /** publish | finish */
+  state: string;
+  subject: string;
+  batch: string;
+  task: string;
+  due: string;
+  overdue: boolean;
+  submitted: number;
+  total: number;
+  /** Сдач в состоянии submit (ждут проверки). */
+  to_review: number;
+  answer_required: boolean;
+  materials_count: number;
+  /** Журнал-источник (правка текста идёт через него); null — задание создано вне журнала. */
+  sheet_id: number | null;
+  /** Имя преподавателя (для админа; у учителя свои). */
+  faculty: string;
+}
+
+export interface TeacherHomeworkResponse {
+  homework: TeacherHomeworkItem[];
+}
+
 export interface AdminStats {
   lessons_today: number;
   batches_today: number;
@@ -268,6 +294,8 @@ export interface DashboardInfoResponse {
   my_homework?: MyHomeworkItem[];
   admin_stats?: AdminStats;
   alerts?: { kind: string; count: number; morning_passed: number }[];
+  /** Учитель/админ: сводка ДЗ для табло (детали — на вкладке «Задания»). */
+  hw_summary?: { to_review: number; active: number };
   metrics: Record<string, unknown>;
   next_lesson: unknown;
 }

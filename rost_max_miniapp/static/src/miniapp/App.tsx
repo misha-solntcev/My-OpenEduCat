@@ -15,8 +15,10 @@ import { LoginPage } from '@/pages/auth/LoginPage';
 import { DashboardPage } from '@/pages/dashboard/DashboardPage';
 import { TimetablePage } from '@/pages/timetable/TimetablePage';
 import { HomeworkPage } from '@/pages/homework/HomeworkPage';
+import { TeacherHomeworkPage } from '@/pages/homework/TeacherHomeworkPage';
 import { SubjectsPage } from '@/pages/subjects/SubjectsPage';
 import { SubjectGradesPage } from '@/pages/subjects/SubjectGradesPage';
+import { TeacherGradesPage } from '@/pages/subjects/TeacherGradesPage';
 import { LessonJournalPage } from '@/pages/lesson-journal/LessonJournalPage';
 import { ProfilePage } from '@/pages/profile/ProfilePage';
 import { ToastContainer } from '@/shared/components/Toast';
@@ -87,6 +89,8 @@ export default function App() {
   const isStudentOrParent = Boolean(
     userInfo && (userInfo.is_student || userInfo.is_parent) && !userInfo.is_admin && !userInfo.is_teacher
   );
+  // Учитель/админ: свои вкладки «Задания» и «Оценки» (заглушка).
+  const isStaff = Boolean(userInfo && (userInfo.is_teacher || userInfo.is_admin));
 
   const handleOpenSubject = (subjectId: number, subjectName: string) => {
     setSelectedSubject({ id: subjectId, name: subjectName });
@@ -173,7 +177,11 @@ export default function App() {
           {/* 2. Экран приложения с таббаром внутри Epic */}
           <Epic
             id="main"
-            activeStory={activeTab}
+            activeStory={
+              activeTab === 'homework' && isStaff ? 'teacher-homework'
+                : activeTab === 'subjects' && isStaff ? 'teacher-subjects'
+                  : activeTab
+            }
             tabbar={
               <Tabbar mode="horizontal">
                 <TabbarItem
@@ -190,7 +198,7 @@ export default function App() {
                 >
                   <Icon28CalendarOutline />
                 </TabbarItem>
-                {isStudentOrParent && (
+                {(isStudentOrParent || isStaff) && (
                   <TabbarItem
                     label="Задания"
                     selected={activeTab === 'homework'}
@@ -199,7 +207,7 @@ export default function App() {
                     <Icon28DocumentTextOutline />
                   </TabbarItem>
                 )}
-                {isStudentOrParent && (
+                {(isStudentOrParent || isStaff) && (
                   <TabbarItem
                     label="Оценки"
                     selected={activeTab === 'subjects'}
@@ -233,10 +241,14 @@ export default function App() {
               <TimetablePage id="timetable-panel" onOpenLesson={handleOpenLesson} />
             </View>
 
-            {/* Задания (ученик/родитель): группы срочности; Epic рендерит
-                все View, условен только TabbarItem — как с «Оценками». */}
+            {/* Задания: ученик/родитель — группы срочности;
+                учитель/админ — сегменты К проверке/Активные/Завершённые.
+                Epic рендерит все View, условен только TabbarItem. */}
             <View id="homework" activePanel="homework-panel">
               <HomeworkPage id="homework-panel" />
+            </View>
+            <View id="teacher-homework" activePanel="teacher-homework-panel">
+              <TeacherHomeworkPage id="teacher-homework-panel" />
             </View>
 
             <View
@@ -252,6 +264,11 @@ export default function App() {
                 subjectName={selectedSubject?.name ?? ''}
                 onBack={handleSubjectsBack}
               />
+            </View>
+
+            {/* Оценки учителя/админа — заглушка «в разработке». */}
+            <View id="teacher-subjects" activePanel="teacher-subjects-panel">
+              <TeacherGradesPage id="teacher-subjects-panel" />
             </View>
           </Epic>
 

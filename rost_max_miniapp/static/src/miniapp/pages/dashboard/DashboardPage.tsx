@@ -1,17 +1,14 @@
 import React from 'react';
-import { Panel, Spinner, Div, Button, Text } from '@vkontakte/vkui';
+import { Panel, Spinner, Div, Button, Text, Card as VkCard, Counter, Caption } from '@vkontakte/vkui';
 import { useAppStore } from '@/shared/lib/store';
 import { apiGet, apiPost } from '@/shared/lib/api';
 import { useToast } from '@/shared/components/Toast';
 import { today } from '@/shared/lib/date';
-import type { DashboardInfoResponse, HomeworkSubmissionsResponse } from '@/shared/lib/types';
+import type { DashboardInfoResponse } from '@/shared/lib/types';
 import {
   Greeting,
   TodayLessons,
   GradesToday,
-  JournalsToFill,
-  MyHomework,
-  SubmissionReviewCard,
   AdminStatStrip,
   AdminAlerts,
 } from './components/feed';
@@ -26,6 +23,40 @@ interface DashboardPageProps {
   onOpenProfile: () => void;
 }
 
+/** Табло ДЗ учителя/админа: только счётчики, клик уводит на вкладку
+ *  «Задания» (там списки, проверка и правка). */
+export const HwSummaryCard: React.FC<{
+  summary: { to_review: number; active: number };
+  onOpenHomework: () => void;
+}> = ({ summary, onOpenHomework }) => (
+  <div style={{ margin: '0 8px 8px' }}>
+    <VkCard mode="shadow" style={{ overflow: 'hidden' }} onClick={onOpenHomework}>
+      <div style={{
+        padding: '12px 16px', display: 'flex',
+        justifyContent: 'space-between', alignItems: 'center',
+      }}>
+        <Text weight="2">Домашние задания</Text>
+        <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+          {summary.to_review > 0 && (
+            <Counter mode="primary" appearance="accent-red">
+              {`${summary.to_review} к проверке`}
+            </Counter>
+          )}
+          <Counter mode="primary">{`${summary.active} активных`}</Counter>
+        </div>
+      </div>
+      <Caption
+        style={{
+          color: 'var(--vkui--color_text_secondary)',
+          display: 'block', padding: '0 16px 12px',
+        }}
+      >
+        Открыть задания
+      </Caption>
+    </VkCard>
+  </div>
+);
+
 export const DashboardPage: React.FC<DashboardPageProps> = ({
   id, onOpenLesson, onOpenTimetable, onOpenGrades, onOpenHomework, onOpenProfile,
 }) => {
@@ -34,9 +65,6 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
 
   const [data, setData] = React.useState<DashboardInfoResponse | null>(null);
   const [loading, setLoading] = React.useState(false);
-  // Учитель: открытый экран сдач по заданию (id = op.assignment.id)
-  const [reviewId, setReviewId] = React.useState<number | null>(null);
-  const [reviewData, setReviewData] = React.useState<HomeworkSubmissionsResponse | null>(null);
 
   // Главная всегда про сегодняшний день (Europe/Moscow) — независимо от
   // навигации по расписанию. Дата фиксируется на монтирование.
@@ -56,41 +84,6 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
   }, [feedDate, addToast]);
 
   React.useEffect(() => { load(); }, [load]);
-
-  const openReview = async (assignmentId: number) => {
-    setReviewId(assignmentId);
-    setReviewData(null);
-    try {
-      const res = await apiGet<HomeworkSubmissionsResponse>(
-        `/rost_max/api/homework/${assignmentId}/submissions`);
-      setReviewData(res);
-    } catch {
-      addToast('Не удалось загрузить сдачи', 'error');
-      setReviewId(null);
-    }
-  };
-
-  const reviewSubmission = async (
-    subId: number,
-    action: 'accept' | 'change',
-    note: string,
-  ): Promise<string | null> => {
-    try {
-      const res = await apiPost<{ success?: boolean; error?: string }>(
-        `/rost_max/api/homework/submission/${subId}/review`,
-        { action, teacher_note: note });
-      if (res.error) {
-        addToast(res.error, 'error');
-        return res.error;
-      }
-      if (reviewId != null) await openReview(reviewId);
-      addToast(action === 'accept' ? 'Принято' : 'Отправлено на доработку', 'success');
-      return null;
-    } catch {
-      addToast('Не удалось сохранить проверку', 'error');
-      return 'error';
-    }
-  };
 
   const submitHomework = async (
     assignmentId: number,
@@ -170,7 +163,8 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
           )}
           {isStudentOrParent && data.homework && (
             <HomeworkList
-              items={data.homework}
+              items={data.homework.filter(h => h.state !== 'submit' && h.state !== 'accept')}
+              max={3}
               title={<Text weight="2">Домашние задания</Text>}
               afterTitle={
                 <span
@@ -189,33 +183,12 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
             />
           )}
 
-          {/* Учитель: журналы к заполнению + задано моими уроками */}
-          {isTeacher && data.journals_to_fill && (
-            <JournalsToFill items={data.journals_to_fill} onOpenJournal={onOpenLesson} />
-          )}
-          {isTeacher && reviewId != null && (
-            reviewData ? (
-              <SubmissionReviewCard
-                submission={reviewData}
-                onClose={() => { setReviewId(null); setReviewData(null); }}
-                onReview={reviewSubmission}
-                onUpdated={load}
-              />
-            ) : (
-              // Ответ /submissions ещё грузится — карточке нельзя рендериться
-              // с null (внутри деструктуризация assignment/students).
-              <Div style={{ display: 'flex', justifyContent: 'center', padding: 24 }}>
-                <Spinner size="m" />
-              </Div>
-            )
-          )}
-          {/* Учитель — свои ДЗ (аккордеон по классам); админ — вся школа
-              (аккордеон по учителям; сервер кладёт их в тот же my_homework). */}
-          {(isTeacher || isAdmin) && data.my_homework && (
-            <MyHomework
-              items={data.my_homework}
-              groupBy={isAdmin ? 'faculty' : 'batch'}
-              onOpen={openReview}
+          {/* Учитель/админ: табло ДЗ — только счётчики, вся логика
+              (списки, проверка, правка) на вкладке «Задания». */}
+          {(isTeacher || isAdmin) && data.hw_summary && (
+            <HwSummaryCard
+              summary={data.hw_summary}
+              onOpenHomework={onOpenHomework}
             />
           )}
         </>

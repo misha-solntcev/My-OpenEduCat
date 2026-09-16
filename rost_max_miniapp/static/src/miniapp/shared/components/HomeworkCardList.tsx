@@ -260,7 +260,7 @@ export const HomeworkCardList: React.FC<{
   canSubmit?: boolean;
   onSubmit?: (id: number, answer: string, files: { filename: string; mimetype: string; b64: string }[]) => Promise<string | null>;
   onUpdated?: () => void;
-}> = ({ items, title = 'Домашние задания', afterTitle, canSubmit, onSubmit, onUpdated }) => (
+}> = ({ items, title = 'Домашние задания', afterTitle, canSubmit, onSubmit, onUpdated, max }) => (
   <div style={{ margin: '0 8px 8px' }}>
     <VkCard mode="shadow" style={{ overflow: 'hidden' }}>
       {title != null && (
@@ -272,15 +272,24 @@ export const HomeworkCardList: React.FC<{
       {items.length === 0 ? (
         <Div><Caption style={{ color: 'var(--vkui--color_text_secondary)' }}>Заданий нет — можно отдыхать</Caption></Div>
       ) : (
-        items.map(h => (
-          <HomeworkRowItem
-            key={h.id}
-            h={h}
-            canSubmit={canSubmit}
-            onSubmit={onSubmit}
-            onUpdated={onUpdated}
-          />
-        ))
+        <>
+          {(max != null ? items.slice(0, max) : items).map(h => (
+            <HomeworkRowItem
+              key={h.id}
+              h={h}
+              canSubmit={canSubmit}
+              onSubmit={onSubmit}
+              onUpdated={onUpdated}
+            />
+          ))}
+          {max != null && items.length > max && (
+            <Div style={{ paddingTop: 0 }}>
+              <Caption style={{ color: 'var(--vkui--color_text_secondary)' }}>
+                Ещё {items.length - max} — на вкладке «Задания»
+              </Caption>
+            </Div>
+          )}
+        </>
       )}
     </VkCard>
   </div>

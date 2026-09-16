@@ -1173,6 +1173,25 @@ class RostMaxTimetableController(http.Controller):
                 "faculty": self._faculty_name(a.faculty_id) if role == 'admin' else "",
             } for a in my_asgs]
 
+        # --- Учитель/админ: сводка ДЗ для табло на главной --------------
+        # Полные списки и проверка — на вкладке «Задания»
+        # (GET /api/teacher_homework); здесь только счётчики.
+        if role in ('teacher', 'admin'):
+            asg_domain = [('state', '=', 'publish')]
+            if role == 'teacher':
+                asg_domain.append(('faculty_id', '=', faculty.id))
+            hw_asgs = request.env['op.assignment'].sudo().search(asg_domain)
+            to_review_total = sum(
+                s['assignment_id_count']
+                for s in request.env['op.assignment.sub.line'].sudo().read_group(
+                    [('assignment_id', 'in', hw_asgs.ids),
+                     ('state', '=', 'submit')],
+                    ['assignment_id'], ['assignment_id']))
+            feed["hw_summary"] = {
+                "to_review": to_review_total,
+                "active": len(hw_asgs),
+            }
+
         # --- Админ: полоса цифр + требует внимания ---
         if role == 'admin':
             all_sheets = list(sheets_map.values())
@@ -1544,6 +1563,207 @@ class RostMaxTimetableController(http.Controller):
         if 'teacher_note' in body:
             vals['teacher_note'] = (body.get('teacher_note') or '').strip()
         sub.write(vals)
+        return request.make_json_response({"success": True})
+
+    @http.route("/rost_max/api/teacher_homework", type="http",
+                auth="public", methods=["GET"])
+    def api_teacher_homework(self, **kw):
+        """API: вкладка «Задания» учителя/админа — ПОЛНЫЙ список своих
+        заданий (админ — все задания школы) без временного окна, со
+        статусами publish/finish. Фильтрация по статусу — на фронте
+        (сегменты «К проверке / Активные / Завершённые»)."""
+        restore_session_if_needed()
+        if not request.session.uid:
+            return request.make_json_response(
+                {"error": "Unauthorized"}, status=401)
+
+        user = request.env.user
+        is_admin = user.has_group('base.group_system')
+        faculty = request.env['op.faculty'].sudo().search([
+            ('partner_id', '=', user.partner_id.id)], limit=1)
+        if not is_admin and not faculty:
+            return request.make_json_response(
+                {"error": "Доступно только учителю и админу"}, status=403)
+
+        domain = [('state', 'in', ('publish', 'finish'))]
+        if not is_admin:
+            domain.append(('faculty_id', '=', faculty.id))
+        asgs = request.env['op.assignment'].sudo().search(
+            domain, order='submission_date desc')
+
+        submitted_counts = {
+            s['assignment_id'][0]: s['assignment_id_count']
+            for s in request.env['op.assignment.sub.line'].sudo().read_group(
+                [('assignment_id', 'in', asgs.ids),
+                 ('state', 'in', ['submit', 'accept'])],
+                ['assignment_id'], ['assignment_id'])
+        }
+        to_review_counts = {
+            s['assignment_id'][0]: s['assignment_id_count']
+            for s in request.env['op.assignment.sub.line'].sudo().read_group(
+                [('assignment_id', 'in', asgs.ids),
+                 ('state', '=', 'submit')],
+                ['assignment_id'], ['assignment_id'])
+        }
+        now = _school_now()
+        return request.make_json_response({"homework": [{
+            "id": a.id,
+            "state": a.state,
+            "subject": a.subject_id.name if a.subject_id else "",
+            "batch": self._batch_short(a.batch_id.name) if a.batch_id else "",
+            "task": tools.html2plaintext(a.description) or a.name,
+            "due": str(a.submission_date) if a.submission_date else "",
+            "overdue": bool(a.state == 'publish' and a.submission_date
+                            and a.submission_date < now),
+            "submitted": submitted_counts.get(a.id, 0),
+            "total": len(a.allocation_ids),
+            "to_review": to_review_counts.get(a.id, 0),
+            "answer_required": a.answer_required,
+            "materials_count": len(a._hw_material_payload()),
+            # Источник в журнале (для правки текста через синк); бывает
+            # не у всех заданий (созданных вне журнала) — тогда правка
+            # текста из вкладки недоступна.
+            "sheet_id": request.env['op.attendance.sheet'].sudo().search([
+                ('homework_assignment_id', '=', a.id)], limit=1).id or None,
+            # Админ: имя преподавателя (чей журнал породил задание).
+            "faculty": self._faculty_name(a.faculty_id),
+        } for a in asgs]})
+
+    @http.route("/rost_max/api/homework/<int:assignment_id>/edit",
+                type="http", auth="public", methods=["POST"], cors="*",
+                csrf=False)
+    def api_homework_edit(self, assignment_id, **kw):
+        """API: правка задания учителем из вкладки «Задания».
+
+        Текст ДЗ пишется через журнал (sheet.lesson_homework) — синк
+        rost_lesson_homework обновит задание И перезапишет пост в канале
+        класса; прямой write на op.assignment канал бы не тронул.
+        Срок и answer_required — прямая запись на задание (синк их при
+        редактировании текста не трогает)."""
+        restore_session_if_needed()
+        csrf_err = _check_spa_csrf()
+        if csrf_err:
+            return csrf_err
+        if not request.session.uid:
+            return request.make_json_response(
+                {"error": "Unauthorized"}, status=401)
+
+        user = request.env.user
+        is_admin = user.has_group('base.group_system')
+        faculty = request.env['op.faculty'].sudo().search([
+            ('partner_id', '=', user.partner_id.id)], limit=1)
+
+        asg = request.env['op.assignment'].sudo().browse(assignment_id)
+        if not asg.exists():
+            return request.make_json_response(
+                {"error": "Задание не найдено"}, status=404)
+        if not is_admin and (not faculty or asg.faculty_id != faculty):
+            return request.make_json_response(
+                {"error": "Доступно только автору задания"}, status=403)
+        if asg.state not in ('publish', 'finish'):
+            return request.make_json_response(
+                {"error": "Задание отменено — правка недоступна"}, status=409)
+
+        try:
+            body = request.get_json_data()
+        except Exception:
+            return request.make_json_response(
+                {"error": "Invalid JSON"}, status=400)
+
+        # --- Текст: только через журнал (синк + канал) -----------------
+        if 'task' in body:
+            task = (body.get('task') or '').strip()
+            if not task:
+                return request.make_json_response(
+                    {"error": "Текст задания не может быть пустым"},
+                    status=400)
+            sheet = request.env['op.attendance.sheet'].sudo().search([
+                ('homework_assignment_id', '=', assignment_id)], limit=1)
+            if not sheet:
+                return request.make_json_response(
+                    {"error": "Задание создано вне журнала урока — "
+                              "текст правится только в ПК-форме задания"},
+                    status=409)
+            if sheet.state not in ('done', 'start'):
+                return request.make_json_response(
+                    {"error": "Журнал урока не активен — правка недоступна"},
+                    status=409)
+            sheet.write({'lesson_homework': task})
+
+        # --- Срок ------------------------------------------------------
+        if 'due' in body:
+            due_raw = (body.get('due') or '').strip()
+            if not due_raw:
+                return request.make_json_response(
+                    {"error": "Срок обязателен"}, status=400)
+            try:
+                due_dt = fields.Datetime.from_string(due_raw)
+            except ValueError:
+                return request.make_json_response(
+                    {"error": "Некорректный формат срока"}, status=400)
+            if due_dt < asg.issued_date:
+                return request.make_json_response(
+                    {"error": "Срок не может быть раньше даты выдачи"},
+                    status=400)
+            asg.write({'submission_date': due_dt})
+
+        # --- Флаг «требуется ответ» ------------------------------------
+        if 'answer_required' in body:
+            asg.write({'answer_required': bool(body.get('answer_required'))})
+
+        return request.make_json_response({"success": True})
+
+    @http.route("/rost_max/api/homework/<int:assignment_id>/finish",
+                type="http", auth="public", methods=["POST"], cors="*",
+                csrf=False)
+    def api_homework_finish(self, assignment_id, **kw):
+        """API: завершить приём сдач (op.assignment act_finish) или
+        возобновить (обратно в publish). Только автор задания/админ."""
+        restore_session_if_needed()
+        csrf_err = _check_spa_csrf()
+        if csrf_err:
+            return csrf_err
+        if not request.session.uid:
+            return request.make_json_response(
+                {"error": "Unauthorized"}, status=401)
+
+        user = request.env.user
+        is_admin = user.has_group('base.group_system')
+        faculty = request.env['op.faculty'].sudo().search([
+            ('partner_id', '=', user.partner_id.id)], limit=1)
+
+        asg = request.env['op.assignment'].sudo().browse(assignment_id)
+        if not asg.exists():
+            return request.make_json_response(
+                {"error": "Задание не найдено"}, status=404)
+        if not is_admin and (not faculty or asg.faculty_id != faculty):
+            return request.make_json_response(
+                {"error": "Доступно только автору задания"}, status=403)
+
+        try:
+            body = request.get_json_data()
+        except Exception:
+            return request.make_json_response(
+                {"error": "Invalid JSON"}, status=400)
+        action = body.get('action')
+        if action == 'finish':
+            if asg.state != 'publish':
+                return request.make_json_response(
+                    {"error": "Завершить можно только активное задание"},
+                    status=409)
+            asg.act_finish()
+        elif action == 'resume':
+            if asg.state != 'finish':
+                return request.make_json_response(
+                    {"error": "Возобновить можно только завершённое задание"},
+                    status=409)
+            # finish -> draft -> publish (как act_cancel/act_set_to_draft
+            # в синке журнала).
+            asg.act_set_to_draft()
+            asg.act_publish()
+        else:
+            return request.make_json_response(
+                {"error": "action должен быть finish|resume"}, status=400)
         return request.make_json_response({"success": True})
 
     @http.route("/rost_max/hw_att/<string:token>", type="http",
