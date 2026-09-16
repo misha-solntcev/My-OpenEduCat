@@ -543,6 +543,7 @@ class RostMaxTimetableController(http.Controller):
                     "state": l.state,
                     "faculty": f"{l.faculty_id.last_name or ''} {l.faculty_id.first_name or ''} {l.faculty_id.middle_name or ''}".strip(),
                     "faculty_avatar": avatar_map.get(l.faculty_id.id, ''),
+                    "room": l.classroom_id.sudo().name if l.classroom_id else "",
                     "sheet_id": sheets_map.get(l.id),
                 }
                 for l in lessons
@@ -1073,6 +1074,7 @@ class RostMaxTimetableController(http.Controller):
                 "batch": self._batch_short(l.batch_id.name) if l.batch_id else "",
                 "faculty": self._faculty_name(l.faculty_id),
                 "faculty_avatar": avatar_map.get(l.faculty_id.id, ''),
+                "room": l.classroom_id.sudo().name if l.classroom_id else "",
                 "timing": l.timing or "",
                 "start": str(l.start_datetime) if l.start_datetime else "",
                 "end": str(l.end_datetime) if l.end_datetime else "",
@@ -1103,41 +1105,7 @@ class RostMaxTimetableController(http.Controller):
                         "comment": ln.remark or ln.lesson_topic or "",
                     })
             feed["grades_today"] = grades_today
-
-            batches = own_students.mapped('active_batch_id')
-            asgs = request.env['op.assignment'].sudo().search([
-                ('state', '=', 'publish'),
-                ('batch_id', 'in', batches.ids),
-                ('submission_date', '>=', fields.Datetime.now() - timedelta(days=7)),
-            ], order='submission_date asc')
-            subs = request.env['op.assignment.sub.line'].sudo().search([
-                ('assignment_id', 'in', asgs.ids),
-                ('student_id', 'in', own_students.ids),
-            ])
-            sub_map = {s.assignment_id.id: s for s in subs}
-            # can_submit: ученик из allocation (родитель сдаёт false).
-            hw_items = []
-            for a in asgs:
-                sub = sub_map.get(a.id)
-                st = sub.state if sub else 'none'
-                hw_items.append({
-                    "id": a.id,
-                    "subject": a.subject_id.name if a.subject_id else "",
-                    "task": tools.html2plaintext(a.description) or a.name,
-                    "due": str(a.submission_date) if a.submission_date else "",
-                    "overdue": bool(a.submission_date and a.submission_date < now),
-                    "answer_required": a.answer_required,
-                    "state": st,
-                    "answer": (sub.note or '') if sub else '',
-                    "teacher_note": (sub.teacher_note or '') if sub else '',
-                    "submitted_at": str(sub.submission_date) if sub else '',
-                    "late": bool(sub and a.submission_date
-                                 and sub.submission_date > a.submission_date),
-                    # Материалы задания (вложения учителя) с одноразовыми
-                    # ссылками (24 ч) — как вложения сдач в /submissions.
-                    "materials": a._hw_material_payload(),
-                })
-            feed["homework"] = hw_items
+            feed["homework"] = self._student_homework_feed(own_students, now)
 
         # --- Учитель/админ: задано моими уроками -------------------------
         # Админ (Макарова) не имеет faculty — role 'admin' из _get_user_students.
@@ -1228,6 +1196,73 @@ class RostMaxTimetableController(http.Controller):
             feed["alerts"] = alerts
 
         return feed
+
+    def _student_homework_feed(self, own_students, now, days_back=7, days_forward=None):
+        """ДЗ ученика/родителя: опубликованные задания его классов с
+        состоянием сдачи. Используется в ленте главной и вкладке «Задания».
+
+        now — школьный момент (naive datetime). Окно по сроку сдачи:
+        days_back назад (для «Проверенных» на вкладке — 30) и days_forward
+        вперёд (на вкладке 60; None — без границы, как в ленте главной).
+        """
+        batches = own_students.mapped('active_batch_id')
+        now_server = fields.Datetime.now()
+        domain = [
+            ('state', '=', 'publish'),
+            ('batch_id', 'in', batches.ids),
+            ('submission_date', '>=', now_server - timedelta(days=days_back)),
+        ]
+        if days_forward is not None:
+            domain.append(('submission_date', '<=', now_server + timedelta(days=days_forward)))
+        asgs = request.env['op.assignment'].sudo().search(
+            domain, order='submission_date asc')
+        subs = request.env['op.assignment.sub.line'].sudo().search([
+            ('assignment_id', 'in', asgs.ids),
+            ('student_id', 'in', own_students.ids),
+        ])
+        sub_map = {s.assignment_id.id: s for s in subs}
+        # can_submit: ученик из allocation (родитель сдаёт false).
+        hw_items = []
+        for a in asgs:
+            sub = sub_map.get(a.id)
+            st = sub.state if sub else 'none'
+            hw_items.append({
+                "id": a.id,
+                "subject": a.subject_id.name if a.subject_id else "",
+                "task": tools.html2plaintext(a.description) or a.name,
+                "due": str(a.submission_date) if a.submission_date else "",
+                "overdue": bool(a.submission_date and a.submission_date < now),
+                "answer_required": a.answer_required,
+                "state": st,
+                "answer": (sub.note or '') if sub else '',
+                "teacher_note": (sub.teacher_note or '') if sub else '',
+                "submitted_at": str(sub.submission_date) if sub else '',
+                "late": bool(sub and a.submission_date
+                             and sub.submission_date > a.submission_date),
+                # Материалы задания (вложения учителя) с одноразовыми
+                # ссылками (24 ч) — как вложения сдач в /submissions.
+                "materials": a._hw_material_payload(),
+            })
+        return hw_items
+
+    @http.route("/rost_max/api/homework", type="http", auth="public", methods=["GET"])
+    def api_homework_list(self, **kw):
+        """API: вкладка «Задания» — ученику/родителю его ДЗ со статусами
+        сдачи (тот же формат элементов, что homework в ленте главной)."""
+        restore_session_if_needed()
+        if not request.session.uid:
+            return request.make_json_response({"error": "Unauthorized"}, status=401)
+
+        user = request.env.user
+        role, own_students = _get_user_students(user)
+        if role not in ('student', 'parent') or not own_students:
+            return request.make_json_response(
+                {"error": "Доступно только ученику и родителю"}, status=403)
+
+        return request.make_json_response({
+            "homework": self._student_homework_feed(
+                own_students, _school_now(), days_back=30, days_forward=60),
+        })
 
     @staticmethod
     def _batch_short(name):
