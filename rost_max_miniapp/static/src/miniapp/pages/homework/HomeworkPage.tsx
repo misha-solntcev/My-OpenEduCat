@@ -4,7 +4,7 @@
  * проверки) / «Проверено» (принято).
  */
 import React from 'react';
-import { Panel, Div, Spinner, Button, Placeholder, Caption } from '@vkontakte/vkui';
+import { Panel, Div, Spinner, Button, Placeholder, Caption, Title } from '@vkontakte/vkui';
 import { Icon56DocumentOutline } from '@vkontakte/icons';
 import { apiGet, apiPost } from '@/shared/lib/api';
 import { useToast } from '@/shared/components/Toast';
@@ -15,12 +15,28 @@ interface HomeworkPageProps {
   id: string;
 }
 
-/** Серый подзаголовок группы заданий. */
-const GroupTitle: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <Div style={{ paddingTop: 12, paddingBottom: 0 }}>
-    <Caption style={{ color: 'var(--vkui--color_text_secondary)', fontWeight: 600 }}>
-      {children}
-    </Caption>
+/** Заголовок группы заданий: крупный текст + цветная точка-статус +
+ *  плашка-счётчик количества заданий в группе. Цвет несёт точка и
+ *  счётчик (токены VKUI, без кастомных цветов); сам текст — text_primary
+ *  (адаптивный, читается в обеих темах). */
+const GroupTitle: React.FC<{ label: string; count: number; dot: string }> = ({ label, count, dot }) => (
+  <Div style={{ paddingTop: 14, paddingBottom: 6, display: 'flex', alignItems: 'center', gap: 8 }}>
+    <span style={{
+      width: 10, height: 10, borderRadius: '50%', flexShrink: 0, background: dot,
+    }} />
+    <Title level="3" style={{ color: 'var(--vkui--color_text_primary)' }}>
+      {label}
+    </Title>
+    <span style={{
+      minWidth: 24, height: 22, borderRadius: 11, flexShrink: 0,
+      display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+      padding: '0 8px', fontSize: 13, fontWeight: 600,
+      color: 'var(--vkui--color_text_primary)',
+      background: 'var(--vkui--color_background_positive_tint)',
+      border: '1px solid var(--vkui--color_stroke_positive)',
+    }}>
+      {count}
+    </span>
   </Div>
 );
 
@@ -118,7 +134,7 @@ export const HomeworkPage: React.FC<HomeworkPageProps> = ({ id }) => {
           {groups.fresh.length > 0 && (
             <HomeworkCardList
               items={groups.fresh}
-              title={<GroupTitle>Новые · {groups.fresh.length}</GroupTitle>}
+              title={<GroupTitle label="Новые" count={groups.fresh.length} dot="var(--vkui--color_background_accent)" />}
               canSubmit
               onSubmit={submit}
               onUpdated={load}
@@ -127,7 +143,7 @@ export const HomeworkPage: React.FC<HomeworkPageProps> = ({ id }) => {
           {groups.submitted.length > 0 && (
             <HomeworkCardList
               items={groups.submitted}
-              title={<GroupTitle>Сдано · {groups.submitted.length}</GroupTitle>}
+              title={<GroupTitle label="Сдано" count={groups.submitted.length} dot="var(--vkui--color_icon_warning)" />}
               canSubmit={false}
               onUpdated={load}
             />
@@ -135,7 +151,7 @@ export const HomeworkPage: React.FC<HomeworkPageProps> = ({ id }) => {
           {groups.checked.length > 0 && (
             <HomeworkCardList
               items={groups.checked}
-              title={<GroupTitle>Проверено · {groups.checked.length}</GroupTitle>}
+              title={<GroupTitle label="Проверено" count={groups.checked.length} dot="var(--vkui--color_background_positive)" />}
               canSubmit={false}
               onUpdated={load}
             />
