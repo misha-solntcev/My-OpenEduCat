@@ -10,13 +10,15 @@ import {
   Panel,
   Spinner,
 } from '@vkontakte/vkui';
-import { Icon28HomeOutline, Icon28CalendarOutline, Icon28BookSpreadOutline } from '@vkontakte/icons';
+import { Icon28HomeOutline, Icon28CalendarOutline, Icon28BookSpreadOutline, Icon28DocumentTextOutline } from '@vkontakte/icons';
 import { LoginPage } from '@/pages/auth/LoginPage';
 import { DashboardPage } from '@/pages/dashboard/DashboardPage';
 import { TimetablePage } from '@/pages/timetable/TimetablePage';
+import { HomeworkPage } from '@/pages/homework/HomeworkPage';
 import { SubjectsPage } from '@/pages/subjects/SubjectsPage';
 import { SubjectGradesPage } from '@/pages/subjects/SubjectGradesPage';
 import { LessonJournalPage } from '@/pages/lesson-journal/LessonJournalPage';
+import { ProfilePage } from '@/pages/profile/ProfilePage';
 import { ToastContainer } from '@/shared/components/Toast';
 import { useAppStore } from '@/shared/lib/store';
 import { hasSavedSession } from '@/shared/lib/api';
@@ -35,7 +37,7 @@ export default function App() {
   // «главная -> расписание». Работает только при живой сессии: если sid
   // в localStorage нет, сохранённое состояние навигации неактуально.
   const savedNav = hasSavedSession() ? loadNavState() : {};
-  const [activeView, setActiveView] = React.useState<'login' | 'main' | 'lesson-journal'>(
+  const [activeView, setActiveView] = React.useState<'login' | 'main' | 'lesson-journal' | 'profile'>(
     savedNav.view === 'lesson-journal' && savedNav.selectedLessonId != null
       ? 'lesson-journal'
       : 'login'
@@ -190,6 +192,15 @@ export default function App() {
                 </TabbarItem>
                 {isStudentOrParent && (
                   <TabbarItem
+                    label="Задания"
+                    selected={activeTab === 'homework'}
+                    onClick={() => setActiveTab('homework')}
+                  >
+                    <Icon28DocumentTextOutline />
+                  </TabbarItem>
+                )}
+                {isStudentOrParent && (
+                  <TabbarItem
                     label="Оценки"
                     selected={activeTab === 'subjects'}
                     onClick={() => setActiveTab('subjects')}
@@ -207,6 +218,8 @@ export default function App() {
                 onOpenLesson={handleOpenLesson}
                 onOpenTimetable={() => setActiveTab('timetable')}
                 onOpenGrades={() => setActiveTab('subjects')}
+                onOpenHomework={() => setActiveTab('homework')}
+                onOpenProfile={() => setActiveView('profile')}
               />
             </View>
 
@@ -218,6 +231,12 @@ export default function App() {
               onSwipeBackStart={handleSwipeBackStart}
             >
               <TimetablePage id="timetable-panel" onOpenLesson={handleOpenLesson} />
+            </View>
+
+            {/* Задания (ученик/родитель): группы срочности; Epic рендерит
+                все View, условен только TabbarItem — как с «Оценками». */}
+            <View id="homework" activePanel="homework-panel">
+              <HomeworkPage id="homework-panel" />
             </View>
 
             <View
@@ -236,13 +255,24 @@ export default function App() {
             </View>
           </Epic>
 
-          {/* 3. Журнал урока — отдельный View на уровне Root (вне Epic), 
+          {/* 3. Журнал урока — отдельный View на уровне Root (вне Epic),
               чтобы модалки/шторки не перекрывались Tabbar'ом */}
           <View id="lesson-journal" activePanel="lesson-journal-panel">
-            <LessonJournalPage 
-              id="lesson-journal-panel" 
-              lessonId={selectedLessonId} 
-              onBack={handleTimetableBack} 
+            <LessonJournalPage
+              id="lesson-journal-panel"
+              lessonId={selectedLessonId}
+              onBack={handleTimetableBack}
+            />
+          </View>
+
+          {/* 4. Профиль — тоже вне Epic: открывается тапом по аватару на
+              главной, кнопка «Выйти» живёт здесь (fixed-кнопка на главной
+              перекрывала ленту). Восстановление навигации не делаем:
+              случайный перезапуск просто вернёт на главную. */}
+          <View id="profile" activePanel="profile-panel">
+            <ProfilePage
+              id="profile-panel"
+              onBack={() => setActiveView('main')}
             />
           </View>
 
