@@ -39,6 +39,10 @@ export interface Lesson {
   faculty: string;
   /** URL аватара учителя (/web/image). Пусто — нет фото или гость. */
   faculty_avatar?: string;
+  /** Кабинет (op.classroom.name). Пусто — не задан. */
+  room?: string;
+  /** Состояние op.session (draft/done/cancel). */
+  state?: string;
   /** id op.attendance.sheet (журнал). Есть только у teacher/admin. */
   sheet_id?: number | null;
 }
@@ -159,6 +163,8 @@ export interface FeedLesson {
   batch: string;
   faculty: string;
   timing: string;
+  /** Кабинет (op.classroom.name). Пусто — не задан. */
+  room?: string;
   start: string;
   end: string;
   is_now: boolean;
@@ -264,4 +270,10 @@ export interface DashboardInfoResponse {
   alerts?: { kind: string; count: number; morning_passed: number }[];
   metrics: Record<string, unknown>;
   next_lesson: unknown;
+}
+
+// --- Вкладка «Задания» (ученик/родитель) ---
+
+export interface HomeworkListResponse {
+  homework: HomeworkItem[];
 }

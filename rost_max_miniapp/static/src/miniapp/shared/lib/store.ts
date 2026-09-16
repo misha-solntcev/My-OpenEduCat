@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { apiGet, hasSavedSession } from './api';
+import { loadThemePreference, saveThemePreference, type ThemePreference } from './theme';
 import type { UserInfo } from './types';
 
 interface AppState {
@@ -16,6 +17,11 @@ interface AppState {
   // чтобы он не мигал на время запроса /api/user/info.
   authChecking: boolean;
   setAuthChecking: (v: boolean) => void;
+
+  // Тема: light / dark / system. Читается из localStorage синхронно при
+  // создании стора — первый кадр уже с выбранной темой, без мигания.
+  themePreference: ThemePreference;
+  setThemePreference: (pref: ThemePreference) => void;
 }
 
 // Хранилище (создаём сначала)
@@ -28,6 +34,11 @@ const useAppStore = create<AppState>((set, get) => ({
   authChecking: hasSavedSession(),
   setAuthSuccess: (v: boolean) => set({ authSuccess: v }),
   setAuthChecking: (v: boolean) => set({ authChecking: v }),
+  themePreference: loadThemePreference(),
+  setThemePreference: (pref: ThemePreference) => {
+    saveThemePreference(pref);
+    set({ themePreference: pref });
+  },
   loadUserInfo: async () => {
     const { userInfo } = get();
     if (userInfo) return;

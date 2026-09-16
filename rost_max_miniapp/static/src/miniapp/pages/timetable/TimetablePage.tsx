@@ -1,18 +1,5 @@
 import React from 'react';
-import {
-  Panel,
-  Flex,
-  Text,
-  Spinner,
-  Box,
-  Placeholder,
-  IconButton,
-  CustomSelect,
-  ModalPage,
-  ModalPageHeader,
-  PanelHeaderButton,
-  Card,
-} from '@vkontakte/vkui';
+import { Panel, Flex, Text, Spinner, Box, Placeholder, IconButton, CustomSelect, ModalPage, ModalPageHeader, PanelHeaderButton, Avatar } from '@vkontakte/vkui';
 import {
   Icon24ChevronLeftOutline,
   Icon24ChevronRightOutline,
@@ -23,8 +10,17 @@ import {
 import { Calendar } from '@vkontakte/vkui';
 import { apiGet } from '@/shared/lib/api';
 import { useToast } from '@/shared/components/Toast';
-import { LessonRow, lessonStatus } from '@/shared/components/LessonRow';
 import { TimedGroups } from '@/shared/components/TimedGroups';
+import { useSchoolNowMinutes } from '@/shared/hooks/useSchoolNow';
+import { initialsOf } from '@/shared/lib/initials';
+import {
+  RailNum,
+  RailLine,
+  AccentProgress,
+  accentSlotStyle,
+  firstNamePatronymic,
+  timingToMinutes,
+} from '@/shared/components/timelinePrimitives';
 import { toISO, today, schoolTodayISO, startOfWeek, SHORT_WEEKDAYS } from '@/shared/lib/date';
 import type { Lesson, Faculty, Batch, TimetableResponse, FacultiesResponse, BatchesResponse } from '@/shared/lib/types';
 
@@ -94,6 +90,154 @@ const DayStrip: React.FC<{ selected: string; onSelect: (iso: string) => void }> 
       </Flex>
     </Box>
   );
+};
+
+// --- Таймлайн расписания -----------------------------------------------------
+
+type SlotStatus = 'past' | 'now' | 'future';
+
+/** Строка урока в рельсе расписания (мокап: время, предмет, мета, чипы).
+ *  isLast — последний слот дня: рельса не тянется вниз (соединять нечего). */
+const TimetableSlot: React.FC<{
+  num: number;
+  lesson: Lesson;
+  status: SlotStatus;
+  isLast: boolean;
+  /** Процент урока — только в акцентном (текущем) слоте. */
+  nowProgress?: number;
+  showBatch: boolean;
+  showFaculty: boolean;
+  onOpenLesson?: (id: number) => void;
+}> = ({ num, lesson, status, isLast, nowProgress, showBatch, showFaculty, onOpenLesson }) => {
+  // Журнал: только там, где есть sheet_id (teacher/admin).
+  const clickable = Boolean(onOpenLesson && lesson.sheet_id);
+
+  // Цвет второстепенных надписей: прошедшие — приглушённые, текущие и
+  // будущие — ярче (пожелание Миши 2026-09-15), в акценте — белый.
+  const subColor = status === 'now'
+    ? 'var(--vkui--color_text_contrast)'
+    : status === 'past'
+      ? 'var(--vkui--color_text_secondary)'
+      : 'var(--vkui--color_text_primary)';
+
+  return (
+    <div style={{ padding: 10, paddingTop: status === 'now' ? 12 : 10, marginBottom: isLast ? undefined : -20 }}>
+      <div style={{ display: 'flex', gap: 10 }}>
+        <div style={{ width: 24, flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', overflow: 'visible' }}>
+          <RailNum tone={status === 'now' ? 'accent' : status === 'past' ? 'past' : 'default'}>{num}</RailNum>
+          {!isLast && <RailLine dimmed={status === 'past'} />}
+        </div>
+        <div
+          style={{
+            flex: 1, minWidth: 0,
+            opacity: status === 'past' ? 0.55 : 1,
+            cursor: clickable ? 'pointer' : undefined,
+            ...(status === 'now' ? accentSlotStyle : {}),
+          }}
+          onClick={clickable ? () => onOpenLesson!(lesson.sheet_id!) : undefined}
+        >
+          {/* Строка 1: предмет + время справа */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 8 }}>
+            <Text weight="2" style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {lesson.subject}{showBatch && lesson.batch ? ` · ${lesson.batch}` : ''}
+            </Text>
+            <Text weight="1" style={{
+              flexShrink: 0, fontSize: 13,
+              color: subColor,
+              opacity: status === 'now' ? 0.8 : 1,
+            }}>
+              {lesson.timing}
+            </Text>
+          </div>
+          {/* Строка 2: аватар + учитель + кабинет справа */}
+          {(lesson.faculty || lesson.room) && (
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, marginTop: 4 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
+                <Avatar
+                  size={24}
+                  src={lesson.faculty_avatar || undefined}
+                  fallbackIcon={
+                    <span style={{ fontSize: 10, fontWeight: 600 }}>
+                      {initialsOf(lesson.faculty)}
+                    </span>
+                  }
+                  objectPosition="center top"
+                  style={{ flexShrink: 0, borderRadius: 4 }}
+                />
+                <Text weight="1" style={{
+                  minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: 13,
+                  color: subColor,
+                  opacity: status === 'now' ? 0.8 : 1,
+                }}>
+                  {showFaculty && lesson.faculty ? firstNamePatronymic(lesson.faculty) : ''}
+                </Text>
+              </div>
+              {lesson.room && (
+                <Text weight="1" style={{
+                  flexShrink: 0, fontSize: 13,
+                  color: subColor,
+                  opacity: status === 'now' ? 0.8 : 1,
+                }}>
+                  Каб. {lesson.room}
+                </Text>
+              )}
+            </div>
+          )}
+          {status === 'now' && <AccentProgress progress={nowProgress} />}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+/** Таймлайн дня расписания: как на главной, но без акцентов-состояний
+ *  для прошлых/будущих дат; на сегодня — live-card текущего слота. */
+const TimetableTimeline: React.FC<{
+  lessons: Lesson[];
+  isToday: boolean;
+  showBatch: boolean;
+  onOpenLesson?: (id: number) => void;
+}> = ({ lessons, isToday, showBatch, onOpenLesson }) => {
+  const nowMin = useSchoolNowMinutes();
+
+  // Текущий слот только на сегодняшней дате.
+  let nowIndex = -1;
+  if (isToday) {
+    lessons.forEach((l, i) => {
+      const range = timingToMinutes(l.timing);
+      if (range && nowMin >= range[0] && nowMin < range[1]) {
+        nowIndex = i;
+      }
+    });
+  }
+
+  const items: React.ReactNode[] = [];
+  lessons.forEach((l, i) => {
+    const range = timingToMinutes(l.timing);
+    // Не-сегодняшняя дата: весь день нейтрален (future), без past/now.
+    const status: SlotStatus = !isToday || !range
+      ? 'future'
+      : nowMin >= range[1] ? 'past' : nowMin >= range[0] ? 'now' : 'future';
+
+    items.push(
+      <TimetableSlot
+        key={l.id}
+        num={i + 1}
+        lesson={l}
+        status={status}
+        isLast={i === lessons.length - 1}
+        // Слот текущего урока красится синим целиком, прогресс в хвосте.
+        nowProgress={i === nowIndex && range
+          ? ((nowMin - range[0]) / (range[1] - range[0])) * 100
+          : undefined}
+        showBatch={showBatch}
+        showFaculty
+        onOpenLesson={onOpenLesson}
+      />,
+    );
+  });
+
+  return <div>{items}</div>;
 };
 
 export const TimetablePage: React.FC<TimetablePageProps> = ({ id, onOpenLesson }) => {
@@ -285,21 +429,24 @@ export const TimetablePage: React.FC<TimetablePageProps> = ({ id, onOpenLesson }
         ) : lessons.length > 0 ? (
           // Список в карточке (Card mode="shadow" — фон/скругление/тень
           // по умолчанию VKUI): Group в MAX WebView рендерится plain и
-          // прилипает к краям экрана без отступов. Заголовок «Уроки» —
-          // НАД карточкой: header внутри Group красит полосу белым и
-          // обрезает верхнее скругление Card.
+          // прилипает к краям экрана без отступов. Заголовок ВНУТРИ
+          // карточки: header внутри Group красит полосу белым и обрезает
+          // верхнее скругление Card.
           <Box paddingInline="s">
-            <Card mode="shadow" style={{ overflow: 'hidden' }}>
-              {/* Заголовок ВНУТРИ Card (без Group!): у .vkuiGroup__host:
-                  first-of-type в VKUI жёсткое border-top-*-radius: 0 —
-                  Group съедает верхнее скругление Card. */}
-              <Text weight="2" style={{ textAlign: 'center', display: 'block', padding: '12px 16px 8px' }}>
-                Уроки
-              </Text>
+            <div style={{
+              background: 'var(--vkui--color_background_content)',
+              borderRadius: 'var(--vkui--size_card_border_radius--regular)',
+              overflow: 'hidden',
+              // Слоты таймлайна несут свои отступы (padding: 10), поэтому
+              // контейнер — без паддинга. Аккордеонам TimedGroups своим
+              // нечего — им нужен 16px.
+              padding: isAdmin && !selectedFaculty && !selectedBatch
+                ? '12px 16px'
+                : 0,
+            }}>
               {isAdmin && !selectedFaculty && !selectedBatch ? (
-                // Без фильтров: слоты по таймингу, раскрыт текущий.
-                // С фильтром (учитель/класс) записей мало — плоский список,
-                // аккордеоны только мешают (каждый слот надо открывать).
+                // Админ без фильтров: вся школа — слоты-аккордеоны
+                // (раскрыт текущий), как раньше.
                 <TimedGroups
                   lessons={lessons}
                   isToday={isToday}
@@ -307,20 +454,18 @@ export const TimetablePage: React.FC<TimetablePageProps> = ({ id, onOpenLesson }
                   onOpenLesson={onOpenLesson}
                 />
               ) : (
-                lessons.map(l => (
-                  // Без sheet_id (ученик/родитель) журнал недоступен —
-                  // урок без открытия журнала.
-                  <LessonRow
-                    key={l.id}
-                    lesson={l}
-                    status={lessonStatus(l.timing, isToday)}
-                    showBatch
-                    showFaculty
-                    onClick={l.sheet_id ? () => onOpenLesson(l.sheet_id!) : undefined}
-                  />
-                ))
+                // Ученик/родитель/учитель/админ с фильтром: таймлайн дня
+                // (мокап stitch-main-timeline.html «Расписание»).
+                // onOpenLesson идёт по sheet_id — у ученика/родителя его
+                // нет, клики просто не рисуются.
+                <TimetableTimeline
+                  lessons={lessons}
+                  isToday={isToday}
+                  showBatch={isAdmin}
+                  onOpenLesson={onOpenLesson}
+                />
               )}
-            </Card>
+            </div>
           </Box>
         ) : (
           <Placeholder icon={<Icon56CalendarOutline />}>

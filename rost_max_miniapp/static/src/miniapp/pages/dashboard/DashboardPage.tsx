@@ -1,5 +1,5 @@
 import React from 'react';
-import { Panel, Spinner, Div, Button } from '@vkontakte/vkui';
+import { Panel, Spinner, Div, Button, Text } from '@vkontakte/vkui';
 import { useAppStore } from '@/shared/lib/store';
 import { apiGet, apiPost } from '@/shared/lib/api';
 import { useToast } from '@/shared/components/Toast';
@@ -9,23 +9,25 @@ import {
   Greeting,
   TodayLessons,
   GradesToday,
-  HomeworkList,
   JournalsToFill,
   MyHomework,
   SubmissionReviewCard,
   AdminStatStrip,
   AdminAlerts,
 } from './components/feed';
+import { HomeworkCardList as HomeworkList } from '@/shared/components/HomeworkCardList';
 
 interface DashboardPageProps {
   id: string;
   onOpenLesson: (sheetId: number) => void;
   onOpenTimetable: () => void;
   onOpenGrades: () => void;
+  onOpenHomework: () => void;
+  onOpenProfile: () => void;
 }
 
 export const DashboardPage: React.FC<DashboardPageProps> = ({
-  id, onOpenLesson, onOpenTimetable, onOpenGrades,
+  id, onOpenLesson, onOpenTimetable, onOpenGrades, onOpenHomework, onOpenProfile,
 }) => {
   const userInfo = useAppStore(s => s.userInfo);
   const addToast = useToast();
@@ -130,7 +132,13 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
         </Div>
       ) : (
         <>
-          <Greeting name={userName} date={data.date} avatar={userInfo?.avatar} short={isStudentOrParent} />
+          <Greeting
+            name={userName}
+            date={data.date}
+            avatar={userInfo?.avatar}
+            short={isStudentOrParent}
+            onOpenProfile={onOpenProfile}
+          />
 
           {/* Админ: полоса цифр + требует внимания */}
           {isAdmin && data.admin_stats && (
@@ -163,6 +171,18 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
           {isStudentOrParent && data.homework && (
             <HomeworkList
               items={data.homework}
+              title={<Text weight="2">Домашние задания</Text>}
+              afterTitle={
+                <span
+                  style={{
+                    color: 'var(--vkui--color_text_accent)',
+                    fontWeight: 500, cursor: 'pointer', fontSize: 13,
+                  }}
+                  onClick={onOpenHomework}
+                >
+                  Все задания →
+                </span>
+              }
               canSubmit={Boolean(data.is_student)}
               onSubmit={submitHomework}
               onUpdated={load}
@@ -190,29 +210,6 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
               onOpen={openReview}
             />
           )}
-
-          {/* Выход — реальная навигация, чтобы Odoo закрыл сессию серверно.
-              Парящая кнопка по центру над таббаром: fixed + left/right 0 +
-              margin auto. bottom = высота таббара (~56) + зазор. */}
-          <div style={{
-            position: 'fixed',
-            left: 0, right: 0,
-            bottom: 'calc(56px + var(--vkui--spacing_size_m))',
-            display: 'flex',
-            justifyContent: 'center',
-            zIndex: 10,
-            pointerEvents: 'none',
-          }}>
-            <Button
-              mode="primary"
-              appearance="negative"
-              size="m"
-              style={{ pointerEvents: 'auto' }}
-              onClick={() => { window.location.href = '/rost_max/logout'; }}
-            >
-              Выйти
-            </Button>
-          </div>
         </>
       )}
     </Panel>

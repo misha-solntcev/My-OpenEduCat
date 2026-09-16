@@ -7,7 +7,7 @@ import type { TabId } from '@/shared/lib/navTypes';
 const KEY = 'rost_max_nav';
 
 export interface NavState {
-  view: 'main' | 'lesson-journal';
+  view: 'main' | 'lesson-journal' | 'profile';
   tab: TabId;
   timetableHistory: string[];
   subjectsHistory: string[];
