@@ -16,6 +16,7 @@ import { initialsOf } from '@/shared/lib/initials';
 import {
   RailNum,
   RailLine,
+  slotCardStyle,
   AccentProgress,
   accentSlotStyle,
   firstNamePatronymic,
@@ -120,20 +121,28 @@ const TimetableSlot: React.FC<{
       ? 'var(--vkui--color_text_secondary)'
       : 'var(--vkui--color_text_primary)';
 
+  // Каждый урок — своя карточка (просьба Миши 2026-09-15): фон content,
+  // тень, внутренний паддинг. Рельса (кружок+линия) слева ВНЕ карточки,
+  // вертикальный центр строки. Между строками честный зазор 10px
+  // (lineGap), карточки не налезают друг на друга; линию через зазор
+  // дотягивает RailLine bridge, а не отрицательный margin строки.
   return (
-    <div style={{ padding: 10, paddingTop: status === 'now' ? 12 : 10, marginBottom: isLast ? undefined : -20 }}>
-      <div style={{ display: 'flex', gap: 10 }}>
-        <div style={{ width: 24, flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', overflow: 'visible' }}>
-          <RailNum tone={status === 'now' ? 'accent' : status === 'past' ? 'past' : 'default'}>{num}</RailNum>
-          {!isLast && <RailLine dimmed={status === 'past'} />}
-        </div>
-        <div
-          style={{
-            flex: 1, minWidth: 0,
-            opacity: status === 'past' ? 0.55 : 1,
-            cursor: clickable ? 'pointer' : undefined,
-            ...(status === 'now' ? accentSlotStyle : {}),
-          }}
+    <div style={{
+      display: 'flex', gap: 10, padding: '5px 16px',
+      zIndex: 2,
+    }}>
+      <div style={{ width: 24, flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', paddingTop: 9 }}>
+        <RailNum tone={status === 'now' ? 'accent' : status === 'past' ? 'past' : 'default'}>{num}</RailNum>
+        {!isLast && <RailLine dimmed={status === 'past'} bridge={24} />}
+      </div>
+      <div
+        style={{
+          flex: 1, minWidth: 0, padding: '10px 12px',
+          ...slotCardStyle,
+          opacity: status === 'past' ? 0.55 : 1,
+          cursor: clickable ? 'pointer' : undefined,
+          ...(status === 'now' ? accentSlotStyle : {}),
+        }}
           onClick={clickable ? () => onOpenLesson!(lesson.sheet_id!) : undefined}
         >
           {/* Строка 1: предмет + время справа */}
@@ -184,7 +193,6 @@ const TimetableSlot: React.FC<{
             </div>
           )}
           {status === 'now' && <AccentProgress progress={nowProgress} />}
-        </div>
       </div>
     </div>
   );
@@ -427,22 +435,15 @@ export const TimetablePage: React.FC<TimetablePageProps> = ({ id, onOpenLesson }
             <Spinner />
           </Flex>
         ) : lessons.length > 0 ? (
-          // Список в карточке (Card mode="shadow" — фон/скругление/тень
-          // по умолчанию VKUI): Group в MAX WebView рендерится plain и
-          // прилипает к краям экрана без отступов. Заголовок ВНУТРИ
-          // карточки: header внутри Group красит полосу белым и обрезает
-          // верхнее скругление Card.
+          // Слоты таймлайна — КАРТОЧКИ НА ФОНЕ ПАНЕЛИ (просьба Миши
+          // 2026-09-16): каждая карточка несёт свой фон/тень/скругление,
+          // поэтому общий контейнер прозрачный (белая подложка под белыми
+          // карточками «съедала» объём — выглядело слитно и сжато).
           <Box paddingInline="s">
             <div style={{
-              background: 'var(--vkui--color_background_content)',
-              borderRadius: 'var(--vkui--size_card_border_radius--regular)',
-              overflow: 'hidden',
-              // Слоты таймлайна несут свои отступы (padding: 10), поэтому
-              // контейнер — без паддинга. Аккордеонам TimedGroups своим
-              // нечего — им нужен 16px.
-              padding: isAdmin && !selectedFaculty && !selectedBatch
-                ? '12px 16px'
-                : 0,
+              // Вертикальные отступы блока: сверху 5px (как pad слота),
+              // снизу 10px, чтобы тень последней карточки не резалась.
+              padding: '5px 0 10px',
             }}>
               {isAdmin && !selectedFaculty && !selectedBatch ? (
                 // Админ без фильтров: вся школа — слоты-аккордеоны

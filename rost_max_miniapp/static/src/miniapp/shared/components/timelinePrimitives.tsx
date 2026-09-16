@@ -37,16 +37,19 @@ export const RailNum: React.FC<{
   );
 };
 
-/** Линия-соединитель между кружками. Тянется от нижнего края своего
- *  кружка до верха следующего: слот задаёт рельсе marginBottom -20
- *  (свои 10px паддинга + 10px паддинга следующей строки), и линия
- *  переполняет строку ровно до следующего кружка (он её перекрывает).
+/** Линия-соединитель между кружками. bridge — на сколько продлить линию
+ *  вниз за пределы своей строки (отрицательный margin-bottom): строка
+ *  больше НЕ перекрывает следующую (между карточками честный зазор),
+ *  и линия сама дотягивается через зазор до следующего кружка
+ *  (bridge = межстрочный зазор + paddingTop рельсовой колонки
+ *  следующей строки; кружок следующей строки рисуется поверх — zIndex 2).
  *  Цвета: обычная — icon_secondary (видна на обеих темах;
  *  separator_secondary на тёмной #141415 ≈ фон карточки #19191a —
  *  невидима), прошедшая — приглушённый separator_primary. */
-export const RailLine: React.FC<{ dimmed?: boolean }> = ({ dimmed }) => (
+export const RailLine: React.FC<{ dimmed?: boolean; bridge?: number }> = ({ dimmed, bridge }) => (
   <div style={{
     flex: 1, width: 2, minHeight: 14,
+    marginBottom: bridge ? -bridge : undefined,
     background: dimmed
       ? 'var(--vkui--color_separator_primary)'
       : 'var(--vkui--color_icon_secondary)',
@@ -106,6 +109,15 @@ export const accentSlotStyle: React.CSSProperties = {
   borderRadius: 10,
   padding: '9px 11px',
   boxShadow: '0 3px 10px rgba(38,136,235,.35)',
+};
+
+/** Карточка слота таймлайна: фон content + тень elevation3 (заметнее
+ *  elevation2 — юзер просил, чтобы уроки визуально выделялись,
+ *  2026-09-16), скругление как у VKUI Card. */
+export const slotCardStyle: React.CSSProperties = {
+  background: 'var(--vkui--color_background_content)',
+  borderRadius: 12,
+  boxShadow: 'var(--vkui--elevation3)',
 };
 
 /** Полоса прогресса (белая на синем) — хвост акцентного слота. */

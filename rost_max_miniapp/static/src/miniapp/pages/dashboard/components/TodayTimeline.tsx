@@ -23,6 +23,7 @@ import { initialsOf } from '@/shared/lib/initials';
 import {
   RailNum,
   RailLine,
+  slotCardStyle,
   LiveCard,
   AccentProgress,
   accentSlotStyle,
@@ -100,20 +101,27 @@ const TimelineSlot: React.FC<{
     : status === 'past'
       ? 'var(--vkui--color_text_secondary)'
       : 'var(--vkui--color_text_primary)';
+  // Каждый урок — своя карточка (просьба Миши 2026-09-15), рельса вне
+  // карточки, отступ рельсы = 9px (центр кружка на первой строке
+  // карточки). Между строками честный зазор 10px, карточки не налезают
+  // друг на друга; линию через зазор дотягивает RailLine bridge.
   return (
-    <div style={{ padding: 10, paddingTop: isNow ? 12 : 10, marginBottom: isLast ? undefined : -20 }}>
-      <div style={{ display: 'flex', gap: 10 }}>
-        <div style={{ width: 24, flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', overflow: 'visible' }}>
-          <RailNum tone={isNow ? 'accent' : status === 'past' ? 'past' : 'default'}>{num}</RailNum>
-          {!isLast && <RailLine dimmed={status === 'past'} />}
-        </div>
-        <div
-          style={{
-            flex: 1, minWidth: 0,
-            opacity: status === 'past' ? 0.55 : 1,
-            cursor: clickable ? 'pointer' : undefined,
-            ...(accent || {}),
-          }}
+    <div style={{
+      display: 'flex', gap: 10, padding: '5px 16px',
+      zIndex: 2,
+    }}>
+      <div style={{ width: 24, flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', paddingTop: 9 }}>
+        <RailNum tone={isNow ? 'accent' : status === 'past' ? 'past' : 'default'}>{num}</RailNum>
+        {!isLast && <RailLine dimmed={status === 'past'} bridge={24} />}
+      </div>
+      <div
+        style={{
+          flex: 1, minWidth: 0, padding: '10px 12px',
+          ...slotCardStyle,
+          opacity: status === 'past' ? 0.55 : 1,
+          cursor: clickable ? 'pointer' : undefined,
+          ...(accent || {}),
+        }}
           onClick={clickable ? () => onOpenJournal!(lesson.sheet_id!) : undefined}
         >
           {/* Строка 1: предмет + время справа */}
@@ -155,7 +163,6 @@ const TimelineSlot: React.FC<{
             </div>
           )}
           {isNow && progress != null && <AccentProgress progress={progress} />}
-        </div>
       </div>
     </div>
   );
