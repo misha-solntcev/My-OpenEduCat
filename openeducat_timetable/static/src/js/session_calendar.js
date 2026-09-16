@@ -6,32 +6,49 @@ import { CalendarCommonRenderer } from "@web/views/calendar/calendar_common/cale
 // ядро берёт luxon из глобала (см. calendar_common_renderer.js).
 const { DateTime } = luxon;
 
-// Ограничение сетки недели/дня рабочими часами школы (СПб):
-// уроки начинаются не раньше 09:00, реальный максимум конца — 17:40 (см. op_session за 2025-09..2026-04).
-const SLOT_MIN_TIME = "09:00:00";
-const SLOT_MAX_TIME = "20:00:00";
+// Зона нативная (браузер), как в стоковом календаре: дни/недели правильные
+// у всех, время уроков локальное. Раньше здесь были timeZone: "Europe/Moscow"
+// и initialDate из DateTime.now().setZone("Europe/Moscow") — связка ломала
+// навигацию: week/day листаются через перемонтирование (calendarKey = scale +
+// date.valueOf()), initialDate снова брал «сейчас», и сетка всегда
+// возвращалась на текущую неделю (прошлое/будущее недоступны).
+
+// Окно сетки недели/дня = учебный день школы 09:00–19:00 по Москве.
+// Рендер нативный, в зоне браузера, поэтому границы пересчитываем в локальную
+// зону: у СПб-юзера (сдвиг 0) окно 09:00–19:00, у удалённого (Иркутск +08)
+// тот же интервал = 14:00–24:00 местного.
+function schoolWindowLocal() {
+    const now = DateTime.now();
+    const deltaMin = now.offset - now.setZone("Europe/Moscow").offset;
+    const fmt = (totalMin) => {
+        // 1440 = полночь следующего дня → FullCalendar ждёт "24:00:00"
+        if (totalMin === 1440) {
+            return "24:00:00";
+        }
+        const t = ((totalMin % 1440) + 1440) % 1440;
+        const h = String(Math.floor(t / 60)).padStart(2, "0");
+        const m = String(t % 60).padStart(2, "0");
+        return `${h}:${m}:00`;
+    };
+    return {
+        min: fmt(9 * 60 + deltaMin),
+        max: fmt(19 * 60 + deltaMin),
+    };
+}
 
 export class SessionCalendarCommonRenderer extends CalendarCommonRenderer {
     /**
      * @override
-     * Добавляем FullCalendar slotMinTime/slotMaxTime, чтобы сетка
-     * показывала только 09:00–18:00 вместо полных суток.
+     * Добавляем FullCalendar slotMinTime/slotMaxTime — сетка от начала
+     * занятий (09:00 MSK) до конца учебного дня (19:00 MSK), в локальном
+     * эквиваленте.
      */
     get options() {
+        const { min, max } = schoolWindowLocal();
         return {
             ...super.options,
-            slotMinTime: SLOT_MIN_TIME,
-            slotMaxTime: SLOT_MAX_TIME,
-            // Школа работает по СПб: показываем сетку и уроки в Europe/Moscow
-            // независимо от локального пояса пользователя.
-            timeZone: "Europe/Moscow",
-            // «Сегодня» для сетки — календарная дата школы, не браузера:
-            // текущий момент в Europe/Moscow, зона - не суть (это просто
-            // опорный момент), FullCalendar сам вычислит неделю/день.
-            // initialDate модели (DateTime.local, зона браузера) здесь
-            // нельзя: у юзера в Иркутске (+08) полночь 14-го = вечер 13-го
-            // по Москве, и сетка уезжает на день назад.
-            initialDate: DateTime.now().setZone("Europe/Moscow").toISO(),
+            slotMinTime: min,
+            slotMaxTime: max,
         };
     }
 }
