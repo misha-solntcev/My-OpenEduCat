@@ -1248,6 +1248,9 @@ class RostMaxTimetableController(http.Controller):
             hw_items.append({
                 "id": a.id,
                 "subject": a.subject_id.name if a.subject_id else "",
+                # Цвет предмета (пастель) — Integer из op.subject, тот же,
+                # что использует web-календарь расписания (color="color").
+                "subject_color": a.subject_id.color if a.subject_id else 0,
                 "task": tools.html2plaintext(a.description) or a.name,
                 "due": str(a.submission_date) if a.submission_date else "",
                 "overdue": bool(a.submission_date and a.submission_date < now),

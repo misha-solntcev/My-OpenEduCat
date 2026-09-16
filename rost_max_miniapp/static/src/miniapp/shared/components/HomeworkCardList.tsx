@@ -7,7 +7,14 @@
  */
 import React from 'react';
 import { Caption, Div, Input, Button, Card as VkCard, Text } from '@vkontakte/vkui';
-import { Icon28AttachOutline, Icon28ClockOutline } from '@vkontakte/icons';
+import {
+  Icon28AttachOutline, Icon28ClockOutline,
+  Icon28GraphOutline, Icon28MagnetOutline, Icon28FireOutline,
+  Icon28ComputerOutline, Icon28GlobeOutline, Icon28BookOutline,
+  Icon28HistoryBackwardOutline, Icon28CompassOutline, Icon28DumbbellsOutline,
+  Icon28MusicNoteWaveOutline, Icon28PaletteOutline, Icon28BrushOutline,
+  Icon28EducationOutline, Icon28LightbulbOutline,
+} from '@vkontakte/icons';
 import { fileToBase64 } from '@/shared/lib/api';
 import type { HomeworkItem } from '@/shared/lib/types';
 
@@ -111,6 +118,77 @@ const DueChip: React.FC<{ due: string; overdue?: boolean }> = ({ due, overdue })
   </span>
 );
 
+/** Цветной квадрат-аватар предмета: иконка + пастель по цвету предмета.
+ *  ЦВЕТ предмета — Integer op.subject.color (задаётся в интерфейсе).
+ *  ПАЛИТРА = стандартная календаря Odoo ($o-colors-complete + mix white
+ *  55%), НЕ main.scss (тот — канбан/пикер и даёт другой набор). Календарь
+ *  красит o_calendar_color_N: JS getColor(c)=((c-1)%55)+1 в класс N,
+ *  sass-цикл делает класс {i-1} из элемента i — значит элемент N+1,
+ *  фон = mix(white, элемент N+1, 55%). Проверено по скрину: Алгебра
+ *  color=4 -> синяя #a3c4ec. */
+
+/** $o-colors-complete (первичные 1..56), 0-байтный индекс = элемент N+1.
+ *  value = пастель mix(white, base, 55%). */
+const ODOO_COLORS: { bg: string; color: string }[] = [
+  { bg: '#cccccc', color: '#a2a2a2' }, { bg: '#f68c8c', color: '#ee2d2d' }, { bg: '#ecbc8f', color: '#dc8534' }, { bg: '#f2da83', color: '#e8bb1d' }, { bg: '#a3c4ec', color: '#5794dd' }, { bg: '#caa9c1', color: '#9f628f' }, { bg: '#ebbeaa', color: '#db8865' }, { bg: '#96d0cc', color: '#41a9a2' },
+  { bg: '#8d9cee', color: '#304be0' }, { bg: '#f68dbf', color: '#ee2f8a' }, { bg: '#a8deaf', color: '#61c36e' }, { bg: '#c6b1f1', color: '#9872e6' }, { bg: '#d09cae', color: '#aa4b6b' }, { bg: '#8ddeba', color: '#30c381' }, { bg: '#c6b393', color: '#97743a' }, { bg: '#fbe484', color: '#f7cd1f' },
+  { bg: '#97bcf9', color: '#4285f4' }, { bg: '#c187d0', color: '#8e24aa' }, { bg: '#e87ea7', color: '#d6145f' }, { bg: '#7f9598', color: '#173e43' }, { bg: '#8fc19f', color: '#348f50' }, { bg: '#d09392', color: '#aa3a38' }, { bg: '#b5a29a', color: '#795548' }, { bg: '#a6748e', color: '#5e0231' },
+  { bg: '#aef1bc', color: '#6be585' }, { bg: '#c7c7ab', color: '#999966' }, { bg: '#f3e7a9', color: '#e9d362' }, { bg: '#d6acac', color: '#b56969' }, { bg: '#dbdee0', color: '#bdc3c7' }, { bg: '#aac2b2', color: '#649173' }, { bg: '#f373ff', color: '#ea00ff' }, { bg: '#ff7388', color: '#ff0026' },
+  { bg: '#bfe373', color: '#8bcc00' }, { bg: '#73dcd3', color: '#00bfaf' }, { bg: '#73adff', color: '#006aff' }, { bg: '#d373dc', color: '#af00bf' }, { bg: '#dc7383', color: '#bf001d' }, { bg: '#dca973', color: '#bf6300' }, { bg: '#c0ff73', color: '#8cff00' }, { bg: '#73f8ff', color: '#00f2ff' },
+  { bg: '#739bd5', color: '#004ab3' }, { bg: '#ff73e5', color: '#ff00d0' }, { bg: '#ffce73', color: '#ffa600' }, { bg: '#93e373', color: '#3acc00' }, { bg: '#73d7dc', color: '#00b6bf' }, { bg: '#739aff', color: '#0048ff' }, { bg: '#dcb773', color: '#bf7c00' }, { bg: '#75ff73', color: '#04ff00' },
+  { bg: '#73e5ff', color: '#00d0ff' }, { bg: '#7390dc', color: '#0036bf' }, { bg: '#ff73c0', color: '#ff008c' }, { bg: '#73dc9b', color: '#00bf49' }, { bg: '#73c3d5', color: '#0092b3' }, { bg: '#7375ff', color: '#0004ff' }, { bg: '#d573a9', color: '#b20062' }, { bg: '#aac2b2', color: '#649173' },
+];
+
+/** Цвет предмета (Integer op.subject.color) -> {пастель, базовый}.
+ *  getColor(c)=((c-1)%55)+1 = номер класса N; sass генерит класс {i-1}
+ *  из элемента i -> элемент N+1; массив 0-индексирован (элемент 1 ->
+ *  index 0) -> index = N = ((c-1)%55)+1. Проверено: Алгебра color=4 ->
+ *  N=4 -> элемент 5 #5794dd -> синяя. 0/без значения — нейтральный.
+ *  Иконка — text_primary (фоны светлые, читается в обеих темах). */
+const subjectColor = (color: number): { bg: string; color: string } => {
+  if (!color) return { bg: 'var(--vkui--color_background_secondary)', color: 'var(--vkui--color_text_secondary)' };
+  const index = ((color - 1) % 55) + 1; // 1..55, валидный индекс массива
+  return { bg: ODOO_COLORS[index].bg, color: 'var(--vkui--color_text_primary)' };
+};
+
+/** Квадрат-аватар предмета 38px в шапке карточки: пастель из БД + иконка по названию. */
+const SubjectAvatar: React.FC<{ subject: string; color?: number }> = ({ subject, color }) => {
+  const st = subjectStyle(subject);
+  const c = subjectColor(color || 0);
+  const Icon = st.icon;
+  return (
+    <span style={{
+      width: 38, height: 38, borderRadius: 10, flexShrink: 0,
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      background: c.bg, color: c.color,
+    }}>
+      <Icon width={20} height={20} />
+    </span>
+  );
+};
+
+/** Мапа предмет -> иконка (для аватара; цвет берётся из БД, не здесь). */
+const subjectStyle = (subject: string): {
+  icon: React.ComponentType<{ width?: number; height?: number; style?: React.CSSProperties }>;
+} => {
+  const s = subject.toLowerCase();
+  const IC = (icon: React.ComponentType<{ width?: number; height?: number; style?: React.CSSProperties }>) => ({ icon });
+  if (/алгебр|геометр|матем|вероятн|арифмет|тригономет/.test(s)) return IC(Icon28GraphOutline);
+  if (/физик/.test(s)) return IC(Icon28MagnetOutline);
+  if (/хими/.test(s)) return IC(Icon28FireOutline);
+  if (/биолог/.test(s)) return IC(Icon28LightbulbOutline);
+  if (/англ|ин.яз|иностран|english/.test(s)) return IC(Icon28GlobeOutline);
+  if (/русск|литерат|родн|чтени/.test(s)) return IC(Icon28BookOutline);
+  if (/информат|программир|информатик|computer/.test(s)) return IC(Icon28ComputerOutline);
+  if (/истори|общест|правовед/.test(s)) return IC(Icon28HistoryBackwardOutline);
+  if (/географ|природовед/.test(s)) return IC(Icon28CompassOutline);
+  if (/физкульт|физ-ра|спорт|физра|гимнаст/.test(s)) return IC(Icon28DumbbellsOutline);
+  if (/музык|пени/.test(s)) return IC(Icon28MusicNoteWaveOutline);
+  if (/изо|рисован|черчени/.test(s)) return IC(Icon28PaletteOutline);
+  if (/технолог|труд/.test(s)) return IC(Icon28BrushOutline);
+  return IC(Icon28EducationOutline);
+};
+
 /** Одна карточка-задание с раскрытием и формой сдачи. */
 export const HomeworkRowItem: React.FC<{
   h: HomeworkItem;
@@ -212,11 +290,12 @@ export const HomeworkRowItem: React.FC<{
 
   return (
     <VkCard mode="shadow" style={{ marginBottom: 8, overflow: 'hidden' }}>
-      {/* Шапка карточки: предмет + плашка. Тап по карточке раскрывает содержимое. */}
+      {/* Шапка карточки: аватар предмета + название + плашка. Тап по карточке раскрывает содержимое. */}
       <div
         onClick={open}
         style={{ cursor: 'pointer', padding: '12px 12px 0', display: 'flex', alignItems: 'flex-start', gap: 10 }}
       >
+        <SubjectAvatar subject={h.subject} color={h.subject_color} />
         <span style={{
           width: 10, height: 10, borderRadius: '50%', flexShrink: 0, marginTop: 6,
           background: dotColor,

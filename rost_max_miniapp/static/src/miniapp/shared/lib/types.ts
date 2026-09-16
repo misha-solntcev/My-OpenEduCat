@@ -181,6 +181,8 @@ export interface GradeToday {
 export interface HomeworkItem {
   id: number;
   subject: string;
+  /** Цвет предмета (Integer из op.subject, пастель web-календаря). 0 — не задан. */
+  subject_color: number;
   task: string;
   due: string;
   overdue: boolean;
