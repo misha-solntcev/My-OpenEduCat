@@ -350,11 +350,11 @@ const AssignmentDetail: React.FC<{
           <SubmissionReviewCard
             submission={data}
             onClose={() => {}}
-            onReview={async (subId, action, note) => {
+            onReview={async (subId, action, note, mark) => {
               try {
                 const res = await apiPost<{ success?: boolean; error?: string }>(
                   `/rost_max/api/homework/submission/${subId}/review`,
-                  { action, teacher_note: note });
+                  { action, teacher_note: note, mark });
                 if (res.error) {
                   addToast(res.error, 'error');
                   return res.error;

@@ -93,6 +93,32 @@ export const HomeworkRowItem: React.FC<{
         }
         after={
           <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+            {h.state === 'accept' && (
+              // Оценка за принятое ДЗ. Оформление как в журнале (JournalButton):
+              // светлый tint-фон + цветной текст + тонкая рамка того же тона.
+              // 5 — зелёная, 4 — синяя, 3 — янтарная, 2 — красная; не задана — «—».
+              (() => {
+                const tone = h.mark === 5
+                  ? { bg: 'var(--vkui--color_background_positive_tint)', border: 'var(--vkui--color_stroke_positive)', text: 'var(--vkui--color_text_positive)' }
+                  : h.mark === 4
+                    ? { bg: 'var(--vkui--color_background_accent_tint)', border: 'var(--vkui--color_stroke_accent)', text: 'var(--vkui--color_text_accent)' }
+                    : h.mark === 3
+                      ? { bg: 'var(--vkui--color_background_warning)', border: 'var(--vkui--color_icon_warning)', text: 'var(--vkui--color_text_primary)' }
+                      : h.mark === 2
+                        ? { bg: 'var(--vkui--color_background_negative_tint)', border: 'var(--vkui--color_stroke_negative)', text: 'var(--vkui--color_text_negative)' }
+                        : { bg: 'var(--vkui--color_background_secondary)', border: 'var(--vkui--color_separator_primary)', text: 'var(--vkui--color_text_secondary)' };
+                return (
+                  <span style={{
+                    minWidth: 28, height: 28, borderRadius: 7, marginLeft: 2,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: 15, fontWeight: 700, lineHeight: '20px',
+                    background: tone.bg, border: `1px solid ${tone.border}`, color: tone.text,
+                  }}>
+                    {h.mark || '—'}
+                  </span>
+                );
+              })()
+            )}
             {label && (
               // VKUI 8: цвет — через appearance (mode только
               // primary/contrast/tertiary/inherit).

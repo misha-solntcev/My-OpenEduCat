@@ -140,11 +140,6 @@ export const HomeworkPage: React.FC<HomeworkPageProps> = ({ id }) => {
               onUpdated={load}
             />
           )}
-          <Div>
-            <Caption style={{ color: 'var(--vkui--color_text_secondary)' }}>
-              Всего заданий: {items.length}
-            </Caption>
-          </Div>
         </>
       )}
     </Panel>

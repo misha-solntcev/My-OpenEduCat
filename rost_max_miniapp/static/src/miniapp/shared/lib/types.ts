@@ -188,6 +188,8 @@ export interface HomeworkItem {
   state: string;
   answer_required: boolean;
   answer: string;
+  /** Оценка за сдачу (2–5). Не задана — null. */
+  mark: number | null;
   teacher_note: string;
   submitted_at: string;
   late: boolean;
@@ -228,6 +230,8 @@ export interface HomeworkAttachment {
 }
 
 export interface HomeworkSubmissionStudent {
+  /** id строки сдачи op.assignment.sub.line — его ждёт /review в <sub_id>. */
+  sub_id: number | null;
   student_id: number;
   name: string;
   /** none | draft | submit | reject | change | accept */
@@ -235,6 +239,8 @@ export interface HomeworkSubmissionStudent {
   answer: string;
   submitted_at: string;
   late: boolean;
+  /** Оценка за сдачу (2–5). Не задана — null. */
+  mark: number | null;
   teacher_note: string;
   attachments: HomeworkAttachment[];
 }

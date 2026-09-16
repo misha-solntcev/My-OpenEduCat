@@ -419,16 +419,27 @@ export const STATE_LABEL: Record<string, string> = {
 export const SubmissionReviewCard: React.FC<{
   submission: HomeworkSubmissionsResponse;
   onClose: () => void;
-  onReview: (subId: number, action: 'accept' | 'change', note: string) => Promise<string | null>;
+  onReview: (subId: number, action: 'accept' | 'change', note: string, mark: number | null) => Promise<string | null>;
   onUpdated?: () => void;
 }> = ({ submission, onClose, onReview, onUpdated }) => {
   const { assignment, students } = submission;
   const [busyId, setBusyId] = React.useState<number | null>(null);
   const [notes, setNotes] = React.useState<Record<number, string>>({});
+  const [marks, setMarks] = React.useState<Record<number, string>>({});
 
   const review = async (student: HomeworkSubmissionStudent, action: 'accept' | 'change') => {
     setBusyId(student.student_id);
-    const err = await onReview(student.student_id, action, (notes[student.student_id] || '').trim());
+    let mark: number | null = null;
+    if (action === 'accept') {
+      const raw = (marks[student.student_id] || '').trim();
+      if (raw !== '' && raw !== '—') {
+        const m = Number(raw);
+        if (m >= 2 && m <= 5) mark = m;
+      }
+    }
+    // sub_id = id строки сдачи — его ждёт /review, НЕ student_id.
+    const err = await onReview(student.sub_id ?? student.student_id, action,
+      (notes[student.student_id] || '').trim(), mark);
     setBusyId(null);
     if (err === null) onUpdated?.();
   };
@@ -507,6 +518,14 @@ export const SubmissionReviewCard: React.FC<{
                   ))}
                 </div>
               )}
+              {!canReview && s.mark && (
+                <Caption style={{
+                  color: 'var(--vkui--color_text_secondary)',
+                  display: 'block', marginTop: 4,
+                }}>
+                  Оценка: {s.mark}
+                </Caption>
+              )}
               {canReview && (
                 <>
                   <Input
@@ -514,6 +533,17 @@ export const SubmissionReviewCard: React.FC<{
                     onChange={e => setNotes(prev => ({ ...prev, [subId]: e.target.value }))}
                     placeholder="Комментарий (для доработки)"
                     aria-label="Комментарий учителя"
+                    style={{ marginTop: 6 }}
+                  />
+                  <Input
+                    value={marks[subId] || ''}
+                    onChange={e => {
+                      const v = e.target.value.replace(/[^\d]/g, '').slice(0, 1);
+                      setMarks(prev => ({ ...prev, [subId]: v }));
+                    }}
+                    placeholder="Оценка 2–5 (необязательно)"
+                    aria-label="Оценка за домашнее задание"
+                    inputMode="numeric"
                     style={{ marginTop: 6 }}
                   />
                   <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>

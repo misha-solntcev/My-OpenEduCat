@@ -1254,6 +1254,7 @@ class RostMaxTimetableController(http.Controller):
                 "answer_required": a.answer_required,
                 "state": st,
                 "answer": (sub.note or '') if sub else '',
+                "mark": (int(sub.marks) if sub and sub.marks else None),
                 "teacher_note": (sub.teacher_note or '') if sub else '',
                 "submitted_at": str(sub.submission_date) if sub else '',
                 "late": bool(sub and a.submission_date
@@ -1497,10 +1498,14 @@ class RostMaxTimetableController(http.Controller):
                 st.last_name or '', st.first_name or '',
                 st.middle_name or '')).strip()
             students.append({
+                # id строки сдачи (op.assignment.sub.line) — именно его
+                # принимает /review в <sub_id>. НЕ путать с student_id!
+                "sub_id": sub.id if sub else None,
                 "student_id": st.id,
                 "name": name,
                 "state": sub.state if sub else 'none',
                 "answer": (sub.note or '') if sub else '',
+                "mark": (int(sub.marks) if sub and sub.marks else None),
                 "submitted_at": str(sub.submission_date) if sub else '',
                 "late": bool(sub and asg.submission_date
                              and sub.submission_date > asg.submission_date),
@@ -1562,6 +1567,20 @@ class RostMaxTimetableController(http.Controller):
         vals = {'state': 'accept' if action == 'accept' else 'change'}
         if 'teacher_note' in body:
             vals['teacher_note'] = (body.get('teacher_note') or '').strip()
+        if 'mark' in body:
+            mark = body.get('mark')
+            if mark is None or mark == '':
+                vals['marks'] = 0.0
+            else:
+                try:
+                    mark = float(mark)
+                except (TypeError, ValueError):
+                    return request.make_json_response(
+                        {"error": "Оценка должна быть числом"}, status=400)
+                if mark not in (2, 3, 4, 5):
+                    return request.make_json_response(
+                        {"error": "Оценка должна быть 2, 3, 4 или 5"}, status=400)
+                vals['marks'] = mark
         sub.write(vals)
         return request.make_json_response({"success": True})
 
