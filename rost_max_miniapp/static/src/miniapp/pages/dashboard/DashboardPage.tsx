@@ -194,12 +194,20 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
             <JournalsToFill items={data.journals_to_fill} onOpenJournal={onOpenLesson} />
           )}
           {isTeacher && reviewId != null && (
-            <SubmissionReviewCard
-              submission={reviewData}
-              onClose={() => { setReviewId(null); setReviewData(null); }}
-              onReview={reviewSubmission}
-              onUpdated={load}
-            />
+            reviewData ? (
+              <SubmissionReviewCard
+                submission={reviewData}
+                onClose={() => { setReviewId(null); setReviewData(null); }}
+                onReview={reviewSubmission}
+                onUpdated={load}
+              />
+            ) : (
+              // Ответ /submissions ещё грузится — карточке нельзя рендериться
+              // с null (внутри деструктуризация assignment/students).
+              <Div style={{ display: 'flex', justifyContent: 'center', padding: 24 }}>
+                <Spinner size="m" />
+              </Div>
+            )
           )}
           {/* Учитель — свои ДЗ (аккордеон по классам); админ — вся школа
               (аккордеон по учителям; сервер кладёт их в тот же my_homework). */}
