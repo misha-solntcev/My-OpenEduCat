@@ -35,7 +35,7 @@ const pluralRu = (n: number): string => {
 };
 
 export const TimedGroups: React.FC<{
-  lessons: (LessonRowData & Record<string, unknown>)[];
+  lessons: LessonRowData[];
   isToday: boolean;
   /** Прокидывается в LessonRow каждой строки слота. */
   rowProps?: (lesson: never) => Record<string, unknown>;
@@ -101,7 +101,7 @@ export const TimedGroups: React.FC<{
 
 const TimedGroup: React.FC<{
   timing: string;
-  lessons: (LessonRowData & Record<string, unknown>)[];
+  lessons: LessonRowData[];
   isToday: boolean;
   defaultExpanded: boolean;
   /** Пилюля в заголовке («Идёт сейчас», «Перемена», «Обед»). */
