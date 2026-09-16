@@ -192,7 +192,7 @@ const TimetableSlot: React.FC<{
               )}
             </div>
           )}
-          {status === 'now' && <AccentProgress progress={nowProgress} />}
+          {status === 'now' && nowProgress != null && <AccentProgress progress={nowProgress} />}
       </div>
     </div>
   );

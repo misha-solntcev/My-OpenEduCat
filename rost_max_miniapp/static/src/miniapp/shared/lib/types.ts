@@ -162,6 +162,8 @@ export interface FeedLesson {
   subject: string;
   batch: string;
   faculty: string;
+  /** Аватар учителя (путь к /web/image). Пусто — нет. */
+  faculty_avatar?: string;
   timing: string;
   /** Кабинет (op.classroom.name). Пусто — не задан. */
   room?: string;

@@ -8,18 +8,11 @@ interface ToastProps {
   onClose: () => void;
 }
 
-export const Toast: React.FC<ToastProps> = ({ message, type = 'info', duration = 4000, onClose }) => {
+export const Toast: React.FC<ToastProps> = ({ message, type: _type = 'info', duration = 4000, onClose }) => {
   React.useEffect(() => {
     const timer = window.setTimeout(onClose, duration);
     return () => window.clearTimeout(timer);
   }, [duration, onClose]);
-
-  const appearance = {
-    info: 'neutral',
-    success: 'positive',
-    error: 'negative',
-    warning: 'accent',
-  }[type];
 
   return (
     <Snackbar
@@ -28,7 +21,6 @@ export const Toast: React.FC<ToastProps> = ({ message, type = 'info', duration =
       onClosed={onClose}
       placement="bottom"
       duration={duration}
-      appearance={appearance}
     >
       <Text weight="1" color="primary">{message}</Text>
     </Snackbar>

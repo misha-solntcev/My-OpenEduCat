@@ -123,7 +123,7 @@ export default function App() {
 
   // Намеренно глушим системный swipe-back VKUI: переход назад только по
   // кнопке «Назад» (системный жест в MAX конфликтует с закрытием приложения)
-  const handleSwipeBackStart = (_activePanel: string) => {
+  const handleSwipeBackStart = (_activePanel: string | null) => {
     return undefined;
   };
 

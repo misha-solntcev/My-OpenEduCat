@@ -1,5 +1,5 @@
 import React from 'react';
-import { Panel, Text, Button, Box, Flex } from '@vkontakte/vkui';
+import { Panel, Text, Button } from '@vkontakte/vkui';
 
 interface ErrorBoundaryState {
   hasError: boolean;
@@ -26,22 +26,24 @@ export class ErrorBoundary extends React.Component<
         return this.props.fallback;
       }
       return (
-        <Panel mode="card" padding="m">
-          <Text weight="1" color="negative">Что-то пошло не так</Text>
-          <Box marginTop="s">
-            <pre style={{ fontFamily: 'monospace', fontSize: '11px', overflow: 'auto', margin: 0 }}>
-              {this.state.error?.message}
-            </pre>
-          </Box>
-          <Flex justify="center" marginTop="m">
-            <Button
-              mode="primary"
-              appearance="accent"
-              onClick={() => this.setState({ hasError: false, error: null })}
-            >
-              Попробовать снова
-            </Button>
-          </Flex>
+        <Panel mode="card">
+          <div style={{ padding: 16 }}>
+            <Text weight="1" color="negative">Что-то пошло не так</Text>
+            <div style={{ marginTop: 12 }}>
+              <pre style={{ fontFamily: 'monospace', fontSize: '11px', overflow: 'auto', margin: 0 }}>
+                {this.state.error?.message}
+              </pre>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'center', marginTop: 16 }}>
+              <Button
+                mode="primary"
+                appearance="accent"
+                onClick={() => this.setState({ hasError: false, error: null })}
+              >
+                Попробовать снова
+              </Button>
+            </div>
+          </div>
         </Panel>
       );
     }

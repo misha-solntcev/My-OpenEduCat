@@ -148,7 +148,7 @@ export const LessonJournalPage: React.FC<LessonJournalPageProps> = ({ id, lesson
         </Box>
 
         {canEdit && dirty && (
-          <Box position="sticky" insetBlockEnd={0} zIndex="popout" padding="m" paddingInline="l" style={{ borderTop: '1px solid var(--vkui--color_separator_primary)', backgroundColor: 'var(--vkui--color_background_content)' }}>
+          <Box position="sticky" insetBlockEnd={0} padding="m" paddingInline="l" style={{ borderTop: '1px solid var(--vkui--color_separator_primary)', backgroundColor: 'var(--vkui--color_background_content)', zIndex: 'var(--vkui--z_index_popout)' }}>
             <Button
               stretched
               size="l"
