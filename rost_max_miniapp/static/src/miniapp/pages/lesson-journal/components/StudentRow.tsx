@@ -4,6 +4,12 @@ import { GradeColumns } from './GradeColumns';
 import { initialsOf } from '@/shared/lib/initials';
 import type { Student, AttendanceType, GradeField, JournalColumns } from '@/shared/lib/types';
 
+/** «Баскина Анна Борисовна» -> «Баскина Анна» (фамилия + имя, без отчества). */
+const shortNameOf = (full: string): string => {
+  const parts = (full || '').trim().split(/\s+/);
+  return parts.length >= 3 ? parts.slice(0, 2).join(' ') : full;
+};
+
 interface StudentRowProps {
   student: Student;
   attendanceTypes: AttendanceType[];
@@ -37,7 +43,9 @@ export const StudentRow: React.FC<StudentRowProps> = ({
   onCycleAttendance,
   onRemarkChange,
 }) => (
-  <Box padding="m">
+  // Карточка с тенью и скруглением, как в мокапе (радиус — токен карточек VKUI,
+  // elevation1 темизируется сам).
+  <Box padding="m" style={{ backgroundColor: 'var(--vkui--color_background_content)', borderRadius: 'var(--vkui--size_card_border_radius--regular)', boxShadow: 'var(--vkui--elevation2)' }}>
     <Flex align="center" gap={12}>
       {/* Как учителя в расписании: без /WxH на бэкенде, квадрат режет браузер
           через objectPosition='center top' (иначе серверный кроп срезает лоб). */}
@@ -50,8 +58,9 @@ export const StudentRow: React.FC<StudentRowProps> = ({
       />
 
       <Flex direction="column" gap={6} flexGrow={1} minInlineSize={0}>
+        {/* Фамилия и имя, без отчества (как у учителей на таймлайне). */}
         <EllipsisText maxLines={1}>
-          {student.name}
+          {shortNameOf(student.name)}
         </EllipsisText>
 
         <GradeColumns

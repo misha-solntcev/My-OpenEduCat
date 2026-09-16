@@ -112,15 +112,30 @@ export const TopicHomeworkCard: React.FC<TopicHomeworkCardProps> = ({
     ? `ДЗ: ${lesson.homework}`
     : (lesson.homework_assignment_id ? 'ДЗ: фото/материалы' : 'ДЗ не задано');
 
+  // Пустая тема — пунктирная рамка без заливки (вариант 3 мокапа
+  // topic-card-variants.html), тень elevation3 — заметно плотнее карточек
+  // учеников (elevation2), чтобы зона выделялась; заполненная — белая
+  // карточка с той же elevation3 (независимо от заполненности).
+  const cardStyle: React.CSSProperties = hasContent || expanded
+    ? {
+        backgroundColor: 'var(--vkui--color_background_content)',
+        borderRadius: 'var(--vkui--size_card_border_radius--regular)',
+        boxShadow: 'var(--vkui--elevation3)',
+        cursor: 'pointer',
+      }
+    : {
+        backgroundColor: 'transparent',
+        borderRadius: 'var(--vkui--size_card_border_radius--regular)',
+        border: '1.5px dashed var(--vkui--color_icon_secondary)',
+        boxShadow: 'var(--vkui--elevation3)',
+        cursor: 'pointer',
+      };
+
   return (
     <Box
       padding="m"
       onClick={() => setExpanded(v => !v)}
-      style={{
-        backgroundColor: 'var(--vkui--color_background_content)',
-        borderRadius: 'var(--vkui--border_radius_l)',
-        cursor: 'pointer',
-      }}
+      style={cardStyle}
     >
       {!expanded ? (
         <Flex align="center" gap={10}>
@@ -212,7 +227,7 @@ export const TopicHomeworkCard: React.FC<TopicHomeworkCardProps> = ({
         </Flex>
       )}
       {!hasContent && !expanded && (
-        <Caption level="1" style={{ color: 'var(--vkui--color_text_secondary)', marginTop: 4 }}>
+        <Caption level="1" style={{ color: 'var(--vkui--color_text_accent_themed)', marginTop: 4 }}>
           Нажмите, чтобы заполнить
         </Caption>
       )}

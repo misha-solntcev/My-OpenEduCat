@@ -59,7 +59,7 @@ export const lessonStatus = (
 /** Фон строки по статусу: past — серый, now — акцентная подложка. */
 export const STATUS_BACKGROUND: Record<LessonStatus | 'none', string | undefined> = {
   past: 'var(--vkui--color_background_secondary)',
-  now: 'var(--vkui--color_background_accent_tinted)',
+  now: 'var(--vkui--color_background_accent_tint)',
   future: undefined,
   none: undefined,
 };
@@ -78,15 +78,15 @@ const chipBase: React.CSSProperties = {
 /** Цветовые схемы чипов: фон/текст на VKUI-токенах (адаптивны к теме). */
 const CHIP_TONES = {
   red: {
-    background: 'var(--vkui--color_background_negative_tinted)',
+    background: 'var(--vkui--color_background_negative_tint)',
     color: 'var(--vkui--color_text_negative)',
   },
   blue: {
-    background: 'var(--vkui--color_background_accent_tinted)',
+    background: 'var(--vkui--color_background_accent_tint)',
     color: 'var(--vkui--color_text_accent)',
   },
   green: {
-    background: 'var(--vkui--color_background_positive_tinted)',
+    background: 'var(--vkui--color_background_positive_tint)',
     color: 'var(--vkui--color_text_positive)',
   },
 } as const;

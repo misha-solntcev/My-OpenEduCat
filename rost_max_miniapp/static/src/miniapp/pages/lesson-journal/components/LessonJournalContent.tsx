@@ -17,7 +17,9 @@ interface LessonJournalContentProps {
   onRetry?: () => void;
 }
 
-/** Контент журнала: загрузка / ошибка / пустое состояние / список студентов */
+/** Контент журнала: список студентов; каждый — карточка с тенью.
+ *  Зона «Тема урока» живёт в TopicHomeworkCard (тенистая карточка, синий тинт
+ *  фона — как в мокапе lesson-journal-redesign.html). */
 export const LessonJournalContent: React.FC<LessonJournalContentProps> = ({
   loading,
   error,
