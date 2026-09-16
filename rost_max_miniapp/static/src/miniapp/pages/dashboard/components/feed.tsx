@@ -475,15 +475,27 @@ export const SubmissionReviewCard: React.FC<{
             <div key={s.student_id} style={{ borderTop: '1px solid var(--vkui--color_background_secondary)', padding: '10px 16px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <Text weight="2">{s.name}</Text>
-                <Counter
-                  mode="primary"
-                  // VKUI 8: цвет — через appearance, не mode.
-                  appearance={s.state === 'accept' ? 'accent-green'
-                    : s.state === 'change' ? 'neutral'
+                {/* «На доработку» — янтарный чип как в карточке ученика */}
+                {s.state === 'change' ? (
+                  <span style={{
+                    minWidth: 28, height: 28, borderRadius: 7,
+                    display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                    paddingInline: 8, fontSize: 12, fontWeight: 600, whiteSpace: 'nowrap',
+                    background: 'var(--vkui--color_background_warning)',
+                    border: '1px solid var(--vkui--color_icon_warning)',
+                    color: 'var(--vkui--color_text_primary)',
+                  }}>
+                    {STATE_LABEL[s.state] || s.state}
+                  </span>
+                ) : (
+                  <Counter
+                    mode="primary"
+                    appearance={s.state === 'accept' ? 'accent-green'
                       : s.state === 'reject' ? 'accent-red' : undefined}
-                >
-                  {STATE_LABEL[s.state] || s.state}
-                </Counter>
+                  >
+                    {STATE_LABEL[s.state] || s.state}
+                  </Counter>
+                )}
               </div>
               {s.late && s.state !== 'none' && (
                 <Caption style={{ color: 'var(--vkui--color_text_negative)', display: 'block', marginTop: 2 }}>

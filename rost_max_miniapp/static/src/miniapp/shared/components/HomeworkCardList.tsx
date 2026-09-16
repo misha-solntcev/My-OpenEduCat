@@ -1,12 +1,13 @@
 /**
- * Список ДЗ ученика с раскрытием и сдачей (ответ + вложения).
- * Используется на главной (лента дня) и на вкладке «Задания».
+ * Список ДЗ ученика: каждая запись — отдельная карточка (мокап
+ * homework-stitch-variant.html). Используется на главной (лента дня) и
+ * на вкладке «Задания».
  *
  * Стили: VKUI токены, никаких кастомных css-классов.
  */
 import React from 'react';
-import { SimpleCell, Caption, Div, Counter, Input, Button, Card as VkCard } from '@vkontakte/vkui';
-import { Icon28AttachOutline } from '@vkontakte/icons';
+import { Caption, Div, Input, Button, Card as VkCard, Text } from '@vkontakte/vkui';
+import { Icon28AttachOutline, Icon28ClockOutline } from '@vkontakte/icons';
 import { fileToBase64 } from '@/shared/lib/api';
 import type { HomeworkItem } from '@/shared/lib/types';
 
@@ -16,17 +17,101 @@ export const fmtDue = (due: string): string => {
   if (!due) return '';
   const d = new Date(due);
   if (isNaN(d.getTime())) return due;
-  return `до ${d.getDate()} ${MONTHS[d.getMonth()].slice(0, 3)}`;
+  const hh = d.getHours();
+  const mm = d.getMinutes();
+  const time = (hh || mm) ? ` к ${hh}:${String(mm).padStart(2, '0')}` : '';
+  return `до ${d.getDate()} ${MONTHS[d.getMonth()].slice(0, 3)}${time}`;
+};
+
+/** Дата сдачи «вчера/сегодня в 19:40» либо «12 сен». */
+const fmtSubmitted = (iso: string): string => {
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return iso;
+  const now = new Date();
+  const sameDay = (a: Date, b: Date) =>
+    a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+  const yest = new Date(now); yest.setDate(now.getDate() - 1);
+  const day = sameDay(d, now) ? 'сегодня'
+    : sameDay(d, yest) ? 'вчера'
+      : `${d.getDate()} ${MONTHS[d.getMonth()].slice(0, 3)}`;
+  return `${day} в ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
 };
 
 const HW_STATE_LABEL: Record<string, string> = {
   submit: 'Сдано',
   accept: 'Принято',
-  change: 'На доработку',
+  change: 'На доработке',
   reject: 'Отклонено',
 };
 
-/** Одна строка-задание с раскрытием и формой сдачи. */
+/** Тон оценки как в журнале (JournalButton): 5 зелёная, 4 синяя,
+ *  3 янтарная (warning — светлого тинта нет в VKUI 8.3.1, берём
+ *  заливку background_warning), 2 красная; не задана — «—».
+ *  ВАЖНО: текст на тинте — text_primary (адаптивный тёмный/светлый),
+ *  НЕ цветной — цветной цвет на своём тинте не читается ни в одной
+ *  теме (замечание Миши). Цвет несёт фон+рамка. */
+const markTone = (mark: number | null) => {
+  if (mark === 5) return {
+    bg: 'var(--vkui--color_background_positive_tint)',
+    border: 'var(--vkui--color_stroke_positive)',
+    text: 'var(--vkui--color_text_primary)',
+  };
+  if (mark === 4) return {
+    bg: 'var(--vkui--color_background_accent_tint)',
+    border: 'var(--vkui--color_stroke_accent)',
+    text: 'var(--vkui--color_text_primary)',
+  };
+  if (mark === 3) return {
+    bg: 'var(--vkui--color_background_warning)',
+    border: 'var(--vkui--color_icon_warning)',
+    text: 'var(--vkui--color_text_primary)',
+  };
+  if (mark === 2) return {
+    bg: 'var(--vkui--color_background_negative_tint)',
+    border: 'var(--vkui--color_stroke_negative)',
+    text: 'var(--vkui--color_text_primary)',
+  };
+  return {
+    bg: 'var(--vkui--color_background_secondary)',
+    border: 'var(--vkui--color_separator_primary)',
+    text: 'var(--vkui--color_text_secondary)',
+  };
+};
+
+/** Янтарная плашка статуса «на доработке» (у Counter в VKUI 8 нет
+ *  жёлтого appearance; светлого warning-тинта тоже нет — заливка
+ *  background_warning, как у оценки-3 в журнале). */
+const AmberChip: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+  <span style={{
+    minWidth: 28, height: 28, borderRadius: 7,
+    display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+    paddingInline: 8, fontSize: 13, fontWeight: 600, whiteSpace: 'nowrap',
+    background: 'var(--vkui--color_background_warning)',
+    border: '1px solid var(--vkui--color_icon_warning)',
+    color: 'var(--vkui--color_text_primary)',
+  }}>
+    {children}
+  </span>
+);
+
+/** Чип-планка срока справа сверху карточки. Текст — text_primary
+ *  (адаптивный); цвет несёт фон-тинт. */
+const DueChip: React.FC<{ due: string; overdue?: boolean }> = ({ due, overdue }) => (
+  <span style={{
+    display: 'inline-flex', alignItems: 'center', gap: 4,
+    fontSize: 12, fontWeight: 600, whiteSpace: 'nowrap',
+    padding: '4px 8px', borderRadius: 8,
+    color: 'var(--vkui--color_text_primary)',
+    background: overdue ? 'var(--vkui--color_background_negative_tint)'
+      : 'var(--vkui--color_background_accent_tint)',
+  }}>
+    <Icon28ClockOutline width={14} height={14} />
+    {fmtDue(due)}
+  </span>
+);
+
+/** Одна карточка-задание с раскрытием и формой сдачи. */
 export const HomeworkRowItem: React.FC<{
   h: HomeworkItem;
   canSubmit?: boolean;
@@ -79,244 +164,276 @@ export const HomeworkRowItem: React.FC<{
   };
 
   const label = HW_STATE_LABEL[h.state];
-  return (
-    <div style={{ borderTop: '1px solid var(--vkui--color_background_secondary)' }}>
-      <SimpleCell
-        onClick={open}
-        before={
-          <span style={{
-            width: 8, height: 8, borderRadius: '50%', flexShrink: 0, marginTop: 2,
-            background: h.state === 'accept' || h.state === 'submit'
-              ? 'var(--vkui--color_background_positive)'
-              : 'var(--vkui--color_background_negative)',
-          }} />
-        }
-        after={
-          <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-            {h.state === 'accept' && (
-              // Оценка за принятое ДЗ. Оформление как в журнале (JournalButton):
-              // светлый tint-фон + цветной текст + тонкая рамка того же тона.
-              // 5 — зелёная, 4 — синяя, 3 — янтарная, 2 — красная; не задана — «—».
-              (() => {
-                const tone = h.mark === 5
-                  ? { bg: 'var(--vkui--color_background_positive_tint)', border: 'var(--vkui--color_stroke_positive)', text: 'var(--vkui--color_text_positive)' }
-                  : h.mark === 4
-                    ? { bg: 'var(--vkui--color_background_accent_tint)', border: 'var(--vkui--color_stroke_accent)', text: 'var(--vkui--color_text_accent)' }
-                    : h.mark === 3
-                      ? { bg: 'var(--vkui--color_background_warning)', border: 'var(--vkui--color_icon_warning)', text: 'var(--vkui--color_text_primary)' }
-                      : h.mark === 2
-                        ? { bg: 'var(--vkui--color_background_negative_tint)', border: 'var(--vkui--color_stroke_negative)', text: 'var(--vkui--color_text_negative)' }
-                        : { bg: 'var(--vkui--color_background_secondary)', border: 'var(--vkui--color_separator_primary)', text: 'var(--vkui--color_text_secondary)' };
-                return (
-                  <span style={{
-                    minWidth: 28, height: 28, borderRadius: 7, marginLeft: 2,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: 15, fontWeight: 700, lineHeight: '20px',
-                    background: tone.bg, border: `1px solid ${tone.border}`, color: tone.text,
-                  }}>
-                    {h.mark || '—'}
-                  </span>
-                );
-              })()
-            )}
-            {label && (
-              // VKUI 8: цвет — через appearance (mode только
-              // primary/contrast/tertiary/inherit).
-              <Counter
-                mode="primary"
-                appearance={h.state === 'accept' ? 'accent-green'
-                  : h.state === 'change' ? 'neutral'
-                    : h.state === 'reject' ? 'accent-red' : undefined}
-              >
-                {label}
-              </Counter>
-            )}
-            {h.overdue && (h.state === 'none' || h.state === 'change') && (
-              <Counter mode="primary" appearance="accent-red">Просрочено</Counter>
-            )}
-          </div>
-        }
-        subtitle={[
-          fmtDue(h.due),
-          h.late && h.state !== 'none' ? 'сдано с опозданием' : '',
-          h.task.length > 80 ? h.task.slice(0, 80) + '…' : h.task,
-        ].filter(Boolean).join(' · ') || undefined}
-      >
-        {h.subject}
-      </SimpleCell>
 
-      {expanded && (
-        <div style={{ padding: '0 16px 12px' }}>
+  // Правая верхняя плашка: у принятых — большой бейдж-оценка (как в
+  // мокапе «Биология — 5»), у «на доработке» — янтарная плашка, у
+  // остальных — статус/срок.
+  let right: React.ReactNode;
+  if (h.state === 'accept') {
+    const tone = markTone(h.mark);
+    right = (
+      <span style={{
+        minWidth: 36, height: 36, borderRadius: 9, flexShrink: 0,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        fontSize: 18, fontWeight: 700, lineHeight: '24px',
+        background: tone.bg, border: `1px solid ${tone.border}`, color: tone.text,
+      }}>
+        {h.mark || '—'}
+      </span>
+    );
+  } else if (h.state === 'change') {
+    right = <AmberChip>{label}</AmberChip>;
+  } else if (h.state === 'submit') {
+    right = (
+      <span style={{
+        display: 'inline-flex', alignItems: 'center', gap: 4,
+        fontSize: 12, fontWeight: 600, whiteSpace: 'nowrap',
+        padding: '4px 8px', borderRadius: 8,
+        color: 'var(--vkui--color_text_secondary)',
+        background: 'var(--vkui--color_background_secondary)',
+      }}>
+        <Icon28ClockOutline width={14} height={14} />
+        На проверке
+      </span>
+    );
+  } else {
+    right = <DueChip due={h.due} overdue={h.overdue} />;
+  }
+
+  // Точка-статус слева: зелёная — сдано/принято, янтарная — на доработке,
+  // синяя — новое/не сдано, красная — только просрочено.
+  const dotColor = h.state === 'accept' || h.state === 'submit'
+    ? 'var(--vkui--color_background_positive)'
+    : h.state === 'change'
+      ? 'var(--vkui--color_icon_warning)'
+      : h.overdue
+        ? 'var(--vkui--color_background_negative)'
+        : 'var(--vkui--color_background_accent)';
+
+  return (
+    <VkCard mode="shadow" style={{ marginBottom: 8, overflow: 'hidden' }}>
+      {/* Шапка карточки: предмет + плашка. Тап по карточке раскрывает содержимое. */}
+      <div
+        onClick={open}
+        style={{ cursor: 'pointer', padding: '12px 12px 0', display: 'flex', alignItems: 'flex-start', gap: 10 }}
+      >
+        <span style={{
+          width: 10, height: 10, borderRadius: '50%', flexShrink: 0, marginTop: 6,
+          background: dotColor,
+        }} />
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <Text weight="2" style={{ fontSize: 16, lineHeight: '22px' }}>
+            {h.subject}
+          </Text>
           <Caption style={{
             color: 'var(--vkui--color_text_secondary)',
-            display: 'block', whiteSpace: 'pre-wrap', marginBottom: 8,
+            display: 'block', marginTop: 1, whiteSpace: 'nowrap',
+            overflow: 'hidden', textOverflow: 'ellipsis',
           }}>
-            {h.task}
+            {h.state === 'submit' || h.state === 'accept'
+              ? `Отправлено ${h.submitted_at ? fmtSubmitted(h.submitted_at) : ''}${h.late ? ' · с опозданием' : ''}`
+              : (h.task.length > 60 ? h.task.slice(0, 60) + '…' : h.task)}
           </Caption>
+        </div>
+        {right}
+      </div>
 
-          {h.state === 'change' && h.teacher_note && (
-            <Caption style={{
-              color: 'var(--vkui--color_text_negative)',
-              display: 'block', marginBottom: 8,
-            }}>
-              Учитель: {h.teacher_note}
-            </Caption>
-          )}
+      {/* Текст задания и содержимое */}
+      <div style={{ padding: '8px 12px 12px 32px' }}>
+        <Caption style={{ color: 'var(--vkui--color_text_primary)', display: 'block', whiteSpace: 'pre-wrap' }}>
+          {h.task}
+        </Caption>
 
-          {h.answer_required && h.answer && h.state !== 'change' && (
-            <Caption style={{
-              color: 'var(--vkui--color_text_secondary)',
-              display: 'block', marginBottom: 8,
-            }}>
-              Ваш ответ: {h.answer}
-            </Caption>
-          )}
+        {expanded && (
+          <div style={{ marginTop: 8 }}>
+            {h.state === 'change' && h.teacher_note && (
+              <div style={{
+                display: 'flex', gap: 8, alignItems: 'flex-start',
+                background: 'var(--vkui--color_background_warning)',
+                borderRadius: 10, padding: '8px 10px', marginBottom: 8,
+              }}>
+                <Icon28AttachOutline width={16} height={16} style={{
+                  color: 'var(--vkui--color_icon_warning)', flexShrink: 0, marginTop: 2,
+                }} />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <Caption weight="2" style={{
+                    color: 'var(--vkui--color_text_primary)',
+                    display: 'block', fontSize: 11, marginBottom: 2,
+                  }}>
+                    Комментарий учителя
+                  </Caption>
+                  <Caption style={{
+                    color: 'var(--vkui--color_text_primary)',
+                    display: 'block', whiteSpace: 'pre-wrap',
+                  }}>
+                    {h.teacher_note}
+                  </Caption>
+                </div>
+              </div>
+            )}
 
-          {h.materials.length > 0 && (
-            <div style={{ marginBottom: 8 }}>
+            {h.answer_required && h.answer && h.state !== 'change' && (
               <Caption style={{
                 color: 'var(--vkui--color_text_secondary)',
-                display: 'block', marginBottom: 4,
+                display: 'block', marginBottom: 8, whiteSpace: 'pre-wrap',
               }}>
-                Материалы:
+                Ваш ответ: {h.answer}
               </Caption>
-              {h.materials.map(a => (
-                <a
-                  key={a.url}
-                  href={a.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: 6,
-                    color: 'var(--vkui--color_text_accent)',
-                    textDecoration: 'none', paddingBlock: 3,
-                  }}
-                >
-                  <Icon28AttachOutline width={16} height={16} />
-                  <Caption>{a.name}</Caption>
-                </a>
-              ))}
-            </div>
-          )}
+            )}
 
-          {canSubmit && (h.state === 'none' || h.state === 'draft' || h.state === 'change' || h.state === 'reject') ? (
-            <>
-              {h.answer_required && (
-                <Input
-                  value={answer}
-                  onChange={e => setAnswer(e.target.value)}
-                  placeholder="Ваш ответ"
-                  aria-label="Ответ на задание"
-                  style={{ marginBottom: 8 }}
-                />
-              )}
-              {/* Вложения: фото с камеры/галереи или pdf.
-                  capture не ставим — выбор «камера/галерея»
-                  даёт сам WebView. */}
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*,application/pdf"
-                multiple
-                style={{ display: 'none' }}
-                onChange={e => { addFiles(e.target.files); e.target.value = ''; }}
-              />
-              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                <Button
-                  size="s"
-                  mode="tertiary"
-                  before={<Icon28AttachOutline width={20} height={20} />}
-                  onClick={() => fileInputRef.current?.click()}
-                >
-                  Прикрепить
-                </Button>
-                <Button
-                  size="s"
-                  stretched
-                  loading={busy}
-                  disabled={h.answer_required && !answer.trim()}
-                  onClick={send}
-                >
-                  {/* Есть что сдать (обязателен ответ или
-                      прикреплены файлы) — «Сдать»; нечего
-                      сдавать — «Сделано» (как в Classroom). */}
-                  {(h.answer_required || files.length > 0) ? 'Сдать' : 'Сделано'}
-                </Button>
+            {h.materials.length > 0 && (
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
+                {h.materials.map(a => (
+                  <a
+                    key={a.url}
+                    href={a.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{
+                      display: 'inline-flex', alignItems: 'center', gap: 5,
+                      background: 'var(--vkui--color_background_secondary)',
+                      color: 'var(--vkui--color_text_secondary)',
+                      fontSize: 11, padding: '4px 8px', borderRadius: 8,
+                      textDecoration: 'none', whiteSpace: 'nowrap',
+                      maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis',
+                    }}
+                  >
+                    <Icon28AttachOutline width={14} height={14} style={{ color: 'var(--vkui--color_text_accent)', flexShrink: 0 }} />
+                    {a.name}
+                  </a>
+                ))}
               </div>
-              {files.length > 0 && (
-                <div style={{ marginTop: 6 }}>
-                  {files.map((f, i) => (
-                    <Caption
-                      key={`${f.name}-${i}`}
-                      style={{
-                        color: 'var(--vkui--color_text_secondary)',
-                        display: 'block',
-                      }}
-                    >
-                      {f.name} ({Math.round(f.size / 1024)} КБ)
-                    </Caption>
-                  ))}
+            )}
+
+            {canSubmit && (h.state === 'none' || h.state === 'draft' || h.state === 'change' || h.state === 'reject') ? (
+              <div style={{ marginTop: 8 }}>
+                {h.answer_required && (
+                  <Input
+                    value={answer}
+                    onChange={e => setAnswer(e.target.value)}
+                    placeholder="Ваш ответ"
+                    aria-label="Ответ на задание"
+                    style={{ marginBottom: 8 }}
+                  />
+                )}
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*,application/pdf"
+                  multiple
+                  style={{ display: 'none' }}
+                  onChange={e => { addFiles(e.target.files); e.target.value = ''; }}
+                />
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                  <Button
+                    size="s"
+                    mode="tertiary"
+                    before={<Icon28AttachOutline width={20} height={20} />}
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    Прикрепить
+                  </Button>
+                  <Button
+                    size="s"
+                    stretched
+                    loading={busy}
+                    disabled={h.answer_required && !answer.trim()}
+                    onClick={send}
+                  >
+                    {(h.answer_required || files.length > 0) ? 'Сдать' : 'Сделано'}
+                  </Button>
                 </div>
-              )}
-            </>
-          ) : (
-            h.state === 'submit' && (
-              <Caption style={{ color: 'var(--vkui--color_text_secondary)' }}>
-                Ждёт проверки учителя
-              </Caption>
-            )
-          )}
-        </div>
-      )}
-    </div>
+                {files.length > 0 && (
+                  <div style={{ marginTop: 6 }}>
+                    {files.map((f, i) => (
+                      <Caption
+                        key={`${f.name}-${i}`}
+                        style={{ color: 'var(--vkui--color_text_secondary)', display: 'block' }}
+                      >
+                        {f.name} ({Math.round(f.size / 1024)} КБ)
+                      </Caption>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ) : (
+              h.state === 'submit' && (
+                <div style={{
+                  display: 'flex', alignItems: 'center', gap: 6, marginTop: 8,
+                  background: 'var(--vkui--color_background_secondary)',
+                  color: 'var(--vkui--color_text_secondary)',
+                  fontSize: 11, padding: '6px 8px', borderRadius: 8,
+                }}>
+                  <Icon28ClockOutline width={14} height={14} />
+                  Ожидает проверки учителя
+                </div>
+              )
+            )}
+          </div>
+        )}
+
+        {h.overdue && (h.state === 'none' || h.state === 'change') && (
+          <span style={{
+            display: 'inline-flex', alignItems: 'center', gap: 4, marginTop: 8,
+            fontSize: 12, fontWeight: 600, whiteSpace: 'nowrap',
+            padding: '4px 8px', borderRadius: 8, alignSelf: 'flex-start',
+            color: 'var(--vkui--color_text_primary)',
+            background: 'var(--vkui--color_background_negative_tint)',
+          }}>
+            <Icon28ClockOutline width={14} height={14} />
+            Просрочено
+          </span>
+        )}
+      </div>
+    </VkCard>
   );
 };
 
 /**
- * Карточка-блок со списком ДЗ. Заголовок ВНУТРИ карточки (строка с
- * паддингом), контент ниже. ВАЖНО: контент кладём напрямую в Card, без
- * Group — у .vkuiGroup__host:first-of-type в VKUI жёсткое
- * border-top-*-radius: 0, Group съедает верхнее скругление Card.
+ * Каждая запись — отдельная карточка (VkCard mode="shadow").
+ * title/afterTitle — заголовок блока вне карточек (у вкладки «Задания»
+ * это заголовок группы; у ленты главной — текст + «Все задания →»).
  */
 export const HomeworkCardList: React.FC<{
   items: HomeworkItem[];
   title?: React.ReactNode;
-  /** Ссылка «Все задания →» справа от заголовка (на главной — на вкладку). */
   afterTitle?: React.ReactNode;
   canSubmit?: boolean;
   onSubmit?: (id: number, answer: string, files: { filename: string; mimetype: string; b64: string }[]) => Promise<string | null>;
   onUpdated?: () => void;
-}> = ({ items, title = 'Домашние задания', afterTitle, canSubmit, onSubmit, onUpdated, max }) => (
+  max?: number;
+}> = ({ items, title, afterTitle, canSubmit, onSubmit, onUpdated, max }) => (
   <div style={{ margin: '0 8px 8px' }}>
-    <VkCard mode="shadow" style={{ overflow: 'hidden' }}>
-      {title != null && (
-        <div style={{ padding: '12px 16px 8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          {title}
-          {afterTitle}
-        </div>
-      )}
-      {items.length === 0 ? (
-        <Div><Caption style={{ color: 'var(--vkui--color_text_secondary)' }}>Заданий нет — можно отдыхать</Caption></Div>
-      ) : (
-        <>
-          {(max != null ? items.slice(0, max) : items).map(h => (
-            <HomeworkRowItem
-              key={h.id}
-              h={h}
-              canSubmit={canSubmit}
-              onSubmit={onSubmit}
-              onUpdated={onUpdated}
-            />
-          ))}
-          {max != null && items.length > max && (
-            <Div style={{ paddingTop: 0 }}>
-              <Caption style={{ color: 'var(--vkui--color_text_secondary)' }}>
-                Ещё {items.length - max} — на вкладке «Задания»
-              </Caption>
-            </Div>
-          )}
-        </>
-      )}
-    </VkCard>
+    {(title != null || afterTitle != null) && (
+      <div style={{
+        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+        padding: '12px 8px 8px',
+      }}>
+        {title}
+        {afterTitle}
+      </div>
+    )}
+    {items.length === 0 ? (
+      <Div><Caption style={{ color: 'var(--vkui--color_text_secondary)' }}>Заданий нет — можно отдыхать</Caption></Div>
+    ) : (
+      <>
+        {(max != null ? items.slice(0, max) : items).map(h => (
+          <HomeworkRowItem
+            key={h.id}
+            h={h}
+            canSubmit={canSubmit}
+            onSubmit={onSubmit}
+            onUpdated={onUpdated}
+          />
+        ))}
+        {max != null && items.length > max && (
+          <Div style={{ paddingTop: 0 }}>
+            <Caption style={{ color: 'var(--vkui--color_text_secondary)' }}>
+              Ещё {items.length - max} — на вкладке «Задания»
+            </Caption>
+          </Div>
+        )}
+      </>
+    )}
   </div>
 );
