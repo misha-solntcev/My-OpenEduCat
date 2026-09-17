@@ -7,14 +7,8 @@
  */
 import React from 'react';
 import { Caption, Div, Input, Button, Card as VkCard, Text } from '@vkontakte/vkui';
-import {
-  Icon28AttachOutline, Icon28ClockOutline,
-  Icon28GraphOutline, Icon28MagnetOutline, Icon28FireOutline,
-  Icon28ComputerOutline, Icon28GlobeOutline, Icon28BookOutline,
-  Icon28HistoryBackwardOutline, Icon28CompassOutline, Icon28DumbbellsOutline,
-  Icon28MusicNoteWaveOutline, Icon28PaletteOutline, Icon28BrushOutline,
-  Icon28EducationOutline, Icon28LightbulbOutline,
-} from '@vkontakte/icons';
+import { Icon28AttachOutline, Icon28ClockOutline } from '@vkontakte/icons';
+import { SubjectIcon } from './SubjectIcon';
 import { fileToBase64 } from '@/shared/lib/api';
 import type { HomeworkItem } from '@/shared/lib/types';
 
@@ -139,54 +133,57 @@ const ODOO_COLORS: { bg: string; color: string }[] = [
   { bg: '#73e5ff', color: '#00d0ff' }, { bg: '#7390dc', color: '#0036bf' }, { bg: '#ff73c0', color: '#ff008c' }, { bg: '#73dc9b', color: '#00bf49' }, { bg: '#73c3d5', color: '#0092b3' }, { bg: '#7375ff', color: '#0004ff' }, { bg: '#d573a9', color: '#b20062' }, { bg: '#aac2b2', color: '#649173' },
 ];
 
-/** Цвет предмета (Integer op.subject.color) -> {пастель, базовый}.
+/** Затемнение базового цвета до контраста 3:1 с пастельным фоном. */
+const contrastingIconColor = (base: string, bg: string): string => {
+  const rgb = (hex: string) => [1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16));
+  const luminance = (channels: number[]) => {
+    const [r, g, b] = channels.map(channel => {
+      const s = channel / 255;
+      return s <= 0.04045 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4;
+    });
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+  };
+  const channels = rgb(base);
+  const background = luminance(rgb(bg));
+  for (let step = 0; step <= 100; step++) {
+    const darkened = channels.map(channel => Math.round(channel * (1 - step / 100)));
+    const foreground = luminance(darkened);
+    const contrast = (Math.max(background, foreground) + 0.05)
+      / (Math.min(background, foreground) + 0.05);
+    if (contrast >= 3) return `#${darkened.map(channel => channel.toString(16).padStart(2, '0')).join('')}`;
+  }
+  return '#000000';
+};
+
+// Палитра постоянна: считаем контраст один раз, не при рендере карточки.
+const SUBJECT_COLORS = ODOO_COLORS.map(({ bg, color }) => ({
+  bg, color: contrastingIconColor(color, bg),
+}));
+
+/** Цвет предмета (Integer op.subject.color) -> {пастель, контрастная иконка}.
  *  getColor(c)=((c-1)%55)+1 = номер класса N; sass генерит класс {i-1}
  *  из элемента i -> элемент N+1; массив 0-индексирован (элемент 1 ->
  *  index 0) -> index = N = ((c-1)%55)+1. Проверено: Алгебра color=4 ->
  *  N=4 -> элемент 5 #5794dd -> синяя. 0/без значения — нейтральный.
- *  Иконка — text_primary (фоны светлые, читается в обеих темах). */
+ *  Иконка — оттенок предмета с контрастом не ниже 3:1 к фону. */
 const subjectColor = (color: number): { bg: string; color: string } => {
   if (!color) return { bg: 'var(--vkui--color_background_secondary)', color: 'var(--vkui--color_text_secondary)' };
   const index = ((color - 1) % 55) + 1; // 1..55, валидный индекс массива
-  return { bg: ODOO_COLORS[index].bg, color: 'var(--vkui--color_text_primary)' };
+  return SUBJECT_COLORS[index];
 };
 
 /** Квадрат-аватар предмета 38px в шапке карточки: пастель из БД + иконка по названию. */
 const SubjectAvatar: React.FC<{ subject: string; color?: number }> = ({ subject, color }) => {
-  const st = subjectStyle(subject);
   const c = subjectColor(color || 0);
-  const Icon = st.icon;
   return (
     <span style={{
       width: 38, height: 38, borderRadius: 10, flexShrink: 0,
       display: 'flex', alignItems: 'center', justifyContent: 'center',
       background: c.bg, color: c.color,
     }}>
-      <Icon width={20} height={20} />
+      <SubjectIcon subject={subject} />
     </span>
   );
-};
-
-/** Мапа предмет -> иконка (для аватара; цвет берётся из БД, не здесь). */
-const subjectStyle = (subject: string): {
-  icon: React.ComponentType<{ width?: number; height?: number; style?: React.CSSProperties }>;
-} => {
-  const s = subject.toLowerCase();
-  const IC = (icon: React.ComponentType<{ width?: number; height?: number; style?: React.CSSProperties }>) => ({ icon });
-  if (/алгебр|геометр|матем|вероятн|арифмет|тригономет/.test(s)) return IC(Icon28GraphOutline);
-  if (/физик/.test(s)) return IC(Icon28MagnetOutline);
-  if (/хими/.test(s)) return IC(Icon28FireOutline);
-  if (/биолог/.test(s)) return IC(Icon28LightbulbOutline);
-  if (/англ|ин.яз|иностран|english/.test(s)) return IC(Icon28GlobeOutline);
-  if (/русск|литерат|родн|чтени/.test(s)) return IC(Icon28BookOutline);
-  if (/информат|программир|информатик|computer/.test(s)) return IC(Icon28ComputerOutline);
-  if (/истори|общест|правовед/.test(s)) return IC(Icon28HistoryBackwardOutline);
-  if (/географ|природовед/.test(s)) return IC(Icon28CompassOutline);
-  if (/физкульт|физ-ра|спорт|физра|гимнаст/.test(s)) return IC(Icon28DumbbellsOutline);
-  if (/музык|пени/.test(s)) return IC(Icon28MusicNoteWaveOutline);
-  if (/изо|рисован|черчени/.test(s)) return IC(Icon28PaletteOutline);
-  if (/технолог|труд/.test(s)) return IC(Icon28BrushOutline);
-  return IC(Icon28EducationOutline);
 };
 
 /** Одна карточка-задание с раскрытием и формой сдачи. */
