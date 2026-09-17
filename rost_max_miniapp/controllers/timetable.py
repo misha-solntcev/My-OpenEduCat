@@ -743,6 +743,9 @@ class RostMaxTimetableController(http.Controller):
                 line.write(vals)
                 written += 1
 
+        if sheet.state == 'cancel':
+            return request.make_json_response({"success": True, "written": written})
+
         # Тема урока (Char 256) — top-level ключи, пишутся один раз на урок.
         sheet_vals = {}
         if isinstance(body.get('lesson'), dict):
@@ -767,10 +770,7 @@ class RostMaxTimetableController(http.Controller):
                 sheet.homework_assignment_id.answer_required = flag
 
         if sheet_vals:
-            # state done/cancel: тема закрытого урока не редактируется
-            # (та же семантика, что readonly="state == 'done'" в веб-форме).
-            if sheet.state == 'done':
-                sheet_vals.pop('lesson_homework', None)
+            # Тему и ДЗ можно заполнить до начала и после завершения урока.
             sheet.write(sheet_vals)
 
         return request.make_json_response({"success": True, "written": written})
@@ -785,8 +785,8 @@ class RostMaxTimetableController(http.Controller):
         Задания нет -> создаём через sheet.write({'lesson_homework': ...})
         (тот же проверенный синк: срок «до следующего урока», allocation,
         publish); при пустом тексте — заглушка «Домашнее задание (фото)».
-        Права — те же, что у /save (_check_lesson_write_access); на
-        state=done — 403 (readonly-семантика журнала).
+        Права — те же, что у /save (_check_lesson_write_access).
+        Материалы доступны до начала и после завершения урока; cancel закрыт.
         """
         restore_session_if_needed()
         csrf_err = _check_spa_csrf()
@@ -804,9 +804,9 @@ class RostMaxTimetableController(http.Controller):
         access_err = _check_lesson_write_access(sheet)
         if access_err:
             return access_err
-        if sheet.state == 'done':
+        if sheet.state == 'cancel':
             return request.make_json_response(
-                {"error": "Урок закрыт — ДЗ нельзя изменить"}, status=403)
+                {"error": "Урок отменён — ДЗ недоступно"}, status=403)
 
         try:
             body = request.get_json_data()
@@ -823,6 +823,10 @@ class RostMaxTimetableController(http.Controller):
 
         created = False
         if not getattr(sheet, 'homework_assignment_id', False):
+            # Проверяем состояние до записи текста-заглушки.
+            if sheet.state not in ('confirm', 'start', 'done'):
+                return request.make_json_response(
+                    {"error": "Урок ещё не утверждён — ДЗ недоступно"}, status=409)
             created = True
             hw = (getattr(sheet, 'lesson_homework', '') or '').strip()
             # Пишем lesson_homework только если текста ещё нет: иначе
@@ -834,10 +838,9 @@ class RostMaxTimetableController(http.Controller):
             ).write({'lesson_homework': hw or 'Домашнее задание (фото)'})
         asg = sheet.homework_assignment_id
         if not asg:
-            # Синк создаёт задание только при state start/done (семантика
-            # модуля ДЗ) — например, журнал ещё не начат.
+            # Не ожидаемо: синк на start/done/confirm создаёт задание.
             return request.make_json_response(
-                {"error": "Журнал не начат — сначала откройте урок"},
+                {"error": "Не удалось создать задание — обратитесь к администратору"},
                 status=409)
         asg._hw_store_attachments(clean_files)
         if created and hasattr(type(sheet), '_hw_channel_announce'):
@@ -1226,6 +1229,8 @@ class RostMaxTimetableController(http.Controller):
         """
         batches = own_students.mapped('active_batch_id')
         now_server = fields.Datetime.now()
+        # submission_date хранится в UTC: просрочку считаем по UTC-«сейчас»,
+        # а не по школьному Moscow-naive now (иначе просрочка на 3 ч раньше).
         domain = [
             ('state', '=', 'publish'),
             ('batch_id', 'in', batches.ids),
@@ -1253,7 +1258,8 @@ class RostMaxTimetableController(http.Controller):
                 "subject_color": a.subject_id.color if a.subject_id else 0,
                 "task": tools.html2plaintext(a.description) or a.name,
                 "due": str(a.submission_date) if a.submission_date else "",
-                "overdue": bool(a.submission_date and a.submission_date < now),
+                # Просрочка по UTC now_server, не по Moscow-naive now.
+                "overdue": bool(a.submission_date and a.submission_date < now_server),
                 "answer_required": a.answer_required,
                 "state": st,
                 "answer": (sub.note or '') if sub else '',
@@ -1441,7 +1447,7 @@ class RostMaxTimetableController(http.Controller):
             return request.make_json_response(
                 {"error": "Invalid JSON"}, status=400)
 
-        clean_files, err = _clean_files(body.get('files') or [])
+        clean_files, err = _clean_hw_files(body.get('files') or [])
         if err:
             return err
         asg._hw_store_attachments(clean_files)
@@ -1627,11 +1633,14 @@ class RostMaxTimetableController(http.Controller):
                  ('state', '=', 'submit')],
                 ['assignment_id'], ['assignment_id'])
         }
-        now = _school_now()
+        # submission_date в UTC — просрочка по UTC now, не по Moscow-naive.
+        now = fields.Datetime.now()
         return request.make_json_response({"homework": [{
             "id": a.id,
             "state": a.state,
             "subject": a.subject_id.name if a.subject_id else "",
+            # Пастель квадрата предмета (как в карточках ученика).
+            "subject_color": a.subject_id.color if a.subject_id else 0,
             "batch": self._batch_short(a.batch_id.name) if a.batch_id else "",
             "task": tools.html2plaintext(a.description) or a.name,
             "due": str(a.submission_date) if a.submission_date else "",
@@ -1692,6 +1701,9 @@ class RostMaxTimetableController(http.Controller):
             return request.make_json_response(
                 {"error": "Invalid JSON"}, status=400)
 
+        # Сначала валидация всего запроса: ответ 400/409 не откатывает write.
+        sheet_vals = {}
+        assignment_vals = {}
         # --- Текст: только через журнал (синк + канал) -----------------
         if 'task' in body:
             task = (body.get('task') or '').strip()
@@ -1706,11 +1718,11 @@ class RostMaxTimetableController(http.Controller):
                     {"error": "Задание создано вне журнала урока — "
                               "текст правится только в ПК-форме задания"},
                     status=409)
-            if sheet.state not in ('done', 'start'):
+            if sheet.state not in ('confirm', 'start', 'done'):
                 return request.make_json_response(
                     {"error": "Журнал урока не активен — правка недоступна"},
                     status=409)
-            sheet.write({'lesson_homework': task})
+            sheet_vals['lesson_homework'] = task
 
         # --- Срок ------------------------------------------------------
         if 'due' in body:
@@ -1727,11 +1739,17 @@ class RostMaxTimetableController(http.Controller):
                 return request.make_json_response(
                     {"error": "Срок не может быть раньше даты выдачи"},
                     status=400)
-            asg.write({'submission_date': due_dt})
+            assignment_vals['submission_date'] = due_dt
 
         # --- Флаг «требуется ответ» ------------------------------------
         if 'answer_required' in body:
-            asg.write({'answer_required': bool(body.get('answer_required'))})
+            assignment_vals['answer_required'] = bool(body.get('answer_required'))
+
+        # Все проверки завершены; ошибки ORM откатят транзакцию запроса.
+        if assignment_vals:
+            asg.write(assignment_vals)
+        if sheet_vals:
+            sheet.write(sheet_vals)
 
         return request.make_json_response({"success": True})
 

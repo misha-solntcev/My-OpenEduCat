@@ -118,7 +118,9 @@ class OpAttendanceSheet(models.Model):
     # ------------------------------------------------------------------
     def _homework_sync(self):
         for sheet in self:
-            if sheet.state not in ('done', 'start'):
+            # ДЗ можно выдать до начала урока и после завершения.
+            # Черновики и отменённые журналы не синхронизируем.
+            if sheet.state not in ('done', 'start', 'confirm'):
                 continue
             hw = (sheet.lesson_homework or '').strip()
             asg = sheet.homework_assignment_id
