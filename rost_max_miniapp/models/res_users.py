@@ -16,10 +16,11 @@ from odoo import fields, models
 class ResUsers(models.Model):
     _inherit = "res.users"
 
-    SELF_WRITEABLE_FIELDS = [
-        'signature', 'action_id', 'image_1920', 'tz', 'name', 'email',
-        'miniapp_show_grade_2', 'miniapp_show_grade_3', 'miniapp_show_note',
-    ]
+    @property
+    def SELF_WRITEABLE_FIELDS(self):
+        return super().SELF_WRITEABLE_FIELDS + [
+            'miniapp_show_grade_2', 'miniapp_show_grade_3', 'miniapp_show_note',
+        ]
 
     miniapp_show_grade_2 = fields.Boolean("Миниапп: колонка Оценка 2")
     miniapp_show_grade_3 = fields.Boolean("Миниапп: колонка Оценка 3")
