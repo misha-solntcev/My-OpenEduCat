@@ -7,10 +7,11 @@
  * справочников) — фильтр по определению не может дать пустую опцию.
  * Домены групп И между полями, ИЛИ внутри одного поля.
  *
- * ВАЖНО: AppRootPortal обязателен. .vkuiView__panel держит
- * isolation:isolate — без портала z-index модалки (99) не выходит
- * из stacking-контекста View, и fixed таббар Epic (z=2, в DOM позже
- * View) перекрывает нижние кнопки шторки.
+ * ВАЖНО: AppRootPortal usePortal обязателен. .vkuiView__panel держит
+ * isolation:isolate, а AppRoot у нас mode="full" — без явного usePortal
+ * портал НЕ создаётся, z-index модалки (99) не выходит из
+ * stacking-контекста View, и fixed таббар Epic (z=2, в DOM позже View)
+ * перекрывает нижние кнопки шторки.
  */
 import React from 'react';
 import {
@@ -99,7 +100,7 @@ export const HomeworkFilterModal: React.FC<Props> = ({
   );
 
   return (
-    <AppRootPortal>
+    <AppRootPortal usePortal>
       <ModalPage
         id="teacher-homework-filters"
         open={open}

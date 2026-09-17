@@ -51,7 +51,7 @@ export const BulkSheet: React.FC<BulkSheetProps> = ({
   const showNote = Boolean(columns?.note);
 
   return (
-    <AppRootPortal>
+    <AppRootPortal usePortal>
       <ModalPage
         open={open}
         onClose={onClose}

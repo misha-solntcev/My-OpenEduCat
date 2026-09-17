@@ -43,7 +43,7 @@ export const ColumnsSettingsSheet: React.FC<ColumnsSettingsSheetProps> = ({
   ];
 
   return (
-    <AppRootPortal>
+    <AppRootPortal usePortal>
       <ModalPage
         open={open}
         onClose={onClose}
