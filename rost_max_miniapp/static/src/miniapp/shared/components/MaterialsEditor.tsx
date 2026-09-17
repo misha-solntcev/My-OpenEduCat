@@ -7,28 +7,36 @@ import React from 'react';
 import { Button } from '@vkontakte/vkui';
 import { Icon28AttachOutline } from '@vkontakte/icons';
 import { apiGet, apiPost, fileToBase64 } from '@/shared/lib/api';
+import { useToast } from '@/shared/components/Toast';
 import type { HomeworkAttachment } from '@/shared/lib/types';
 
 export const MaterialsEditor: React.FC<{ assignmentId: number }> = ({ assignmentId }) => {
+  const addToast = useToast();
   const [materials, setMaterials] = React.useState<HomeworkAttachment[] | null>(null);
   const [busy, setBusy] = React.useState(false);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   const load = React.useCallback(async () => {
     try {
-      const res = await apiGet<{ materials: HomeworkAttachment[] }>(
+      const res = await apiGet<{ materials?: HomeworkAttachment[]; error?: string }>(
         `/rost_max/api/homework/${assignmentId}/materials`);
+      if (res.error) {
+        addToast(res.error, 'error');
+        return;
+      }
       setMaterials(res.materials || []);
     } catch {
       setMaterials([]);
+      addToast('Не удалось загрузить материалы', 'error');
     }
-  }, [assignmentId]);
+  }, [assignmentId, addToast]);
 
   React.useEffect(() => { load(); }, [load]);
 
   const addFiles = async (list: FileList | null) => {
     if (!list || list.length === 0) return;
     const MAX_MB = 10;
+    const skipped: string[] = [];
     const payload = [];
     for (const f of Array.from(list)) {
       const goodType = f.type.startsWith('image/') || f.type === 'application/pdf';
@@ -36,16 +44,27 @@ export const MaterialsEditor: React.FC<{ assignmentId: number }> = ({ assignment
         try {
           payload.push({ filename: f.name, mimetype: f.type, b64: await fileToBase64(f) });
         } catch { /* пропускаем нечитаемый файл */ }
+      } else {
+        skipped.push(f.name);
       }
+    }
+    if (skipped.length > 0) {
+      addToast(`Пропущены (не фото/pdf или больше 10 МБ): ${skipped.join(', ')}`, 'error');
     }
     if (payload.length === 0) return;
     setBusy(true);
     try {
-      const res = await apiPost<{ materials?: HomeworkAttachment[] }>(
+      const res = await apiPost<{ success?: boolean; materials?: HomeworkAttachment[]; error?: string }>(
         `/rost_max/api/homework/${assignmentId}/materials`,
         { files: payload });
-      if (res.materials) setMaterials(res.materials);
-    } catch { /* оставляем прежний список */ }
+      if (res.error) {
+        addToast(res.error, 'error');
+      } else {
+        setMaterials(res.materials || []);
+      }
+    } catch {
+      addToast('Не удалось прикрепить материалы', 'error');
+    }
     setBusy(false);
   };
 
