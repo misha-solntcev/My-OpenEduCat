@@ -13,17 +13,20 @@
 import React from 'react';
 import {
   Panel, PanelHeader, PanelHeaderBack, Div, Spinner, Button, Placeholder,
-  Caption, Text, Card as VkCard, Counter, Input, Checkbox, SegmentedControl,
-  Textarea, Header, SimpleCell,
+  Caption, Text, Card as VkCard, Input, Checkbox, Box,
+  Textarea, Header, IconButton, Chip,
 } from '@vkontakte/vkui';
 import {
   Icon56DocumentOutline, Icon28EditOutline, Icon28AttachOutline,
+  Icon24Filter,
 } from '@vkontakte/icons';
 import { apiGet, apiPost } from '@/shared/lib/api';
 import { useAppStore } from '@/shared/lib/store';
 import { useToast } from '@/shared/components/Toast';
 import { MaterialsEditor } from '@/shared/components/MaterialsEditor';
 import { SubmissionReviewCard } from '@/pages/dashboard/components/feed';
+import { HomeworkFilterModal } from '@/pages/homework/HomeworkFilterModal';
+import { SectionTitle, TeacherHwCard, RightPill } from '@/shared/components/TeacherHomeworkCards';
 import type {
   TeacherHomeworkItem, TeacherHomeworkResponse, HomeworkSubmissionsResponse,
 } from '@/shared/lib/types';
@@ -38,52 +41,43 @@ const fmtDue = (due: string): string => {
   return `до ${d.getDate()} ${MONTHS[d.getMonth()]}`;
 };
 
-type Segment = 'review' | 'active' | 'finished';
-
-/** Чип-счётчики строки задания. */
-const RowChips: React.FC<{ h: TeacherHomeworkItem }> = ({ h }) => (
-  <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexShrink: 0 }}>
-    {h.to_review > 0 && h.state === 'publish' && (
-      <Counter mode="primary" appearance="accent-red">{`${h.to_review} к проверке`}</Counter>
-    )}
-    <Counter mode="primary" appearance={h.state === 'finish' ? 'neutral' : undefined}>
-      {`Сдали ${h.submitted} из ${h.total}`}
-    </Counter>
-  </div>
-);
-
-/** Строка списка заданий. */
-const TeacherHwRow: React.FC<{
-  h: TeacherHomeworkItem;
-  onOpen: (id: number) => void;
-  showFaculty: boolean;
-}> = ({ h, onOpen, showFaculty }) => (
-  <SimpleCell
-    onClick={() => onOpen(h.id)}
-    before={
-      <span style={{
-        width: 8, height: 8, borderRadius: '50%', flexShrink: 0, marginTop: 2,
-        background: h.state === 'finish'
-          ? 'var(--vkui--color_background_neutral)'
-          : h.submitted >= h.total && h.total > 0
-            ? 'var(--vkui--color_background_positive)'
-            : 'var(--vkui--color_background_negative)',
-      }} />
-    }
-    after={<RowChips h={h} />}
-    subtitle={[
-      showFaculty ? h.faculty : `${h.batch} · ${fmtDue(h.due)}`,
-      h.answer_required ? 'требуется ответ' : '',
-      h.overdue ? 'просрочено' : '',
-      h.task.length > 70 ? h.task.slice(0, 70) + '…' : h.task,
-    ].filter(Boolean).join(' · ') || undefined}
-  >
-    <span style={{ color: h.state === 'finish'
-      ? 'var(--vkui--color_text_secondary)' : undefined }}>
-      {h.subject}{h.state === 'finish' ? ' · завершено' : ''}
-    </span>
-  </SimpleCell>
-);
+/** Строка чипов активного фильтра + кнопка «Сбросить» (мокап). */
+const FilterChips: React.FC<{
+  active: { batches: string[]; subjects: string[] };
+  onRemove: (kind: 'batch' | 'subject', v: string) => void;
+  onReset: () => void;
+}> = ({ active, onRemove, onReset }) => {
+  const chips = [
+    ...active.batches.map(v => ({ kind: 'batch' as const, v })),
+    ...active.subjects.map(v => ({ kind: 'subject' as const, v })),
+  ];
+  if (chips.length === 0) return null;
+  return (
+    <div style={{
+      display: 'flex', flexWrap: 'wrap', alignItems: 'center',
+      gap: 6, minWidth: 0, flex: 1,
+    }}>
+      {chips.map(({ kind, v }) => (
+        <Chip
+          key={`${kind}:${v}`}
+          removable
+          onRemove={() => onRemove(kind, v)}
+          aria-label={`Убрать фильтр: ${v}`}
+        >
+          {v}
+        </Chip>
+      ))}
+      <Button
+        mode="tertiary"
+        size="s"
+        appearance="accent"
+        onClick={onReset}
+      >
+        Сбросить
+      </Button>
+    </div>
+  );
+};
 
 /** Экран правки задания (шторка-карточка в потоке страницы). */
 const EditHomeworkCard: React.FC<{
@@ -104,13 +98,15 @@ const EditHomeworkCard: React.FC<{
     }
     setBusy(true);
     try {
+      const payload: Record<string, unknown> = { task: task.trim() };
+      if (dueDate !== (h.due || '').slice(0, 10)) {
+        payload.due = `${dueDate} 23:59:00`;
+      }
+      if (answerRequired !== h.answer_required) {
+        payload.answer_required = answerRequired;
+      }
       const res = await apiPost<{ success?: boolean; error?: string }>(
-        `/rost_max/api/homework/${h.id}/edit`,
-        {
-          task: task.trim(),
-          due: dueDate ? `${dueDate} 23:59:00` : '',
-          answer_required: answerRequired,
-        });
+        `/rost_max/api/homework/${h.id}/edit`, payload);
       if (res.error) {
         addToast(res.error, 'error');
         return;
@@ -275,7 +271,7 @@ const AssignmentDetail: React.FC<{
               <Text weight="2">
                 {showFaculty ? meta.faculty : meta.batch}
               </Text>
-              <RowChips h={meta} />
+              <RightPill h={meta} />
             </div>
             <Caption style={{
               color: 'var(--vkui--color_text_secondary)', display: 'block',
@@ -340,7 +336,7 @@ const AssignmentDetail: React.FC<{
         <EditHomeworkCard
           h={meta}
           onClose={() => setEditing(false)}
-          onSaved={onListChanged}
+          onSaved={() => { load(); onListChanged(); }}
         />
       )}
 
@@ -368,7 +364,6 @@ const AssignmentDetail: React.FC<{
                 return 'error';
               }
             }}
-            onUpdated={() => { load(); onListChanged(); }}
           />
         </>
       )}
@@ -380,8 +375,10 @@ export const TeacherHomeworkPage: React.FC<{ id: string }> = ({ id }) => {
   const addToast = useToast();
   const [items, setItems] = React.useState<TeacherHomeworkItem[] | null>(null);
   const [loading, setLoading] = React.useState(false);
-  const [segment, setSegment] = React.useState<Segment>('review');
   const [openId, setOpenId] = React.useState<number | null>(null);
+  // Фильтры класс/предмет: Set-ы значений; пустой Set = «все».
+  const [filters, setFilters] = React.useState({ batches: new Set<string>(), subjects: new Set<string>() });
+  const [filtersOpen, setFiltersOpen] = React.useState(false);
 
   const load = React.useCallback(async () => {
     setLoading(true);
@@ -400,14 +397,37 @@ export const TeacherHomeworkPage: React.FC<{ id: string }> = ({ id }) => {
 
   const groups = React.useMemo(() => {
     const all = items || [];
+    // Фильтр: внутри группы ИЛИ, между группами И. Пустой Set = «все».
+    const pass = (h: TeacherHomeworkItem) =>
+      (!filters.batches.size || filters.batches.has(h.batch))
+      && (!filters.subjects.size || filters.subjects.has(h.subject));
+    const filtered = all.filter(pass);
+    // Логика разделов (согласована 2026-09-17, мокап): непересекающиеся
+    // состояния. Выданные — ответов ещё нет; К проверке — есть ответы,
+    // не все приняты (в т.ч. возвращённые на доработку); Проверено —
+    // все полученные ответы приняты либо приём закрыт.
     return {
-      review: all.filter(h => h.state === 'publish' && h.to_review > 0),
-      active: all.filter(h => h.state === 'publish'),
-      finished: all.filter(h => h.state === 'finish'),
+      review: filtered.filter(h => h.state === 'publish' && h.submitted > 0),
+      issued: filtered.filter(h => h.state === 'publish' && h.submitted === 0),
+      checked: filtered.filter(h => h.state === 'finish'),
     };
-  }, [items]);
+  }, [items, filters]);
 
-  const current = groups[segment];
+  const allHidden = groups.review.length + groups.issued.length + groups.checked.length === 0;
+
+  const filterActive = filters.batches.size > 0 || filters.subjects.size > 0;
+
+  const removeFilter = (kind: 'batch' | 'subject', v: string) => {
+    setFilters(prev => {
+      const key = kind === 'batch' ? 'batches' : 'subjects';
+      const next = new Set(prev[key]);
+      next.delete(v);
+      return { ...prev, [key]: next };
+    });
+  };
+
+  const resetFilters = () =>
+    setFilters({ batches: new Set<string>(), subjects: new Set<string>() });
 
   // Админский список (все ДЗ школы) показывает преподавателя в строке;
   // у учителя свои задания — информативнее класс. Роль — из стора.
@@ -438,45 +458,95 @@ export const TeacherHomeworkPage: React.FC<{ id: string }> = ({ id }) => {
             </Div>
           ) : (
             <>
-              <Div style={{ paddingBottom: 8 }}>
-                <SegmentedControl
-                  value={segment}
-                  onChange={(v: Segment) => setSegment(v)}
-                  options={[
-                    { label: `К проверке${groups.review.length ? ` · ${groups.review.length}` : ''}`, value: 'review' },
-                    { label: `Активные · ${groups.active.length}`, value: 'active' },
-                    { label: `Завершённые · ${groups.finished.length}`, value: 'finished' },
-                  ]}
-                />
+              {/* Чипы активного фильтра слева, кнопка-фильтр справа
+                  (мокап teacher-homework-mockup.html). Обёртка flex:1 —
+                  чтобы кнопка стояла справа и при пустых чипах. */}
+              <Div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, paddingBottom: 8 }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <FilterChips
+                    active={{
+                      batches: [...filters.batches],
+                      subjects: [...filters.subjects],
+                    }}
+                    onRemove={removeFilter}
+                    onReset={resetFilters}
+                  />
+                </div>
+                <IconButton
+                  label="Фильтры"
+                  aria-expanded={filtersOpen}
+                  style={filterActive ? {
+                    color: 'var(--vkui--color_background_accent)',
+                    flexShrink: 0,
+                  } : { flexShrink: 0 }}
+                  onClick={() => setFiltersOpen(true)}
+                >
+                  <Icon24Filter />
+                </IconButton>
               </Div>
 
-              {current.length === 0 ? (
+              {allHidden ? (
                 <Placeholder
                   icon={<Icon56DocumentOutline />}
-                  title={segment === 'review' ? 'Всё проверено'
-                    : segment === 'active' ? 'Активных заданий нет'
-                      : 'Завершённых заданий нет'}
+                  title="Нет заданий"
                 >
                   <Caption style={{ color: 'var(--vkui--color_text_secondary)' }}>
-                    {segment === 'review'
-                      ? 'Новых сдач, ждущих проверки, нет.'
+                    {filterActive
+                      ? 'Нет заданий по выбранным фильтрам.'
                       : 'Задайте ДЗ из журнала урока.'}
                   </Caption>
                 </Placeholder>
               ) : (
-                <VkCard mode="shadow" style={{ margin: '0 8px 8px', overflow: 'hidden' }}>
-                  {current.map(h => (
-                    <TeacherHwRow
-                      key={h.id} h={h} onOpen={setOpenId}
-                      showFaculty={showFaculty}
-                    />
-                  ))}
-                </VkCard>
+                // .inner мокапа: 12px от краёв экрана; заголовки и карточки
+                // живут в одном контейнере (карточка сама даёт margin 6 0).
+                <Box paddingInline={12} paddingBlockEnd={12}>
+                  {/* Разделы одной лентой: цветной заголовок 20px + счётчик
+                      (мокап), пустые разделы не рисуются. Порядок: К проверке
+                      (ближайшее действие) -> Выданные -> Проверено. */}
+                  {groups.review.length > 0 && (
+                    <>
+                      <SectionTitle first tone="review" title="К проверке" count={groups.review.length} />
+                      {groups.review.map(h => (
+                        <TeacherHwCard key={h.id} h={h} showFaculty={showFaculty} onOpen={setOpenId} />
+                      ))}
+                    </>
+                  )}
+                  {groups.issued.length > 0 && (
+                    <>
+                      <SectionTitle tone="issued" title="Выданные" count={groups.issued.length} />
+                      {groups.issued.map(h => (
+                        <TeacherHwCard key={h.id} h={h} showFaculty={showFaculty} onOpen={setOpenId} />
+                      ))}
+                    </>
+                  )}
+                  {groups.checked.length > 0 && (
+                    <>
+                      <SectionTitle tone="checked" title="Проверено" count={groups.checked.length} />
+                      {groups.checked.map(h => (
+                        <TeacherHwCard key={h.id} h={h} showFaculty={showFaculty} onOpen={setOpenId} />
+                      ))}
+                    </>
+                  )}
+                </Box>
               )}
             </>
           )}
         </>
       )}
+
+      {/* Шторка фильтров: экран задания (openId) и список живут в одной
+          Panel, модалка объявлена рядом с ними и доступна в обоих
+          состояниях (VKUI ModalPage рендерится в AppRoot-портал). */}
+      <HomeworkFilterModal
+        open={filtersOpen}
+        items={items || []}
+        value={filters}
+        onClose={() => setFiltersOpen(false)}
+        onApply={f => {
+          setFilters(f);
+          setFiltersOpen(false);
+        }}
+      />
     </Panel>
   );
 };

@@ -266,6 +266,8 @@ export interface TeacherHomeworkItem {
   /** publish | finish */
   state: string;
   subject: string;
+  /** Пастель квадрата предмета (op.subject.color, календарная палитра). */
+  subject_color: number;
   batch: string;
   task: string;
   due: string;
