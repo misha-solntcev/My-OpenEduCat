@@ -185,6 +185,10 @@ export interface HomeworkItem {
   subject: string;
   /** Цвет предмета (Integer из op.subject, пастель web-календаря). 0 — не задан. */
   subject_color: number;
+  /** Тема урока (op.attendance.sheet.lesson_topic журнала, создавшего задание). */
+  topic: string;
+  /** Дата выдачи (grading_assignment.issued_date). */
+  issued_at: string;
   task: string;
   due: string;
   overdue: boolean;
@@ -247,6 +251,10 @@ export interface HomeworkSubmissionStudent {
   mark: number | null;
   teacher_note: string;
   attachments: HomeworkAttachment[];
+  /** Фото ученика (/web/image/op.student/<id>/image_128); '' — нет фото. */
+  avatar?: string;
+  /** История сдачи из mail-трекинга (label — русская метка состояния). */
+  history?: { date: string; label: string }[];
 }
 
 export interface HomeworkSubmissionsResponse {
@@ -269,6 +277,10 @@ export interface TeacherHomeworkItem {
   /** Пастель квадрата предмета (op.subject.color, календарная палитра). */
   subject_color: number;
   batch: string;
+  /** Тема урока (журнал, создавший задание). */
+  topic: string;
+  /** Дата выдачи (grading_assignment.issued_date). */
+  issued_at: string;
   task: string;
   due: string;
   overdue: boolean;
@@ -276,6 +288,8 @@ export interface TeacherHomeworkItem {
   total: number;
   /** Сдач в состоянии submit (ждут проверки). */
   to_review: number;
+  /** Принято (accept) — знаменатель прогресса проверки. */
+  accepted: number;
   answer_required: boolean;
   materials_count: number;
   /** Журнал-источник (правка текста идёт через него); null — задание создано вне журнала. */

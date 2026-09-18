@@ -1168,12 +1168,16 @@ class RostMaxTimetableController(http.Controller):
                 "total": len(a.allocation_ids),
                 # Есть ли что проверять (сдачи в submit — не принятые)
                 "to_review": to_review_counts.get(a.id, 0),
+                # Принято (accept) — знаменатель прогресса проверки.
+                "accepted": accepted_counts.get(a.id, 0),
                 "answer_required": a.answer_required,
                 # Только счётчик: сами файлы учитель открывает через
                 # GET /materials (свежие токены на каждый показ).
                 "materials_count": len(a._hw_material_payload()),
-                # Админ-лента: учитель для группировки в аккордеон.
-                "faculty": self._faculty_name(a.faculty_id) if role == 'admin' else "",
+                # Учитель для группировки в админ-ленте + подзаголовок
+                # шапки экрана задания (нужен и учителю — его имя на его же
+                # задании) — поэтому отдаём всегда.
+                "faculty": self._faculty_name(a.faculty_id),
             } for a in my_asgs]
 
         # --- Учитель/админ: сводка ДЗ для табло на главной --------------
@@ -1245,6 +1249,11 @@ class RostMaxTimetableController(http.Controller):
             ('student_id', 'in', own_students.ids),
         ])
         sub_map = {s.assignment_id.id: s for s in subs}
+        # Тема урока живёт на журнале (lesson_topic) — ищем журналы по
+        # обратной связи homework_assignment_id одним батч-поиском.
+        sheets = request.env['op.attendance.sheet'].sudo().search([
+            ('homework_assignment_id', 'in', asgs.ids)])
+        topic_map = {s.homework_assignment_id.id: s.lesson_topic for s in sheets}
         # can_submit: ученик из allocation (родитель сдаёт false).
         hw_items = []
         for a in asgs:
@@ -1253,6 +1262,11 @@ class RostMaxTimetableController(http.Controller):
             hw_items.append({
                 "id": a.id,
                 "subject": a.subject_id.name if a.subject_id else "",
+                # Тема урока из журнала, создавшего задание.
+                "topic": topic_map.get(a.id, ''),
+                # Дата выдачи — issued_date из linked grading_assignment.
+                "issued_at": str(a.grading_assignment_id.issued_date)
+                             if a.grading_assignment_id and a.grading_assignment_id.issued_date else "",
                 # Цвет предмета (пастель) — Integer из op.subject, тот же,
                 # что использует web-календарь расписания (color="color").
                 "subject_color": a.subject_id.color if a.subject_id else 0,
@@ -1503,10 +1517,13 @@ class RostMaxTimetableController(http.Controller):
                         'mimetype': att.mimetype or '',
                         'url': '/rost_max/hw_att/%s' % token.token,
                     })
-            name = ("%s %s %s" % (
-                st.last_name or '', st.first_name or '',
-                st.middle_name or '')).strip()
+            name = ("%s %s" % (
+                st.last_name or '', st.first_name or '')).strip()
+            # Фото ученика: image_128 stored (в domain годится только он),
+            # ссылка — avatar_1920, как в журнале урока. Нет фото — '' (инициал).
+            avatar = ('/web/image/op.student/%s/avatar_1920' % st.id) if st.image_128 else ''
             students.append({
+                "avatar": avatar,
                 # id строки сдачи (op.assignment.sub.line) — именно его
                 # принимает /review в <sub_id>. НЕ путать с student_id!
                 "sub_id": sub.id if sub else None,
@@ -1524,6 +1541,48 @@ class RostMaxTimetableController(http.Controller):
         # Несдавшие — в конец списка
         students.sort(key=lambda s: (
             s['state'] == 'none', s['name']))
+        # История сдачи из mail-трекинга sub.line (state tracking=True):
+        # последовательность переходов с таймстампами. Метки совпадают с
+        # фронтовыми STATE_LABEL.
+        sub_ids = [s['sub_id'] for s in students if s['sub_id']]
+        messages = request.env['mail.message'].sudo().search_read(
+            [('model', '=', 'op.assignment.sub.line'),
+             ('res_id', 'in', sub_ids)],
+            fields=['res_id', 'date'], order='date asc')
+        tracking = request.env['mail.tracking.value'].sudo().search_read(
+            [('mail_message_id', 'in', [m['id'] for m in messages])],
+            fields=['mail_message_id', 'field_id', 'old_value_char',
+                    'new_value_char'])
+        # field_id -> имя поля (field_info пуст у core-трекинга)
+        field_ids = list({t['field_id'][0] for t in tracking if t['field_id']})
+        field_names = {
+            f['id']: f['name']
+            for f in request.env['ir.model.fields'].sudo().browse(field_ids)
+        } if field_ids else {}
+        track_by_msg = {}
+        for t in tracking:
+            fname = field_names.get(t['field_id'][0]) if t['field_id'] else None
+            if fname == 'state':
+                # search_read отдаёт M2O как (id, display_name) — берём [0]
+                track_by_msg.setdefault(t['mail_message_id'][0], []).append(t)
+        # Русские метки состояний из core-Selection (old/new_value_char
+        # хранит уже переведённые лейблы).
+        for s in students:
+            history = []
+            if s['sub_id']:
+                for m in messages:
+                    if m['res_id'] != s['sub_id']:
+                        continue
+                    for t in track_by_msg.get(m['id'], []):
+                        new_label = t['new_value_char']
+                        if not history or history[-1]['label'] != new_label:
+                            history.append({
+                                # search_read отдаёт date как datetime — приводим к 'YYYY-MM-DD'
+                                'date': str(m['date'])[:10],
+                                'label': new_label,
+                            })
+                        break
+            s['history'] = history
         return request.make_json_response({
             "assignment": {
                 "id": asg.id,
@@ -1617,7 +1676,7 @@ class RostMaxTimetableController(http.Controller):
         if not is_admin:
             domain.append(('faculty_id', '=', faculty.id))
         asgs = request.env['op.assignment'].sudo().search(
-            domain, order='submission_date desc')
+            domain, order='submission_date asc')
 
         submitted_counts = {
             s['assignment_id'][0]: s['assignment_id_count']
@@ -1633,14 +1692,31 @@ class RostMaxTimetableController(http.Controller):
                  ('state', '=', 'submit')],
                 ['assignment_id'], ['assignment_id'])
         }
+        # Принятые (accept) — для прогресса «N из M проверено» на карточке
+        # задания: submitted считает submit+accept и для прогресса не годится.
+        accepted_counts = {
+            s['assignment_id'][0]: s['assignment_id_count']
+            for s in request.env['op.assignment.sub.line'].sudo().read_group(
+                [('assignment_id', 'in', asgs.ids),
+                 ('state', '=', 'accept')],
+                ['assignment_id'], ['assignment_id'])
+        }
         # submission_date в UTC — просрочка по UTC now, не по Moscow-naive.
         now = fields.Datetime.now()
+        # Тема урока: журналы, создавшие задания (один батч-поиск).
+        hw_sheets = request.env['op.attendance.sheet'].sudo().search([
+            ('homework_assignment_id', 'in', asgs.ids)])
+        topic_map = {s.homework_assignment_id.id: s.lesson_topic
+                     for s in hw_sheets}
         return request.make_json_response({"homework": [{
             "id": a.id,
             "state": a.state,
             "subject": a.subject_id.name if a.subject_id else "",
             # Пастель квадрата предмета (как в карточках ученика).
             "subject_color": a.subject_id.color if a.subject_id else 0,
+            "topic": topic_map.get(a.id, ''),
+            "issued_at": str(a.grading_assignment_id.issued_date)
+                         if a.grading_assignment_id and a.grading_assignment_id.issued_date else "",
             "batch": self._batch_short(a.batch_id.name) if a.batch_id else "",
             "task": tools.html2plaintext(a.description) or a.name,
             "due": str(a.submission_date) if a.submission_date else "",
@@ -1704,6 +1780,22 @@ class RostMaxTimetableController(http.Controller):
         # Сначала валидация всего запроса: ответ 400/409 не откатывает write.
         sheet_vals = {}
         assignment_vals = {}
+        # --- Тема урока: только через журнал ----------------------------
+        if 'topic' in body:
+            topic = (body.get('topic') or '').strip()
+            sheet = request.env['op.attendance.sheet'].sudo().search([
+                ('homework_assignment_id', '=', assignment_id)], limit=1)
+            if not sheet:
+                return request.make_json_response(
+                    {"error": "Задание создано вне журнала урока — "
+                              "тема правится только в ПК-форме журнала"},
+                    status=409)
+            if sheet.state not in ('confirm', 'start', 'done'):
+                return request.make_json_response(
+                    {"error": "Журнал урока не активен — правка недоступна"},
+                    status=409)
+            sheet_vals['lesson_topic'] = topic
+
         # --- Текст: только через журнал (синк + канал) -----------------
         if 'task' in body:
             task = (body.get('task') or '').strip()

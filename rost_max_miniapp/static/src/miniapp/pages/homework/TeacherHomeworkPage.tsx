@@ -12,19 +12,20 @@
  */
 import React from 'react';
 import {
-  Panel, PanelHeader, PanelHeaderBack, Div, Spinner, Button,
+  Panel, PanelHeader, PanelHeaderBack, PanelHeaderContent, Div, Spinner, Button,
   Caption, Text, Card as VkCard, Input, Checkbox, Box,
-  Textarea, Header, IconButton, Chip,
+  Textarea, IconButton, Chip,
 } from '@vkontakte/vkui';
 import {
   Icon28EditOutline, Icon28AttachOutline,
-  Icon24Filter,
+  Icon24Filter, Icon24ListCheckOutline,
 } from '@vkontakte/icons';
 import { apiGet, apiPost } from '@/shared/lib/api';
 import { useAppStore } from '@/shared/lib/store';
 import { useToast } from '@/shared/components/Toast';
 import { MaterialsEditor } from '@/shared/components/MaterialsEditor';
-import { SubmissionReviewCard } from '@/pages/dashboard/components/feed';
+import { ReviewQueue } from '@/shared/components/ReviewQueue';
+import { SubjectIcon, subjectTint } from '@/shared/components/SubjectIcon';
 import { HomeworkFilterModal } from '@/pages/homework/HomeworkFilterModal';
 import { SectionTitle, TeacherHwCard, RightPill } from '@/shared/components/TeacherHomeworkCards';
 import type {
@@ -87,6 +88,7 @@ const EditHomeworkCard: React.FC<{
 }> = ({ h, onClose, onSaved }) => {
   const addToast = useToast();
   const [task, setTask] = React.useState(h.task);
+  const [topic, setTopic] = React.useState(h.topic || '');
   const [dueDate, setDueDate] = React.useState((h.due || '').slice(0, 10));
   const [answerRequired, setAnswerRequired] = React.useState(h.answer_required);
   const [busy, setBusy] = React.useState(false);
@@ -99,6 +101,9 @@ const EditHomeworkCard: React.FC<{
     setBusy(true);
     try {
       const payload: Record<string, unknown> = { task: task.trim() };
+      if (topic.trim() !== (h.topic || '')) {
+        payload.topic = topic.trim();
+      }
       if (dueDate !== (h.due || '').slice(0, 10)) {
         payload.due = `${dueDate} 23:59:00`;
       }
@@ -149,6 +154,26 @@ const EditHomeworkCard: React.FC<{
           </Caption>
         )}
 
+        <Caption style={{
+          color: 'var(--vkui--color_text_secondary)', display: 'block',
+          marginBottom: 4,
+        }}>
+          Тема урока
+        </Caption>
+        <Input
+          value={topic}
+          onChange={e => setTopic(e.target.value)}
+          placeholder="Тема урока"
+          aria-label="Тема урока"
+          style={{ marginBottom: 8 }}
+        />
+
+        <Caption style={{
+          color: 'var(--vkui--color_text_secondary)', display: 'block',
+          marginBottom: 4,
+        }}>
+          Текст задания
+        </Caption>
         <Textarea
           value={task}
           onChange={e => setTask(e.target.value)}
@@ -195,7 +220,7 @@ const AssignmentDetail: React.FC<{
   onBack: () => void;
   onListChanged: () => void;
   showFaculty: boolean;
-}> = ({ assignmentId, onBack, onListChanged, showFaculty }) => {
+}> = ({ assignmentId, onBack, onListChanged }) => {
   const addToast = useToast();
   const [data, setData] = React.useState<HomeworkSubmissionsResponse | null>(null);
   const [meta, setMeta] = React.useState<TeacherHomeworkItem | null>(null);
@@ -258,37 +283,81 @@ const AssignmentDetail: React.FC<{
   return (
     <Panel id="assignment-detail">
       <PanelHeader before={<PanelHeaderBack onClick={onBack} />}>
-        {meta ? `${meta.subject} · ${meta.batch}` : 'Задание'}
+        <PanelHeaderContent
+          before={meta && (
+            <span style={{
+              width: 30, height: 30, borderRadius: 8, flexShrink: 0,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              ...subjectTint(meta.subject_color || 0),
+            }}>
+              <SubjectIcon subject={meta.subject} />
+            </span>
+          )}
+          subtitle={meta?.faculty || undefined}
+        >
+          {meta ? `${meta.subject} · ${meta.batch}` : 'Задание'}
+        </PanelHeaderContent>
       </PanelHeader>
 
       {meta && (
         <VkCard mode="shadow" style={{ margin: '8px 8px 0', overflow: 'hidden' }}>
           <div style={{ padding: '12px 16px' }}>
-            <div style={{
-              display: 'flex', justifyContent: 'space-between',
-              alignItems: 'center', marginBottom: 4,
-            }}>
-              <Text weight="2">
-                {showFaculty ? meta.faculty : meta.batch}
-              </Text>
+            {/* мокап D: [иконка ДЗ] [задание / тема-срок] — иконка ДЗ (чек-лист
+                на синем тинте) отличается от палитры предметов (FontAwesome). */}
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+              <span style={{
+                width: 38, height: 38, borderRadius: 10, flexShrink: 0,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                background: 'var(--vkui--color_background_secondary)',
+                border: '1px solid var(--vkui--color_separator_primary)',
+                color: 'var(--vkui--color_text_accent)',
+              }}>
+                <Icon24ListCheckOutline width={20} height={20} />
+              </span>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <Text weight="2" style={{
+                  color: 'var(--vkui--color_text_primary)', display: 'block',
+                  whiteSpace: 'pre-wrap', overflowWrap: 'anywhere',
+                }}>
+                  {meta.task}
+                </Text>
+                <Caption style={{
+                  color: 'var(--vkui--color_text_secondary)', display: 'block',
+                  marginTop: 4,
+                }}>
+                  {[
+                    meta.topic ? `Тема: ${meta.topic}` : '',
+                    fmtDue(meta.due),
+                    meta.answer_required ? 'требуется ответ' : '',
+                    meta.state === 'finish' ? 'приём завершён' : '',
+                  ].filter(Boolean).join(' · ')}
+                </Caption>
+              </div>
               <RightPill h={meta} />
             </div>
-            <Caption style={{
-              color: 'var(--vkui--color_text_secondary)', display: 'block',
-              whiteSpace: 'pre-wrap',
-            }}>
-              {meta.task}
-            </Caption>
-            <Caption style={{
-              color: 'var(--vkui--color_text_secondary)', display: 'block',
-              marginTop: 4,
-            }}>
-              {[
-                fmtDue(meta.due),
-                meta.answer_required ? 'требуется ответ' : '',
-                meta.state === 'finish' ? 'приём завершён' : '',
-              ].filter(Boolean).join(' · ')}
-            </Caption>
+
+            {/* мокап D: синий прогресс проверки (submitted с оценкой неизвестен,
+                поэтому «принято» = total - submit - change - none/draft из counts) */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 10 }}>
+              <div style={{
+                flex: 1, height: 4, borderRadius: 2, overflow: 'hidden',
+                background: 'var(--vkui--color_background_secondary)',
+              }}>
+                <div style={{
+                  height: '100%', borderRadius: 2,
+                  width: `${meta.total > 0
+                    ? Math.min(100, Math.round(100 * meta.accepted / meta.total))
+                    : 0}%`,
+                  background: 'var(--vkui--color_text_accent)',
+                }} />
+              </div>
+              <Caption style={{ whiteSpace: 'nowrap', color: 'var(--vkui--color_text_secondary)' }}>
+                <Text style={{ color: 'var(--vkui--color_text_primary)', fontWeight: 600 }}>
+                  {meta.accepted} из {meta.total}
+                </Text>
+                {' '}проверено
+              </Caption>
+            </div>
 
             {meta.materials_count > 0 && (
               <Caption style={{
@@ -303,10 +372,11 @@ const AssignmentDetail: React.FC<{
             {/* Материалы: просмотр/добавление/удаление (общий редактор). */}
             <MaterialsEditor assignmentId={meta.id} />
 
-            <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+            {/* Кнопки: единый стиль (outline), равная ширина, текст по центру. */}
+            <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
               <Button
-                size="s" mode="outline"
-                before={<Icon28EditOutline />}
+                size="s" mode="outline" stretched
+                before={<Icon28EditOutline width={16} height={16} />}
                 disabled={editing}
                 onClick={() => setEditing(true)}
               >
@@ -314,14 +384,14 @@ const AssignmentDetail: React.FC<{
               </Button>
               {meta.state === 'publish' ? (
                 <Button
-                  size="s" mode="outline" appearance="negative"
+                  size="s" mode="outline" appearance="negative" stretched
                   loading={busyFinish} onClick={toggleFinish}
                 >
                   Завершить приём
                 </Button>
               ) : (
                 <Button
-                  size="s" mode="outline"
+                  size="s" mode="outline" stretched
                   loading={busyFinish} onClick={toggleFinish}
                 >
                   Возобновить
@@ -341,12 +411,9 @@ const AssignmentDetail: React.FC<{
       )}
 
       {data && (
-        <>
-          <Header size="s" style={{ marginTop: 8, marginInline: 8 }}>Сдачи класса</Header>
-          <SubmissionReviewCard
-            submission={data}
-            onClose={() => {}}
-            onReview={async (subId, action, note, mark) => {
+        <ReviewQueue
+          submission={data}
+          onReview={async (subId, action, note, mark) => {
               try {
                 const res = await apiPost<{ success?: boolean; error?: string }>(
                   `/rost_max/api/homework/submission/${subId}/review`,
@@ -364,8 +431,7 @@ const AssignmentDetail: React.FC<{
                 return 'error';
               }
             }}
-          />
-        </>
+        />
       )}
     </Panel>
   );

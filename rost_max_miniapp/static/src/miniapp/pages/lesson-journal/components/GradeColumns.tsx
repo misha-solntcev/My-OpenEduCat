@@ -1,6 +1,6 @@
 import React from 'react';
 import { Flex } from '@vkontakte/vkui';
-import { JournalButton } from './JournalButton';
+import { JournalButton } from '@/shared/components/JournalButton';
 import { GRADE_FIELDS } from '@/shared/lib/colors';
 import type { GradeField, AttendanceType, JournalColumns } from '@/shared/lib/types';
 

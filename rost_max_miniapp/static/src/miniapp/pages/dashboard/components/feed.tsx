@@ -8,6 +8,7 @@ import {
   Icon28AttachOutline,
 } from '@vkontakte/icons';
 import { TimedGroups } from '@/shared/components/TimedGroups';
+import { JournalButton } from '@/shared/components/JournalButton';
 import { TodayTimeline } from './TodayTimeline';
 import { MaterialsEditor } from '@/shared/components/MaterialsEditor';
 import { initialsOf } from '@/shared/lib/initials';
@@ -421,22 +422,20 @@ export const SubmissionReviewCard: React.FC<{
   onClose: () => void;
   onReview: (subId: number, action: 'accept' | 'change', note: string, mark: number | null) => Promise<string | null>;
   onUpdated?: () => void;
-}> = ({ submission, onClose, onReview, onUpdated }) => {
-  const { assignment, students } = submission;
+  // onClose остаётся в пропсах для совместимости вызовов, но не используется:
+  // шапку с дублем информации (предмет/текст/счётчик) и нерабочей «Закрыть»
+  // убрали — всё это уже есть на экране задания выше.
+}> = ({ submission, onClose: _onClose, onReview, onUpdated }) => {
+  const { students } = submission;
   const [busyId, setBusyId] = React.useState<number | null>(null);
   const [notes, setNotes] = React.useState<Record<number, string>>({});
-  const [marks, setMarks] = React.useState<Record<number, string>>({});
+  const [marks, setMarks] = React.useState<Record<number, number | null>>({});
 
   const review = async (student: HomeworkSubmissionStudent, action: 'accept' | 'change') => {
     setBusyId(student.student_id);
-    let mark: number | null = null;
-    if (action === 'accept') {
-      const raw = (marks[student.student_id] || '').trim();
-      if (raw !== '' && raw !== '—') {
-        const m = Number(raw);
-        if (m >= 2 && m <= 5) mark = m;
-      }
-    }
+    // Оценка выбирается кнопкой журнала (цикл — → 5 → 4 → 3 → 2 → —);
+    // ставится только при «Принять».
+    const mark = action === 'accept' ? (marks[student.student_id] ?? null) : null;
     // sub_id = id строки сдачи — его ждёт /review, НЕ student_id.
     const err = await onReview(student.sub_id ?? student.student_id, action,
       (notes[student.student_id] || '').trim(), mark);
@@ -444,30 +443,9 @@ export const SubmissionReviewCard: React.FC<{
     if (err === null) onUpdated?.();
   };
 
-  const submittedCount = students.filter(s => s.state === 'submit' || s.state === 'accept').length;
-
   return (
     <Div style={{ paddingInline: 8 }}>
       <VkCard mode="shadow" style={{ overflow: 'hidden', marginBottom: 8 }}>
-        <div style={{ padding: '12px 16px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-            <Text weight="2">{assignment.subject} — сдачи</Text>
-            <span
-              style={{ color: 'var(--vkui--color_text_accent)', cursor: 'pointer', fontSize: 13 }}
-              onClick={onClose}
-            >
-              Закрыть
-            </span>
-          </div>
-          <Caption style={{ color: 'var(--vkui--color_text_secondary)', display: 'block' }}>
-            {assignment.task.length > 120 ? assignment.task.slice(0, 120) + '…' : assignment.task}
-          </Caption>
-          <Caption style={{ color: 'var(--vkui--color_text_secondary)', display: 'block', marginTop: 4 }}>
-            Сдали {submittedCount} из {students.length}
-            {assignment.answer_required ? ' · требуется ответ' : ''}
-          </Caption>
-        </div>
-
         {students.map(s => {
           const subId = s.student_id;
           const canReview = s.state === 'submit';
@@ -497,18 +475,14 @@ export const SubmissionReviewCard: React.FC<{
                   </Counter>
                 )}
               </div>
-              {s.late && s.state !== 'none' && (
-                <Caption style={{ color: 'var(--vkui--color_text_negative)', display: 'block', marginTop: 2 }}>
-                  сдано с опозданием
-                </Caption>
-              )}
               {s.answer && (
-                <Caption style={{
-                  color: 'var(--vkui--color_text_secondary)',
+                <Text style={{
+                  color: 'var(--vkui--color_text_primary)',
+                  fontWeight: 600,
                   display: 'block', marginTop: 4, whiteSpace: 'pre-wrap',
                 }}>
                   Ответ: {s.answer}
-                </Caption>
+                </Text>
               )}
               {s.attachments.length > 0 && (
                 <div style={{ marginTop: 6 }}>
@@ -538,6 +512,20 @@ export const SubmissionReviewCard: React.FC<{
                   Оценка: {s.mark}
                 </Caption>
               )}
+              {/* История сдачи из mail-трекинга: Сдано 18.09 → На доработку
+                  19.09 → … Хронология внизу строки, мелко, серым. */}
+              {s.history && s.history.length > 0 && (
+                <Caption style={{
+                  color: 'var(--vkui--color_text_secondary)',
+                  display: 'block', marginTop: 6,
+                }}>
+                  {s.history.map((ev, i) => (
+                    <span key={i} style={{ display: 'block' }}>
+                      {ev.label} {ev.date}
+                    </span>
+                  ))}
+                </Caption>
+              )}
               {canReview && (
                 <>
                   <Input
@@ -547,18 +535,10 @@ export const SubmissionReviewCard: React.FC<{
                     aria-label="Комментарий учителя"
                     style={{ marginTop: 6 }}
                   />
-                  <Input
-                    value={marks[subId] || ''}
-                    onChange={e => {
-                      const v = e.target.value.replace(/[^\d]/g, '').slice(0, 1);
-                      setMarks(prev => ({ ...prev, [subId]: v }));
-                    }}
-                    placeholder="Оценка 2–5 (необязательно)"
-                    aria-label="Оценка за домашнее задание"
-                    inputMode="numeric"
-                    style={{ marginTop: 6 }}
-                  />
-                  <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+                  {/* Оценка — кнопка журнала (цикл — → 5 → 4 → 3 → 2 → —),
+                      не текстовое поле. Ставится только при «Принять».
+                      Кнопка оценки в одном ряду с кнопками, прижата вправо. */}
+                  <div style={{ display: 'flex', gap: 8, marginTop: 8, alignItems: 'center' }}>
                     <Button
                       size="s"
                       appearance="positive"
@@ -576,6 +556,14 @@ export const SubmissionReviewCard: React.FC<{
                     >
                       На доработку
                     </Button>
+                    <span style={{ marginLeft: 'auto' }}>
+                      <JournalButton
+                        kind="grade"
+                        value={marks[subId] ?? null}
+                        onCycle={next => setMarks(prev => ({ ...prev, [subId]: next }))}
+                        title="Оценка за домашнее задание"
+                      />
+                    </span>
                   </div>
                 </>
               )}

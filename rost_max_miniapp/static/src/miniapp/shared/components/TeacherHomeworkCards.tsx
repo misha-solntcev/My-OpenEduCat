@@ -132,25 +132,6 @@ export const RightPill: React.FC<{ h: TeacherHomeworkItem }> = ({ h }) => {
   return <span style={gray()}>{`Сдали ${h.submitted} из ${h.total}`}</span>;
 };
 
-const statusPill = (background: string, color: string): React.CSSProperties => ({
-  display: 'inline-flex', alignItems: 'center',
-  fontSize: 12, fontWeight: 600, lineHeight: '18px', padding: '4px 10px', borderRadius: 999,
-  whiteSpace: 'normal', overflowWrap: 'anywhere', maxWidth: '100%', background, color,
-});
-
-const CardStatus: React.FC<{ h: TeacherHomeworkItem }> = ({ h }) => {
-  const colors = statusColors(useColorScheme() === 'dark');
-  const [label, tone]: [string, { background: string; color: string }] = h.to_review > 0
-    ? [`${h.to_review} к проверке`, colors.review]
-    : h.submitted > 0
-      ? ['Проверено', colors.checked]
-      : h.state === 'finish'
-        ? ['Приём закрыт', colors.issued]
-        : h.overdue && h.submitted < h.total
-          ? ['Просрочено', colors.red]
-          : ['Выдано', colors.issued];
-  return <span style={{ ...statusPill(tone.background, tone.color), marginLeft: 'auto', flexShrink: 0 }}>{label}</span>;
-};
 
 const CardFoot: React.FC<{ h: TeacherHomeworkItem }> = ({ h }) => {
   return (
@@ -178,9 +159,7 @@ export const TeacherHwCard: React.FC<TeacherHwCardProps> = ({ h, showFaculty, on
   const c = subjectColor(h.subject_color || 0);
   const colors = statusColors(useColorScheme() === 'dark');
   const overdue = h.state !== 'finish' && h.overdue;
-  const due = fmtDueTeacher(h.due).replace(/^до /, '');
-  const deadline = due ? `Срок · ${due}` : 'Без срока';
-  const status = <CardStatus h={h} />;
+  const due = fmtDueTeacher(h.due); // «до 24 сен»
 
   return (
     <Tappable
@@ -217,15 +196,27 @@ export const TeacherHwCard: React.FC<TeacherHwCardProps> = ({ h, showFaculty, on
                 {h.faculty}
               </Caption>
             )}
-            <Caption style={{
-              fontSize: 13, lineHeight: '18px', marginTop: 2,
-              color: overdue ? colors.red.color : 'var(--vkui--color_text_secondary)',
-            }}>
-              {deadline}
-            </Caption>
+            {h.topic && (
+              <Text style={{ fontSize: 15, lineHeight: '20px', marginTop: 2, color: 'var(--vkui--color_text_primary)', overflowWrap: 'anywhere', display: 'block' }}>
+                {h.topic}
+              </Text>
+            )}
           </div>
         </div>
-        {status}
+        {/* Срок — цветной бейдж справа сверху (как у карточки ученика):
+            красный тинт при просрочке, синий тинт в остальных случаях. */}
+        {due && (
+          <span style={{
+            display: 'inline-flex', alignItems: 'center',
+            fontSize: 12, fontWeight: 600, lineHeight: '18px',
+            padding: '4px 10px', borderRadius: 999, whiteSpace: 'nowrap',
+            flexShrink: 0,
+            background: overdue ? colors.red.background : colors.review.background,
+            color: overdue ? colors.red.color : colors.review.color,
+          }}>
+            {due}
+          </span>
+        )}
       </div>
       <div style={{
         fontSize: 15, fontWeight: 400, lineHeight: 1.5,
@@ -234,6 +225,17 @@ export const TeacherHwCard: React.FC<TeacherHwCardProps> = ({ h, showFaculty, on
       }}>
         {h.task}
       </div>
+      {h.issued_at && (() => {
+        const d = new Date(h.issued_at);
+        return isNaN(d.getTime()) ? null : (
+          <Caption style={{
+            display: 'block', marginTop: 6,
+            color: 'var(--vkui--color_text_secondary)',
+          }}>
+            {`Выдано ${d.getDate()} ${MONTHS_SHORT[d.getMonth()]}`}
+          </Caption>
+        );
+      })()}
       <CardFoot h={h} />
     </Tappable>
   );

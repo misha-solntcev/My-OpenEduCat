@@ -24,6 +24,14 @@ export const fmtDue = (due: string): string => {
   return `до ${d.getDate()} ${MONTHS[d.getMonth()].slice(0, 3)}${time}`;
 };
 
+/** Дата выдачи «12 сен» (issued_at из grading_assignment.issued_date). */
+export const fmtIssued = (iso: string): string => {
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return iso;
+  return `${d.getDate()} ${MONTHS[d.getMonth()].slice(0, 3)}`;
+};
+
 /** Дата сдачи «вчера/сегодня в 19:40» либо «12 сен». */
 const fmtSubmitted = (iso: string): string => {
   if (!iso) return '';
@@ -301,6 +309,15 @@ export const HomeworkRowItem: React.FC<{
           <Text weight="2" style={{ fontSize: 16, lineHeight: '22px' }}>
             {h.subject}
           </Text>
+          {h.topic && (
+            <Caption style={{
+              color: 'var(--vkui--color_text_secondary)',
+              display: 'block', marginTop: 1, whiteSpace: 'nowrap',
+              overflow: 'hidden', textOverflow: 'ellipsis',
+            }}>
+              {h.topic}
+            </Caption>
+          )}
           <Caption style={{
             color: 'var(--vkui--color_text_secondary)',
             display: 'block', marginTop: 1, whiteSpace: 'nowrap',
@@ -308,7 +325,7 @@ export const HomeworkRowItem: React.FC<{
           }}>
             {h.state === 'submit' || h.state === 'accept'
               ? `Отправлено ${h.submitted_at ? fmtSubmitted(h.submitted_at) : ''}${h.late ? ' · с опозданием' : ''}`
-              : (h.task.length > 60 ? h.task.slice(0, 60) + '…' : h.task)}
+              : (h.issued_at ? `Выдано ${fmtIssued(h.issued_at)}` : '')}
           </Caption>
         </div>
         {right}
@@ -316,9 +333,9 @@ export const HomeworkRowItem: React.FC<{
 
       {/* Текст задания и содержимое */}
       <div style={{ padding: '8px 12px 12px 32px' }}>
-        <Caption style={{ color: 'var(--vkui--color_text_primary)', display: 'block', whiteSpace: 'pre-wrap' }}>
+        <Text style={{ color: 'var(--vkui--color_text_primary)', display: 'block', whiteSpace: 'pre-wrap' }}>
           {h.task}
-        </Caption>
+        </Text>
 
         {expanded && (
           <div style={{ marginTop: 8 }}>
@@ -338,23 +355,28 @@ export const HomeworkRowItem: React.FC<{
                   }}>
                     Комментарий учителя
                   </Caption>
-                  <Caption style={{
+                  <Text style={{
                     color: 'var(--vkui--color_text_primary)',
                     display: 'block', whiteSpace: 'pre-wrap',
                   }}>
                     {h.teacher_note}
-                  </Caption>
+                  </Text>
                 </div>
               </div>
             )}
 
             {h.answer_required && h.answer && h.state !== 'change' && (
-              <Caption style={{
-                color: 'var(--vkui--color_text_secondary)',
-                display: 'block', marginBottom: 8, whiteSpace: 'pre-wrap',
-              }}>
-                Ваш ответ: {h.answer}
-              </Caption>
+              <div style={{ marginBottom: 8 }}>
+                <Caption style={{
+                  color: 'var(--vkui--color_text_secondary)',
+                  display: 'block', marginBottom: 2,
+                }}>
+                  Ваш ответ:
+                </Caption>
+                <Text style={{ color: 'var(--vkui--color_text_primary)', display: 'block', whiteSpace: 'pre-wrap' }}>
+                  {h.answer}
+                </Text>
+              </div>
             )}
 
             {h.materials.length > 0 && (
