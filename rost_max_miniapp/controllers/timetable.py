@@ -11,13 +11,10 @@ import logging
 from odoo.exceptions import AccessDenied
 from .session_middleware import restore_session_if_needed
 
-# Школа работает в Europe/Moscow (UTC+3): тайминги уроков и «сейчас»
-# считаем в школьной зоне, а не по UTC сервера / зоне пользователя.
 SCHOOL_TZ = 'Europe/Moscow'
 
 
 def _school_now():
-    """Текущий момент naive-datetime в школьной зоне (Europe/Moscow)."""
     return fields.Datetime.context_timestamp(
         request.env.user.with_context(tz=SCHOOL_TZ),
         fields.Datetime.now(),
@@ -25,21 +22,10 @@ def _school_now():
 
 _logger = logging.getLogger(__name__)
 
-# Ключ сессии для нашего стабильного CSRF-токена (без o<timestamp>, в отличие
-# от session['csrf_token'] Odoo). Токен создаётся лениво и не меняется в рамках
-# сессии -> детерминированное сравнение на POST (без хрупкости time-suffixed
-# формата Odoo, который ломался при разнице времени рендера и отправки).
 CSRF_SESSION_KEY = 'spa_csrf_token'
-
-# Trusted device cookie name (совпадает с auth_totp)
 TRUSTED_DEVICE_COOKIE = 'td_id'
-TRUSTED_DEVICE_AGE = 90 * 86400  # 90 days
+TRUSTED_DEVICE_AGE = 90 * 86400
 
-# Веб-версии MAX (web.max.ru) и Telegram (web.telegram.org) открывают миниапп
-# в iframe. Odoo по умолчанию не пускает чужие домены. X-Frame-Options не
-# используем вовсе: ALLOW-FROM удалён из стандартов и игнорируется
-# браузерами, а SAMEORIGIN запрещал бы встраивание — всю работу делает
-# CSP frame-ancestors (приоритетнее XFO в современных браузерах).
 MAX_FRAME_HEADERS = {
     'Content-Security-Policy': (
         'frame-ancestors https://*.max.ru https://web.telegram.org '
@@ -49,14 +35,6 @@ MAX_FRAME_HEADERS = {
 
 
 def _spa_response(template, **ctx):
-    """Рендер SPA-страницы с заголовками, разрешающими iframe из MAX.
-
-    no-cache обязателен: Telegram WebView кеширует HTML, и без этого
-    заголовка показывает старую страницу со старой ссылкой на бандл
-    (в MAX «сброс кэша» есть, в Telegram — нет).
-    """
-    # Версия бандла = mtime index.js: при каждом деплое URL меняется,
-    # кеш WebView инвалидируется сам, ручные ?v=N не нужны.
     bundle = os.path.join(
         os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
         'static', 'src', 'bundle', 'index.js')
@@ -71,30 +49,22 @@ def _spa_response(template, **ctx):
 
 
 def _get_spa_csrf_token():
-    """Стабильный CSRF-токен SPA, хранящийся в сессии под нашим ключом."""
     token = request.session.get(CSRF_SESSION_KEY)
     if not token:
-        token = secrets.token_hex(32)  # 256-bit случайный secret
+        token = secrets.token_hex(32)
         request.session[CSRF_SESSION_KEY] = token
     return token
 
 
 def _check_spa_csrf():
-    """Ручная валидация CSRF для JSON POST (системный валидатор Odoo для
-    http-роутов ищет токен только в query/form-data, а фронт шлёт его в
-    заголовке X-CSRF-Token). Сравниваем с нашим стабильным токеном SPA.
-
-    Возвращает Response (400) при несовпадении, иначе None.
-    """
     csrf_token = request.httprequest.headers.get('X-CSRF-Token')
     session_token = request.session.get(CSRF_SESSION_KEY)
     if not session_token or not csrf_token or csrf_token != session_token:
-        return request.make_json_response({"error": "CSRF validation failed"}, status=400)
+        return request.make_json_response({'error': 'CSRF validation failed'}, status=400)
     return None
 
 
 def _check_trusted_device(user):
-    """Проверяет, является ли текущее устройство доверенным для пользователя с 2FA."""
     if not user.totp_enabled:
         return True
     key = request.cookies.get(TRUSTED_DEVICE_COOKIE)
@@ -106,37 +76,25 @@ def _check_trusted_device(user):
 
 
 def _generate_trusted_device_cookie(response, user):
-    """Генерирует и устанавливает cookie доверенного устройства."""
     from datetime import datetime, timedelta
-    name = f"{request.httprequest.user_agent.browser.capitalize()} on {request.httprequest.user_agent.platform.capitalize()}"
+    ua = request.httprequest.user_agent
+    browser = (ua.browser or 'Unknown').capitalize()
+    platform_name = (ua.platform or 'Unknown').capitalize()
+    name = f"{browser} on {platform_name}"
     if request.geoip.city.name:
         name += f" ({request.geoip.city.name}, {request.geoip.country_name})"
-
     key = request.env['auth_totp.device'].sudo()._generate(
-        "browser",
-        name,
+        "browser", name,
         datetime.now() + timedelta(seconds=TRUSTED_DEVICE_AGE)
     )
     response.set_cookie(
-        key=TRUSTED_DEVICE_COOKIE,
-        value=key,
-        max_age=TRUSTED_DEVICE_AGE,
-        httponly=True,
-        samesite='Lax'
+        key=TRUSTED_DEVICE_COOKIE, value=key, max_age=TRUSTED_DEVICE_AGE,
+        httponly=True, samesite='Lax'
     )
     return key
 
 
 def _get_user_students(user):
-    """Определить роль пользователя и список "его" учеников (op.student).
-
-    Возвращает (role, students):
-      role: 'admin' | 'teacher' | 'student' | 'parent' | 'guest'
-      students: recordset op.student, чьи данные видит юзер:
-        - teacher/admin -> пустой recordset (видят всё, ограничений по ученикам нет)
-        - student       -> сам ученик
-        - parent        -> дети (op.parent.student_ids)
-    """
     if user.has_group('base.group_system'):
         return 'admin', request.env['op.student'].browse()
     faculty = request.env['op.faculty'].sudo().search([
@@ -158,12 +116,6 @@ def _get_user_students(user):
 
 
 def _check_lesson_write_access(sheet):
-    """Защита от фальсификации оценок: писать может только админ либо
-    преподаватель, назначенный вести этот урок. Гость/студент/чужой
-    преподаватель получают 403.
-
-    Возвращает Response (403) при отказе, иначе None.
-    """
     user = request.env.user
     is_admin = user.has_group('base.group_system')
     if is_admin:
@@ -177,22 +129,15 @@ def _check_lesson_write_access(sheet):
             user.login, user.id, sheet.id,
         )
         return request.make_json_response(
-            {"error": "У вас нет прав для изменения оценок этого урока"}, status=403
+            {'error': 'У вас нет прав для изменения оценок этого урока'}, status=403
         )
     return None
 
 
 def _clean_hw_files(files):
-    """Валидация вложений (base64 в JSON) — общая для сдач, материалов
-    задания и материалов урока. Лимиты: 5 файлов, 10 МБ каждый, только
-    изображения/pdf. Тело запроса целиком ограничено limiter'ом Odoo;
-    10 МБ base64 ~ 13.7 МБ — в лимите по умолчанию.
-
-    Возвращает (clean, None) или (None, Response) с ошибкой.
-    """
     if not isinstance(files, list) or len(files) > 5:
         return None, request.make_json_response(
-            {"error": "Не более 5 вложений"}, status=400)
+            {'error': 'Не более 5 вложений'}, status=400)
     ALLOWED_MIMES = (
         'image/jpeg', 'image/png', 'image/webp',
         'image/heic', 'image/heif', 'application/pdf',
@@ -205,16 +150,32 @@ def _clean_hw_files(files):
         mime = (f.get('mimetype') or '').split(';')[0].strip().lower()
         if mime not in ALLOWED_MIMES:
             return None, request.make_json_response(
-                {"error": "Только фото (JPEG/PNG/HEIC) или PDF"},
-                status=400)
+                {'error': 'Только фото (JPEG/PNG/HEIC) или PDF'}, status=400)
         try:
             raw = base64.b64decode(f['b64'], validate=True)
         except Exception:
             return None, request.make_json_response(
-                {"error": "Некорректный файл"}, status=400)
+                {'error': 'Некорректный файл'}, status=400)
         if len(raw) > MAX_SIZE:
             return None, request.make_json_response(
-                {"error": "Файл больше 10 МБ"}, status=400)
+                {'error': 'Файл больше 10 МБ'}, status=400)
+        # Проверяем magic bytes — не доверяем MIME от клиента
+        detected = None
+        if raw[:3] == b'\xff\xd8\xff':
+            detected = 'image/jpeg'
+        elif raw[:8] == b'\x89PNG\r\n\x1a\n':
+            detected = 'image/png'
+        elif raw[:4] == b'RIFF' and raw[8:12] == b'WEBP':
+            detected = 'image/webp'
+        elif raw[4:8] == b'ftyp':
+            detected = 'image/heic'
+        elif raw[:4] == b'%PDF':
+            detected = 'application/pdf'
+        if detected not in ALLOWED_MIMES:
+            return None, request.make_json_response(
+                {'error': 'Тип файла не совпадает с содержимым — только фото или PDF'},
+                status=400)
+        mime = detected
         clean.append({
             'filename': (f.get('filename') or 'attachment')[:128],
             'mimetype': mime,
@@ -240,12 +201,10 @@ class RostMaxTimetableController(http.Controller):
             login = body.get('login')
             password = body.get('password')
             remember_me = body.get('remember_me', False)
-            # csrf_token валидируется через заголовок X-CSRF-Token в _check_spa_csrf для API роутов
-            # здесь для /rost_max/login используем свою проверку если нужно
 
             if not login or not password:
                 return request.make_json_response(
-                    {"error": "Email и пароль обязательны"}, status=400
+                    {"error": "Емаил и пароль обязательны"}, status=400
                 )
 
             try:
@@ -256,25 +215,15 @@ class RostMaxTimetableController(http.Controller):
                         {"error": "Неверные учетные данные"}, status=400
                     )
 
-                # authenticate() -> finalize() ставит should_rotate=True: Odoo
-                # в конце запроса сгенерирует НОВЫЙ sid, и sid, отданный ниже
-                # cookie, отданной ниже в JSON/Set-Cookie, умрёт. Гасим
-                # ротацию, чтобы session_id в ответе и в X-Session-Id
-                # fallback оставался валидным.
                 request.session.should_rotate = False
-
                 request.session['is_timetable_user'] = True
                 user = request.env['res.users'].browse(auth_info['uid'])
                 is_admin = user.has_group('base.group_system')
 
-                # Проверяем 2FA
                 if user.totp_enabled:
-                    # Проверяем доверенное устройство
                     if _check_trusted_device(user):
-                        # Устройство доверено - пропускаем 2FA
                         pass
                     else:
-                        # Нужно 2FA - сохраняем pre_uid и возвращаем challenge
                         request.session.pre_uid = auth_info['uid']
                         return request.make_json_response({
                             "success": False,
@@ -289,18 +238,11 @@ class RostMaxTimetableController(http.Controller):
                     "user_name": user.name,
                     "is_admin": is_admin,
                     "csrf_token": _get_spa_csrf_token(),
-                    # session_id в ответе — fallback для MAX WebView, где cookie
-                    # может не сохраниться из-за SameSite/CSP ограничений.
-                    # Клиент устанавливает его вручную через document.cookie.
                     "session_id": request.session.sid,
                 }
 
                 response = request.make_json_response(response_data)
 
-                # Явно проставляем session_id куку в ответ, чтобы клиент зафиксировал новую сессию.
-                # samesite='None' + secure=True обязательны для MAX WebView (cross-site context),
-                # иначе cookie не сохраняется при первичной аутентификации через fetch API.
-                # secure включаем только для HTTPS (локальная dev-среда работает по HTTP).
                 is_secure = request.httprequest.url.startswith('https')
                 response.set_cookie(
                     'session_id',
@@ -328,15 +270,15 @@ class RostMaxTimetableController(http.Controller):
                     {"error": "Ошибка аутентификации"}, status=500
                 )
 
-        # GET - рендерим SPA (React router покажет LoginPage).
-        # Явно передаём CSRF-токен: в голом SPA нет web-клиента Odoo, поэтому
-        # кука csrf_token не проставляется, а фронт читает window.csrf_token.
         return _spa_response('rost_max_miniapp.spa_page',
                              csrf_token=_get_spa_csrf_token())
 
     @http.route("/rost_max/login/totp", type="http", auth="public", methods=["POST"], cors="*", csrf=False)
     def login_totp(self, **kw):
         """API: проверка 2FA кода (TOTP)."""
+        csrf_err = _check_spa_csrf()
+        if csrf_err:
+            return csrf_err
         try:
             body = request.get_json_data()
         except Exception:
@@ -344,17 +286,14 @@ class RostMaxTimetableController(http.Controller):
 
         totp_code = body.get('totp_code')
         trusted_device = body.get('trusted_device', False)
-        # csrf_token валидируется через заголовок X-CSRF-Token в _check_spa_csrf для API
 
         if not totp_code:
             return request.make_json_response(
                 {"error": "Код обязателен"}, status=400
             )
 
-        # Удаляем пробелы из кода
         totp_code = re.sub(r'\s', '', totp_code)
 
-        # Получаем пользователя из pre_uid (установлен при первом логине)
         pre_uid = request.session.get('pre_uid')
         if not pre_uid:
             return request.make_json_response(
@@ -368,7 +307,6 @@ class RostMaxTimetableController(http.Controller):
             )
 
         try:
-            # Проверяем TOTP код
             with user._assert_can_auth(user=user.id):
                 user._totp_check(int(totp_code))
         except AccessDenied as e:
@@ -380,10 +318,7 @@ class RostMaxTimetableController(http.Controller):
                 {"error": "Неверный формат кода"}, status=400
             )
 
-        # 2FA успешно - финализируем сессию
         request.session.finalize(request.env)
-        # finalize() ставит should_rotate=True — гасим, иначе sid в ответе
-        # и в X-Session-Id fallback умрёт при ротации в конце запроса.
         request.session.should_rotate = False
         request.session.uid = user.id
         request.session['is_timetable_user'] = True
@@ -396,7 +331,6 @@ class RostMaxTimetableController(http.Controller):
             "user_name": user.name,
             "is_admin": is_admin,
             "csrf_token": _get_spa_csrf_token(),
-            # session_id в ответе — fallback для MAX WebView.
             "session_id": request.session.sid,
         }
 
@@ -405,8 +339,6 @@ class RostMaxTimetableController(http.Controller):
         if trusted_device:
             _generate_trusted_device_cookie(response, user)
 
-        # Сохраняем сессию и отправляем Cookie.
-        # samesite='None' обязательно для MAX WebView (cross-site context).
         is_secure = request.httprequest.url.startswith('https')
         response.set_cookie(
             'session_id',
@@ -421,37 +353,18 @@ class RostMaxTimetableController(http.Controller):
 
     @http.route("/rost_max/logout", type="http", auth="public", methods=["GET", "POST"])
     def logout(self):
-        """Выход"""
         request.session.pop(CSRF_SESSION_KEY, None)
         request.session.logout()
         return request.redirect('/rost_max/login')
 
     @http.route("/rost_max/", type="http", auth="public")
     def index(self):
-        """SPA: авторизационное состояние (login vs main) фронт решает сам
-        по /api/user/info."""
         return _spa_response('rost_max_miniapp.spa_page',
                              csrf_token=_get_spa_csrf_token())
 
     def _get_user_timetable(self, user, date, faculty_id=None, batch_id=None):
-        """Расписание пользователя на дату — из op.session (уроки расписания),
-        как в веб-интерфейсе OpenEduCat. НЕ op.attendance.sheet: листы
-        заводятся только у утверждённых уроков, а правило 629
-        «Students: No Attendance Sheets» ([[0,'=',1]]) принципиально не
-        даёт ученикам читать листы — на sheet-поиске от uid ученика
-        расписание всегда пустое.
-
-        Возвращает recordset op.session:
-          - admin: все сессии на дату (+ фильтр faculty_id из query);
-          - teacher: свои сессии (faculty_id.user_id == user.id);
-          - student/parent: сессии своего класса — rule 173 «Student
-            Session rule» (user_ids in user.id) сама срезает до batch'а;
-          - guest: пусто.
-        """
         is_admin = user.has_group('base.group_system')
-
         domain = [('timetable_date', '=', date)]
-
         if is_admin:
             if faculty_id:
                 domain.append(('faculty_id', '=', int(faculty_id)))
@@ -471,22 +384,9 @@ class RostMaxTimetableController(http.Controller):
                 ], limit=1)
                 if not student:
                     return request.env['op.session'].browse()
-                # Без фильтра по batch: право доступа срежет до своего
-                # класса (rule 173), включая случай нескольких активных
-                # course_detail. Родитель видит расписание класса ребёнка
-                # так же (user_ids включает user.child_ids, см. rule 173).
-
         return request.env['op.session'].search(domain, order='start_datetime asc')
 
     def _faculty_avatar_map(self, sessions):
-        """URL аватарок учителей для набора сессий.
-
-        Без суффикса /WxH — иначе Одоо серверно кропнет квадрат по центру
-        (срежет лоб). Отдаём image_512 целиком, квадрат режет браузер
-        (objectPosition='center top' — голова всегда в кадре). Наличие фото
-        проверяем search() БЕЗ выгрузки BLOB (EXISTS в SQL); URL только для
-        залогиненных, иначе 404.
-        """
         avatar_map = {}
         if sessions:
             faculty_ids = sessions.mapped('faculty_id').ids
@@ -500,22 +400,13 @@ class RostMaxTimetableController(http.Controller):
 
     @http.route("/rost_max/api/timetable", type="http", auth="public", methods=["GET"])
     def api_timetable(self, date=None, faculty_id=None, batch_id=None):
-        """API: список занятий на дате"""
         restore_session_if_needed()
         user = request.env.user
         date = date or fields.Date.today()
         date_str = str(date)
         is_admin = user.has_group('base.group_system')
-
-        # batch_id игнорируется для не-админов: фильтр «класс» — чисто
-        # админский инструмент, остальным роль срезает домен сама.
         lessons = self._get_user_timetable(
             user, date, faculty_id=faculty_id, batch_id=batch_id)
-
-        # sheet_id (журнал) — только teacher/admin. Ученику/родителю журнал
-        # не показываем (семантика веба), к тому же rule 629 не даёт ему
-        # читать листы. IDOR-безопасно: sheet_id выдаётся только вместе с
-        # правом на журнал.
         is_teacher = bool(request.env['op.faculty'].sudo().search([
             ('partner_id', '=', user.partner_id.id)
         ], limit=1))
@@ -526,11 +417,7 @@ class RostMaxTimetableController(http.Controller):
                 for s in request.env['op.attendance.sheet'].sudo().search(
                     [('session_id', 'in', lessons.ids)])
             }
-
-        # Аватары учителей: URL на /web/image (Odoo ресайзит и кеширует,
-        # плейсхолдер с первой буквой при отсутствии фото — как в журнале).
         avatar_map = self._faculty_avatar_map(lessons) if request.session.uid else {}
-
         return request.make_json_response({
             "date": date_str,
             "is_admin": is_admin,
@@ -552,7 +439,6 @@ class RostMaxTimetableController(http.Controller):
 
     @http.route("/rost_max/api/lesson/<int:lesson_id>/students", type="http", auth="public", methods=["GET"])
     def api_lesson_students(self, lesson_id):
-        """API: список учеников урока с аватарками, оценкой и посещаемостью"""
         restore_session_if_needed()
         user = request.env.user
         sheet = request.env['op.attendance.sheet'].sudo().browse(lesson_id)
@@ -560,12 +446,6 @@ class RostMaxTimetableController(http.Controller):
             return request.make_json_response(
                 {"lesson": None, "attendance_types": [], "students": []}
             )
-
-        # IDOR-защита (журнал = sheet_id из /api/timetable): lesson_id — это
-        # id op.attendance.sheet. Журнал доступен только admin/teacher —
-        # семантика веба: у ученика/родителя кнопки журнала нет, их
-        # собственные данные они берут через /api/my/subjects и
-        # /api/my/grades. Гость тоже отсекается.
         role, own_students = _get_user_students(user)
         if role not in ('admin', 'teacher'):
             _logger.warning(
@@ -584,43 +464,28 @@ class RostMaxTimetableController(http.Controller):
             return request.make_json_response(
                 {"error": "Доступ к уроку запрещен"}, status=403
             )
-
-        # Аватары учеников — как учителя в /api/timetable (см. b2575ef):
-        # URL на /web/image БЕЗ суффикса /WxH — иначе Одоо серверно кропнет
-        # квадрат по центру (срежет лоб). Отдаём avatar_1920 целиком, квадрат
-        # режет браузер (objectPosition='center top' — голова всегда в кадре).
-        # Наличие фото проверяем ОДНИМ батч-search() ДО цикла БЕЗ выгрузки
-        # BLOB (EXISTS в SQL); URL только для залогиненных, иначе 404.
         avatar_map = {}
         if request.session.uid:
             student_ids = sheet.attendance_line.student_id.ids
-            # image_128 (stored binary), НЕ avatar_128: avatar_* — non-stored
-            # compute, в домен search не годится (ERROR 'cannot be searched').
             with_photo = request.env['op.student'].sudo().search(
                 [('id', 'in', student_ids), ('image_128', '!=', False)])
             avatar_map = {
                 s.id: '/web/image/op.student/%s/avatar_1920' % s.id
                 for s in with_photo
             }
-
         attend_types = request.env['op.attendance.type'].search([])
         attendance_types = [{"id": at.id, "name": at.name} for at in attend_types]
-
         students = []
         for ln in sheet.attendance_line:
             student = ln.student_id
             if not student:
                 continue
-            # Учитель/админ видят весь класс (student/parent отсечены выше).
-
             avatar = avatar_map.get(student.id, '')
-
             last = student.last_name or ''
             first = student.first_name or ''
             middle = student.middle_name or ''
             initials = ('%s%s' % (last[:1], first[:1])).upper() if (last or first) else '?'
             name = ('%s %s %s' % (last, first, middle)).strip()
-
             students.append({
                 "id": student.id,
                 "name": name,
@@ -632,30 +497,22 @@ class RostMaxTimetableController(http.Controller):
                 "attendance_type_id": ln.attendance_type_id.id if ln.attendance_type_id else None,
                 "remark": ln.remark or '',
             })
-
         lesson = {
             "subject": sheet.subject_id.name if sheet.subject_id else '',
             "can_edit": role in ('admin', 'teacher'),
             "batch": sheet.batch_id.name if sheet.batch_id else '',
             "date": str(sheet.attendance_date) if sheet.attendance_date else '',
             "timing": sheet.timing or '',
-            # Тема урока и ДЗ (rost_lesson_homework). ДЗ пишем в sheet —
-            # write() модуля сам создаст/обновит op.assignment (см. /save).
-            # rost_lesson_homework может быть не установлен — getattr.
             "topic": sheet.lesson_topic or '',
             "homework": getattr(sheet, 'lesson_homework', '') or '',
             "homework_assignment_id": (
                 sheet.homework_assignment_id.id
                 if getattr(sheet, 'homework_assignment_id', False) else None),
-            # Флаг «Требуется ответ при сдаче» — с задания (источник
-            # правды), фолбэк на sheet для несозданных заданий.
             "homework_answer_required": (
                 sheet.homework_assignment_id.answer_required
                 if getattr(sheet, 'homework_assignment_id', False)
                 else getattr(sheet, 'homework_answer_required', False)),
         }
-
-        # Персональная настройка колонок (вариант B, res.users).
         u = request.env.user
         columns = {
             "grade_1": True,
@@ -664,7 +521,6 @@ class RostMaxTimetableController(http.Controller):
             "note": bool(u.miniapp_show_note),
             "attendance": True,
         }
-
         return request.make_json_response({
             "lesson": lesson,
             "attendance_types": attendance_types,
@@ -674,37 +530,24 @@ class RostMaxTimetableController(http.Controller):
 
     @http.route("/rost_max/api/lesson/<int:lesson_id>/save", type="http", auth="public", methods=["POST"], cors="*", csrf=False)
     def api_save_lesson(self, lesson_id, **kw):
-        """API: пакетное сохранение ВСЕГО буфера журнала урока за один запрос.
-
-        Фронт накапливает изменения локально (оценки grade_1/2/3 и
-        посещаемость по каждому ученику) и шлёт их разом кнопкой "Сохранить".
-        ПЕРЕЗАПИСЬ: каждая переданная колонка пишется как есть (0.0/null —
-        тоже валидное значение, т.е. ластик-сброс тоже проходит). Это и есть
-        механизм явного сохранения после локального редактирования.
-        """
         restore_session_if_needed()
         csrf_err = _check_spa_csrf()
         if csrf_err:
             return csrf_err
-
         user = request.env.user
         sheet = request.env['op.attendance.sheet'].sudo().browse(lesson_id)
         if not sheet.exists():
             return request.make_json_response({"error": "Урок не найден"}, status=404)
-
         access_err = _check_lesson_write_access(sheet)
         if access_err:
             return access_err
-
         try:
             body = request.get_json_data()
         except Exception:
             return request.make_json_response({"error": "Invalid JSON"}, status=400)
-
         rows = body.get('students') or []
         if not isinstance(rows, list):
             return request.make_json_response({"error": "students должен быть массивом"}, status=400)
-
         written = 0
         for row in rows:
             sid = row.get('student_id')
@@ -716,11 +559,8 @@ class RostMaxTimetableController(http.Controller):
             ], limit=1)
             if not line:
                 continue
-
             vals = {}
             for gf in ('grade_1', 'grade_2', 'grade_3'):
-                # Ключ ВСЕГДА прислан фронтом (полный буфер). null/'' = сброс
-                # в 0.0 (на чтении /students вернёт ln.grade_1 or None => «-»).
                 if gf not in row:
                     continue
                 g = row[gf]
@@ -731,36 +571,24 @@ class RostMaxTimetableController(http.Controller):
                         vals[gf] = float(g)
                     except (ValueError, TypeError):
                         pass
-            # attendance_type_id: ключ может быть прислан явно (в т.ч. null/'' = сброс)
             if 'attendance_type_id' in row:
                 att = row['attendance_type_id']
                 vals['attendance_type_id'] = (int(att) if att not in (None, '') else False)
-            # Примечание (Char 256): null/'' = очистка
             if 'remark' in row:
                 vals['remark'] = (row['remark'] or '').strip() or False
-
             if vals:
                 line.write(vals)
                 written += 1
-
         if sheet.state == 'cancel':
             return request.make_json_response({"success": True, "written": written})
-
-        # Тема урока (Char 256) — top-level ключи, пишутся один раз на урок.
         sheet_vals = {}
         if isinstance(body.get('lesson'), dict):
             lv = body['lesson']
             if 'topic' in lv:
                 sheet_vals['lesson_topic'] = (lv['topic'] or '').strip() or False
-
-        # ДЗ: пишем ТОЛЬКО если rost_lesson_homework установлен — его write()
-        # создаёт op.assignment; без модуля поле отсутствует и писать некуда.
         if isinstance(body.get('lesson'), dict) and 'homework' in body['lesson'] \
                 and hasattr(type(sheet), 'lesson_homework'):
             sheet_vals['lesson_homework'] = (body['lesson']['homework'] or '').strip() or False
-        # Флаг «Требуется ответ» — на sheet; синк переносит его на задание
-        # при создании. Для СУЩЕСТВУЮЩЕГО задания меняем флаг прямо на
-        # задании (синк его задним числом не переносит).
         if isinstance(body.get('lesson'), dict) \
                 and 'homework_answer_required' in body['lesson'] \
                 and hasattr(type(sheet), 'homework_answer_required'):
@@ -768,26 +596,14 @@ class RostMaxTimetableController(http.Controller):
             sheet_vals['homework_answer_required'] = flag
             if getattr(sheet, 'homework_assignment_id', False):
                 sheet.homework_assignment_id.answer_required = flag
-
         if sheet_vals:
-            # Тему и ДЗ можно заполнить до начала и после завершения урока.
             sheet.write(sheet_vals)
-
         return request.make_json_response({"success": True, "written": written})
 
     @http.route("/rost_max/api/lesson/<int:lesson_id>/materials",
                 type="http", auth="public", methods=["POST"], cors="*",
                 csrf=False)
     def api_lesson_materials(self, lesson_id):
-        """API: учитель прикрепляет материалы к ДЗ ПРЯМО ИЗ ЖУРНАЛА УРОКА,
-        текст ДЗ не обязателен (фото доски = полноценное ДЗ).
-
-        Задания нет -> создаём через sheet.write({'lesson_homework': ...})
-        (тот же проверенный синк: срок «до следующего урока», allocation,
-        publish); при пустом тексте — заглушка «Домашнее задание (фото)».
-        Права — те же, что у /save (_check_lesson_write_access).
-        Материалы доступны до начала и после завершения урока; cancel закрыт.
-        """
         restore_session_if_needed()
         csrf_err = _check_spa_csrf()
         if csrf_err:
@@ -795,62 +611,51 @@ class RostMaxTimetableController(http.Controller):
         if not request.session.uid:
             return request.make_json_response(
                 {"error": "Unauthorized"}, status=401)
-
         sheet = request.env['op.attendance.sheet'].sudo().browse(lesson_id)
         if not sheet.exists():
             return request.make_json_response(
                 {"error": "Урок не найден"}, status=404)
-
         access_err = _check_lesson_write_access(sheet)
         if access_err:
             return access_err
         if sheet.state == 'cancel':
             return request.make_json_response(
                 {"error": "Урок отменён — ДЗ недоступно"}, status=403)
-
         try:
             body = request.get_json_data()
         except Exception:
             return request.make_json_response(
                 {"error": "Invalid JSON"}, status=400)
-
         clean_files, err = _clean_hw_files(body.get('files') or [])
         if err:
             return err
         if not clean_files:
             return request.make_json_response(
                 {"error": "Не передано ни одного файла"}, status=400)
-
         created = False
         if not getattr(sheet, 'homework_assignment_id', False):
-            # Проверяем состояние до записи текста-заглушки.
             if sheet.state not in ('confirm', 'start', 'done'):
                 return request.make_json_response(
                     {"error": "Урок ещё не утверждён — ДЗ недоступно"}, status=409)
             created = True
             hw = (getattr(sheet, 'lesson_homework', '') or '').strip()
-            # Пишем lesson_homework только если текста ещё нет: иначе
-            # write() воспримет это как правку и тронет существующее задание.
-            # Объявление в канал здесь подавляем — запостим ниже, уже
-            # с вложениями (фото доски = содержимое ДЗ).
             sheet.with_context(
                 hw_skip_channel_announce=True,
             ).write({'lesson_homework': hw or 'Домашнее задание (фото)'})
         asg = sheet.homework_assignment_id
         if not asg:
-            # Не ожидаемо: синк на start/done/confirm создаёт задание.
             return request.make_json_response(
                 {"error": "Не удалось создать задание — обратитесь к администратору"},
                 status=409)
         asg._hw_store_attachments(clean_files)
         if created and hasattr(type(sheet), '_hw_channel_announce'):
-            # Задание создано контроллером (ДЗ = фото доски): синк уже запостил
-            # объявление, но без вложений — дополним сообщение материалами.
             try:
                 sheet._hw_channel_announce(
                     asg, 'created', attachments=asg.material_ids)
             except Exception:
-                request.env.cr.savepoint()
+                _logger.warning(
+                    "Failed to post channel announcement for assignment %s",
+                    asg.id, exc_info=True)
         return request.make_json_response({
             "success": True,
             "created": created,
@@ -860,16 +665,6 @@ class RostMaxTimetableController(http.Controller):
 
     @http.route("/rost_max/api/journal/columns", type="http", auth="public", methods=["GET", "POST"], cors="*", csrf=False)
     def api_journal_columns(self, **kw):
-        """GET/POST: персональная настройка колонок журнала (res.users).
-
-        GET  -> {"columns": {...}} (О1 и посещаемость всегда True)
-        POST -> {"grade_2": bool, "grade_3": bool, "note": bool}
-        Веб-версию Odoo не трогает.
-        CSRF: как у /save — системный валидатор Odoo для http-роутов ищет
-        токен только в query/form-data, а фронт шлёт его в заголовке
-        X-CSRF-Token, поэтому роут с csrf=False + ручная _check_spa_csrf()
-        для POST.
-        """
         restore_session_if_needed()
         if request.httprequest.method == "POST":
             csrf_err = _check_spa_csrf()
@@ -877,7 +672,6 @@ class RostMaxTimetableController(http.Controller):
                 return csrf_err
         if not request.session.uid:
             return request.make_json_response({"error": "Unauthorized"}, status=401)
-
         user = request.env.user
         if request.httprequest.method == "POST":
             try:
@@ -892,7 +686,6 @@ class RostMaxTimetableController(http.Controller):
                     vals[field] = bool(body[key])
             if vals:
                 user.write(vals)
-
         return request.make_json_response({"columns": {
             "grade_1": True,
             "grade_2": bool(user.miniapp_show_grade_2),
@@ -903,29 +696,20 @@ class RostMaxTimetableController(http.Controller):
 
     @http.route("/rost_max/api/user/info", type="http", auth="public", methods=["GET"])
     def api_user_info(self):
-        """API: получение информации о текущем пользователе и его ролях"""
         restore_session_if_needed()
         if not request.session.uid:
             return request.make_json_response({"error": "Unauthorized"}, status=401)
-
         user = request.env.user
         is_admin = user.has_group('base.group_system')
-
         is_teacher = bool(request.env['op.faculty'].sudo().search([
             ('partner_id', '=', user.partner_id.id)
         ], limit=1))
-
         is_student = bool(request.env['op.student'].sudo().search([
             ('partner_id', '=', user.partner_id.id)
         ], limit=1))
-
         is_parent = bool(request.env['op.parent'].sudo().search([
             ('name', '=', user.partner_id.id)
         ], limit=1))
-
-        # Аватар: своя фотка из профиля роли (faculty/student), URL только
-        # если фото есть (иначе фронт рисует инициалы). /web/image отдаёт
-        # только залогиненным — роут auth="public" уже за сессией.
         avatar = ''
         faculty_rec = request.env['op.faculty'].sudo().search(
             [('partner_id', '=', user.partner_id.id)], limit=1) if is_teacher else None
@@ -935,7 +719,6 @@ class RostMaxTimetableController(http.Controller):
             avatar = '/web/image/op.faculty/%s/image_512' % faculty_rec.id
         elif student_rec and student_rec.avatar_128:
             avatar = '/web/image/op.student/%s/avatar_1920' % student_rec.id
-
         return request.make_json_response({
             "user_name": user.name,
             "avatar": avatar,
@@ -947,32 +730,20 @@ class RostMaxTimetableController(http.Controller):
 
     @http.route("/rost_max/api/dashboard_info", type="http", auth="public", methods=["GET"])
     def api_dashboard_info(self, date=None, **kw):
-        """API: сбор статистики для дашборда с умным поиском даты"""
         restore_session_if_needed()
         if not request.session.uid:
             return request.make_json_response({"error": "Unauthorized"}, status=401)
-
         user = request.env.user
         is_admin = user.has_group('base.group_system')
         faculty = request.env['op.faculty'].sudo().search([('partner_id', '=', user.partner_id.id)], limit=1)
         student = request.env['op.student'].sudo().search([('partner_id', '=', user.partner_id.id)], limit=1)
-
-        # 1. Целевая дата: строго та, что попросили (дефолт — сегодня).
-        # Никаких подмен: если уроков нет (выходной/каникулы), главная
-        # честно показывает пустой день. Раньше здесь был fallback на
-        # «последний активный день» — он подсовывал будущую последнюю
-        # неделю расписания (напр. 23 октября при открытии в сентябре).
         date_str = date or str(fields.Date.today())
         date_val = fields.Date.from_string(date_str)
         sessions = self._get_user_timetable(user, date_val)
-
-        # 2. Расчет показателей на целевую дату
         metrics = {}
         next_lesson = None
-
         if sessions:
-            first_session = sessions[0]  # отсортированы по start_datetime
-            # Кабинет читаем через sudo: у ученика нет ACL на op.classroom
+            first_session = sessions[0]
             room = first_session.classroom_id.sudo().name if first_session.classroom_id else None
             next_lesson = {
                 "id": first_session.id,
@@ -981,9 +752,7 @@ class RostMaxTimetableController(http.Controller):
                 "time": first_session.timing or "12:15 - 13:00",
                 "room": room or "Кабинет"
             }
-
         if is_admin:
-            # Журналы (листы) нужны админу для статистики посещаемости
             sheets = request.env['op.attendance.sheet'].sudo().search([
                 ('session_id', 'in', sessions.ids)])
             lines = sheets.mapped('attendance_line')
@@ -992,7 +761,6 @@ class RostMaxTimetableController(http.Controller):
             if total_lines > 0:
                 present = len(lines.filtered(lambda l: l.attendance_type_id and 'absent' not in (l.attendance_type_id.name or '').lower() and 'отсутств' not in (l.attendance_type_id.name or '').lower() and 'нет' not in (l.attendance_type_id.name or '').lower()))
                 attendance_pct = round((present / total_lines) * 100, 1)
-
             unfilled = len(sheets.filtered(lambda s: any(not l.attendance_type_id for l in s.attendance_line)))
             metrics = {
                 "active_lessons": len(sessions),
@@ -1002,7 +770,6 @@ class RostMaxTimetableController(http.Controller):
                 "pending_substitutes": 0
             }
         elif faculty:
-            # Журналы только своих уроков (листы из confirm-сессий)
             sheets = request.env['op.attendance.sheet'].sudo().search([
                 ('session_id', 'in', sessions.ids)])
             lines = sheets.mapped('attendance_line')
@@ -1011,7 +778,6 @@ class RostMaxTimetableController(http.Controller):
             if total_lines > 0:
                 present = len(lines.filtered(lambda l: l.attendance_type_id and 'absent' not in (l.attendance_type_id.name or '').lower() and 'отсутств' not in (l.attendance_type_id.name or '').lower() and 'нет' not in (l.attendance_type_id.name or '').lower()))
                 attendance_pct = round((present / total_lines) * 100, 1)
-
             graded = len(lines.filtered(lambda l: l.grade_1 > 0))
             metrics = {
                 "total_lessons": len(sessions),
@@ -1020,17 +786,27 @@ class RostMaxTimetableController(http.Controller):
                 "graded_count": graded
             }
         elif student:
-            # Для студента считаем общий GPA за всё время
             all_grades = request.env['op.attendance.line'].sudo().search([
                 ('student_id', '=', student.id),
                 ('grade_1', '>', 0)
             ]).mapped('grade_1')
-            gpa = round(sum(all_grades) / len(all_grades), 2) if all_grades else 4.5
+            gpa = round(sum(all_grades) / len(all_grades), 2) if all_grades else None
+            # Незданные ДЗ: опубликованные задания класса минус уже сданные
+            _pending_asgs = request.env['op.assignment'].sudo().search([
+                ('state', '=', 'publish'),
+                ('batch_id', 'in', student.mapped('active_batch_id').ids),
+            ])
+            _submitted_ids = set(request.env['op.assignment.sub.line'].sudo().search([
+                ('assignment_id', 'in', _pending_asgs.ids),
+                ('student_id', '=', student.id),
+                ('state', 'in', ('submit', 'accept')),
+            ]).mapped('assignment_id').ids)
+            pending_hw_count = sum(
+                1 for a in _pending_asgs if a.id not in _submitted_ids)
             metrics = {
                 "gpa": gpa,
-                "pending_homework": len(sessions)  # условная цифра уроков за день
+                "pending_homework": pending_hw_count,
             }
-
         return request.make_json_response({
             "is_admin": is_admin,
             "is_teacher": bool(faculty),
@@ -1041,22 +817,10 @@ class RostMaxTimetableController(http.Controller):
             **self._dashboard_feed(user, is_admin, faculty, student, sessions, date_val),
         })
 
-    # --- ЛЕНТА ДНЯ (вариант A) ---------------------------------------------
-
     def _dashboard_feed(self, user, is_admin, faculty, student, sessions, date_val):
-        """Лента дня: уроки с бейджами + роль-специфичные блоки.
-
-        Общий агрегат для ученика/родителя, учителя и админа (макеты
-        design/dashboard-variants.html и dashboard-teacher-admin.html).
-        Все чтения через sudo с жёсткой ролевой фильтрацией (IDOR по
-        построению): ученик — только свои оценки/ДЗ своего класса,
-        учитель — только свои уроки/задания.
-        """
         now = _school_now()
         role, own_students = _get_user_students(user)
         avatar_map = self._faculty_avatar_map(sessions) if request.session.uid else {}
-
-        # --- Лента уроков (все роли) ---
         sheets_map = {}
         if sessions:
             sheets_map = {
@@ -1088,10 +852,7 @@ class RostMaxTimetableController(http.Controller):
                 "journal_unfilled": unfilled,
                 "homework": hw,
             })
-
         feed = {"lessons": lessons_feed}
-
-        # --- Ученик / родитель: оценки за сегодня + ДЗ ---
         if role in ('student', 'parent') and own_students:
             today_lines = request.env['op.attendance.line'].sudo().search([
                 ('student_id', 'in', own_students.ids),
@@ -1109,15 +870,7 @@ class RostMaxTimetableController(http.Controller):
                     })
             feed["grades_today"] = grades_today
             feed["homework"] = self._student_homework_feed(own_students, now)
-
-        # --- Учитель/админ: задано моими уроками -------------------------
-        # Админ (Макарова) не имеет faculty — role 'admin' из _get_user_students.
-        # Решение (утверждено): админ видит ДЗ ВСЕЙ школы (те же поля, плюс
-        # имя преподавателя — фронт группирует в аккордеон по учителям);
-        # учитель — только свои (фронт группирует по классам).
         if role in ('teacher', 'admin'):
-            # «Журналы к заполнению» — только учителю (у админа свой блок
-            # «Требует внимания» по всей школе).
             if role == 'teacher':
                 to_fill = []
                 for l in sessions:
@@ -1134,7 +887,6 @@ class RostMaxTimetableController(http.Controller):
                             "students": len(sheet.attendance_line),
                         })
                 feed["journals_to_fill"] = to_fill
-
             hw_domain = [
                 ('state', '=', 'publish'),
                 ('submission_date', '>=',
@@ -1158,6 +910,13 @@ class RostMaxTimetableController(http.Controller):
                      ('state', '=', 'submit')],
                     ['assignment_id'], ['assignment_id'])
             }
+            accepted_counts = {
+                s['assignment_id'][0]: s['assignment_id_count']
+                for s in request.env['op.assignment.sub.line'].sudo().read_group(
+                    [('assignment_id', 'in', my_asgs.ids),
+                     ('state', '=', 'accept')],
+                    ['assignment_id'], ['assignment_id'])
+            }
             feed["my_homework"] = [{
                 "id": a.id,
                 "subject": a.subject_id.name if a.subject_id else "",
@@ -1166,23 +925,12 @@ class RostMaxTimetableController(http.Controller):
                 "due": str(a.submission_date) if a.submission_date else "",
                 "submitted": submitted_counts.get(a.id, 0),
                 "total": len(a.allocation_ids),
-                # Есть ли что проверять (сдачи в submit — не принятые)
                 "to_review": to_review_counts.get(a.id, 0),
-                # Принято (accept) — знаменатель прогресса проверки.
                 "accepted": accepted_counts.get(a.id, 0),
                 "answer_required": a.answer_required,
-                # Только счётчик: сами файлы учитель открывает через
-                # GET /materials (свежие токены на каждый показ).
                 "materials_count": len(a._hw_material_payload()),
-                # Учитель для группировки в админ-ленте + подзаголовок
-                # шапки экрана задания (нужен и учителю — его имя на его же
-                # задании) — поэтому отдаём всегда.
                 "faculty": self._faculty_name(a.faculty_id),
             } for a in my_asgs]
-
-        # --- Учитель/админ: сводка ДЗ для табло на главной --------------
-        # Полные списки и проверка — на вкладке «Задания»
-        # (GET /api/teacher_homework); здесь только счётчики.
         if role in ('teacher', 'admin'):
             asg_domain = [('state', '=', 'publish')]
             if role == 'teacher':
@@ -1198,8 +946,6 @@ class RostMaxTimetableController(http.Controller):
                 "to_review": to_review_total,
                 "active": len(hw_asgs),
             }
-
-        # --- Админ: полоса цифр + требует внимания ---
         if role == 'admin':
             all_sheets = list(sheets_map.values())
             unfilled_sheets = [s for s in all_sheets if any(
@@ -1220,21 +966,11 @@ class RostMaxTimetableController(http.Controller):
                 "journals_unfilled": len(unfilled_sheets),
             }
             feed["alerts"] = alerts
-
         return feed
 
     def _student_homework_feed(self, own_students, now, days_back=7, days_forward=None):
-        """ДЗ ученика/родителя: опубликованные задания его классов с
-        состоянием сдачи. Используется в ленте главной и вкладке «Задания».
-
-        now — школьный момент (naive datetime). Окно по сроку сдачи:
-        days_back назад (для «Проверенных» на вкладке — 30) и days_forward
-        вперёд (на вкладке 60; None — без границы, как в ленте главной).
-        """
         batches = own_students.mapped('active_batch_id')
         now_server = fields.Datetime.now()
-        # submission_date хранится в UTC: просрочку считаем по UTC-«сейчас»,
-        # а не по школьному Moscow-naive now (иначе просрочка на 3 ч раньше).
         domain = [
             ('state', '=', 'publish'),
             ('batch_id', 'in', batches.ids),
@@ -1249,59 +985,56 @@ class RostMaxTimetableController(http.Controller):
             ('student_id', 'in', own_students.ids),
         ])
         sub_map = {s.assignment_id.id: s for s in subs}
-        # Тема урока живёт на журнале (lesson_topic) — ищем журналы по
-        # обратной связи homework_assignment_id одним батч-поиском.
         sheets = request.env['op.attendance.sheet'].sudo().search([
             ('homework_assignment_id', 'in', asgs.ids)])
         topic_map = {s.homework_assignment_id.id: s.lesson_topic for s in sheets}
-        # can_submit: ученик из allocation (родитель сдаёт false).
         hw_items = []
         for a in asgs:
             sub = sub_map.get(a.id)
-            st = sub.state if sub else 'none'
+            attachments = []
+            if sub:
+                atts = request.env['ir.attachment'].sudo().search([
+                    ('res_model', '=', 'op.assignment.sub.line'),
+                    ('res_id', '=', sub.id),
+                    ('res_field', '=', 'hw_attachment'),
+                ], order='id asc')
+                for att in atts:
+                    token = request.env['hw.attachment.token'].sudo().create({
+                        'attachment_id': att.id,
+                    })
+                    attachments.append({
+                        'name': att.name or 'attachment',
+                        'mimetype': att.mimetype or '',
+                        'url': '/rost_max/hw_att/%s' % token.token,
+                    })
             hw_items.append({
                 "id": a.id,
                 "subject": a.subject_id.name if a.subject_id else "",
-                # Тема урока из журнала, создавшего задание.
                 "topic": topic_map.get(a.id, ''),
-                # Дата выдачи — issued_date из linked grading_assignment.
-                "issued_at": str(a.grading_assignment_id.issued_date)
-                             if a.grading_assignment_id and a.grading_assignment_id.issued_date else "",
-                # Цвет предмета (пастель) — Integer из op.subject, тот же,
-                # что использует web-календарь расписания (color="color").
-                "subject_color": a.subject_id.color if a.subject_id else 0,
                 "task": tools.html2plaintext(a.description) or a.name,
                 "due": str(a.submission_date) if a.submission_date else "",
-                # Просрочка по UTC now_server, не по Moscow-naive now.
-                "overdue": bool(a.submission_date and a.submission_date < now_server),
+                "state": sub.state if sub else 'none',
                 "answer_required": a.answer_required,
-                "state": st,
                 "answer": (sub.note or '') if sub else '',
                 "mark": (int(sub.marks) if sub and sub.marks else None),
                 "teacher_note": (sub.teacher_note or '') if sub else '',
                 "submitted_at": str(sub.submission_date) if sub else '',
                 "late": bool(sub and a.submission_date
                              and sub.submission_date > a.submission_date),
-                # Материалы задания (вложения учителя) с одноразовыми
-                # ссылками (24 ч) — как вложения сдач в /submissions.
                 "materials": a._hw_material_payload(),
             })
         return hw_items
 
     @http.route("/rost_max/api/homework", type="http", auth="public", methods=["GET"])
     def api_homework_list(self, **kw):
-        """API: вкладка «Задания» — ученику/родителю его ДЗ со статусами
-        сдачи (тот же формат элементов, что homework в ленте главной)."""
         restore_session_if_needed()
         if not request.session.uid:
             return request.make_json_response({"error": "Unauthorized"}, status=401)
-
         user = request.env.user
         role, own_students = _get_user_students(user)
         if role not in ('student', 'parent') or not own_students:
             return request.make_json_response(
                 {"error": "Доступно только ученику и родителю"}, status=403)
-
         return request.make_json_response({
             "homework": self._student_homework_feed(
                 own_students, _school_now(), days_back=30, days_forward=60),
@@ -1309,7 +1042,6 @@ class RostMaxTimetableController(http.Controller):
 
     @staticmethod
     def _batch_short(name):
-        """«5А  2026/2027» -> «5А»: отбрасываем учебный год в имени класса."""
         return re.sub(r'\s*\d{4}/\d{4}\s*$', '', name or '').strip()
 
     @staticmethod
@@ -1318,20 +1050,10 @@ class RostMaxTimetableController(http.Controller):
             return ""
         return f"{f.last_name or ''} {f.first_name or ''} {f.middle_name or ''}".strip()
 
-
-    # --- ДЗ: сдача ученика + проверка учителем -----------------------------
-
     @http.route("/rost_max/api/homework/<int:assignment_id>/submit",
                 type="http", auth="public", methods=["POST"], cors="*",
                 csrf=False)
     def api_homework_submit(self, assignment_id, **kw):
-        """API: ученик сдаёт ДЗ -> op.assignment.sub.line в state submit.
-
-        Строка сдачи ОДНА на задание: повторная сдача (доработка после
-        change/reject) обновляет ту же строку и возвращает её в submit.
-        Родителям сдача запрещена (та же семантика, что в core). Ответ
-        обязателен, если у задания флаг answer_required.
-        """
         restore_session_if_needed()
         csrf_err = _check_spa_csrf()
         if csrf_err:
@@ -1339,40 +1061,31 @@ class RostMaxTimetableController(http.Controller):
         if not request.session.uid:
             return request.make_json_response(
                 {"error": "Unauthorized"}, status=401)
-
         user = request.env.user
         role, own_students = _get_user_students(user)
         if role != 'student' or not own_students:
             return request.make_json_response(
                 {"error": "Сдавать может только ученик"}, status=403)
         student = own_students[0]
-
         try:
             body = request.get_json_data()
         except Exception:
             return request.make_json_response(
                 {"error": "Invalid JSON"}, status=400)
-
         asg = request.env['op.assignment'].sudo().browse(assignment_id)
         if not asg.exists() or asg.state != 'publish':
             return request.make_json_response(
                 {"error": "Задание не найдено"}, status=404)
-
-        # IDOR-защита: сдавать может только ученик из allocation задания
         if student not in asg.allocation_ids:
             return request.make_json_response(
                 {"error": "Вам не назначено это задание"}, status=403)
-
         answer = (body.get('answer') or '').strip()
         if asg.answer_required and not answer:
             return request.make_json_response(
                 {"error": "Ответ обязателен"}, status=400)
-
-        # Вложения: base64 в JSON — валидация в общем хелпере _clean_hw_files.
         clean_files, err = _clean_hw_files(body.get('files') or [])
         if err:
             return err
-
         sub = request.env['op.assignment.sub.line'].sudo().search([
             ('assignment_id', '=', asg.id),
             ('student_id', '=', student.id),
@@ -1382,7 +1095,6 @@ class RostMaxTimetableController(http.Controller):
             'submission_date': fields.Datetime.now(),
         }
         if answer:
-            # Char, не Html: plain text, экранирование не требуется
             vals['note'] = answer
         if sub:
             sub.write(vals)
@@ -1391,25 +1103,20 @@ class RostMaxTimetableController(http.Controller):
                 vals, assignment_id=asg.id, student_id=student.id))
         if clean_files:
             sub._hw_store_attachments(clean_files)
-
         return request.make_json_response({"success": True})
 
     @http.route("/rost_max/api/homework/<int:assignment_id>/materials",
                 type="http", auth="public", methods=["GET"])
     def api_homework_materials(self, assignment_id):
-        """API: материалы задания (вложения учителя) — ученику/родителю
-        из allocation, автору и админу."""
         restore_session_if_needed()
         if not request.session.uid:
             return request.make_json_response(
                 {"error": "Unauthorized"}, status=401)
-
         user = request.env.user
         asg = request.env['op.assignment'].sudo().browse(assignment_id)
         if not asg.exists():
             return request.make_json_response(
                 {"error": "Задание не найдено"}, status=404)
-
         is_admin = user.has_group('base.group_system')
         role, own_students = _get_user_students(user)
         faculty = request.env['op.faculty'].sudo().search([
@@ -1420,7 +1127,6 @@ class RostMaxTimetableController(http.Controller):
         if not allowed:
             return request.make_json_response(
                 {"error": "Нет доступа к заданию"}, status=403)
-
         return request.make_json_response({
             "materials": asg._hw_material_payload(),
         })
@@ -1429,11 +1135,6 @@ class RostMaxTimetableController(http.Controller):
                 type="http", auth="public", methods=["POST"], cors="*",
                 csrf=False)
     def api_homework_materials_set(self, assignment_id):
-        """API: учитель прикрепляет материалы задания (замена пачкой).
-
-        Тот же формат files, что в /submit; пишет только автор задания
-        или админ. Материалы видны ученикам задания в миниаппе.
-        """
         restore_session_if_needed()
         csrf_err = _check_spa_csrf()
         if csrf_err:
@@ -1441,12 +1142,10 @@ class RostMaxTimetableController(http.Controller):
         if not request.session.uid:
             return request.make_json_response(
                 {"error": "Unauthorized"}, status=401)
-
         user = request.env.user
         is_admin = user.has_group('base.group_system')
         faculty = request.env['op.faculty'].sudo().search([
             ('partner_id', '=', user.partner_id.id)], limit=1)
-
         asg = request.env['op.assignment'].sudo().browse(assignment_id)
         if not asg.exists():
             return request.make_json_response(
@@ -1454,13 +1153,11 @@ class RostMaxTimetableController(http.Controller):
         if not is_admin and (not faculty or asg.faculty_id != faculty):
             return request.make_json_response(
                 {"error": "Доступно только автору задания"}, status=403)
-
         try:
             body = request.get_json_data()
         except Exception:
             return request.make_json_response(
                 {"error": "Invalid JSON"}, status=400)
-
         clean_files, err = _clean_hw_files(body.get('files') or [])
         if err:
             return err
@@ -1473,17 +1170,14 @@ class RostMaxTimetableController(http.Controller):
     @http.route("/rost_max/api/homework/<int:assignment_id>/submissions",
                 type="http", auth="public", methods=["GET"])
     def api_homework_submissions(self, assignment_id, **kw):
-        """API: сдачи класса по заданию — только автору задания и админу."""
         restore_session_if_needed()
         if not request.session.uid:
             return request.make_json_response(
                 {"error": "Unauthorized"}, status=401)
-
         user = request.env.user
         is_admin = user.has_group('base.group_system')
         faculty = request.env['op.faculty'].sudo().search([
             ('partner_id', '=', user.partner_id.id)], limit=1)
-
         asg = request.env['op.assignment'].sudo().browse(assignment_id)
         if not asg.exists():
             return request.make_json_response(
@@ -1491,16 +1185,12 @@ class RostMaxTimetableController(http.Controller):
         if not is_admin and (not faculty or asg.faculty_id != faculty):
             return request.make_json_response(
                 {"error": "Доступно только автору задания"}, status=403)
-
         students = []
         for st in asg.allocation_ids:
             sub = request.env['op.assignment.sub.line'].sudo().search([
                 ('assignment_id', '=', asg.id),
                 ('student_id', '=', st.id),
             ], limit=1)
-            # Вложения: одноразовые токены на скачивание. Ссылка
-            # /rost_max/hw_att/<token> отдаёт файл только владельцу
-            # токена в таблице; токен живёт 24 часа.
             attachments = []
             if sub:
                 atts = request.env['ir.attachment'].sudo().search([
@@ -1519,13 +1209,9 @@ class RostMaxTimetableController(http.Controller):
                     })
             name = ("%s %s" % (
                 st.last_name or '', st.first_name or '')).strip()
-            # Фото ученика: image_128 stored (в domain годится только он),
-            # ссылка — avatar_1920, как в журнале урока. Нет фото — '' (инициал).
             avatar = ('/web/image/op.student/%s/avatar_1920' % st.id) if st.image_128 else ''
             students.append({
                 "avatar": avatar,
-                # id строки сдачи (op.assignment.sub.line) — именно его
-                # принимает /review в <sub_id>. НЕ путать с student_id!
                 "sub_id": sub.id if sub else None,
                 "student_id": st.id,
                 "name": name,
@@ -1538,12 +1224,8 @@ class RostMaxTimetableController(http.Controller):
                 "teacher_note": (sub.teacher_note or '') if sub else '',
                 "attachments": attachments,
             })
-        # Несдавшие — в конец списка
         students.sort(key=lambda s: (
             s['state'] == 'none', s['name']))
-        # История сдачи из mail-трекинга sub.line (state tracking=True):
-        # последовательность переходов с таймстампами. Метки совпадают с
-        # фронтовыми STATE_LABEL.
         sub_ids = [s['sub_id'] for s in students if s['sub_id']]
         messages = request.env['mail.message'].sudo().search_read(
             [('model', '=', 'op.assignment.sub.line'),
@@ -1553,7 +1235,6 @@ class RostMaxTimetableController(http.Controller):
             [('mail_message_id', 'in', [m['id'] for m in messages])],
             fields=['mail_message_id', 'field_id', 'old_value_char',
                     'new_value_char'])
-        # field_id -> имя поля (field_info пуст у core-трекинга)
         field_ids = list({t['field_id'][0] for t in tracking if t['field_id']})
         field_names = {
             f['id']: f['name']
@@ -1563,10 +1244,7 @@ class RostMaxTimetableController(http.Controller):
         for t in tracking:
             fname = field_names.get(t['field_id'][0]) if t['field_id'] else None
             if fname == 'state':
-                # search_read отдаёт M2O как (id, display_name) — берём [0]
                 track_by_msg.setdefault(t['mail_message_id'][0], []).append(t)
-        # Русские метки состояний из core-Selection (old/new_value_char
-        # хранит уже переведённые лейблы).
         for s in students:
             history = []
             if s['sub_id']:
@@ -1577,7 +1255,6 @@ class RostMaxTimetableController(http.Controller):
                         new_label = t['new_value_char']
                         if not history or history[-1]['label'] != new_label:
                             history.append({
-                                # search_read отдаёт date как datetime — приводим к 'YYYY-MM-DD'
                                 'date': str(m['date'])[:10],
                                 'label': new_label,
                             })
@@ -1598,8 +1275,6 @@ class RostMaxTimetableController(http.Controller):
                 type="http", auth="public", methods=["POST"], cors="*",
                 csrf=False)
     def api_homework_review(self, sub_id, **kw):
-        """API: учитель принимает (accept) или возвращает на доработку
-        (change) конкретную сдачу. Пишет только автор задания/админ."""
         restore_session_if_needed()
         csrf_err = _check_spa_csrf()
         if csrf_err:
@@ -1607,12 +1282,10 @@ class RostMaxTimetableController(http.Controller):
         if not request.session.uid:
             return request.make_json_response(
                 {"error": "Unauthorized"}, status=401)
-
         user = request.env.user
         is_admin = user.has_group('base.group_system')
         faculty = request.env['op.faculty'].sudo().search([
             ('partner_id', '=', user.partner_id.id)], limit=1)
-
         sub = request.env['op.assignment.sub.line'].sudo().browse(sub_id)
         if not sub.exists():
             return request.make_json_response(
@@ -1621,7 +1294,6 @@ class RostMaxTimetableController(http.Controller):
                              or sub.assignment_id.faculty_id != faculty):
             return request.make_json_response(
                 {"error": "Доступно только автору задания"}, status=403)
-
         try:
             body = request.get_json_data()
         except Exception:
@@ -1631,7 +1303,6 @@ class RostMaxTimetableController(http.Controller):
         if action not in ('accept', 'change'):
             return request.make_json_response(
                 {"error": "action должен быть accept|change"}, status=400)
-
         vals = {'state': 'accept' if action == 'accept' else 'change'}
         if 'teacher_note' in body:
             vals['teacher_note'] = (body.get('teacher_note') or '').strip()
@@ -1655,15 +1326,10 @@ class RostMaxTimetableController(http.Controller):
     @http.route("/rost_max/api/teacher_homework", type="http",
                 auth="public", methods=["GET"])
     def api_teacher_homework(self, **kw):
-        """API: вкладка «Задания» учителя/админа — ПОЛНЫЙ список своих
-        заданий (админ — все задания школы) без временного окна, со
-        статусами publish/finish. Фильтрация по статусу — на фронте
-        (сегменты «К проверке / Активные / Завершённые»)."""
         restore_session_if_needed()
         if not request.session.uid:
             return request.make_json_response(
                 {"error": "Unauthorized"}, status=401)
-
         user = request.env.user
         is_admin = user.has_group('base.group_system')
         faculty = request.env['op.faculty'].sudo().search([
@@ -1671,13 +1337,11 @@ class RostMaxTimetableController(http.Controller):
         if not is_admin and not faculty:
             return request.make_json_response(
                 {"error": "Доступно только учителю и админу"}, status=403)
-
         domain = [('state', 'in', ('publish', 'finish'))]
         if not is_admin:
             domain.append(('faculty_id', '=', faculty.id))
         asgs = request.env['op.assignment'].sudo().search(
             domain, order='submission_date asc')
-
         submitted_counts = {
             s['assignment_id'][0]: s['assignment_id_count']
             for s in request.env['op.assignment.sub.line'].sudo().read_group(
@@ -1692,8 +1356,6 @@ class RostMaxTimetableController(http.Controller):
                  ('state', '=', 'submit')],
                 ['assignment_id'], ['assignment_id'])
         }
-        # Принятые (accept) — для прогресса «N из M проверено» на карточке
-        # задания: submitted считает submit+accept и для прогресса не годится.
         accepted_counts = {
             s['assignment_id'][0]: s['assignment_id_count']
             for s in request.env['op.assignment.sub.line'].sudo().read_group(
@@ -1701,9 +1363,7 @@ class RostMaxTimetableController(http.Controller):
                  ('state', '=', 'accept')],
                 ['assignment_id'], ['assignment_id'])
         }
-        # submission_date в UTC — просрочка по UTC now, не по Moscow-naive.
         now = fields.Datetime.now()
-        # Тема урока: журналы, создавшие задания (один батч-поиск).
         hw_sheets = request.env['op.attendance.sheet'].sudo().search([
             ('homework_assignment_id', 'in', asgs.ids)])
         topic_map = {s.homework_assignment_id.id: s.lesson_topic
@@ -1712,7 +1372,6 @@ class RostMaxTimetableController(http.Controller):
             "id": a.id,
             "state": a.state,
             "subject": a.subject_id.name if a.subject_id else "",
-            # Пастель квадрата предмета (как в карточках ученика).
             "subject_color": a.subject_id.color if a.subject_id else 0,
             "topic": topic_map.get(a.id, ''),
             "issued_at": str(a.grading_assignment_id.issued_date)
@@ -1727,12 +1386,8 @@ class RostMaxTimetableController(http.Controller):
             "to_review": to_review_counts.get(a.id, 0),
             "answer_required": a.answer_required,
             "materials_count": len(a._hw_material_payload()),
-            # Источник в журнале (для правки текста через синк); бывает
-            # не у всех заданий (созданных вне журнала) — тогда правка
-            # текста из вкладки недоступна.
             "sheet_id": request.env['op.attendance.sheet'].sudo().search([
                 ('homework_assignment_id', '=', a.id)], limit=1).id or None,
-            # Админ: имя преподавателя (чей журнал породил задание).
             "faculty": self._faculty_name(a.faculty_id),
         } for a in asgs]})
 
@@ -1740,13 +1395,6 @@ class RostMaxTimetableController(http.Controller):
                 type="http", auth="public", methods=["POST"], cors="*",
                 csrf=False)
     def api_homework_edit(self, assignment_id, **kw):
-        """API: правка задания учителем из вкладки «Задания».
-
-        Текст ДЗ пишется через журнал (sheet.lesson_homework) — синк
-        rost_lesson_homework обновит задание И перезапишет пост в канале
-        класса; прямой write на op.assignment канал бы не тронул.
-        Срок и answer_required — прямая запись на задание (синк их при
-        редактировании текста не трогает)."""
         restore_session_if_needed()
         csrf_err = _check_spa_csrf()
         if csrf_err:
@@ -1754,12 +1402,10 @@ class RostMaxTimetableController(http.Controller):
         if not request.session.uid:
             return request.make_json_response(
                 {"error": "Unauthorized"}, status=401)
-
         user = request.env.user
         is_admin = user.has_group('base.group_system')
         faculty = request.env['op.faculty'].sudo().search([
             ('partner_id', '=', user.partner_id.id)], limit=1)
-
         asg = request.env['op.assignment'].sudo().browse(assignment_id)
         if not asg.exists():
             return request.make_json_response(
@@ -1770,17 +1416,13 @@ class RostMaxTimetableController(http.Controller):
         if asg.state not in ('publish', 'finish'):
             return request.make_json_response(
                 {"error": "Задание отменено — правка недоступна"}, status=409)
-
         try:
             body = request.get_json_data()
         except Exception:
             return request.make_json_response(
                 {"error": "Invalid JSON"}, status=400)
-
-        # Сначала валидация всего запроса: ответ 400/409 не откатывает write.
         sheet_vals = {}
         assignment_vals = {}
-        # --- Тема урока: только через журнал ----------------------------
         if 'topic' in body:
             topic = (body.get('topic') or '').strip()
             sheet = request.env['op.attendance.sheet'].sudo().search([
@@ -1795,8 +1437,6 @@ class RostMaxTimetableController(http.Controller):
                     {"error": "Журнал урока не активен — правка недоступна"},
                     status=409)
             sheet_vals['lesson_topic'] = topic
-
-        # --- Текст: только через журнал (синк + канал) -----------------
         if 'task' in body:
             task = (body.get('task') or '').strip()
             if not task:
@@ -1815,8 +1455,6 @@ class RostMaxTimetableController(http.Controller):
                     {"error": "Журнал урока не активен — правка недоступна"},
                     status=409)
             sheet_vals['lesson_homework'] = task
-
-        # --- Срок ------------------------------------------------------
         if 'due' in body:
             due_raw = (body.get('due') or '').strip()
             if not due_raw:
@@ -1832,25 +1470,18 @@ class RostMaxTimetableController(http.Controller):
                     {"error": "Срок не может быть раньше даты выдачи"},
                     status=400)
             assignment_vals['submission_date'] = due_dt
-
-        # --- Флаг «требуется ответ» ------------------------------------
         if 'answer_required' in body:
             assignment_vals['answer_required'] = bool(body.get('answer_required'))
-
-        # Все проверки завершены; ошибки ORM откатят транзакцию запроса.
         if assignment_vals:
             asg.write(assignment_vals)
         if sheet_vals:
             sheet.write(sheet_vals)
-
         return request.make_json_response({"success": True})
 
     @http.route("/rost_max/api/homework/<int:assignment_id>/finish",
                 type="http", auth="public", methods=["POST"], cors="*",
                 csrf=False)
     def api_homework_finish(self, assignment_id, **kw):
-        """API: завершить приём сдач (op.assignment act_finish) или
-        возобновить (обратно в publish). Только автор задания/админ."""
         restore_session_if_needed()
         csrf_err = _check_spa_csrf()
         if csrf_err:
@@ -1858,12 +1489,10 @@ class RostMaxTimetableController(http.Controller):
         if not request.session.uid:
             return request.make_json_response(
                 {"error": "Unauthorized"}, status=401)
-
         user = request.env.user
         is_admin = user.has_group('base.group_system')
         faculty = request.env['op.faculty'].sudo().search([
             ('partner_id', '=', user.partner_id.id)], limit=1)
-
         asg = request.env['op.assignment'].sudo().browse(assignment_id)
         if not asg.exists():
             return request.make_json_response(
@@ -1871,7 +1500,6 @@ class RostMaxTimetableController(http.Controller):
         if not is_admin and (not faculty or asg.faculty_id != faculty):
             return request.make_json_response(
                 {"error": "Доступно только автору задания"}, status=403)
-
         try:
             body = request.get_json_data()
         except Exception:
@@ -1889,8 +1517,6 @@ class RostMaxTimetableController(http.Controller):
                 return request.make_json_response(
                     {"error": "Возобновить можно только завершённое задание"},
                     status=409)
-            # finish -> draft -> publish (как act_cancel/act_set_to_draft
-            # в синке журнала).
             asg.act_set_to_draft()
             asg.act_publish()
         else:
@@ -1901,13 +1527,6 @@ class RostMaxTimetableController(http.Controller):
     @http.route("/rost_max/hw_att/<string:token>", type="http",
                 methods=["GET"], readonly=True)
     def hw_attachment_download(self, token):
-        """Скачивание вложения сдачи по одноразовому токену (24 ч).
-
-        Токен сам является секретом: ссылка живёт в ответе /submissions
-        сутки, вложение приватное (public=False). Прощелкать чужой токен
-        нельзя — 128 бит энтропии. Просроченный токен удаляется при
-        обращении. Отдача через ir.binary (как /web/content).
-        """
         att = request.env['hw.attachment.token'].sudo().get_valid(token)
         if not att:
             return request.make_response(
@@ -1920,12 +1539,10 @@ class RostMaxTimetableController(http.Controller):
 
     @http.route("/rost_max/api/faculties", type="http", auth="public", methods=["GET"])
     def api_faculties(self):
-        """API: список учителей (только для админа)"""
         restore_session_if_needed()
         user = request.env.user
         if not user.has_group('base.group_system'):
             return request.make_json_response({"faculties": []})
-
         faculties = request.env['op.faculty'].search([], order='last_name,first_name')
         return request.make_json_response({
             "faculties": [
@@ -1939,15 +1556,10 @@ class RostMaxTimetableController(http.Controller):
 
     @http.route("/rost_max/api/batches", type="http", auth="public", methods=["GET"])
     def api_batches(self):
-        """API: список классов (только для админа)"""
         restore_session_if_needed()
         user = request.env.user
         if not user.has_group('base.group_system'):
             return request.make_json_response({"batches": []})
-
-        # Только классы ТЕКУЩЕГО учебного года: без фильтра в списке
-        # задвоенные «2А» из прошлого года (батчи живут год, потом заводят
-        # новые на новый набор). Логика та же, что в _get_quarter_terms.
         today = fields.Date.today()
         year = request.env['op.academic.year'].sudo().search([
             ('start_date', '<=', today), ('end_date', '>=', today)
@@ -1956,10 +1568,7 @@ class RostMaxTimetableController(http.Controller):
         if year:
             domain.append(('end_date', '>=', year.start_date))
             domain.append(('start_date', '<=', year.end_date))
-
         batches = request.env['op.batch'].search(domain, order='sequence, name')
-        # Из имени класса убираем учебный год («5А 2026/2027» -> «5А»):
-        # год дублирует информацию и ломает компактный бейдж в списке уроков.
         year_re = re.compile(r'\s*\d{4}[/\-–]\d{4}\s*')
         return request.make_json_response({
             "batches": [
@@ -1968,16 +1577,7 @@ class RostMaxTimetableController(http.Controller):
             ]
         })
 
-    # --- УСПЕВАЕМОСТЬ (ученик / родитель) ---
-
     def _get_quarter_terms(self):
-        """Четверти: {1..4: op.academic.term} ТЕКУЩЕГО учебного года.
-        Логика как в op.subject.grades._compute_line_ids — четверти это
-        дочерние термины (parent_term != False), номер = цифра в названии.
-        Обязательный фильтр по году: «1 четверть» существует у каждого
-        op.academic.year, без него q_map[1] ловит первый попавшийся (вчерашний).
-        Год определяется по дате (образец: op.session._compute_academic_year).
-        """
         today = fields.Date.today()
         year = request.env['op.academic.year'].sudo().search([
             ('start_date', '<=', today), ('end_date', '>=', today)
@@ -1994,7 +1594,6 @@ class RostMaxTimetableController(http.Controller):
         return q_map
 
     def _get_current_quarter(self, q_map):
-        """Номер текущей четверти по дате (как _get_current_q_code в модели)."""
         today = fields.Date.today()
         for i in sorted(q_map):
             term = q_map[i]
@@ -2005,7 +1604,6 @@ class RostMaxTimetableController(http.Controller):
 
     @staticmethod
     def _line_payload(ln):
-        """Сериализация op.attendance.line для read-only экранов."""
         grades = [int(g) for g in (ln.grade_1, ln.grade_2, ln.grade_3) if g and g > 0]
         return {
             "line_id": ln.id,
@@ -2021,22 +1619,14 @@ class RostMaxTimetableController(http.Controller):
 
     @http.route("/rost_max/api/my/subjects", type="http", auth="public", methods=["GET"])
     def api_my_subjects(self, quarter=None):
-        """API: предметы с оценками/посещаемостью для ученика и родителя.
-
-        Считается НА ЛЕТУ из op.attendance.line (не из stored-компутов
-        op.subject.grades), чтобы успеваемость всегда совпадала с журналом.
-        Доступ жёстко ограничен своими учениками (IDOR по построению).
-        """
         restore_session_if_needed()
         if not request.session.uid:
             return request.make_json_response({"error": "Unauthorized"}, status=401)
-
         user = request.env.user
         role, own_students = _get_user_students(user)
         if role not in ('student', 'parent') or not own_students:
             return request.make_json_response(
                 {"error": "Доступно только ученикам и родителям"}, status=403)
-
         q_map = self._get_quarter_terms()
         current_q = self._get_current_quarter(q_map)
         try:
@@ -2046,15 +1636,12 @@ class RostMaxTimetableController(http.Controller):
         if q not in q_map:
             return request.make_json_response(
                 {"error": "Четверть не найдена"}, status=404)
-
         term = q_map[q]
         lines = request.env['op.attendance.line'].sudo().search([
             ('student_id', 'in', own_students.ids),
             ('attendance_date', '>=', term.term_start_date),
             ('attendance_date', '<=', term.term_end_date),
         ])
-
-        # Группируем ученик x предмет, статистика через движок get_stats_from_lines
         students_payload = []
         stat_obj = request.env['op.attendance.line']
         for st in own_students:
@@ -2068,7 +1655,6 @@ class RostMaxTimetableController(http.Controller):
                 by_subject.setdefault(ln.subject_id, request.env['op.attendance.line'].browse())
             for ln in st_lines:
                 by_subject[ln.subject_id] |= ln
-
             subjects = []
             for subj, subj_lines in by_subject.items():
                 if not subj:
@@ -2090,7 +1676,6 @@ class RostMaxTimetableController(http.Controller):
                 "name": ("%s %s %s" % (st.last_name or '', st.first_name or '', st.middle_name or '')).strip(),
                 "subjects": subjects,
             })
-
         return request.make_json_response({
             "quarter": q,
             "current_quarter": current_q,
@@ -2100,17 +1685,14 @@ class RostMaxTimetableController(http.Controller):
 
     @http.route("/rost_max/api/my/grades/<int:subject_id>", type="http", auth="public", methods=["GET"])
     def api_my_grades(self, subject_id, quarter=None, **kw):
-        """API: хронология оценок/посещаемости ученика по предмету за четверть."""
         restore_session_if_needed()
         if not request.session.uid:
             return request.make_json_response({"error": "Unauthorized"}, status=401)
-
         user = request.env.user
         role, own_students = _get_user_students(user)
         if role not in ('student', 'parent') or not own_students:
             return request.make_json_response(
                 {"error": "Доступно только ученикам и родителям"}, status=403)
-
         q_map = self._get_quarter_terms()
         current_q = self._get_current_quarter(q_map)
         try:
@@ -2120,7 +1702,6 @@ class RostMaxTimetableController(http.Controller):
         if q not in q_map:
             return request.make_json_response(
                 {"error": "Четверть не найдена"}, status=404)
-
         term = q_map[q]
         lines = request.env['op.attendance.line'].sudo().search([
             ('student_id', 'in', own_students.ids),
@@ -2128,7 +1709,6 @@ class RostMaxTimetableController(http.Controller):
             ('attendance_date', '>=', term.term_start_date),
             ('attendance_date', '<=', term.term_end_date),
         ], order='attendance_date desc')
-
         stats = request.env['op.attendance.line'].get_stats_from_lines(lines)
         return request.make_json_response({
             "quarter": q,
