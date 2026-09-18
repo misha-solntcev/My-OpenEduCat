@@ -84,6 +84,9 @@
                     <field name="student_id"/>
                     <field name="course_id"/>
                     <field name="batch_id"/>
+                    <filter name="filter_current_year" string="Текущий год"
+                            domain="[('batch_id.start_date','&lt;=',time.strftime('%Y-%m-%d')),('batch_id.end_date','&gt;=',time.strftime('%Y-%m-%d'))]"
+                            help="Батч, в чьи даты попадает сегодня"/>
                     <newline/>
                     <group expand="0" string="Group By...">
                         <filter name="group_by_course"
@@ -137,7 +140,7 @@
             <field name="view_mode">list,form,graph,pivot</field>
             <field name="search_view_id" ref="view_subject_registration_search"/>
             <field name="domain">[]</field>
-            <field name="context">{}</field>
+            <field name="context">{'search_default_filter_current_year': 1, 'search_default_group_by_batch': 1}</field>
         </record>
 
         <record id="seq_op_subject_registration" model="ir.sequence">
