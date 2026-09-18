@@ -594,6 +594,24 @@ class CreateChannelWizardCourse(models.TransientModel):
     faculty_count = fields.Integer(string='Учителей', compute='_compute_counts')
     subject_count = fields.Integer(string='Предметов', compute='_compute_counts')
 
+    # Ghost subjects: ведутся в расписании батча (op.session), но их нет в
+    # subject_ids строки — канал по ним создан НЕ будет. Причина молчаливых
+    # пропусков (География 9А/10А-2026): предмет добавили в курс ПОСЛЕ
+    # одобрения регистраций, в зачисления он не попал, мастер не ругается.
+    has_ghost_subjects = fields.Boolean(compute='_compute_ghost_subjects')
+    ghost_subject_names = fields.Char(compute='_compute_ghost_subjects')
+
+    @api.depends('batch_id', 'subject_ids')
+    def _compute_ghost_subjects(self):
+        for line in self:
+            ghosts = self.env['op.subject']
+            if line.batch_id:
+                sessions = self.env['op.session'].search(
+                    [('batch_id', '=', line.batch_id.id)])
+                ghosts = sessions.mapped('subject_id') - line.subject_ids
+            line.has_ghost_subjects = bool(ghosts)
+            line.ghost_subject_names = ', '.join(ghosts.mapped('display_name'))
+
     @api.depends('student_ids', 'faculty_ids', 'subject_ids')
     def _compute_counts(self):
         for line in self:

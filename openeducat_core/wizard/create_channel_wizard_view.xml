@@ -28,11 +28,13 @@
 
                     <separator string="Классы и участники" class="mt-4 mb-2"/>
                     <field name="course_line_ids" nolabel="1" options="{'no_create': True}">
-                        <list editable="bottom">
+                        <list editable="bottom" decoration-warning="has_ghost_subjects">
+                            <field name="has_ghost_subjects" column_invisible="1"/>
                             <field name="academic_year_id" column_invisible="1" force_save="1"/>
                             <field name="course_id" column_invisible="1" force_save="1"/>
                             <field name="batch_id" string="Класс" readonly="1" force_save="1"/>
                             <field name="subject_ids" widget="many2many_tags" options="{'no_create': True}"/>
+                            <field name="ghost_subject_names" optional="show" string="Ведётся, но канала не будет"/>
                             <field name="admin_ids" widget="many2many_tags" options="{'no_create': True}" readonly="1" force_save="1"/>
                             <field name="faculty_ids" widget="many2many_tags" options="{'no_create': True}"/>
                             <field name="student_ids" widget="many2many_tags" options="{'no_create': True}"/>
