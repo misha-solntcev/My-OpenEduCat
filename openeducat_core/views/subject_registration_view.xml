@@ -104,10 +104,12 @@
             <field name="name">op.subject.registration.graph</field>
             <field name="model">op.subject.registration</field>
             <field name="arch" type="xml">
+                <!-- course_id только как row (groupBy). Дублирование в measure
+                     ломало график: при lazy=false read_group возвращает
+                     course_id как число (count), рендер падал
+                     "val is not iterable". Measure по умолчанию — счётчик. -->
                 <graph string="Subject registration graph" type="pie">
-                    <field name="course_id" type="row"/>
-                    <field name="student_id" type="col"/>
-                    <field name="course_id" type="measure"/>
+                    <field name="course_id"/>
                 </graph>
             </field>
         </record>
