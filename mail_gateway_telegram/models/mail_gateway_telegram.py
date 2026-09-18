@@ -24,6 +24,12 @@ try:
 except (OSError, ImportError) as err:
     _logger.debug(err)
 
+# Whitelist of bot commands that may be dispatched to handler methods.
+# Add new command names here when implementing new handlers.
+_ALLOWED_BOT_COMMANDS = frozenset({
+    'start',
+})
+
 
 class MailGatewayTelegramService(models.AbstractModel):
     _inherit = "mail.gateway.abstract"
@@ -97,8 +103,12 @@ class MailGatewayTelegramService(models.AbstractModel):
             if not entity.type == "bot_command":
                 continue
             command = update.message.parse_entity(entity).split("/")[1]
-            if hasattr(self, f"_command_{command}"):
-                return getattr(self, f"_command_{command}")(gateway, update)
+            # Security: only dispatch to explicitly whitelisted commands to
+            # prevent arbitrary method invocation via crafted bot commands.
+            if command in _ALLOWED_BOT_COMMANDS:
+                handler = getattr(self, f"_command_{command}", None)
+                if handler:
+                    return handler(gateway, update)
         return False
 
     def _command_start(self, gateway, update):
@@ -219,9 +229,10 @@ class MailGatewayTelegramService(models.AbstractModel):
                 attachments.append(attachment_data)
         if len(body) > 0 or attachments:
             author = self._get_author(chat.gateway_id, update)
+            author_id = author.id if author._name == "res.partner" else False
             new_message = chat.message_post(
                 body=body,
-                author_id=author._name == "res.partner" and author.id,
+                author_id=author_id,
                 gateway_type="telegram",
                 date=update.message.date.replace(tzinfo=None),
                 # message_id=update.message.message_id,
@@ -250,7 +261,7 @@ class MailGatewayTelegramService(models.AbstractModel):
                         .browse(related_message.gateway_message_id.res_id)
                         .message_post(
                             body=body,
-                            author_id=author._name == "res.partner" and author.id,
+                            author_id=author_id,
                             gateway_type="telegram",
                             date=update.message.date.replace(tzinfo=None),
                             # message_id=update.message.message_id,
@@ -283,6 +294,13 @@ class MailGatewayTelegramService(models.AbstractModel):
         for attachment in record.mail_message_id.attachment_ids:
             # Remember that files are limited to 50 Mb on Telegram
             # https://core.telegram.org/bots/faq#handling-media
+            if attachment.file_size > 50 * 1024 * 1024:
+                _logger.warning(
+                    'Skipping attachment %s (%d bytes): exceeds Telegram 50 MB limit',
+                    attachment.name,
+                    attachment.file_size,
+                )
+                continue
             if attachment.mimetype.split("/")[0] == "image":
                 new_message = await chat.send_photo(BytesIO(attachment.raw))
             else:
@@ -322,7 +340,9 @@ class MailGatewayTelegramService(models.AbstractModel):
                     _("Unable to send the telegram message"), exc
                 ) from None
             else:
-                _logger.warning(f"Issue sending message with id {record.id}: {exc}")
+                _logger.warning(
+                    'Issue sending message with id %s: %s', record.id, exc
+                )
                 record.sudo().write(
                     {
                         "notification_status": "exception",

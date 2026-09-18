@@ -6,6 +6,10 @@ from odoo import api, fields, models
 from odoo.exceptions import UserError
 from odoo.tools import html2plaintext
 
+import logging
+
+_logger = logging.getLogger(__name__)
+
 
 class OpAttendanceSheet(models.Model):
     _inherit = 'op.attendance.sheet'
@@ -51,52 +55,53 @@ class OpAttendanceSheet(models.Model):
         if not channel:
             return
         try:
-            channel.with_context(mail_create_nosubscribe=True).message_post(
-                body=body,
-                message_type='comment',
-                subtype_xmlid='mail.mt_comment',
-                attachment_ids=[(4, a.id) for a in (attachments or [])],
-            )
+            with self.env.cr.savepoint():
+                channel.with_context(mail_create_nosubscribe=True).message_post(
+                    body=body,
+                    message_type='comment',
+                    subtype_xmlid='mail.mt_comment',
+                    attachment_ids=[(4, a.id) for a in (attachments or [])],
+                )
         except Exception:
-            self.env.cr.savepoint()  # откатить недописанный пост, не уронить синк
+            _logger.warning(
+                'Failed to post HW announcement to channel %s',
+                channel.id,
+                exc_info=True,
+            )
 
     def _hw_channel_announce(self, asg, event, attachments=None, find_needle=None):
         if self.env.context.get('hw_skip_channel_announce'):
             return
         self.ensure_one()
+        deadline = asg.submission_date
+        body = Markup(
+            '<b>Новое домашнее задание</b> (%(subject)s)<br/>%(hw)s<br/>'
+            'Срок сдачи: %(deadline)s'
+        ) % {
+            'subject': self.subject_id.name,
+            'hw': asg.name,
+            'deadline': deadline.strftime('%d.%m.%Y %H:%M') if deadline else '—',
+        }
         if event == 'created':
-            deadline = asg.submission_date
-            body = Markup(
-                '<b>Новое домашнее задание</b> (%(subject)s)<br/>%(hw)s<br/>'
-                'Срок сдачи: %(deadline)s'
-            ) % {
-                'subject': self.subject_id.name,
-                'hw': asg.name,
-                'deadline': deadline.strftime('%d.%m.%Y %H:%M') if deadline else '—',
-            }
             self._hw_channel_post(asg, body, attachments=attachments)
         else:  # 'edited' — перезаписать исходное сообщение (Odoo сам пометит
             # «(изменено)»), а не плодить новые посты. Ищем по find_needle
             # (старый текст ДЗ): в теле сообщения текст ещё старый.
-            deadline = asg.submission_date
-            body = Markup(
-                '<b>Новое домашнее задание</b> (%(subject)s)<br/>%(hw)s<br/>'
-                'Срок сдачи: %(deadline)s'
-            ) % {
-                'subject': self.subject_id.name,
-                'hw': asg.name,
-                'deadline': deadline.strftime('%d.%m.%Y %H:%M') if deadline else '—',
-            }
             msg = self._hw_channel_find_message(find_needle or asg.name)
             if msg:
                 try:
-                    msg.write({
-                        'body': body,
-                        'attachment_ids': [(6, 0, [
-                            a.id for a in (attachments or [])])],
-                    })
+                    with self.env.cr.savepoint():
+                        msg.write({
+                            'body': body,
+                            'attachment_ids': [(6, 0, [
+                                a.id for a in (attachments or [])])],
+                        })
                 except Exception:
-                    self.env.cr.savepoint()
+                    _logger.warning(
+                        'Failed to update HW message %s in channel',
+                        msg.id,
+                        exc_info=True,
+                    )
             # Сообщения нет (создавали до включения дубля в канал) — молча
             # не восстанавливаем: ученик видит актуальное ДЗ в миниаппе.
 
@@ -223,9 +228,14 @@ class OpAttendanceSheet(models.Model):
         ], order='id desc', limit=1)
         if msg:
             try:
-                self.env['mail.message'].sudo().browse(msg.id).unlink()
+                with self.env.cr.savepoint():
+                    self.env['mail.message'].sudo().browse(msg.id).unlink()
             except Exception:
-                self.env.cr.savepoint()
+                _logger.warning(
+                    'Failed to delete HW message %s from channel',
+                    msg.id,
+                    exc_info=True,
+                )
 
     def write(self, vals):
         res = super().write(vals)
@@ -233,6 +243,7 @@ class OpAttendanceSheet(models.Model):
             self._homework_sync()
         return res
 
+    @api.model_create_multi
     def create(self, vals_list):
         sheets = super().create(vals_list)
         sheets._homework_sync()
