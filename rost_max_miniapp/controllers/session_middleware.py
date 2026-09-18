@@ -15,6 +15,7 @@ web.max.ru), где браузер блокирует сторонние cookie 
 
 import logging
 
+import odoo
 from odoo.http import request, root
 
 _logger = logging.getLogger(__name__)
@@ -65,7 +66,6 @@ def restore_session_if_needed():
 
         # Пересобираем env под восстановленного пользователя — он был
         # создан для анонимной сессии при старте запроса.
-        import odoo
         request.env = odoo.api.Environment(
             request.env.cr, request.session.uid, request.session.context
         )
