@@ -12,12 +12,12 @@
  */
 import React from 'react';
 import {
-  Panel, PanelHeader, PanelHeaderBack, Div, Spinner, Button, Placeholder,
+  Panel, PanelHeader, PanelHeaderBack, Div, Spinner, Button,
   Caption, Text, Card as VkCard, Input, Checkbox, Box,
   Textarea, Header, IconButton, Chip,
 } from '@vkontakte/vkui';
 import {
-  Icon56DocumentOutline, Icon28EditOutline, Icon28AttachOutline,
+  Icon28EditOutline, Icon28AttachOutline,
   Icon24Filter,
 } from '@vkontakte/icons';
 import { apiGet, apiPost } from '@/shared/lib/api';
@@ -402,18 +402,13 @@ export const TeacherHomeworkPage: React.FC<{ id: string }> = ({ id }) => {
       (!filters.batches.size || filters.batches.has(h.batch))
       && (!filters.subjects.size || filters.subjects.has(h.subject));
     const filtered = all.filter(pass);
-    // Логика разделов (согласована 2026-09-17, мокап): непересекающиеся
-    // состояния. Выданные — ответов ещё нет; К проверке — есть ответы,
-    // не все приняты (в т.ч. возвращённые на доработку); Проверено —
-    // все полученные ответы приняты либо приём закрыт.
     return {
-      review: filtered.filter(h => h.state === 'publish' && h.submitted > 0),
-      issued: filtered.filter(h => h.state === 'publish' && h.submitted === 0),
-      checked: filtered.filter(h => h.state === 'finish'),
+      review: filtered.filter(h => h.state === 'publish' && h.to_review > 0),
+      issued: filtered.filter(h => h.state === 'publish' && h.submitted === 0 && h.to_review === 0),
+      checked: filtered.filter(h => h.state === 'finish'
+        || (h.state === 'publish' && h.submitted > 0 && h.to_review === 0)),
     };
   }, [items, filters]);
-
-  const allHidden = groups.review.length + groups.issued.length + groups.checked.length === 0;
 
   const filterActive = filters.batches.size > 0 || filters.subjects.size > 0;
 
@@ -458,77 +453,58 @@ export const TeacherHomeworkPage: React.FC<{ id: string }> = ({ id }) => {
             </Div>
           ) : (
             <>
-              {/* Чипы активного фильтра слева, кнопка-фильтр справа
-                  (мокап teacher-homework-mockup.html). Обёртка flex:1 —
-                  чтобы кнопка стояла справа и при пустых чипах. */}
-              <Div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, paddingBottom: 8 }}>
+              <Div style={{
+                display: 'flex', alignItems: 'center', gap: 12, padding: '14px 18px',
+                background: 'var(--vkui--color_background_content)',
+              }}>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <FilterChips
-                    active={{
-                      batches: [...filters.batches],
-                      subjects: [...filters.subjects],
-                    }}
-                    onRemove={removeFilter}
-                    onReset={resetFilters}
-                  />
+                  <Text Component="h1" weight="2" style={{ fontSize: 23, letterSpacing: '-0.6px', margin: 0 }}>
+                    Задания
+                  </Text>
                 </div>
                 <IconButton
                   label="Фильтры"
                   aria-expanded={filtersOpen}
-                  style={filterActive ? {
-                    color: 'var(--vkui--color_background_accent)',
-                    flexShrink: 0,
-                  } : { flexShrink: 0 }}
+                  style={{
+                    color: filterActive ? 'var(--vkui--color_text_accent)' : 'var(--vkui--color_text_secondary)',
+                    flexShrink: 0, borderRadius: 12,
+                    border: '1px solid var(--vkui--color_separator_primary)',
+                    background: filterActive ? 'var(--vkui--color_background_secondary)' : undefined,
+                  }}
                   onClick={() => setFiltersOpen(true)}
                 >
                   <Icon24Filter />
                 </IconButton>
               </Div>
 
-              {allHidden ? (
-                <Placeholder
-                  icon={<Icon56DocumentOutline />}
-                  title="Нет заданий"
-                >
-                  <Caption style={{ color: 'var(--vkui--color_text_secondary)' }}>
-                    {filterActive
-                      ? 'Нет заданий по выбранным фильтрам.'
-                      : 'Задайте ДЗ из журнала урока.'}
-                  </Caption>
-                </Placeholder>
-              ) : (
-                // .inner мокапа: 12px от краёв экрана; заголовки и карточки
-                // живут в одном контейнере (карточка сама даёт margin 6 0).
-                <Box paddingInline={12} paddingBlockEnd={12}>
-                  {/* Разделы одной лентой: цветной заголовок 20px + счётчик
-                      (мокап), пустые разделы не рисуются. Порядок: К проверке
-                      (ближайшее действие) -> Выданные -> Проверено. */}
-                  {groups.review.length > 0 && (
-                    <>
-                      <SectionTitle first tone="review" title="К проверке" count={groups.review.length} />
-                      {groups.review.map(h => (
-                        <TeacherHwCard key={h.id} h={h} showFaculty={showFaculty} onOpen={setOpenId} />
-                      ))}
-                    </>
-                  )}
-                  {groups.issued.length > 0 && (
-                    <>
-                      <SectionTitle tone="issued" title="Выданные" count={groups.issued.length} />
-                      {groups.issued.map(h => (
-                        <TeacherHwCard key={h.id} h={h} showFaculty={showFaculty} onOpen={setOpenId} />
-                      ))}
-                    </>
-                  )}
-                  {groups.checked.length > 0 && (
-                    <>
-                      <SectionTitle tone="checked" title="Проверено" count={groups.checked.length} />
-                      {groups.checked.map(h => (
-                        <TeacherHwCard key={h.id} h={h} showFaculty={showFaculty} onOpen={setOpenId} />
-                      ))}
-                    </>
-                  )}
-                </Box>
+              {filterActive && (
+                <Div style={{ padding: '10px 16px', background: 'var(--vkui--color_background_content)' }}>
+                  <FilterChips
+                    active={{ batches: [...filters.batches], subjects: [...filters.subjects] }}
+                    onRemove={removeFilter}
+                    onReset={resetFilters}
+                  />
+                </Div>
               )}
+
+              <Box paddingInline={12} paddingBlockStart={16} paddingBlockEnd={22}>
+                {([
+                  { key: 'review', title: 'К проверке', empty: 'Нет работ для проверки' },
+                  { key: 'issued', title: 'Выдано', empty: 'Нет выданных заданий без ответов' },
+                  { key: 'checked', title: 'Проверено', empty: 'Проверенных заданий пока нет' },
+                ] as const).map(({ key, title, empty }, index) => (
+                  <section key={key} aria-label={title}>
+                    <SectionTitle first={index === 0} tone={key} title={title} count={groups[key].length} />
+                    {groups[key].length > 0 ? groups[key].map(h => (
+                      <TeacherHwCard key={h.id} h={h} showFaculty={showFaculty} onOpen={setOpenId} />
+                    )) : (
+                      <Caption style={{ padding: '12px 14px', color: 'var(--vkui--color_text_secondary)' }}>
+                        {filterActive ? 'Нет заданий по выбранным фильтрам' : empty}
+                      </Caption>
+                    )}
+                  </section>
+                ))}
+              </Box>
             </>
           )}
         </>

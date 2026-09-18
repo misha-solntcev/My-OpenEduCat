@@ -1,23 +1,5 @@
-/**
- * Карточка задания учителя/админа и заголовки разделов — точная
- * сборка мокапа design/teacher-homework-mockup.html.
- *
- * Геометрия из мокапа (не выдумывать!):
- *   .inner    — 12px от краёв экрана (даёт родительский Box)
- *   .card     — padding 12, margin 6 0, radius 12, тень
- *   .subj-ic  — 38x38, radius 10, иконка 20x20 (цветной квадрат)
- *   .subj-name— 16px/600;  .subj-meta — 12px серый
- *   .pill     — 11px/600, padding 4 8, radius 8
- *   .task     — 15px/600, margin-top 6
- *   .desc     — 13px/1.45 серый, margin-top 2
- *   .cta      — синяя, 100%x40, radius 8, 14px/600, margin-top 10
- *   .gtitle   — 20px/600 + счётчик 16px/600, margin 26 0 10, padding 0 4
- *
- * Общее с ученическими карточками (палитра Odoo, контраст иконки)
- * продублировано локально: HomeworkCardList типизирован HomeworkItem.
- */
 import React from 'react';
-import { Caption, Text } from '@vkontakte/vkui';
+import { Caption, Text, Tappable, useColorScheme } from '@vkontakte/vkui';
 import { SubjectIcon } from './SubjectIcon';
 import type { TeacherHomeworkItem } from '@/shared/lib/types';
 
@@ -70,37 +52,44 @@ const subjectColor = (color: number): { bg: string; color: string } => {
   return SUBJECT_COLORS[((color - 1) % 55) + 1];
 };
 
-/* --- Заголовок раздела (.gtitle) --- */
-
-/** Цвета секций из мокапа: янтарный / синий / зелёный. */
 export const SECTION_TONES = {
-  review: '#a86600',
-  issued: '#2d81e0',
-  checked: '#2e8b5e',
+  review: '#216ebd',
+  issued: 'var(--vkui--color_text_secondary)',
+  checked: '#2e7d54',
 } as const;
+
+const statusColors = (dark: boolean) => ({
+  review: { color: dark ? '#8fc3ff' : '#216ebd', background: dark ? '#20364f' : '#eaf3fe' },
+  issued: { color: dark ? '#a8b4c2' : '#627086', background: dark ? '#323a45' : '#edf0f3' },
+  checked: { color: dark ? '#83d3a7' : '#2e7d54', background: dark ? '#203c30' : '#e0f1e8' },
+  red: { color: dark ? '#ff9d9d' : '#b4232c', background: dark ? '#432326' : '#fdeaea' },
+});
 
 export type SectionKey = keyof typeof SECTION_TONES;
 
-/** .gtitle: flex, gap 8, padding 0 4, margin 26 0 10; h2 20px/600,
- *  счётчик 16px/600. Цвет — цвет секции. */
 export const SectionTitle: React.FC<{
   tone: SectionKey;
   title: string;
   count: number;
-  /** Первый раздел сразу под шапкой/фильтрами — без больших 26px сверху. */
   first?: boolean;
-}> = ({ tone, title, count, first }) => (
-  <div style={{
-    display: 'flex', alignItems: 'center', gap: 8,
-    padding: '0 4px', margin: first ? '8px 0 10px' : '26px 0 10px',
-    color: SECTION_TONES[tone],
-  }}>
-    <Text weight="2" style={{ fontSize: 20, lineHeight: '24px', color: 'inherit' }}>
-      {title}
-    </Text>
-    <span style={{ fontSize: 16, fontWeight: 600 }}>{count}</span>
-  </div>
-);
+}> = ({ tone, title, count, first }) => {
+  const colors = statusColors(useColorScheme() === 'dark')[tone];
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'center', gap: 8,
+      margin: first ? '4px 3px 10px' : '22px 3px 10px',
+      color: tone === 'issued' ? SECTION_TONES.issued : colors.color,
+    }}>
+      <Text Component="h2" weight="2" style={{ fontSize: 16, fontWeight: 600, lineHeight: '22px', color: 'inherit', margin: 0 }}>
+        {title}
+      </Text>
+      <span style={{
+        fontSize: 12, fontWeight: 600, minWidth: 24, textAlign: 'center',
+        padding: '3px 6px', borderRadius: 7, ...colors,
+      }}>{count}</span>
+    </div>
+  );
+};
 
 /* --- Плашки (.pill) --- */
 
@@ -129,38 +118,53 @@ const PILL_AMBER_BG = '#fdf3e0';
 const PILL_BLUE_TEXT = '#2d81e0';
 const PILL_AMBER_TEXT = '#a86600';
 
-/** Правая плашка по состоянию (мокап): «N новых» синяя, «Просрочено,
- * N не сдали» янтарная, «Сдали N из M» серые. Второе значение —
- * занята ли плашка чем-то кроме «Сдали»: тогда «Сдали» уходит в мету
- * (в мокапе встречается ровно один раз, не дублируется). */
 export const RightPill: React.FC<{ h: TeacherHomeworkItem }> = ({ h }) => {
   const gray = () => pillStyle(
     'var(--vkui--color_background_secondary)',
     'var(--vkui--color_text_secondary)');
-  if (h.state === 'finish') {
-    return <span style={gray()}>Завершено</span>;
-  }
+  if (h.state === 'finish') return <span style={gray()}>Завершено</span>;
   if (h.to_review > 0) {
-    return (
-      <span style={pillStyle(PILL_BLUE_BG, PILL_BLUE_TEXT)}>
-        {`${h.to_review} новых`}
-      </span>
-    );
+    return <span style={pillStyle(PILL_BLUE_BG, PILL_BLUE_TEXT)}>{`${h.to_review} новых`}</span>;
   }
   if (h.overdue && h.submitted < h.total) {
-    return (
-      <span style={pillStyle(PILL_AMBER_BG, PILL_AMBER_TEXT)}>
-        {`Просрочено, ${h.total - h.submitted} не сдали`}
-      </span>
-    );
+    return <span style={pillStyle(PILL_AMBER_BG, PILL_AMBER_TEXT)}>{`Просрочено, ${h.total - h.submitted} не сдали`}</span>;
   }
   return <span style={gray()}>{`Сдали ${h.submitted} из ${h.total}`}</span>;
 };
 
-/** Плашка занята («N новых»/«Просрочено»/«Завершено»)? Тогда «Сдали»
- *  живёт в мете, а не в плашке. */
-const pillBusy = (h: TeacherHomeworkItem): boolean =>
-  h.state === 'finish' || h.to_review > 0 || (h.overdue && h.submitted < h.total);
+const statusPill = (background: string, color: string): React.CSSProperties => ({
+  display: 'inline-flex', alignItems: 'center',
+  fontSize: 12, fontWeight: 600, lineHeight: '18px', padding: '4px 10px', borderRadius: 999,
+  whiteSpace: 'normal', overflowWrap: 'anywhere', maxWidth: '100%', background, color,
+});
+
+const CardStatus: React.FC<{ h: TeacherHomeworkItem }> = ({ h }) => {
+  const colors = statusColors(useColorScheme() === 'dark');
+  const [label, tone]: [string, { background: string; color: string }] = h.to_review > 0
+    ? [`${h.to_review} к проверке`, colors.review]
+    : h.submitted > 0
+      ? ['Проверено', colors.checked]
+      : h.state === 'finish'
+        ? ['Приём закрыт', colors.issued]
+        : h.overdue && h.submitted < h.total
+          ? ['Просрочено', colors.red]
+          : ['Выдано', colors.issued];
+  return <span style={{ ...statusPill(tone.background, tone.color), marginLeft: 'auto', flexShrink: 0 }}>{label}</span>;
+};
+
+const CardFoot: React.FC<{ h: TeacherHomeworkItem }> = ({ h }) => {
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+      gap: 8, flexWrap: 'wrap', marginTop: 12, paddingTop: 10,
+      borderTop: '1px solid var(--vkui--color_separator_primary)',
+      fontSize: 13, lineHeight: '18px', color: 'var(--vkui--color_text_secondary)',
+    }}>
+      <span>Сдали <strong style={{ color: 'var(--vkui--color_text_primary)' }}>{h.submitted}</strong> из {h.total}</span>
+      {h.state === 'finish' && <span>Приём закрыт</span>}
+    </div>
+  );
+};
 
 /* --- Карточка задания (.card) --- */
 
@@ -170,40 +174,29 @@ interface TeacherHwCardProps {
   onOpen: (id: number) => void;
 }
 
-/** Карточка как в мокапе: .card padding 12, radius 12, margin 6 0;
- *  шапка .row1 (квадрат + название/мета + плашка), .task 15px/600,
- *  .desc 13px серый. Клик — экран задания. */
 export const TeacherHwCard: React.FC<TeacherHwCardProps> = ({ h, showFaculty, onOpen }) => {
   const c = subjectColor(h.subject_color || 0);
+  const colors = statusColors(useColorScheme() === 'dark');
+  const overdue = h.state !== 'finish' && h.overdue;
+  const due = fmtDueTeacher(h.due).replace(/^до /, '');
+  const deadline = due ? `Срок · ${due}` : 'Без срока';
+  const status = <CardStatus h={h} />;
 
-  // .subj-meta: «Срок: до 20 сен · Сдали 9 из 24»; у админа первым
-  // преподаватель. «Сдали» попадает сюда ТОЛЬКО когда плашка справа
-  // занята («N новых»/«Просрочено»/«Завершено»), иначе оно в плашке —
-  // в мокапе значение встречается один раз.
-  const meta = [
-    showFaculty && h.faculty,
-    h.due ? `Срок: ${fmtDueTeacher(h.due)}` : '',
-    pillBusy(h) ? `Сдали ${h.submitted} из ${h.total}` : '',
-  ].filter(Boolean).join(' · ');
-
-  // Текст задания = .task; пояснение (описание из поля задания, если
-  // отличается) — .desc. В модели одно поле task, desc нет.
   return (
-    <div
+    <Tappable
+      Component="div"
       onClick={() => onOpen(h.id)}
       style={{
         background: 'var(--vkui--color_background_content)',
-        borderRadius: 12,
-        margin: '6px 0',
-        padding: 12,
-        cursor: 'pointer',
-        boxShadow: 'var(--vkui--elevation1)',
+        border: '1px solid var(--vkui--color_separator_primary)',
+        borderRadius: 16,
+        margin: '0 0 9px',
+        padding: 14,
+        textAlign: 'left',
       }}
     >
-      {/* .row1 */}
-      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 0 }}>
-          {/* .subj-ic 38x38 r10 + svg 20x20 */}
+      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-start', gap: 10 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flex: '1 0 auto', width: 'max-content', maxWidth: '100%', minWidth: 0 }}>
           <span style={{
             width: 38, height: 38, borderRadius: 10, flexShrink: 0,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -211,33 +204,37 @@ export const TeacherHwCard: React.FC<TeacherHwCardProps> = ({ h, showFaculty, on
           }}>
             <SubjectIcon subject={h.subject} />
           </span>
-          {/* .subj-txt */}
-          <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0, flex: 1 }}>
+          <div style={{ minWidth: 0, flex: 1 }}>
             <Text weight="2" style={{
-              fontSize: 16, lineHeight: '20px', display: 'block',
-              whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+              fontSize: 16, fontWeight: 600, lineHeight: '22px',
+              whiteSpace: 'normal', overflowWrap: 'anywhere',
+              color: 'var(--vkui--color_text_primary)',
             }}>
               {h.subject}{h.batch ? ` · ${h.batch}` : ''}
             </Text>
+            {showFaculty && h.faculty && (
+              <Caption style={{ fontSize: 13, lineHeight: '18px', color: 'var(--vkui--color_text_secondary)', overflowWrap: 'anywhere' }}>
+                {h.faculty}
+              </Caption>
+            )}
             <Caption style={{
-              fontSize: 12, color: 'var(--vkui--color_text_secondary)',
-              display: 'block', marginTop: 1,
-              whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+              fontSize: 13, lineHeight: '18px', marginTop: 2,
+              color: overdue ? colors.red.color : 'var(--vkui--color_text_secondary)',
             }}>
-              {meta}
+              {deadline}
             </Caption>
           </div>
         </div>
-        <RightPill h={h} />
+        {status}
       </div>
-      {/* .task */}
       <div style={{
-        fontSize: 15, fontWeight: 600, lineHeight: '20px',
-        marginTop: 6, overflowWrap: 'break-word',
+        fontSize: 15, fontWeight: 400, lineHeight: 1.5,
+        marginTop: 11, overflowWrap: 'anywhere', whiteSpace: 'pre-wrap',
         color: 'var(--vkui--color_text_primary)',
       }}>
         {h.task}
       </div>
-    </div>
+      <CardFoot h={h} />
+    </Tappable>
   );
 };
