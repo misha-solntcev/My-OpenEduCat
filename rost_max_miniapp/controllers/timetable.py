@@ -1025,10 +1025,29 @@ class RostMaxTimetableController(http.Controller):
                 ('student_id', '=', student.id),
                 ('grade_1', '>', 0)
             ]).mapped('grade_1')
-            gpa = round(sum(all_grades) / len(all_grades), 2) if all_grades else 4.5
+            gpa = round(sum(all_grades) / len(all_grades), 2) if all_grades else None
+            # pending_homework: publish-задания класса с будущим сроком
+            # минус уже сданные (submit/accept).
+            now_dt = fields.Datetime.now()
+            student_batches = student.mapped('active_batch_id')
+            pending_asgs = request.env['op.assignment'].sudo().search([
+                ('state', '=', 'publish'),
+                ('batch_id', 'in', student_batches.ids),
+                ('submission_date', '>=', now_dt),
+            ])
+            submitted_asg_ids = set(
+                request.env['op.assignment.sub.line'].sudo().search([
+                    ('assignment_id', 'in', pending_asgs.ids),
+                    ('student_id', '=', student.id),
+                    ('state', 'in', ['submit', 'accept']),
+                ]).mapped('assignment_id').ids
+            )
+            pending_hw_count = len(
+                pending_asgs.filtered(lambda a: a.id not in submitted_asg_ids)
+            )
             metrics = {
                 "gpa": gpa,
-                "pending_homework": len(sessions)  # условная цифра уроков за день
+                "pending_homework": pending_hw_count
             }
 
         return request.make_json_response({
@@ -1156,6 +1175,13 @@ class RostMaxTimetableController(http.Controller):
                 for s in request.env['op.assignment.sub.line'].sudo().read_group(
                     [('assignment_id', 'in', my_asgs.ids),
                      ('state', '=', 'submit')],
+                    ['assignment_id'], ['assignment_id'])
+            }
+            accepted_counts = {
+                s['assignment_id'][0]: s['assignment_id_count']
+                for s in request.env['op.assignment.sub.line'].sudo().read_group(
+                    [('assignment_id', 'in', my_asgs.ids),
+                     ('state', '=', 'accept')],
                     ['assignment_id'], ['assignment_id'])
             }
             feed["my_homework"] = [{
@@ -1725,6 +1751,7 @@ class RostMaxTimetableController(http.Controller):
             "submitted": submitted_counts.get(a.id, 0),
             "total": len(a.allocation_ids),
             "to_review": to_review_counts.get(a.id, 0),
+            "accepted": accepted_counts.get(a.id, 0),
             "answer_required": a.answer_required,
             "materials_count": len(a._hw_material_payload()),
             # Источник в журнале (для правки текста через синк); бывает
