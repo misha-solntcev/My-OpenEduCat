@@ -19,6 +19,7 @@ import {
   SegmentedControl,
 } from '@vkontakte/vkui';
 import { useAppStore } from '@/shared/lib/store';
+import { clearSessionId } from '@/shared/lib/api';
 import { initialsOf } from '@/shared/lib/initials';
 import type { ThemePreference } from '@/shared/lib/theme';
 
@@ -94,14 +95,16 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ id, onBack }) => {
         </Div>
       </Group>
 
-      {/* Выход: реальная навигация, чтобы Odoo закрыл сессию серверно */}
+      {/* Выход: чистим сохранённый sid ДО навигации (иначе мёртвый sid
+          останется в localStorage и следующий логин может закольцеваться
+          на 401), затем Odoo закрывает сессию серверно */}
       <Div style={{ paddingTop: 24 }}>
         <Button
           mode="primary"
           appearance="negative"
           size="l"
           stretched
-          onClick={() => { window.location.href = '/rost_max/logout'; }}
+          onClick={() => { clearSessionId(); window.location.href = '/rost_max/logout'; }}
         >
           Выйти
         </Button>
