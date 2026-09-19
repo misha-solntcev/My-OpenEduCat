@@ -10,6 +10,7 @@
 import React from 'react';
 import { Avatar, Button, Caption, Input, Text } from '@vkontakte/vkui';
 import { initialsOf } from '@/shared/lib/initials';
+import { AccentSegmentedControl } from '@/shared/components/AccentSegmentedControl';
 import {
   Icon24ListCheckOutline, Icon24ChevronRight, Icon28AttachOutline,
 } from '@vkontakte/icons';
@@ -116,42 +117,16 @@ export const ReviewQueue: React.FC<{
 
   return (
     <div style={{ paddingInline: 8 }}>
-      {/* сегмент-фильтры (мокап: .seg) */}
-      <div role="tablist" style={{
-        display: 'flex', gap: 2, padding: 2, margin: '10px 0 2px',
-        borderRadius: 10, background: 'var(--vkui--color_background_secondary)',
-      }}>
-        {(Object.keys(SEG_TITLES) as SegKey[]).map(key => {
-          const on = seg === key;
-          return (
-            <button
-              key={key}
-              role="tab"
-              aria-selected={on}
-              onClick={() => setSeg(key)}
-              style={{
-                flex: 1, border: 0, cursor: 'pointer', font: 'inherit',
-                fontSize: 13, fontWeight: 600, padding: '7px 0',
-                borderRadius: 8, whiteSpace: 'nowrap',
-                background: on ? 'var(--vkui--color_background_content)' : 'transparent',
-                color: 'var(--vkui--color_text_primary)',
-                boxShadow: on ? 'var(--vkui--elevation1)' : undefined,
-              }}
-            >
-              {SEG_TITLES[key]}
-              {' '}
-              <span style={{
-                display: 'inline-block', minWidth: 18, padding: '0 5px',
-                borderRadius: 9, fontSize: 11, lineHeight: '18px',
-                background: key === 'checked'
-                  ? 'var(--vkui--color_background_positive_tint)'
-                  : 'var(--vkui--color_background_warning)',
-                color: 'var(--vkui--color_text_primary)',
-              }}>{bySeg[key].length}</span>
-            </button>
-          );
-        })}
-      </div>
+      {/* сегмент-фильтры (общий AccentSegmentedControl). */}
+      <AccentSegmentedControl
+        aria-label="Состояния сдач"
+        value={seg}
+        onChange={setSeg}
+        style={{ margin: '10px 0 10px' }}
+        options={(Object.keys(SEG_TITLES) as SegKey[]).map(key => ({
+          value: key, title: SEG_TITLES[key], count: bySeg[key].length,
+        }))}
+      />
 
       <div style={{
         background: 'var(--vkui--color_background_content)',

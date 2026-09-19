@@ -1,44 +1,30 @@
 /**
- * Вкладка «Задания» (ученик/родитель): три блока — «Новые» (не сдано,
- * включая «на доработку» с комментарием учителя) / «Сдано» (ждёт
- * проверки) / «Проверено» (принято).
+ * Вкладка «Задания» (ученик/родитель): сегмент-контрол статусов —
+ * «Новые» (не сдано, включая «на доработку» с комментарием учителя) /
+ * «Сдано» (ждёт проверки) / «Проверено» (принято). Ниже — список только
+ * выбранного статуса (тот же паттерн, что у учителя и в ReviewQueue).
  */
 import React from 'react';
-import { Panel, Div, Spinner, Button, Placeholder, Caption, Title } from '@vkontakte/vkui';
+import { Panel, Div, Spinner, Button, Placeholder, Caption } from '@vkontakte/vkui';
 import { Icon56DocumentOutline } from '@vkontakte/icons';
 import { apiGet, apiPost } from '@/shared/lib/api';
 import { useToast } from '@/shared/components/Toast';
 import { HomeworkCardList } from '@/shared/components/HomeworkCardList';
+import { AccentSegmentedControl } from '@/shared/components/AccentSegmentedControl';
 import type { HomeworkItem, HomeworkListResponse } from '@/shared/lib/types';
 
 interface HomeworkPageProps {
   id: string;
 }
 
-/** Заголовок группы заданий: крупный текст + цветная точка-статус +
- *  плашка-счётчик количества заданий в группе. Цвет несёт точка и
- *  счётчик (токены VKUI, без кастомных цветов); сам текст — text_primary
- *  (адаптивный, читается в обеих темах). */
-const GroupTitle: React.FC<{ label: string; count: number; dot: string }> = ({ label, count, dot }) => (
-  <Div style={{ paddingTop: 14, paddingBottom: 6, display: 'flex', alignItems: 'center', gap: 8 }}>
-    <span style={{
-      width: 10, height: 10, borderRadius: '50%', flexShrink: 0, background: dot,
-    }} />
-    <Title level="3" style={{ color: 'var(--vkui--color_text_primary)' }}>
-      {label}
-    </Title>
-    <span style={{
-      minWidth: 24, height: 22, borderRadius: 11, flexShrink: 0,
-      display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-      padding: '0 8px', fontSize: 13, fontWeight: 600,
-      color: 'var(--vkui--color_text_primary)',
-      background: 'var(--vkui--color_background_positive_tint)',
-      border: '1px solid var(--vkui--color_stroke_positive)',
-    }}>
-      {count}
-    </span>
-  </Div>
-);
+type StatusKey = 'fresh' | 'submitted' | 'checked';
+
+/** Сегмент-контрол статусов: подпись, цветная точка, текст пустого списка. */
+const SEGMENTS: { key: StatusKey; title: string; empty: string }[] = [
+  { key: 'fresh', title: 'Новые', empty: 'Новых заданий нет' },
+  { key: 'submitted', title: 'Сдано', empty: 'Нет заданий, ожидающих проверки' },
+  { key: 'checked', title: 'Проверено', empty: 'Проверенных заданий пока нет' },
+];
 
 /** Группировка по состоянию сдачи.
  *
@@ -66,6 +52,8 @@ export const HomeworkPage: React.FC<HomeworkPageProps> = ({ id }) => {
   const addToast = useToast();
   const [items, setItems] = React.useState<HomeworkItem[] | null>(null);
   const [loading, setLoading] = React.useState(false);
+  // Активный сегмент статуса (сегмент-контрол как у учителя/ReviewQueue).
+  const [status, setStatus] = React.useState<StatusKey>('fresh');
 
   const load = React.useCallback(async () => {
     setLoading(true);
@@ -131,30 +119,29 @@ export const HomeworkPage: React.FC<HomeworkPageProps> = ({ id }) => {
         </Placeholder>
       ) : (
         <>
-          {groups.fresh.length > 0 && (
+          {/* Сегмент-контрол статусов (общий AccentSegmentedControl). */}
+          <div style={{ paddingInline: 12, paddingTop: 10, paddingBottom: 10 }}>
+            <AccentSegmentedControl
+              aria-label="Статусы заданий"
+              value={status}
+              onChange={setStatus}
+              options={SEGMENTS.map(({ key, title }) => ({
+                value: key, title, count: groups[key].length,
+              }))}
+            />
+          </div>
+
+          {groups[status].length > 0 ? (
             <HomeworkCardList
-              items={groups.fresh}
-              title={<GroupTitle label="Новые" count={groups.fresh.length} dot="var(--vkui--color_background_accent)" />}
-              canSubmit
+              items={groups[status]}
+              canSubmit={status === 'fresh'}
               onSubmit={submit}
               onUpdated={load}
             />
-          )}
-          {groups.submitted.length > 0 && (
-            <HomeworkCardList
-              items={groups.submitted}
-              title={<GroupTitle label="Сдано" count={groups.submitted.length} dot="var(--vkui--color_icon_warning)" />}
-              canSubmit={false}
-              onUpdated={load}
-            />
-          )}
-          {groups.checked.length > 0 && (
-            <HomeworkCardList
-              items={groups.checked}
-              title={<GroupTitle label="Проверено" count={groups.checked.length} dot="var(--vkui--color_background_positive)" />}
-              canSubmit={false}
-              onUpdated={load}
-            />
+          ) : (
+            <Caption style={{ display: 'block', padding: '16px 16px 24px', color: 'var(--vkui--color_text_secondary)' }}>
+              {SEGMENTS.find(s => s.key === status)!.empty}
+            </Caption>
           )}
         </>
       )}

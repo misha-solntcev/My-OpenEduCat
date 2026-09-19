@@ -1,7 +1,9 @@
 /**
  * Шторка фильтров «Задания» учителя/админа (мокап
- * design/teacher-homework-mockup.html): ModalPage с чекбоксами
+ * design/teacher-homework-mockup.html): ModalPage с рядами чипов
  * «Классы» и «Предметы», черновик выбора применяется по «Показать».
+ * Чипы идут в горизонтальную обёртку (flex-wrap) — компактно по
+ * высоте; выбранный чип = mode primary, снятый = secondary.
  *
  * Значения собираются из уже загруженного списка заданий (не из
  * справочников) — фильтр по определению не может дать пустую опцию.
@@ -15,7 +17,7 @@
  */
 import React from 'react';
 import {
-  ModalPage, ModalPageHeader, PanelHeaderButton, Group, Header, Checkbox,
+  ModalPage, ModalPageHeader, PanelHeaderButton, Group, Header, Chip,
   Button, ButtonGroup, Footnote, AppRootPortal,
 } from '@vkontakte/vkui';
 import { Icon24Dismiss } from '@vkontakte/icons';
@@ -85,17 +87,39 @@ export const HomeworkFilterModal: React.FC<Props> = ({
     <Group
       header={<Header size="s">{header}</Header>}
       mode="plain"
-      separator={options.length > 1 ? 'show' : 'hide'}
+      separator="hide"
     >
-      {options.map(opt => (
-        <Checkbox
-          key={opt}
-          checked={selected.has(opt)}
-          onChange={() => toggle(setter, selected, opt)}
-        >
-          {opt}
-        </Checkbox>
-      ))}
+      <div style={{
+        display: 'flex', flexWrap: 'wrap', gap: 8, padding: '0 16px 8px',
+      }}>
+        {options.map(opt => {
+          const active = selected.has(opt);
+          return (
+            <Chip
+              key={opt}
+              removable={false}
+              onClick={() => toggle(setter, selected, opt)}
+              aria-pressed={active}
+              style={active ? {
+                background: 'var(--vkui--color_background_accent)',
+                border: '1px solid var(--vkui--color_background_accent)',
+              } : {
+                background: 'var(--vkui--color_background_secondary)',
+                border: '1px solid transparent',
+              }}
+            >
+              <span style={{
+                color: active
+                  ? 'var(--vkui--color_text_contrast)'
+                  : 'var(--vkui--color_text_secondary)',
+                fontWeight: active ? 600 : 400,
+              }}>
+                {opt}
+              </span>
+            </Chip>
+          );
+        })}
+      </div>
     </Group>
   );
 
@@ -105,6 +129,7 @@ export const HomeworkFilterModal: React.FC<Props> = ({
         id="teacher-homework-filters"
         open={open}
         onClose={onClose}
+        dynamicContentHeight
         header={(
           <ModalPageHeader
             before={(
@@ -133,8 +158,11 @@ export const HomeworkFilterModal: React.FC<Props> = ({
           <>
             {renderSection('Классы', batchOptions, draftBatches, setDraftBatches)}
             {renderSection('Предметы', subjectOptions, draftSubjects, setDraftSubjects)}
-            <div style={{ padding: '12px 16px 20px' }}>
+            <div style={{ padding: '4px 16px 12px' }}>
               <ButtonGroup gap="s" stretched>
+                <Button size="l" mode="primary" stretched onClick={apply}>
+                  Ок
+                </Button>
                 <Button
                   size="l"
                   mode="secondary"
@@ -142,9 +170,6 @@ export const HomeworkFilterModal: React.FC<Props> = ({
                   onClick={onClose}
                 >
                   Отмена
-                </Button>
-                <Button size="l" mode="primary" stretched onClick={apply}>
-                  Показать
                 </Button>
               </ButtonGroup>
             </div>

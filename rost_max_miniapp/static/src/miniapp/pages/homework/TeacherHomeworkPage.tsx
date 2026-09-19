@@ -27,13 +27,23 @@ import { MaterialsEditor } from '@/shared/components/MaterialsEditor';
 import { ReviewQueue } from '@/shared/components/ReviewQueue';
 import { SubjectIcon, subjectTint } from '@/shared/components/SubjectIcon';
 import { HomeworkFilterModal } from '@/pages/homework/HomeworkFilterModal';
-import { SectionTitle, TeacherHwCard, RightPill } from '@/shared/components/TeacherHomeworkCards';
+import { AccentSegmentedControl } from '@/shared/components/AccentSegmentedControl';
+import { TeacherHwCard, RightPill } from '@/shared/components/TeacherHomeworkCards';
 import type {
   TeacherHomeworkItem, TeacherHomeworkResponse, HomeworkSubmissionsResponse,
 } from '@/shared/lib/types';
 
 const MONTHS = ['янв', 'фев', 'мар', 'апр', 'мая', 'июн',
   'июл', 'авг', 'сен', 'окт', 'ноя', 'дек'];
+
+type StatusKey = 'review' | 'issued' | 'checked';
+
+/** Сегмент-контрол статусов + текст пустого списка каждого статуса. */
+const SEGMENTS: { key: StatusKey; title: string; empty: string }[] = [
+  { key: 'review', title: 'К проверке', empty: 'Нет работ для проверки' },
+  { key: 'issued', title: 'Выдано', empty: 'Нет выданных заданий без ответов' },
+  { key: 'checked', title: 'Проверено', empty: 'Проверенных заданий пока нет' },
+];
 
 const fmtDue = (due: string): string => {
   if (!due) return '';
@@ -445,6 +455,8 @@ export const TeacherHomeworkPage: React.FC<{ id: string }> = ({ id }) => {
   // Фильтры класс/предмет: Set-ы значений; пустой Set = «все».
   const [filters, setFilters] = React.useState({ batches: new Set<string>(), subjects: new Set<string>() });
   const [filtersOpen, setFiltersOpen] = React.useState(false);
+  // Активный сегмент статуса (сегмент-контрол как в ReviewQueue).
+  const [status, setStatus] = React.useState<StatusKey>('review');
 
   const load = React.useCallback(async () => {
     setLoading(true);
@@ -553,23 +565,26 @@ export const TeacherHomeworkPage: React.FC<{ id: string }> = ({ id }) => {
                 </Div>
               )}
 
-              <Box paddingInline={12} paddingBlockStart={16} paddingBlockEnd={22}>
-                {([
-                  { key: 'review', title: 'К проверке', empty: 'Нет работ для проверки' },
-                  { key: 'issued', title: 'Выдано', empty: 'Нет выданных заданий без ответов' },
-                  { key: 'checked', title: 'Проверено', empty: 'Проверенных заданий пока нет' },
-                ] as const).map(({ key, title, empty }, index) => (
-                  <section key={key} aria-label={title}>
-                    <SectionTitle first={index === 0} tone={key} title={title} count={groups[key].length} />
-                    {groups[key].length > 0 ? groups[key].map(h => (
-                      <TeacherHwCard key={h.id} h={h} showFaculty={showFaculty} onOpen={setOpenId} />
-                    )) : (
-                      <Caption style={{ padding: '12px 14px', color: 'var(--vkui--color_text_secondary)' }}>
-                        {filterActive ? 'Нет заданий по выбранным фильтрам' : empty}
-                      </Caption>
-                    )}
-                  </section>
-                ))}
+              <Box paddingInline={12} paddingBlockStart={4} paddingBlockEnd={22}>
+                {/* сегмент-контрол статусов (общий AccentSegmentedControl). */}
+                <div style={{ paddingTop: 4, paddingBottom: 10 }}>
+                  <AccentSegmentedControl
+                    aria-label="Статусы заданий"
+                    value={status}
+                    onChange={setStatus}
+                    options={SEGMENTS.map(({ key, title }) => ({
+                      value: key, title, count: groups[key].length,
+                    }))}
+                  />
+                </div>
+
+                {groups[status].length > 0 ? groups[status].map(h => (
+                  <TeacherHwCard key={h.id} h={h} showFaculty={showFaculty} onOpen={setOpenId} />
+                )) : (
+                  <Caption style={{ padding: '12px 14px', color: 'var(--vkui--color_text_secondary)' }}>
+                    {filterActive ? 'Нет заданий по выбранным фильтрам' : SEGMENTS.find(s => s.key === status)!.empty}
+                  </Caption>
+                )}
               </Box>
             </>
           )}
