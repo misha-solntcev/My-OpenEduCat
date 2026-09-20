@@ -409,7 +409,7 @@ export const MyHomework: React.FC<{
 // --- Сдачи по заданию (учитель: проверка) ----------------------------------
 
 export const STATE_LABEL: Record<string, string> = {
-  submit: 'Сдано',
+  submit: 'На проверке',
   accept: 'Принято',
   change: 'На доработку',
   reject: 'Отклонено',
@@ -512,8 +512,8 @@ export const SubmissionReviewCard: React.FC<{
                   Оценка: {s.mark}
                 </Caption>
               )}
-              {/* История сдачи из mail-трекинга: Сдано 18.09 → На доработку
-                  19.09 → … Хронология внизу строки, мелко, серым. */}
+              {/* История сдачи из mail-трекинга (ru.po лейблы): На проверке
+                  18.09 → На доработке 19.09 → … Хронология внизу строки. */}
               {s.history && s.history.length > 0 && (
                 <Caption style={{
                   color: 'var(--vkui--color_text_secondary)',

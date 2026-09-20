@@ -48,7 +48,7 @@ const fmtSubmitted = (iso: string): string => {
 };
 
 const HW_STATE_LABEL: Record<string, string> = {
-  submit: 'Сдано',
+  submit: 'На проверке',
   accept: 'Принято',
   change: 'На доработке',
   reject: 'Отклонено',
