@@ -1,7 +1,7 @@
 import React from 'react';
-import { Panel, Spinner, Div, Button, Text, Card as VkCard, Counter, Caption } from '@vkontakte/vkui';
+import { Panel, Spinner, Div, Button, Text, Card as VkCard, Counter } from '@vkontakte/vkui';
 import { useAppStore } from '@/shared/lib/store';
-import { apiGet, apiPost } from '@/shared/lib/api';
+import { apiGet } from '@/shared/lib/api';
 import { useToast } from '@/shared/components/Toast';
 import { today } from '@/shared/lib/date';
 import type { DashboardInfoResponse } from '@/shared/lib/types';
@@ -12,7 +12,6 @@ import {
   AdminStatStrip,
   AdminAlerts,
 } from './components/feed';
-import { HomeworkCardList as HomeworkList } from '@/shared/components/HomeworkCardList';
 
 interface DashboardPageProps {
   id: string;
@@ -23,39 +22,109 @@ interface DashboardPageProps {
   onOpenProfile: () => void;
 }
 
-/** Табло ДЗ учителя/админа: только счётчики, клик уводит на вкладку
- *  «Задания» (там списки, проверка и правка). */
-export const HwSummaryCard: React.FC<{
-  summary: { to_review: number; active: number };
-  onOpenHomework: () => void;
-}> = ({ summary, onOpenHomework }) => (
-  <div style={{ margin: '0 8px 8px' }}>
-    <VkCard mode="shadow" style={{ overflow: 'hidden' }} onClick={onOpenHomework}>
-      <div style={{
-        padding: '12px 16px', display: 'flex',
-        justifyContent: 'space-between', alignItems: 'center',
-      }}>
-        <Text weight="2">Домашние задания</Text>
-        <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-          {summary.to_review > 0 && (
-            <Counter mode="primary" appearance="accent-red">
-              {`${summary.to_review} к проверке`}
-            </Counter>
-          )}
-          <Counter mode="primary">{`${summary.active} активных`}</Counter>
-        </div>
-      </div>
-      <Caption
-        style={{
-          color: 'var(--vkui--color_text_secondary)',
-          display: 'block', padding: '0 16px 12px',
-        }}
-      >
-        Открыть задания
-      </Caption>
-    </VkCard>
+/* Строка «точка + подпись + счётчик-плашка» — вариант Б мокапа
+ * (design/student-hw-card-variants.html): язык групп вкладки «Задания».
+ * Нулевые строки не рендерим. */
+const HwSummaryRow: React.FC<{
+  dot: string;
+  label: string;
+  count: number;
+  counterAppearance: 'accent' | 'accent-red' | 'accent-green';
+}> = ({ dot, label, count, counterAppearance }) => (
+  <div style={{
+    display: 'flex', alignItems: 'center',
+    padding: '9px 16px', borderTop: '1px solid var(--vkui--color_separator_primary)',
+  }}>
+    <span style={{
+      width: 8, height: 8, borderRadius: '50%', marginRight: 10,
+      flexShrink: 0, background: dot,
+    }} />
+    <span style={{ fontSize: 14, flex: 1 }}>{label}</span>
+    <Counter mode="primary" appearance={counterAppearance}>{count}</Counter>
+    <span style={{
+      marginLeft: 10, color: 'var(--vkui--color_icon_tertiary)', fontSize: 14,
+    }}>›</span>
   </div>
 );
+
+/** Табло ДЗ ученика: строки статусов (Вариант Б), клик — вкладка «Задания».
+ *  Новые без сдачи; На доработке — вернулось от учителя; На проверке —
+ *  сдано; Проверено — принято (за всё время); Просрочено — срок прошёл,
+ *  сдачи нет (отдельной строкой, из «Новых» исключается).
+ *  Окна по дате нет (2026-09-19): лента фильтруется статусом, не датой,
+ *  поэтому счётчики главной всегда равны сегментам вкладки «Задания». */
+export const StudentHwCard: React.FC<{
+  items: { state: string; overdue: boolean }[];
+  onOpenHomework: () => void;
+}> = ({ items, onOpenHomework }) => {
+  const fresh = items.filter(
+    h => (h.state === 'none' || h.state === 'draft') && !h.overdue).length;
+  const change = items.filter(h => h.state === 'change' || h.state === 'reject').length;
+  const submitted = items.filter(h => h.state === 'submit').length;
+  const checked = items.filter(h => h.state === 'accept').length;
+  const overdue = items.filter(
+    h => h.overdue && h.state !== 'submit' && h.state !== 'accept').length;
+  // Просрочено — первое: горящее всегда сверху
+  const rows = [
+    overdue > 0 && { dot: 'var(--vkui--color_icon_negative)', label: 'Просрочено',
+      count: overdue, appearance: 'accent-red' as const },
+    fresh > 0 && { dot: 'var(--vkui--color_background_accent)', label: 'Новые',
+      count: fresh, appearance: 'accent' as const },
+    change > 0 && { dot: 'var(--vkui--color_icon_negative)', label: 'На доработке',
+      count: change, appearance: 'accent-red' as const },
+    submitted > 0 && { dot: 'var(--vkui--color_icon_warning)', label: 'На проверке',
+      count: submitted, appearance: 'accent' as const },
+    checked > 0 && { dot: 'var(--vkui--color_icon_positive)', label: 'Проверено',
+      count: checked, appearance: 'accent-green' as const },
+  ].filter(Boolean) as { dot: string; label: string; count: number;
+    counterAppearance: 'accent' | 'accent-red' | 'accent-green' }[];
+  if (rows.length === 0) return null;
+  return (
+    <div style={{ margin: '0 8px 8px' }}>
+      <VkCard mode="shadow" style={{ overflow: 'hidden' }} onClick={onOpenHomework}>
+        <div style={{ padding: '12px 16px 10px' }}>
+          <Text weight="2">Домашние задания</Text>
+        </div>
+        {rows.map(r => <HwSummaryRow key={r.label} {...r} />)}
+      </VkCard>
+    </div>
+  );
+};
+
+/** Табло ДЗ учителя/админа: строки статусов, как у ученика (Вариант Б),
+ *  сегменты вкладки «Задания»: Проверить / Выдано / Проверено.
+ *  Клик — вкладка. Нулевые строки не рендерим. */
+export const TeacherHwCard: React.FC<{
+  summary: { to_review: number; issued: number; checked: number };
+  onOpenHomework: () => void;
+}> = ({ summary, onOpenHomework }) => {
+  const rows = [
+    summary.to_review > 0 && {
+      dot: 'var(--vkui--color_icon_negative)', label: 'Проверить',
+      count: summary.to_review, counterAppearance: 'accent-red' as const,
+    },
+    summary.issued > 0 && {
+      dot: 'var(--vkui--color_background_accent)', label: 'Выдано',
+      count: summary.issued, counterAppearance: 'accent' as const,
+    },
+    summary.checked > 0 && {
+      dot: 'var(--vkui--color_icon_positive)', label: 'Проверено',
+      count: summary.checked, counterAppearance: 'accent-green' as const,
+    },
+  ].filter(Boolean) as { dot: string; label: string; count: number;
+    counterAppearance: 'accent' | 'accent-red' | 'accent-green' }[];
+  if (rows.length === 0) return null;
+  return (
+    <div style={{ margin: '0 8px 8px' }}>
+      <VkCard mode="shadow" style={{ overflow: 'hidden' }} onClick={onOpenHomework}>
+        <div style={{ padding: '12px 16px 10px' }}>
+          <Text weight="2">Домашние задания</Text>
+        </div>
+        {rows.map(r => <HwSummaryRow key={r.label} {...r} />)}
+      </VkCard>
+    </div>
+  );
+};
 
 export const DashboardPage: React.FC<DashboardPageProps> = ({
   id, onOpenLesson, onOpenTimetable, onOpenGrades, onOpenHomework, onOpenProfile,
@@ -84,27 +153,6 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
   }, [feedDate, addToast]);
 
   React.useEffect(() => { load(); }, [load]);
-
-  const submitHomework = async (
-    assignmentId: number,
-    answer: string,
-    files: { filename: string; mimetype: string; b64: string }[],
-  ): Promise<string | null> => {
-    try {
-      const res = await apiPost<{ success?: boolean; error?: string }>(
-        `/rost_max/api/homework/${assignmentId}/submit`,
-        { answer, files });
-      if (res.error) {
-        addToast(res.error, 'error');
-        return res.error;
-      }
-      addToast('Домашнее задание сдано', 'success');
-      return null;
-    } catch {
-      addToast('Не удалось сдать задание', 'error');
-      return 'error';
-    }
-  };
 
   const userName = userInfo?.user_name ?? '';
   const isAdmin = Boolean(data?.is_admin);
@@ -157,36 +205,23 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
             grouped={isAdmin}
           />
 
-          {/* Ученик: оценки за сегодня + ДЗ */}
+          {/* Ученик: оценки за сегодня */}
           {isStudentOrParent && data.grades_today && (
             <GradesToday grades={data.grades_today} onOpenGrades={onOpenGrades} />
           )}
+
+          {/* ДЗ у всех ролей — информационное табло: только счётчики,
+              вся работа со сдачей/проверкой на вкладке «Задания».
+              Ученик: строки статусов (вариант Б мокапа); учитель/админ:
+              компактная строка сегментов. */}
           {isStudentOrParent && data.homework && (
-            <HomeworkList
-              items={data.homework.filter(h => h.state !== 'submit' && h.state !== 'accept')}
-              max={3}
-              title={<Text weight="2">Домашние задания</Text>}
-              afterTitle={
-                <span
-                  style={{
-                    color: 'var(--vkui--color_text_accent)',
-                    fontWeight: 500, cursor: 'pointer', fontSize: 13,
-                  }}
-                  onClick={onOpenHomework}
-                >
-                  Все задания →
-                </span>
-              }
-              canSubmit={Boolean(data.is_student)}
-              onSubmit={submitHomework}
-              onUpdated={load}
+            <StudentHwCard
+              items={data.homework}
+              onOpenHomework={onOpenHomework}
             />
           )}
-
-          {/* Учитель/админ: табло ДЗ — только счётчики, вся логика
-              (списки, проверка, правка) на вкладке «Задания». */}
           {(isTeacher || isAdmin) && data.hw_summary && (
-            <HwSummaryCard
+            <TeacherHwCard
               summary={data.hw_summary}
               onOpenHomework={onOpenHomework}
             />
