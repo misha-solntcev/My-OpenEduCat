@@ -1203,21 +1203,42 @@ class RostMaxTimetableController(http.Controller):
 
         # --- Учитель/админ: сводка ДЗ для табло на главной --------------
         # Полные списки и проверка — на вкладке «Задания»
-        # (GET /api/teacher_homework); здесь только счётчики.
+        # (GET /api/teacher_homework); здесь только счётчики. Сегменты те же,
+        # что на вкладке: К проверке / Выдано / Проверено (без «активных»).
         if role in ('teacher', 'admin'):
-            asg_domain = [('state', '=', 'publish')]
+            asg_domain = [('state', 'in', ('publish', 'finish'))]
             if role == 'teacher':
                 asg_domain.append(('faculty_id', '=', faculty.id))
             hw_asgs = request.env['op.assignment'].sudo().search(asg_domain)
-            to_review_total = sum(
-                s['assignment_id_count']
+            sub_counts = {
+                s['assignment_id'][0]: s['assignment_id_count']
+                for s in request.env['op.assignment.sub.line'].sudo().read_group(
+                    [('assignment_id', 'in', hw_asgs.ids),
+                     ('state', 'in', ['submit', 'accept'])],
+                    ['assignment_id'], ['assignment_id'])
+            }
+            to_review_counts = {
+                s['assignment_id'][0]: s['assignment_id_count']
                 for s in request.env['op.assignment.sub.line'].sudo().read_group(
                     [('assignment_id', 'in', hw_asgs.ids),
                      ('state', '=', 'submit')],
-                    ['assignment_id'], ['assignment_id']))
+                    ['assignment_id'], ['assignment_id'])
+            }
+            # Точная сегментация вкладки «Задания» (TeacherHomeworkPage):
+            review = issued = checked = 0
+            for a in hw_asgs:
+                n_sub = sub_counts.get(a.id, 0)
+                n_rev = to_review_counts.get(a.id, 0)
+                if a.state == 'publish' and n_rev > 0:
+                    review += 1
+                elif a.state == 'publish' and n_sub == 0 and n_rev == 0:
+                    issued += 1
+                else:
+                    checked += 1
             feed["hw_summary"] = {
-                "to_review": to_review_total,
-                "active": len(hw_asgs),
+                "to_review": review,
+                "issued": issued,
+                "checked": checked,
             }
 
         # --- Админ: полоса цифр + требует внимания ---
