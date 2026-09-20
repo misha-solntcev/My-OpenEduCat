@@ -321,7 +321,7 @@ export interface DashboardInfoResponse {
   admin_stats?: AdminStats;
   alerts?: { kind: string; count: number; morning_passed: number }[];
   /** Учитель/админ: сводка ДЗ для табло (детали — на вкладке «Задания»). */
-  hw_summary?: { to_review: number; active: number };
+  hw_summary?: { to_review: number; issued: number; checked: number };
   metrics: Record<string, unknown>;
   next_lesson: unknown;
 }
