@@ -3,7 +3,6 @@ import secrets
 import re
 import base64
 import os
-from datetime import timedelta
 from odoo import http
 from odoo.http import request
 from odoo import fields, tools
@@ -1154,11 +1153,7 @@ class RostMaxTimetableController(http.Controller):
                         })
                 feed["journals_to_fill"] = to_fill
 
-            hw_domain = [
-                ('state', '=', 'publish'),
-                ('submission_date', '>=',
-                 fields.Datetime.now() - timedelta(days=7)),
-            ]
+            hw_domain = [('state', '=', 'publish')]
             if role == 'teacher':
                 hw_domain.append(('faculty_id', '=', faculty.id))
             my_asgs = request.env['op.assignment'].sudo().search(
@@ -1249,13 +1244,13 @@ class RostMaxTimetableController(http.Controller):
 
         return feed
 
-    def _student_homework_feed(self, own_students, now, days_back=7, days_forward=None):
+    def _student_homework_feed(self, own_students, now):
         """ДЗ ученика/родителя: опубликованные задания его классов с
         состоянием сдачи. Используется в ленте главной и вкладке «Задания».
+        Без временного окна (решено 2026-09-19): лента фильтруется по смыслу
+        статуса, а не по дате — несданное висит, пока не сдано.
 
-        now — школьный момент (naive datetime). Окно по сроку сдачи:
-        days_back назад (для «Проверенных» на вкладке — 30) и days_forward
-        вперёд (на вкладке 60; None — без границы, как в ленте главной).
+        now — школьный момент (naive datetime).
         """
         batches = own_students.mapped('active_batch_id')
         now_server = fields.Datetime.now()
@@ -1264,10 +1259,7 @@ class RostMaxTimetableController(http.Controller):
         domain = [
             ('state', '=', 'publish'),
             ('batch_id', 'in', batches.ids),
-            ('submission_date', '>=', now_server - timedelta(days=days_back)),
         ]
-        if days_forward is not None:
-            domain.append(('submission_date', '<=', now_server + timedelta(days=days_forward)))
         asgs = request.env['op.assignment'].sudo().search(
             domain, order='submission_date asc')
         subs = request.env['op.assignment.sub.line'].sudo().search([
@@ -1330,7 +1322,7 @@ class RostMaxTimetableController(http.Controller):
 
         return request.make_json_response({
             "homework": self._student_homework_feed(
-                own_students, _school_now(), days_back=30, days_forward=60),
+                own_students, _school_now()),
         })
 
     @staticmethod
