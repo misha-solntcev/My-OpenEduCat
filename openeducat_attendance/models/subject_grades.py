@@ -156,6 +156,36 @@ class OpSubjectGrades(models.Model):
                 media = self.env['op.media'].sudo().search(base_domain, limit=1)                
             r.textbook_image = media.x_image_128 if media else False
 
+    # --- СИНК С ЖУРНАЛАМИ ---
+    # Карточки создаются при завершении урока (_transfer_grades_to_stats),
+    # но учителя завершают уроки по-разному. Крон досоздаёт недостающие
+    # карточки (ученик × предмет × класс) по строкам журналов нового
+    # учебного года и пересчитывает их. Идемпотентно.
+    def _cron_sync_from_journals(self):
+        Line = self.env['op.attendance.line']
+        year_start = fields.Date.today().replace(month=9, day=1)
+        today = fields.Date.today()
+        if today < year_start:  # до сентября ищем с сентября прошлого года
+            year_start = year_start.replace(year=today.year - 1)
+        lines = Line.search([('attendance_date', '>=', year_start)])
+        pairs = set()
+        for l in lines:
+            st, subj = l.student_id, l.subject_id
+            batch = l.batch_id or l.attendance_id.batch_id
+            if st and subj and batch:
+                pairs.add((st.id, subj.id, batch.id))
+        existing = set(self.search([]).mapped(
+            lambda g: (g.student_id.id, g.subject_id.id, g.batch_id.id)))
+        to_create = [{'student_id': sid, 'subject_id': sjid, 'batch_id': bid}
+                     for sid, sjid, bid in pairs - existing]
+        if to_create:
+            self.create(to_create)
+        # Пересчитать только карточки нового года — архив не трогаем
+        self.search([('batch_id.end_date', '>=', year_start)]
+                    ).action_force_recompute()
+        _logger.info("subject.grades sync: +%s cards", len(to_create))
+        return True
+
     def action_force_recompute(self):
         for rec in self:
             rec._compute_line_ids()   # Находим оценки

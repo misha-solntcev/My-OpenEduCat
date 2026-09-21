@@ -4,7 +4,21 @@
         <!-- Правильный ID для Odoo 18: base_automation.ir_cron_data_base_automation_check -->
         <record id="base_automation.ir_cron_data_base_automation_check" model="ir.cron">
             <field name="interval_number">5</field>
-            <field name="interval_type">minutes</field>            
+            <field name="interval_type">minutes</field>
+        </record>
+
+        <!-- Карточки успеваемости (op.subject.grades) не должны зависеть
+             от кнопки «Завершить урок»: учителя завершают уроки по-разному,
+             и карточки не создавались. Крон ежедневно досоздаёт недостающие
+             карточки (ученик × предмет × класс) по строкам журналов
+             текущего учебного года. -->
+        <record id="ir_cron_sync_subject_grades" model="ir.cron">
+            <field name="name">Успеваемость: досоздать карточки по журналам</field>
+            <field name="model_id" ref="model_op_subject_grades"/>
+            <field name="state">code</field>
+            <field name="code">model._cron_sync_from_journals()</field>
+            <field name="interval_number">1</field>
+            <field name="interval_type">days</field>
         </record>
     </data>
 </odoo>
