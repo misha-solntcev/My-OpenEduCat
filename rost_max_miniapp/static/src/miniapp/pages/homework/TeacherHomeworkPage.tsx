@@ -17,7 +17,7 @@ import {
   Textarea, IconButton, Chip,
 } from '@vkontakte/vkui';
 import {
-  Icon28EditOutline, Icon28AttachOutline,
+  Icon28EditOutline, Icon28AttachOutline, Icon28FlashOutline,
   Icon24Filter, Icon24ListCheckOutline,
 } from '@vkontakte/icons';
 import { apiGet, apiPost } from '@/shared/lib/api';
@@ -25,6 +25,7 @@ import { useAppStore } from '@/shared/lib/store';
 import { useToast } from '@/shared/components/Toast';
 import { MaterialsEditor } from '@/shared/components/MaterialsEditor';
 import { ReviewQueue } from '@/shared/components/ReviewQueue';
+import { BulkReviewSheet } from '@/shared/components/BulkReviewSheet';
 import { SubjectIcon, subjectTint } from '@/shared/components/SubjectIcon';
 import { HomeworkFilterModal } from '@/pages/homework/HomeworkFilterModal';
 import { AccentSegmentedControl } from '@/shared/components/AccentSegmentedControl';
@@ -237,6 +238,8 @@ const AssignmentDetail: React.FC<{
   const [loading, setLoading] = React.useState(false);
   const [editing, setEditing] = React.useState(false);
   const [busyFinish, setBusyFinish] = React.useState(false);
+  // Шторка массовых действий («Весь класс») — как молния в журнале урока.
+  const [bulkOpen, setBulkOpen] = React.useState(false);
 
   const load = React.useCallback(async () => {
     setLoading(true);
@@ -292,7 +295,17 @@ const AssignmentDetail: React.FC<{
 
   return (
     <Panel id="assignment-detail">
-      <PanelHeader before={<PanelHeaderBack onClick={onBack} />}>
+      <PanelHeader
+        before={<PanelHeaderBack onClick={onBack} />}
+        after={meta && data && (
+          <IconButton
+            label="Массовые действия: принять всем, оценка всем"
+            onClick={() => setBulkOpen(true)}
+          >
+            <Icon28FlashOutline />
+          </IconButton>
+        )}
+      >
         <PanelHeaderContent
           before={meta && (
             <span style={{
@@ -447,6 +460,15 @@ const AssignmentDetail: React.FC<{
                 return 'error';
               }
             }}
+        />
+      )}
+      {meta && (
+        <BulkReviewSheet
+          assignmentId={meta.id}
+          open={bulkOpen}
+          onClose={() => setBulkOpen(false)}
+          onApplied={() => { addToast('Принято у всего класса', 'success'); load(); onListChanged(); }}
+          onError={msg => addToast(msg, 'error')}
         />
       )}
     </Panel>

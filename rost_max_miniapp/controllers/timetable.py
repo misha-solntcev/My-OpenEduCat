@@ -1767,6 +1767,79 @@ class RostMaxTimetableController(http.Controller):
                 submission_date=fields.Datetime.now()))
         return request.make_json_response({"success": True})
 
+    @http.route("/rost_max/api/homework/<int:assignment_id>/review_bulk",
+                type="http", auth="public", methods=["POST"], cors="*",
+                csrf=False)
+    def api_homework_review_bulk(self, assignment_id, **kw):
+        """API: массовый приём — «Принять всем» из шторки. Логика на строку
+        та же, что в /review_student (создание сдачи при приёме без сдачи).
+        overwrite=False: строки с state=accept не трогаем. mark не задан —
+        оценку не пишем и существующую не стираем."""
+        restore_session_if_needed()
+        csrf_err = _check_spa_csrf()
+        if csrf_err:
+            return csrf_err
+        if not request.session.uid:
+            return request.make_json_response(
+                {"error": "Unauthorized"}, status=401)
+
+        user = request.env.user
+        is_admin = user.has_group('base.group_system')
+        faculty = request.env['op.faculty'].sudo().search([
+            ('partner_id', '=', user.partner_id.id)], limit=1)
+
+        asg = request.env['op.assignment'].sudo().browse(assignment_id)
+        if not asg.exists():
+            return request.make_json_response(
+                {"error": "Задание не найдено"}, status=404)
+        if not is_admin and (not faculty or asg.faculty_id != faculty):
+            return request.make_json_response(
+                {"error": "Доступно только автору задания"}, status=403)
+
+        try:
+            body = request.get_json_data()
+        except Exception:
+            return request.make_json_response(
+                {"error": "Invalid JSON"}, status=400)
+
+        overwrite = bool(body.get('overwrite'))
+        note = (body.get('teacher_note') or '').strip()
+        mark = body.get('mark')
+        if mark not in (None, ''):
+            try:
+                mark = float(mark)
+            except (TypeError, ValueError):
+                return request.make_json_response(
+                    {"error": "Оценка должна быть числом"}, status=400)
+            if mark not in (2, 3, 4, 5):
+                return request.make_json_response(
+                    {"error": "Оценка должна быть 2, 3, 4 или 5"}, status=400)
+        else:
+            mark = None
+
+        SubLine = request.env['op.assignment.sub.line'].sudo()
+        done = 0
+        for st in asg.allocation_ids:
+            sub = SubLine.search([
+                ('assignment_id', '=', asg.id),
+                ('student_id', '=', st.id),
+            ], limit=1)
+            if sub.state == 'accept' and not overwrite:
+                continue
+            vals = {'state': 'accept'}
+            if mark is not None:
+                vals['marks'] = mark
+            if note:
+                vals['teacher_note'] = note
+            if sub:
+                sub.write(vals)
+            else:
+                SubLine.create(dict(
+                    vals, assignment_id=asg.id, student_id=st.id,
+                    submission_date=fields.Datetime.now()))
+            done += 1
+        return request.make_json_response({"success": True, "updated": done})
+
     @http.route("/rost_max/api/teacher_homework", type="http",
                 auth="public", methods=["GET"])
     def api_teacher_homework(self, **kw):
