@@ -420,7 +420,7 @@ export const STATE_LABEL: Record<string, string> = {
 export const SubmissionReviewCard: React.FC<{
   submission: HomeworkSubmissionsResponse;
   onClose: () => void;
-  onReview: (subId: number, action: 'accept' | 'change', note: string, mark: number | null) => Promise<string | null>;
+  onReview: (subId: number | null, action: 'accept' | 'change', note: string, mark: number | null, studentId: number) => Promise<string | null>;
   onUpdated?: () => void;
   // onClose остаётся в пропсах для совместимости вызовов, но не используется:
   // шапку с дублем информации (предмет/текст/счётчик) и нерабочей «Закрыть»
@@ -437,8 +437,10 @@ export const SubmissionReviewCard: React.FC<{
     // ставится только при «Принять».
     const mark = action === 'accept' ? (marks[student.student_id] ?? null) : null;
     // sub_id = id строки сдачи — его ждёт /review, НЕ student_id.
-    const err = await onReview(student.sub_id ?? student.student_id, action,
-      (notes[student.student_id] || '').trim(), mark);
+    // sub_id === null — приём без сдачи (ответ устно/в тетради):
+    // caller шлёт student_id на /homework/<id>/review_student.
+    const err = await onReview(student.sub_id ?? null, action,
+      (notes[student.student_id] || '').trim(), mark, student.student_id);
     setBusyId(null);
     if (err === null) onUpdated?.();
   };
@@ -448,7 +450,8 @@ export const SubmissionReviewCard: React.FC<{
       <VkCard mode="shadow" style={{ overflow: 'hidden', marginBottom: 8 }}>
         {students.map(s => {
           const subId = s.student_id;
-          const canReview = s.state === 'submit';
+          // Принимаем сдавших и несдавших (приём без сдачи — устно/в тетради).
+          const canReview = s.state === 'submit' || s.state === 'none' || s.state === 'draft';
           return (
             <div key={s.student_id} style={{ borderTop: '1px solid var(--vkui--color_background_secondary)', padding: '10px 16px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -547,15 +550,19 @@ export const SubmissionReviewCard: React.FC<{
                     >
                       Принять
                     </Button>
-                    <Button
-                      size="s"
-                      mode="outline"
-                      appearance="negative"
-                      disabled={busyId === subId}
-                      onClick={() => review(s, 'change')}
-                    >
-                      На доработку
-                    </Button>
+                    {/* «На доработку» только у сдавших: без ответа нечего
+                        возвращать; несдавшему создаётся сдача state=accept. */}
+                    {s.state === 'submit' && (
+                      <Button
+                        size="s"
+                        mode="outline"
+                        appearance="negative"
+                        disabled={busyId === subId}
+                        onClick={() => review(s, 'change')}
+                      >
+                        На доработку
+                      </Button>
+                    )}
                     <span style={{ marginLeft: 'auto' }}>
                       <JournalButton
                         kind="grade"

@@ -423,11 +423,17 @@ const AssignmentDetail: React.FC<{
       {data && (
         <ReviewQueue
           submission={data}
-          onReview={async (subId, action, note, mark) => {
+          onReview={async (subId, action, note, mark, studentId) => {
               try {
-                const res = await apiPost<{ success?: boolean; error?: string }>(
-                  `/rost_max/api/homework/submission/${subId}/review`,
-                  { action, teacher_note: note, mark });
+                // subId === null — приём без сдачи (ответ устно/в тетради):
+                // создаёт строку сдачи сразу с итоговым состоянием.
+                const url = subId === null
+                  ? `/rost_max/api/homework/${data!.assignment.id}/review_student`
+                  : `/rost_max/api/homework/submission/${subId}/review`;
+                const payload = subId === null
+                  ? { student_id: studentId, action, teacher_note: note, mark }
+                  : { action, teacher_note: note, mark };
+                const res = await apiPost<{ success?: boolean; error?: string }>(url, payload);
                 if (res.error) {
                   addToast(res.error, 'error');
                   return res.error;

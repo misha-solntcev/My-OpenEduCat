@@ -77,7 +77,9 @@ const fmtSubmittedAt = (iso: string): string => {
 
 export const ReviewQueue: React.FC<{
   submission: HomeworkSubmissionsResponse;
-  onReview: (subId: number, action: 'accept' | 'change', note: string, mark: number | null) => Promise<string | null>;
+  // subId === null значит «сдачи нет» — caller шлёт student_id на
+  // /homework/<id>/review_student (приём без сдачи).
+  onReview: (subId: number | null, action: 'accept' | 'change', note: string, mark: number | null, studentId: number) => Promise<string | null>;
 }> = ({ submission, onReview }) => {
   const { students } = submission;
   const [seg, setSeg] = React.useState<SegKey>('submit');
@@ -109,8 +111,8 @@ export const ReviewQueue: React.FC<{
     setBusyId(s.student_id);
     // Оценка — кнопкой журнала (цикл — → 5 → 4 → 3 → 2 → —), только при «Принять».
     const mark = action === 'accept' ? (marks[s.student_id] ?? null) : null;
-    const err = await onReview(s.sub_id ?? s.student_id, action,
-      (notes[s.student_id] || '').trim(), mark);
+    const err = await onReview(s.sub_id ?? null, action,
+      (notes[s.student_id] || '').trim(), mark, s.student_id);
     setBusyId(null);
     return err;
   };
@@ -141,10 +143,12 @@ export const ReviewQueue: React.FC<{
 
         {rows.map((s, idx) => {
           const subId = s.student_id;
-          // тап раскрывает детали сдачи: в «Проверить» — только ждущие
-          // (несдавшие раскрывать нечего), в «На доработке» — все строки.
+          // тап раскрывает детали сдачи: в «Проверить» — ждущие и несдавшие
+          // (несдавшему можно принять без сдачи: устно/в тетради), в
+          // «На доработке» — все строки.
           const tapOpen = seg === 'change'
-            || s.state === 'submit' || s.state === 'accept' || s.state === 'reject';
+            || s.state === 'submit' || s.state === 'accept' || s.state === 'reject'
+            || s.state === 'none' || s.state === 'draft';
           const open = tapOpen
             && (expanded === undefined
               ? idx === rows.findIndex(_r => tapOpen)
@@ -279,17 +283,22 @@ export const ReviewQueue: React.FC<{
                     >
                       Принять
                     </Button>
-                    <Button
-                      size="s" mode="outline" stretched
-                      disabled={busyId === subId}
-                      style={{
-                        color: 'var(--vkui--color_icon_warning)',
-                        border: '1px solid var(--vkui--color_icon_warning)',
-                      }}
-                      onClick={() => review(s, 'change')}
-                    >
-                      На доработку
-                    </Button>
+                    {/* «На доработку» только у сдавших: нечего возвращать
+                        без ответа. Несдавшему — приём без сдачи (устно/в
+                        тетради): создаётся сдача сразу state=accept. */}
+                    {s.state !== 'none' && s.state !== 'draft' && (
+                      <Button
+                        size="s" mode="outline" stretched
+                        disabled={busyId === subId}
+                        style={{
+                          color: 'var(--vkui--color_icon_warning)',
+                          border: '1px solid var(--vkui--color_icon_warning)',
+                        }}
+                        onClick={() => review(s, 'change')}
+                      >
+                        На доработку
+                      </Button>
+                    )}
                     <JournalButton
                       kind="grade"
                       value={marks[subId] ?? null}

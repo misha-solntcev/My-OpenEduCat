@@ -1691,6 +1691,82 @@ class RostMaxTimetableController(http.Controller):
         sub.write(vals)
         return request.make_json_response({"success": True})
 
+    @http.route("/rost_max/api/homework/<int:assignment_id>/review_student",
+                type="http", auth="public", methods=["POST"], cors="*",
+                csrf=False)
+    def api_homework_review_student(self, assignment_id, **kw):
+        """API: приём ДЗ БЕЗ сдачи (ответ устно / в тетради на уроке).
+        Создаёт строку сдачи сразу с итоговым состоянием (или правит
+        существующую). Пишет только автор задания/админ."""
+        restore_session_if_needed()
+        csrf_err = _check_spa_csrf()
+        if csrf_err:
+            return csrf_err
+        if not request.session.uid:
+            return request.make_json_response(
+                {"error": "Unauthorized"}, status=401)
+
+        user = request.env.user
+        is_admin = user.has_group('base.group_system')
+        faculty = request.env['op.faculty'].sudo().search([
+            ('partner_id', '=', user.partner_id.id)], limit=1)
+
+        asg = request.env['op.assignment'].sudo().browse(assignment_id)
+        if not asg.exists():
+            return request.make_json_response(
+                {"error": "Задание не найдено"}, status=404)
+        if not is_admin and (not faculty or asg.faculty_id != faculty):
+            return request.make_json_response(
+                {"error": "Доступно только автору задания"}, status=403)
+
+        try:
+            body = request.get_json_data()
+        except Exception:
+            return request.make_json_response(
+                {"error": "Invalid JSON"}, status=400)
+        action = body.get('action')
+        if action not in ('accept', 'change'):
+            return request.make_json_response(
+                {"error": "action должен быть accept|change"}, status=400)
+
+        student = request.env['op.student'].sudo().browse(
+            body.get('student_id'))
+        if not student.exists() or student not in asg.allocation_ids:
+            return request.make_json_response(
+                {"error": "Ученик не назначен на задание"}, status=403)
+
+        sub = request.env['op.assignment.sub.line'].sudo().search([
+            ('assignment_id', '=', asg.id),
+            ('student_id', '=', student.id),
+        ], limit=1)
+
+        vals = {'state': 'accept' if action == 'accept' else 'change'}
+        if 'teacher_note' in body:
+            vals['teacher_note'] = (body.get('teacher_note') or '').strip()
+        if 'mark' in body:
+            mark = body.get('mark')
+            if mark is None or mark == '':
+                vals['marks'] = 0.0
+            else:
+                try:
+                    mark = float(mark)
+                except (TypeError, ValueError):
+                    return request.make_json_response(
+                        {"error": "Оценка должна быть числом"}, status=400)
+                if mark not in (2, 3, 4, 5):
+                    return request.make_json_response(
+                        {"error": "Оценка должна быть 2, 3, 4 или 5"}, status=400)
+                vals['marks'] = mark
+        if sub:
+            sub.write(vals)
+        else:
+            # Приём без сдачи: дата сдачи = сейчас, answer_required не
+            # соблюдается намеренно (ответ был устно/в тетради).
+            request.env['op.assignment.sub.line'].sudo().create(dict(
+                vals, assignment_id=asg.id, student_id=student.id,
+                submission_date=fields.Datetime.now()))
+        return request.make_json_response({"success": True})
+
     @http.route("/rost_max/api/teacher_homework", type="http",
                 auth="public", methods=["GET"])
     def api_teacher_homework(self, **kw):
