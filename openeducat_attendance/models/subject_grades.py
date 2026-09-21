@@ -91,12 +91,27 @@ class OpSubjectGrades(models.Model):
     @api.depends('student_id', 'subject_id')
     def _compute_line_ids(self):
         if self.env.context.get('skip_compute'): return
-        terms = self.env['op.academic.term'].sudo().search([('parent_term', '!=', False)])
-        q_dates = {}
-        for i in range(1, 5):
-            t = terms.filtered(lambda x: str(i) in (x.name or ''))
-            if t: q_dates[i] = (t[0].term_start_date, t[0].term_end_date)
+        # Фильтр по учебному году обязателен: «1 четверть» существует
+        # в каждом op.academic.year, без фильтра t[0] ловит чужой год и
+        # оценки в его окно дат не попадают. Год берём по датам batch
+        # карточки (архивные карточки считаются по СВОЕМУ году), как в
+        # rost_max_miniapp._get_quarter_terms, но пер-записно.
+        term_obj = self.env['op.academic.term'].sudo()
         for rec in self:
+            year_domain = [('parent_term', '!=', False)]
+            batch = rec.batch_id
+            if batch and batch.start_date and batch.end_date:
+                year = self.env['op.academic.year'].sudo().search([
+                    ('start_date', '<=', batch.end_date),
+                    ('end_date', '>=', batch.start_date),
+                ], limit=1)
+                if year:
+                    year_domain.append(('academic_year_id', '=', year.id))
+            rec_terms = term_obj.search(year_domain)
+            q_dates = {}
+            for i in range(1, 5):
+                t = rec_terms.filtered(lambda x, n=i: str(n) in (x.name or ''))
+                if t: q_dates[i] = (t[0].term_start_date, t[0].term_end_date)
             lines = self.env['op.attendance.line'].sudo().search([('student_id', '=', rec.student_id.id), ('subject_id', '=', rec.subject_id.id)])
             for i in range(1, 5):
                 d = q_dates.get(i)
