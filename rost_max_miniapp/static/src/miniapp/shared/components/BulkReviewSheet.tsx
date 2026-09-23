@@ -114,7 +114,7 @@ export const BulkReviewSheet: React.FC<BulkReviewSheetProps> = ({
               size="l" mode="primary" appearance="accent" stretched
               loading={busy} onClick={applyAll}
             >
-              Принять всем
+              Принять у всех
             </Button>
 
             <Flex align="center" gap={6}>
