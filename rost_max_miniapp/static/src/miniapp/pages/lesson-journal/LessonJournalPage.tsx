@@ -185,6 +185,7 @@ export const LessonJournalPage: React.FC<LessonJournalPageProps> = ({ id, lesson
             onClose={() => setColumnsOpen(false)}
             columns={columns}
             onToggle={toggleColumn}
+            hwEnabled={Boolean(lesson?.homework_assignment_id)}
           />
         )}
       </Flex>
