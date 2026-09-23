@@ -14,13 +14,13 @@ import type { JournalColumns } from '@/shared/lib/types';
 
 interface ColumnsSettingsSheetProps {
   columns: JournalColumns;
-  onToggle: (key: 'grade_2' | 'grade_3' | 'note', value: boolean) => void;
+  onToggle: (key: 'grade_2' | 'hw_grade_1' | 'hw_grade_2' | 'note', value: boolean) => void;
   onClose: () => void;
   open: boolean;
 }
 
 interface ColumnRow {
-  key: 'grade_2' | 'grade_3' | 'note' | null;
+  key: 'grade_2' | 'hw_grade_1' | 'hw_grade_2' | 'note' | null;
   title: string;
   checked: boolean;
   locked?: boolean;
@@ -37,7 +37,8 @@ export const ColumnsSettingsSheet: React.FC<ColumnsSettingsSheetProps> = ({
   const rows: ColumnRow[] = [
     { key: null, title: 'Оценка 1', checked: true, locked: true },
     { key: 'grade_2', title: 'Оценка 2', checked: columns.grade_2 },
-    { key: 'grade_3', title: 'Оценка 3', checked: columns.grade_3 },
+    { key: 'hw_grade_1', title: 'ДЗ 1', checked: columns.hw_grade_1 },
+    { key: 'hw_grade_2', title: 'ДЗ 2', checked: columns.hw_grade_2 },
     { key: null, title: 'Посещаемость', checked: true, locked: true },
     { key: 'note', title: 'Примечание', checked: columns.note },
   ];

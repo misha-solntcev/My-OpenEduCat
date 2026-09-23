@@ -141,6 +141,7 @@ export const LessonJournalPage: React.FC<LessonJournalPageProps> = ({ id, lesson
             attendanceTypes={attendanceTypes}
             columns={columns}
             canEdit={canEdit}
+            hwEnabled={Boolean(lesson?.homework_assignment_id)}
             onCycleGrade={cycleGradeField}
             onCycleAttendance={cycleAttendance}
             onRemarkChange={setRemark}
@@ -174,6 +175,7 @@ export const LessonJournalPage: React.FC<LessonJournalPageProps> = ({ id, lesson
             onBulkRemark={bulkSetRemark}
             onClearAll={clearAll}
             columns={columns}
+            hwEnabled={Boolean(lesson?.homework_assignment_id)}
           />
         )}
 

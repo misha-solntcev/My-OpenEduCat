@@ -19,9 +19,12 @@ class ResUsers(models.Model):
     @property
     def SELF_WRITEABLE_FIELDS(self):
         return super().SELF_WRITEABLE_FIELDS + [
-            'miniapp_show_grade_2', 'miniapp_show_grade_3', 'miniapp_show_note',
+            'miniapp_show_grade_2', 'miniapp_show_hw_1', 'miniapp_show_hw_2',
+            'miniapp_show_note',
         ]
 
     miniapp_show_grade_2 = fields.Boolean("Миниапп: колонка Оценка 2")
-    miniapp_show_grade_3 = fields.Boolean("Миниапп: колонка Оценка 3")
+    # ДЗ-колонки по умолчанию включены (требование: оценки за ДЗ видны в журнале).
+    miniapp_show_hw_1 = fields.Boolean("Миниапп: колонка ДЗ 1", default=True)
+    miniapp_show_hw_2 = fields.Boolean("Миниапп: колонка ДЗ 2", default=True)
     miniapp_show_note = fields.Boolean("Миниапп: колонка Примечание")

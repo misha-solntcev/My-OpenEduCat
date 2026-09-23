@@ -52,6 +52,7 @@ class OpAssignmentSubLine(models.Model):
         'Submission Date', readonly=True,
         default=lambda self: fields.Datetime.now(), required=True)
     marks = fields.Float('Marks', tracking=True)
+    marks_2 = fields.Float('Marks 2', tracking=True)
     note = fields.Text('Note')
     user_id = fields.Many2one(
         'res.users', related='student_id.user_id', string='User')

@@ -29,7 +29,7 @@ interface UseLessonJournalReturn {
   setAnswerRequired: (value: boolean) => void;
   setAssignmentId: (id: number) => void;
   saveAll: () => Promise<void>;
-  toggleColumn: (key: 'grade_2' | 'grade_3' | 'note', value: boolean) => Promise<void>;
+  toggleColumn: (key: 'grade_2' | 'hw_grade_1' | 'hw_grade_2' | 'note', value: boolean) => Promise<void>;
   handleBack: () => void;
   exitSave: () => Promise<void>;
   exitDiscard: () => void;
@@ -44,7 +44,8 @@ interface UseLessonJournalReturn {
 const DEFAULT_COLUMNS: JournalColumns = {
   grade_1: true,
   grade_2: false,
-  grade_3: false,
+  hw_grade_1: true,
+  hw_grade_2: true,
   note: false,
   attendance: true,
 };
@@ -140,14 +141,22 @@ export function useLessonJournal(lessonId: number | null, onBack: () => void): U
     if (saving || !dirty) return;
     setSaving(true);
     try {
-      const payload = students.map(s => ({
-        student_id: s.id,
-        grade_1: s.grade_1,
-        grade_2: s.grade_2,
-        grade_3: s.grade_3,
-        attendance_type_id: s.attendance_type_id,
-        remark: s.remark || '',
-      }));
+      const payload = students.map(s => {
+        const row: Record<string, unknown> = {
+          student_id: s.id,
+          grade_1: s.grade_1,
+          grade_2: s.grade_2,
+          attendance_type_id: s.attendance_type_id,
+          remark: s.remark || '',
+        };
+        // ДЗ-оценки шлём только когда задание есть: на уроке без задания
+        // бэкенд вернёт 400 «у урока нет задания».
+        if (lesson?.homework_assignment_id) {
+          row.hw_grade_1 = s.hw_grade_1;
+          row.hw_grade_2 = s.hw_grade_2;
+        }
+        return row;
+      });
       const res = await apiPost<{ success?: boolean; error?: string }>(
         `/rost_max/api/lesson/${lessonId}/save`,
         {
@@ -176,7 +185,7 @@ export function useLessonJournal(lessonId: number | null, onBack: () => void): U
   // Настройка колонок: состояние локальное и мгновенное (как тумблер в
   // BulkSheet), сервер сохраняем в фоне без отката UI — при сбое настройки
   // досинхронизируются с сервера при следующем открытии журнала.
-  const toggleColumn = async (key: 'grade_2' | 'grade_3' | 'note', value: boolean) => {
+  const toggleColumn = async (key: 'grade_2' | 'hw_grade_1' | 'hw_grade_2' | 'note', value: boolean) => {
     setColumns(prev => ({ ...prev, [key]: value }));
     try {
       const res = await apiPost<{ columns?: JournalColumns }>(
@@ -242,13 +251,15 @@ export function useLessonJournal(lessonId: number | null, onBack: () => void): U
   const clearAll = () => {
     setStudents(prev => {
       const next = prev.map(s => ({
-        ...s, grade_1: null, grade_2: null, grade_3: null, attendance_type_id: null,
+        ...s, grade_1: null, grade_2: null, hw_grade_1: null, hw_grade_2: null,
+        attendance_type_id: null,
       }));
       const hasChanges = next.some((s, i) => {
         const o = prev[i];
         return s.grade_1 !== o.grade_1
           || s.grade_2 !== o.grade_2
-          || s.grade_3 !== o.grade_3
+          || s.hw_grade_1 !== o.hw_grade_1
+          || s.hw_grade_2 !== o.hw_grade_2
           || s.attendance_type_id !== o.attendance_type_id;
       });
       if (hasChanges) setDirty(true);

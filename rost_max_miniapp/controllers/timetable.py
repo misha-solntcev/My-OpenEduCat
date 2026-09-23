@@ -222,6 +222,25 @@ def _clean_hw_files(files):
     return clean, None
 
 
+def _hw_parse_mark(body, key):
+    """Разбор оценки ДЗ из body (mark | mark_2). Возвращает (val, err).
+
+    val: float 2-5, 0.0 (сброс при пустом значении) или None (ключ не задан).
+    """
+    if key not in body:
+        return None, None
+    mark = body.get(key)
+    if mark in (None, ''):
+        return 0.0, None
+    try:
+        mark = float(mark)
+    except (TypeError, ValueError):
+        return None, "Оценка должна быть числом"
+    if mark not in (2, 3, 4, 5):
+        return None, "Оценка должна быть 2, 3, 4 или 5"
+    return mark, None
+
+
 class RostMaxTimetableController(http.Controller):
     """Мини-приложение для MAX: расписание занятий"""
 
@@ -627,7 +646,12 @@ class RostMaxTimetableController(http.Controller):
                 "initials": initials,
                 "grade_1": ln.grade_1 or None,
                 "grade_2": ln.grade_2 or None,
-                "grade_3": ln.grade_3 or None,
+                # Оценки за ДЗ — из строки сдачи задания урока (единый
+                # источник: sub.line.marks / marks_2, журнал их отображает).
+                "hw_grade_1": (int(ln.hw_sub_line_id.marks)
+                               if ln.hw_sub_line_id and ln.hw_sub_line_id.marks else None),
+                "hw_grade_2": (int(ln.hw_sub_line_id.marks_2)
+                               if ln.hw_sub_line_id and ln.hw_sub_line_id.marks_2 else None),
                 "attendance_type_id": ln.attendance_type_id.id if ln.attendance_type_id else None,
                 "remark": ln.remark or '',
             })
@@ -659,7 +683,8 @@ class RostMaxTimetableController(http.Controller):
         columns = {
             "grade_1": True,
             "grade_2": bool(u.miniapp_show_grade_2),
-            "grade_3": bool(u.miniapp_show_grade_3),
+            "hw_grade_1": bool(u.miniapp_show_hw_1),
+            "hw_grade_2": bool(u.miniapp_show_hw_2),
             "note": bool(u.miniapp_show_note),
             "attendance": True,
         }
@@ -717,7 +742,7 @@ class RostMaxTimetableController(http.Controller):
                 continue
 
             vals = {}
-            for gf in ('grade_1', 'grade_2', 'grade_3'):
+            for gf in ('grade_1', 'grade_2'):
                 # Ключ ВСЕГДА прислан фронтом (полный буфер). null/'' = сброс
                 # в 0.0 (на чтении /students вернёт ln.grade_1 or None => «-»).
                 if gf not in row:
@@ -730,6 +755,28 @@ class RostMaxTimetableController(http.Controller):
                         vals[gf] = float(g)
                     except (ValueError, TypeError):
                         pass
+            # Оценки за ДЗ: пишем в _ui — inverse кладёт значение в строку
+            # сдачи (sub.line.marks / marks_2). Писать некуда, если задания
+            # ещё нет (фронт ДЗ-колонки в этом случае отключает).
+            for hw_key, ui_field in (('hw_grade_1', 'hw_grade_1_ui'),
+                                     ('hw_grade_2', 'hw_grade_2_ui')):
+                if hw_key not in row:
+                    continue
+                if not getattr(sheet, 'homework_assignment_id', False):
+                    return request.make_json_response(
+                        {"error": "Оценка за ДЗ: у урока нет задания"},
+                        status=400)
+                hw_val = row[hw_key]
+                if hw_val in (None, ''):
+                    vals[ui_field] = False
+                else:
+                    try:
+                        v = int(float(hw_val))
+                    except (ValueError, TypeError):
+                        pass
+                    else:
+                        if 2 <= v <= 5:
+                            vals[ui_field] = str(v)
             # attendance_type_id: ключ может быть прислан явно (в т.ч. null/'' = сброс)
             if 'attendance_type_id' in row:
                 att = row['attendance_type_id']
@@ -885,7 +932,8 @@ class RostMaxTimetableController(http.Controller):
                 return request.make_json_response({"error": "Invalid JSON"}, status=400)
             vals = {}
             for key, field in (('grade_2', 'miniapp_show_grade_2'),
-                               ('grade_3', 'miniapp_show_grade_3'),
+                               ('hw_grade_1', 'miniapp_show_hw_1'),
+                               ('hw_grade_2', 'miniapp_show_hw_2'),
                                ('note', 'miniapp_show_note')):
                 if key in body:
                     vals[field] = bool(body[key])
@@ -895,7 +943,8 @@ class RostMaxTimetableController(http.Controller):
         return request.make_json_response({"columns": {
             "grade_1": True,
             "grade_2": bool(user.miniapp_show_grade_2),
-            "grade_3": bool(user.miniapp_show_grade_3),
+            "hw_grade_1": bool(user.miniapp_show_hw_1),
+            "hw_grade_2": bool(user.miniapp_show_hw_2),
             "note": bool(user.miniapp_show_note),
             "attendance": True,
         }})
@@ -1117,8 +1166,12 @@ class RostMaxTimetableController(http.Controller):
             ], order='attendance_date asc, id asc')
             grades_today = []
             for ln in today_lines:
-                grades = [int(g) for g in (ln.grade_1, ln.grade_2, ln.grade_3)
+                grades = [int(g) for g in (ln.grade_1, ln.grade_2)
                           if g and g > 0]
+                sub = ln.hw_sub_line_id
+                if sub:
+                    grades += [int(g) for g in (sub.marks, sub.marks_2)
+                               if g and g > 0]
                 if grades:
                     grades_today.append({
                         "grades": grades,
@@ -1317,6 +1370,7 @@ class RostMaxTimetableController(http.Controller):
                 "state": st,
                 "answer": (sub.note or '') if sub else '',
                 "mark": (int(sub.marks) if sub and sub.marks else None),
+                "mark_2": (int(sub.marks_2) if sub and sub.marks_2 else None),
                 "teacher_note": (sub.teacher_note or '') if sub else '',
                 "submitted_at": str(sub.submission_date) if sub else '',
                 "late": bool(sub and a.submission_date
@@ -1571,6 +1625,7 @@ class RostMaxTimetableController(http.Controller):
                 "state": sub.state if sub else 'none',
                 "answer": (sub.note or '') if sub else '',
                 "mark": (int(sub.marks) if sub and sub.marks else None),
+                "mark_2": (int(sub.marks_2) if sub and sub.marks_2 else None),
                 "submitted_at": str(sub.submission_date) if sub else '',
                 "late": bool(sub and asg.submission_date
                              and sub.submission_date > asg.submission_date),
@@ -1674,20 +1729,12 @@ class RostMaxTimetableController(http.Controller):
         vals = {'state': 'accept' if action == 'accept' else 'change'}
         if 'teacher_note' in body:
             vals['teacher_note'] = (body.get('teacher_note') or '').strip()
-        if 'mark' in body:
-            mark = body.get('mark')
-            if mark is None or mark == '':
-                vals['marks'] = 0.0
-            else:
-                try:
-                    mark = float(mark)
-                except (TypeError, ValueError):
-                    return request.make_json_response(
-                        {"error": "Оценка должна быть числом"}, status=400)
-                if mark not in (2, 3, 4, 5):
-                    return request.make_json_response(
-                        {"error": "Оценка должна быть 2, 3, 4 или 5"}, status=400)
-                vals['marks'] = mark
+        for key, field in (('mark', 'marks'), ('mark_2', 'marks_2')):
+            val, err = _hw_parse_mark(body, key)
+            if err:
+                return request.make_json_response({"error": err}, status=400)
+            if val is not None:
+                vals[field] = val
         sub.write(vals)
         return request.make_json_response({"success": True})
 
@@ -1743,20 +1790,12 @@ class RostMaxTimetableController(http.Controller):
         vals = {'state': 'accept' if action == 'accept' else 'change'}
         if 'teacher_note' in body:
             vals['teacher_note'] = (body.get('teacher_note') or '').strip()
-        if 'mark' in body:
-            mark = body.get('mark')
-            if mark is None or mark == '':
-                vals['marks'] = 0.0
-            else:
-                try:
-                    mark = float(mark)
-                except (TypeError, ValueError):
-                    return request.make_json_response(
-                        {"error": "Оценка должна быть числом"}, status=400)
-                if mark not in (2, 3, 4, 5):
-                    return request.make_json_response(
-                        {"error": "Оценка должна быть 2, 3, 4 или 5"}, status=400)
-                vals['marks'] = mark
+        for key, field in (('mark', 'marks'), ('mark_2', 'marks_2')):
+            val, err = _hw_parse_mark(body, key)
+            if err:
+                return request.make_json_response({"error": err}, status=400)
+            if val is not None:
+                vals[field] = val
         if sub:
             sub.write(vals)
         else:
@@ -1804,18 +1843,13 @@ class RostMaxTimetableController(http.Controller):
 
         overwrite = bool(body.get('overwrite'))
         note = (body.get('teacher_note') or '').strip()
-        mark = body.get('mark')
-        if mark not in (None, ''):
-            try:
-                mark = float(mark)
-            except (TypeError, ValueError):
-                return request.make_json_response(
-                    {"error": "Оценка должна быть числом"}, status=400)
-            if mark not in (2, 3, 4, 5):
-                return request.make_json_response(
-                    {"error": "Оценка должна быть 2, 3, 4 или 5"}, status=400)
-        else:
-            mark = None
+        marks_vals = {}
+        for key, field in (('mark', 'marks'), ('mark_2', 'marks_2')):
+            val, err = _hw_parse_mark(body, key)
+            if err:
+                return request.make_json_response({"error": err}, status=400)
+            if val is not None:
+                marks_vals[field] = val
 
         SubLine = request.env['op.assignment.sub.line'].sudo()
         done = 0
@@ -1827,8 +1861,7 @@ class RostMaxTimetableController(http.Controller):
             if sub.state == 'accept' and not overwrite:
                 continue
             vals = {'state': 'accept'}
-            if mark is not None:
-                vals['marks'] = mark
+            vals.update(marks_vals)
             if note:
                 vals['teacher_note'] = note
             if sub:
@@ -2195,7 +2228,10 @@ class RostMaxTimetableController(http.Controller):
     @staticmethod
     def _line_payload(ln):
         """Сериализация op.attendance.line для read-only экранов."""
-        grades = [int(g) for g in (ln.grade_1, ln.grade_2, ln.grade_3) if g and g > 0]
+        grades = [int(g) for g in (ln.grade_1, ln.grade_2) if g and g > 0]
+        sub = ln.hw_sub_line_id
+        if sub:
+            grades += [int(g) for g in (sub.marks, sub.marks_2) if g and g > 0]
         return {
             "line_id": ln.id,
             "date": str(ln.attendance_date) if ln.attendance_date else '',

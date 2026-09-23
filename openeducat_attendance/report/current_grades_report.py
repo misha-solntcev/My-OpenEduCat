@@ -30,10 +30,10 @@ class ReportCurrentGrades(models.AbstractModel):
         
         # 3. Фильтр: наличие хотя бы одной оценки (убираем пустые строки посещаемости)
         domain += [
-            '|', '|', 
-            ('grade_1', '>', 0), 
-            ('grade_2', '>', 0), 
-            ('grade_3', '>', 0)
+            '|', '|',
+            ('grade_1', '>', 0),
+            ('grade_2', '>', 0),
+            ('grade_avg', '>', 0)
         ]
 
         # Находим все подходящие строки
@@ -63,8 +63,14 @@ class ReportCurrentGrades(models.AbstractModel):
                     
                     marks_data = []
                     for line in sub_lines:
-                        # Собираем оценки дня (из всех 3-х колонок)
-                        m_vals = [str(int(v)) for v in [line.grade_1, line.grade_2, line.grade_3] if v > 0]
+                        # Собираем оценки дня: урок О1/О2 + ДЗ-оценки (поле
+                        # hw_sub_line_id добавляет rost_lesson_homework).
+                        hw = getattr(line, 'hw_sub_line_id', None)
+                        m_vals = [str(int(v)) for v in [
+                            line.grade_1, line.grade_2,
+                            hw.marks if hw else 0.0,
+                            hw.marks_2 if hw else 0.0,
+                        ] if v > 0]
                         if m_vals:
                             marks_data.append({
                                 'date': line.attendance_date.strftime('%d.%m'),
@@ -73,7 +79,14 @@ class ReportCurrentGrades(models.AbstractModel):
                     
                     if marks_data:
                         # Считаем среднее арифметическое именно тех оценок, что вошли в отчет
-                        all_marks_in_sub = [v for l in sub_lines for v in [l.grade_1, l.grade_2, l.grade_3] if v > 0]
+                        all_marks_in_sub = []
+                        for l in sub_lines:
+                            hw = getattr(l, 'hw_sub_line_id', None)
+                            all_marks_in_sub += [v for v in [
+                                l.grade_1, l.grade_2,
+                                hw.marks if hw else 0.0,
+                                hw.marks_2 if hw else 0.0,
+                            ] if v > 0]
                         avg_val = sum(all_marks_in_sub) / len(all_marks_in_sub) if all_marks_in_sub else 0
                         
                         subject_list.append({

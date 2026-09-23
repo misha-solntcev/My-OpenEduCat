@@ -15,6 +15,8 @@ interface StudentRowProps {
   attendanceTypes: AttendanceType[];
   canEdit?: boolean;
   columns: JournalColumns;
+  /** ДЗ-колонки активны, только если у урока есть задание. */
+  hwEnabled?: boolean;
   onCycleGrade?: (student: Student, field: GradeField, next: number | null) => void;
   onCycleAttendance?: (student: Student, next: number | null) => void;
   onRemarkChange?: (student: Student, remark: string) => void;
@@ -39,6 +41,7 @@ export const StudentRow: React.FC<StudentRowProps> = ({
   attendanceTypes,
   canEdit = true,
   columns,
+  hwEnabled = true,
   onCycleGrade,
   onCycleAttendance,
   onRemarkChange,
@@ -67,7 +70,8 @@ export const StudentRow: React.FC<StudentRowProps> = ({
           gradeValues={{
             grade_1: student.grade_1,
             grade_2: student.grade_2,
-            grade_3: student.grade_3,
+            hw_grade_1: student.hw_grade_1,
+            hw_grade_2: student.hw_grade_2,
           }}
           onCycleGrade={canEdit && onCycleGrade ? (field, next) => onCycleGrade(student, field, next) : undefined}
           gradeVariant="grade"
@@ -76,6 +80,7 @@ export const StudentRow: React.FC<StudentRowProps> = ({
           attendanceVariant="attendance"
           attendanceTypes={attendanceTypes}
           columns={columns}
+          hwEnabled={hwEnabled}
         />
 
         {canEdit && columns.note && onRemarkChange && (

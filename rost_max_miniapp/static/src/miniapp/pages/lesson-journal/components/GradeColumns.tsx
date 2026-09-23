@@ -1,7 +1,7 @@
 import React from 'react';
 import { Flex } from '@vkontakte/vkui';
 import { JournalButton } from '@/shared/components/JournalButton';
-import { GRADE_FIELDS } from '@/shared/lib/colors';
+import { GRADE_FIELDS, GRADE_LABELS } from '@/shared/lib/colors';
 import type { GradeField, AttendanceType, JournalColumns } from '@/shared/lib/types';
 
 interface GradeColumnsProps {
@@ -14,8 +14,10 @@ interface GradeColumnsProps {
   attendanceTypes?: AttendanceType[];
   attendanceTitle?: string;
   gradeTitlePrefix?: string;
-  /** Персональная настройка колонок: О2/О3 выключенные не рендерятся. */
+  /** Персональная настройка колонок: О2/ДЗ выключенные не рендерятся;
+ *  ДЗ-колонки активны, только если у урока есть задание. */
   columns?: JournalColumns;
+  hwEnabled?: boolean;
 }
 
 /** Колонка с оценками + посещаемостью (StudentRow и BulkSheet).
@@ -31,9 +33,10 @@ export const GradeColumns: React.FC<GradeColumnsProps> = ({
   attendanceTitle,
   gradeTitlePrefix,
   columns,
+  hwEnabled = true,
 }) => {
   const visible = (f: GradeField) =>
-    !columns || f === 'grade_1' || Boolean(columns[f]);
+    !columns || f === 'grade_1' || (Boolean(columns[f]) && (f.startsWith('hw_') ? hwEnabled : true));
 
   return (
     <Flex gap={4} wrap="wrap" minInlineSize={0}>
@@ -43,7 +46,7 @@ export const GradeColumns: React.FC<GradeColumnsProps> = ({
           kind="grade"
           value={gradeValues[field]}
           onCycle={onCycleGrade ? (next) => onCycleGrade(field, next) : undefined}
-          title={`${gradeTitlePrefix ?? 'Оценка'} ${field === 'grade_1' ? 'О1' : field === 'grade_2' ? 'О2' : 'О3'}`}
+          title={field.startsWith('hw_') ? GRADE_LABELS[field] : `${gradeTitlePrefix ?? 'Оценка'} ${GRADE_LABELS[field]}`}
           variant={gradeVariant}
           size="m"
         />

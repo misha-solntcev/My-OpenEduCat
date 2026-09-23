@@ -7,7 +7,7 @@
  */
 import React from 'react';
 import {
-  Flex, Switch, IconButton, ModalPage, ModalPageHeader, PanelHeaderClose,
+  Flex, Switch, ModalPage, ModalPageHeader, PanelHeaderClose,
   Button, AppRootPortal, Box,
   Caption, Input,
 } from '@vkontakte/vkui';
@@ -29,6 +29,7 @@ export const BulkReviewSheet: React.FC<BulkReviewSheetProps> = ({
 }) => {
   // Локальные шаблоны шторки (UI-only): сбрасываются при открытии.
   const [mark, setMark] = React.useState<number | null>(null);
+  const [mark2, setMark2] = React.useState<number | null>(null);
   const [note, setNote] = React.useState('');
   const [overwrite, setOverwrite] = React.useState(false);
   const [busy, setBusy] = React.useState(false);
@@ -36,6 +37,7 @@ export const BulkReviewSheet: React.FC<BulkReviewSheetProps> = ({
   React.useEffect(() => {
     if (open) {
       setMark(null);
+      setMark2(null);
       setNote('');
       setOverwrite(false);
     }
@@ -46,7 +48,7 @@ export const BulkReviewSheet: React.FC<BulkReviewSheetProps> = ({
     try {
       const res = await apiPost<{ success?: boolean; updated?: number; error?: string }>(
         `/rost_max/api/homework/${assignmentId}/review_bulk`,
-        { mark: mark ?? '', overwrite, teacher_note: note.trim() });
+        { mark: mark ?? '', mark_2: mark2 ?? '', overwrite, teacher_note: note.trim() });
       if (res.error) {
         onError(res.error);
       } else {
@@ -89,10 +91,16 @@ export const BulkReviewSheet: React.FC<BulkReviewSheetProps> = ({
                 kind="grade"
                 value={mark}
                 onCycle={setMark}
-                title="Оценка всему классу"
+                title="Оценка 1 всему классу"
+              />
+              <JournalButton
+                kind="grade"
+                value={mark2}
+                onCycle={setMark2}
+                title="Оценка 2 всему классу"
               />
               <Caption style={{ color: 'var(--vkui--color_text_secondary)' }}>
-                Оценка всем («—» — принять без оценки)
+                Оценки всем («—» — принять без оценки)
               </Caption>
             </Flex>
 

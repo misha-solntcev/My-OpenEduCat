@@ -218,7 +218,6 @@
                                     <div class="d-flex align-items-center gap-1 bg-light p-1 rounded-3 border-dashed" style="border: 1px dashed #ccc;">
                                         <field name="mass_target_1" widget="boolean_toggle" class="m-0" title="Оценка 1"/>
                                         <field name="mass_target_2" widget="boolean_toggle" class="m-0" title="Оценка 2"/>
-                                        <field name="mass_target_3" widget="boolean_toggle" class="m-0" title="Оценка 3"/>
                                     </div>
 
                                     <!-- Разделитель: скрыт на мобильных (d-none), виден на десктопе (d-md-block) -->
@@ -292,14 +291,7 @@
                                         decoration-warning="grade_2_ui == '3'"
                                         decoration-danger="grade_2_ui == '2'" />
 
-                                    <field name="grade_3_ui" string="Оценка 3"
-                                        widget="selection_badge"
-                                        width="80px" optional="hide"
-                                        decoration-bf="1"
-                                        decoration-success="grade_3_ui == '5'"
-                                        decoration-info="grade_3_ui == '4'"
-                                        decoration-warning="grade_3_ui == '3'"
-                                        decoration-danger="grade_3_ui == '2'" />
+                                    <!-- ДЗ-колонки (ДЗ 1 / ДЗ 2) добавляет rost_lesson_homework -->
 
                                     <!-- 4. Посещаемость -->
                                     <field name="attendance_type_id"
@@ -336,7 +328,6 @@
                                     <field name="excused" column_invisible="True" />
                                     <field name="grade_1" column_invisible="True" />
                                     <field name="grade_2" column_invisible="True" />
-                                    <field name="grade_3" column_invisible="True" />
 
                                 </list>
                             </field>

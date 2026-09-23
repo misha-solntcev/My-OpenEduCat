@@ -11,6 +11,8 @@ interface LessonJournalContentProps {
   attendanceTypes: AttendanceType[];
   columns: JournalColumns;
   canEdit?: boolean;
+  /** ДЗ-колонки активны, только если у урока есть задание. */
+  hwEnabled?: boolean;
   onCycleGrade?: (student: Student, field: GradeField, next: number | null) => void;
   onCycleAttendance?: (student: Student, next: number | null) => void;
   onRemarkChange?: (student: Student, remark: string) => void;
@@ -27,6 +29,7 @@ export const LessonJournalContent: React.FC<LessonJournalContentProps> = ({
   attendanceTypes,
   columns,
   canEdit = true,
+  hwEnabled = true,
   onCycleGrade,
   onCycleAttendance,
   onRemarkChange,
@@ -67,6 +70,7 @@ export const LessonJournalContent: React.FC<LessonJournalContentProps> = ({
           student={student}
           attendanceTypes={attendanceTypes}
           canEdit={canEdit}
+          hwEnabled={hwEnabled}
           columns={columns}
           onCycleGrade={onCycleGrade}
           onCycleAttendance={onCycleAttendance}

@@ -44,7 +44,7 @@ class OpSession(models.Model):
         if sheets:
             # Ищем ЛЮБЫЕ данные: оценки, статусы посещаемости или примечания
             data_exists = sheets.attendance_line.filtered(
-                lambda l: l.grade_1 or l.grade_2 or l.grade_3 or l.attendance_type_id or l.remark
+                lambda l: l.grade_1 or l.grade_2 or l.attendance_type_id or l.remark or getattr(l, 'hw_sub_line_id', None)
             )
             if data_exists:
                 raise ValidationError(_(
@@ -96,7 +96,7 @@ class OpSession(models.Model):
         if sheets:
             # Проверяем все важные поля на заполненность
             data_exists = sheets.attendance_line.filtered(
-                lambda l: l.grade_1 or l.grade_2 or l.grade_3 or l.attendance_type_id or l.remark
+                lambda l: l.grade_1 or l.grade_2 or l.attendance_type_id or l.remark or getattr(l, 'hw_sub_line_id', None)
             )
             if data_exists:
                 raise ValidationError(_(

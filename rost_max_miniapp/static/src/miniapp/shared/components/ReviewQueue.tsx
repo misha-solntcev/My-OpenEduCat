@@ -79,13 +79,14 @@ export const ReviewQueue: React.FC<{
   submission: HomeworkSubmissionsResponse;
   // subId === null значит «сдачи нет» — caller шлёт student_id на
   // /homework/<id>/review_student (приём без сдачи).
-  onReview: (subId: number | null, action: 'accept' | 'change', note: string, mark: number | null, studentId: number) => Promise<string | null>;
+  onReview: (subId: number | null, action: 'accept' | 'change', note: string, mark: number | null, studentId: number, mark2: number | null) => Promise<string | null>;
 }> = ({ submission, onReview }) => {
   const { students } = submission;
   const [seg, setSeg] = React.useState<SegKey>('submit');
   const [busyId, setBusyId] = React.useState<number | null>(null);
   const [notes, setNotes] = React.useState<Record<number, string>>({});
   const [marks, setMarks] = React.useState<Record<number, number | null>>({});
+  const [marks2, setMarks2] = React.useState<Record<number, number | null>>({});
   // undefined = юзер ещё не тапал (авто-раскрыта первая строка),
   // null = закрыл руками, число = открытая строка.
   const [expanded, setExpanded] = React.useState<number | null | undefined>(undefined);
@@ -111,8 +112,9 @@ export const ReviewQueue: React.FC<{
     setBusyId(s.student_id);
     // Оценка — кнопкой журнала (цикл — → 5 → 4 → 3 → 2 → —), только при «Принять».
     const mark = action === 'accept' ? (marks[s.student_id] ?? null) : null;
+    const mark2 = action === 'accept' ? (marks2[s.student_id] ?? null) : null;
     const err = await onReview(s.sub_id ?? null, action,
-      (notes[s.student_id] || '').trim(), mark, s.student_id);
+      (notes[s.student_id] || '').trim(), mark, s.student_id, mark2);
     setBusyId(null);
     return err;
   };
@@ -205,7 +207,7 @@ export const ReviewQueue: React.FC<{
                     {(s.state === 'none' || s.state === 'draft') && 'Не сдано'}
                   </Caption>
                 </div>
-                {s.state === 'accept' && <span style={markTone(s.mark)}>{s.mark ?? '—'}</span>}
+                {s.state === 'accept' && <span style={markTone(s.mark)}>{[s.mark, s.mark_2].filter(Boolean).join(' · ') || '—'}</span>}
                 {s.state === 'submit' && <span style={grayPill}>На проверке</span>}
                 {s.state === 'change' && <span style={amberPill}>На доработке</span>}
                 {s.state === 'reject' && (
@@ -303,7 +305,13 @@ export const ReviewQueue: React.FC<{
                       kind="grade"
                       value={marks[subId] ?? null}
                       onCycle={next => setMarks(prev => ({ ...prev, [subId]: next }))}
-                      title="Оценка за домашнее задание"
+                      title="Оценка 1 за домашнее задание"
+                    />
+                    <JournalButton
+                      kind="grade"
+                      value={marks2[subId] ?? null}
+                      onCycle={next => setMarks2(prev => ({ ...prev, [subId]: next }))}
+                      title="Оценка 2 за домашнее задание"
                     />
                   </div>
                 </div>

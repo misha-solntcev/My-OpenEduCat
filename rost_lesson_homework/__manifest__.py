@@ -12,6 +12,7 @@
     ],
     'data': [
         'views/attendance_sheet_homework_view.xml',
+        'views/attendance_hw_grades.xml',
     ],
     'installable': True,
     'auto_install': False,

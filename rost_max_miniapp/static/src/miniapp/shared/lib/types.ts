@@ -19,14 +19,16 @@ export interface Student {
   avatar: string; // data:image/...;base64,... или '' (тогда показываем инициалы)
   grade_1: number | null;
   grade_2: number | null;
-  grade_3: number | null;
+  /** Оценки за ДЗ — из строки сдачи задания урока (sub.line.marks/marks_2). */
+  hw_grade_1: number | null;
+  hw_grade_2: number | null;
   attendance_type_id: number | null;
   /** Примечание к строке (op.attendance.line.remark). Пусто — нет. */
   remark: string;
 }
 
 // GradeField вывод из ключей Student
-export type GradeField = 'grade_1' | 'grade_2' | 'grade_3';
+export type GradeField = 'grade_1' | 'grade_2' | 'hw_grade_1' | 'hw_grade_2';
 
 // --- API types (вынесены из страниц для единой точки правды) ---
 
@@ -90,7 +92,8 @@ export interface LessonInfo {
 export interface JournalColumns {
   grade_1: boolean;
   grade_2: boolean;
-  grade_3: boolean;
+  hw_grade_1: boolean;
+  hw_grade_2: boolean;
   note: boolean;
   attendance: boolean;
 }
@@ -198,6 +201,8 @@ export interface HomeworkItem {
   answer: string;
   /** Оценка за сдачу (2–5). Не задана — null. */
   mark: number | null;
+  /** Вторая оценка за сдачу (2–5). Не задана — null. */
+  mark_2: number | null;
   teacher_note: string;
   submitted_at: string;
   late: boolean;
@@ -249,6 +254,8 @@ export interface HomeworkSubmissionStudent {
   late: boolean;
   /** Оценка за сдачу (2–5). Не задана — null. */
   mark: number | null;
+  /** Вторая оценка за сдачу (2–5). Не задана — null. */
+  mark_2: number | null;
   teacher_note: string;
   attachments: HomeworkAttachment[];
   /** Фото ученика (/web/image/op.student/<id>/image_128); '' — нет фото. */

@@ -261,7 +261,7 @@ export const HomeworkRowItem: React.FC<{
         fontSize: 18, fontWeight: 700, lineHeight: '24px',
         background: tone.bg, border: `1px solid ${tone.border}`, color: tone.text,
       }}>
-        {h.mark || '—'}
+        {[h.mark, h.mark_2].filter(Boolean).join(' · ') || '—'}
       </span>
     );
   } else if (h.state === 'change') {

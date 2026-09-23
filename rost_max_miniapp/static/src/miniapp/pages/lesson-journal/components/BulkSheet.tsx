@@ -14,8 +14,10 @@ interface BulkSheetProps {
   onClearAll: () => void;
   onClose: () => void;
   open: boolean;
-  /** Персональная настройка колонок: скрытые О2/О3/примечание недоступны и в шторке. */
+  /** Персональная настройка колонок: скрытые О2/ДЗ/примечание недоступны и в шторке. */
   columns?: JournalColumns;
+  /** ДЗ-колонки активны, только если у урока есть задание. */
+  hwEnabled?: boolean;
 }
 
 // Шторка «Весь класс»: проставление оценок/посещаемости/примечания сразу
@@ -31,19 +33,21 @@ export const BulkSheet: React.FC<BulkSheetProps> = ({
   onClose,
   open,
   columns,
+  hwEnabled = true,
 }) => {
   // Локальное состояние шаблонных значений для кнопок в шторке (UI-only)
   const [bulkGradeValues, setBulkGradeValues] = React.useState<Record<GradeField, number | null>>({
     grade_1: null,
     grade_2: null,
-    grade_3: null,
+    hw_grade_1: null,
+    hw_grade_2: null,
   });
   const [bulkAttendanceValue, setBulkAttendanceValue] = React.useState<number | null>(null);
   const [bulkRemark, setBulkRemark] = React.useState('');
 
   // Сбросить локальные шаблоны при открытии шторки
   React.useEffect(() => {
-    setBulkGradeValues({ grade_1: null, grade_2: null, grade_3: null });
+    setBulkGradeValues({ grade_1: null, grade_2: null, hw_grade_1: null, hw_grade_2: null });
     setBulkAttendanceValue(null);
     setBulkRemark('');
   }, [open]);
@@ -110,6 +114,7 @@ export const BulkSheet: React.FC<BulkSheetProps> = ({
                 gradeTitlePrefix="Оценка"
                 attendanceTitle="Посещаемость — нажмите, чтобы сменить у всего класса"
                 columns={columns}
+                hwEnabled={hwEnabled}
               />
             </Flex>
 

@@ -138,8 +138,9 @@ class OpAttendanceSheet(models.Model):
             to_remove = []
             for sid, line in existing.items():
                 if sid not in current_students.ids and not (
-                        line.grade_1 or line.grade_2 or line.grade_3
-                        or line.attendance_type_id or line.remark):
+                        line.grade_1 or line.grade_2
+                        or line.attendance_type_id or line.remark
+                        or getattr(line, 'hw_sub_line_id', None)):
                     to_remove.append((3, line.id))
             changes = to_add + to_remove
             if changes:
@@ -227,8 +228,8 @@ class OpAttendanceSheet(models.Model):
     count_2 = fields.Integer(compute='_compute_all_stats', store=True)
     average_grade_lesson = fields.Float(compute='_compute_all_stats', store=True)
 
-    @api.depends('attendance_line', 'attendance_line.attendance_type_id', 
-        'attendance_line.grade_1', 'attendance_line.grade_2', 'attendance_line.grade_3')
+    @api.depends('attendance_line', 'attendance_line.attendance_type_id',
+        'attendance_line.grade_1', 'attendance_line.grade_2')
     def _compute_all_stats(self):        
         for rec in self:
             total = len(rec.attendance_line)
@@ -242,7 +243,8 @@ class OpAttendanceSheet(models.Model):
                     present += 1
                 elif line.absent: 
                     absent += 1                
-                for val in [line.grade_1, line.grade_2, line.grade_3]:
+                # ДЗ-оценки добавляет rost_lesson_homework override
+                for val in [line.grade_1, line.grade_2]:
                     if val and 2 <= val <= 5:
                         counts[int(val)] += 1
                         all_marks.append(val)
@@ -286,7 +288,7 @@ class OpAttendanceSheet(models.Model):
     # Техническое поле для выбора колонки (не хранится в БД)
     mass_target_1 = fields.Boolean('Оценка 1', default=True)
     mass_target_2 = fields.Boolean('Оценка 2')
-    mass_target_3 = fields.Boolean('Оценка 3')
+    # ДЗ-тумблеры (ДЗ 1 / ДЗ 2) добавляет rost_lesson_homework.
 
     def action_mass_set_grade(self):
         self.ensure_one()
@@ -304,7 +306,6 @@ class OpAttendanceSheet(models.Model):
         targets = []
         if self.mass_target_1: targets.append('grade_1')
         if self.mass_target_2: targets.append('grade_2')
-        if self.mass_target_3: targets.append('grade_3')
 
         for field_name in targets:
             # Находим строки, где оценка в этой колонке еще не стоит
@@ -327,7 +328,6 @@ class OpAttendanceSheet(models.Model):
         vals = {}
         if self.mass_target_1: vals['grade_1'] = 0.0
         if self.mass_target_2: vals['grade_2'] = 0.0
-        if self.mass_target_3: vals['grade_3'] = 0.0
         
         if vals:
             self.attendance_line.write(vals)

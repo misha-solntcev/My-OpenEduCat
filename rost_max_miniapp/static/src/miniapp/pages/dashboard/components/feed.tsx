@@ -420,7 +420,7 @@ export const STATE_LABEL: Record<string, string> = {
 export const SubmissionReviewCard: React.FC<{
   submission: HomeworkSubmissionsResponse;
   onClose: () => void;
-  onReview: (subId: number | null, action: 'accept' | 'change', note: string, mark: number | null, studentId: number) => Promise<string | null>;
+  onReview: (subId: number | null, action: 'accept' | 'change', note: string, mark: number | null, studentId: number, mark2: number | null) => Promise<string | null>;
   onUpdated?: () => void;
   // onClose остаётся в пропсах для совместимости вызовов, но не используется:
   // шапку с дублем информации (предмет/текст/счётчик) и нерабочей «Закрыть»
@@ -430,17 +430,19 @@ export const SubmissionReviewCard: React.FC<{
   const [busyId, setBusyId] = React.useState<number | null>(null);
   const [notes, setNotes] = React.useState<Record<number, string>>({});
   const [marks, setMarks] = React.useState<Record<number, number | null>>({});
+  const [marks2, setMarks2] = React.useState<Record<number, number | null>>({});
 
   const review = async (student: HomeworkSubmissionStudent, action: 'accept' | 'change') => {
     setBusyId(student.student_id);
     // Оценка выбирается кнопкой журнала (цикл — → 5 → 4 → 3 → 2 → —);
     // ставится только при «Принять».
     const mark = action === 'accept' ? (marks[student.student_id] ?? null) : null;
+    const mark2 = action === 'accept' ? (marks2[student.student_id] ?? null) : null;
     // sub_id = id строки сдачи — его ждёт /review, НЕ student_id.
     // sub_id === null — приём без сдачи (ответ устно/в тетради):
     // caller шлёт student_id на /homework/<id>/review_student.
     const err = await onReview(student.sub_id ?? null, action,
-      (notes[student.student_id] || '').trim(), mark, student.student_id);
+      (notes[student.student_id] || '').trim(), mark, student.student_id, mark2);
     setBusyId(null);
     if (err === null) onUpdated?.();
   };
@@ -507,12 +509,12 @@ export const SubmissionReviewCard: React.FC<{
                   ))}
                 </div>
               )}
-              {!canReview && s.mark && (
+              {!canReview && (s.mark || s.mark_2) && (
                 <Caption style={{
                   color: 'var(--vkui--color_text_secondary)',
                   display: 'block', marginTop: 4,
                 }}>
-                  Оценка: {s.mark}
+                  Оценка: {[s.mark, s.mark_2].filter(Boolean).join(' · ')}
                 </Caption>
               )}
               {/* История сдачи из mail-трекинга (ru.po лейблы): На проверке
@@ -563,12 +565,18 @@ export const SubmissionReviewCard: React.FC<{
                         На доработку
                       </Button>
                     )}
-                    <span style={{ marginLeft: 'auto' }}>
+                    <span style={{ marginLeft: 'auto', display: 'inline-flex', gap: 4 }}>
                       <JournalButton
                         kind="grade"
                         value={marks[subId] ?? null}
                         onCycle={next => setMarks(prev => ({ ...prev, [subId]: next }))}
-                        title="Оценка за домашнее задание"
+                        title="Оценка 1 за домашнее задание"
+                      />
+                      <JournalButton
+                        kind="grade"
+                        value={marks2[subId] ?? null}
+                        onCycle={next => setMarks2(prev => ({ ...prev, [subId]: next }))}
+                        title="Оценка 2 за домашнее задание"
                       />
                     </span>
                   </div>

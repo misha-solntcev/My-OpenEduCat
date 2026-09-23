@@ -39,16 +39,21 @@ class OpAttendanceLine(models.Model):
     excused = fields.Boolean(related='attendance_type_id.excused', store=True)
 
     # --- ОЦЕНКИ ---
+    # О1/О2 — оценки за урок. ДЗ-оценки («ДЗ 1»/«ДЗ 2») добавляет
+    # rost_lesson_homework (hw_grade_1_ui / hw_grade_2_ui): они живут на
+    # строке сдачи задания урока, здесь их поле-источник недоступно.
     grade_1 = fields.Float('Оценка 1', default=0.0, aggregator="avg")
     grade_2 = fields.Float('Оценка 2', default=0.0, aggregator="avg")
-    grade_3 = fields.Float('Оценка 3', default=0.0, aggregator="avg")
-    
-    grade_1_ui = fields.Selection([('2','2'),('3','3'),('4','4'),('5','5')], string='О1', 
+    # DEPRECATED (4 оценки: О1, О2, ДЗ 1, ДЗ 2). Поле скрыто из всех вьюх,
+    # не участвует в среднем балле и проверках. Оставлено, пока данные О3
+    # не перенесены в marks_2 (scripts/migrate_grade3_to_marks2.py) — тогда
+    # поле удалим отдельным коммитом.
+    grade_3 = fields.Float('Оценка 3 (устаревшее)', default=0.0)
+
+    grade_1_ui = fields.Selection([('2','2'),('3','3'),('4','4'),('5','5')], string='О1',
         compute='_compute_grade_ui', inverse='_set_grade_1_ui')
-    grade_2_ui = fields.Selection([('2','2'),('3','3'),('4','4'),('5','5')], string='О2', 
+    grade_2_ui = fields.Selection([('2','2'),('3','3'),('4','4'),('5','5')], string='О2',
         compute='_compute_grade_ui', inverse='_set_grade_2_ui')
-    grade_3_ui = fields.Selection([('2','2'),('3','3'),('4','4'),('5','5')], string='О3', 
-        compute='_compute_grade_ui', inverse='_set_grade_3_ui')
 
     grade_avg = fields.Float('Средний балл', compute='_compute_grade_avg', store=True, aggregator="avg")
     remark = fields.Char('Remark', size=256)
@@ -56,34 +61,36 @@ class OpAttendanceLine(models.Model):
     student_avatar = fields.Image(related='student_id.image_128', string="Фото")
 
     # --- ЛОГИКА ОЦЕНОК ---
-    @api.depends('grade_1', 'grade_2', 'grade_3')
+    @api.depends('grade_1', 'grade_2')
     def _compute_grade_ui(self):
         for rec in self:
             rec.grade_1_ui = str(int(rec.grade_1)) if rec.grade_1 > 0 else False
             rec.grade_2_ui = str(int(rec.grade_2)) if rec.grade_2 > 0 else False
-            rec.grade_3_ui = str(int(rec.grade_3)) if rec.grade_3 > 0 else False
 
     def _set_grade_1_ui(self):
         for rec in self: rec.grade_1 = float(rec.grade_1_ui) if rec.grade_1_ui else 0.0
     def _set_grade_2_ui(self):
         for rec in self: rec.grade_2 = float(rec.grade_2_ui) if rec.grade_2_ui else 0.0
-    def _set_grade_3_ui(self):
-        for rec in self: rec.grade_3 = float(rec.grade_3_ui) if rec.grade_3_ui else 0.0
 
-    @api.depends('grade_1', 'grade_2', 'grade_3')
+    # --- ОЦЕНКИ ЗА ДОМАШНЕЕ ЗАДАНИЕ ---
+    # Логика ДЗ-оценок (compute/inverse, создание строки сдачи, средний
+    # балл по 4 оценкам) живёт в rost_lesson_homework — только там
+    # доступно поле sheet.homework_assignment_id.
+
+    @api.depends('grade_1', 'grade_2')
     def _compute_grade_avg(self):
         for rec in self:
-            marks = [m for m in [rec.grade_1, rec.grade_2, rec.grade_3] if m > 0]
+            marks = [m for m in [rec.grade_1, rec.grade_2] if m > 0]
             rec.grade_avg = sum(marks) / len(marks) if marks else 0.0
 
     # --- АВТОМАТИЗАЦИЯ ---
-    @api.onchange('grade_1_ui', 'grade_2_ui', 'grade_3_ui')
+    @api.onchange('grade_1_ui', 'grade_2_ui')
     def _onchange_grades_auto_present(self):
         """
         Логика: если поставили оценку, а статус ПУСТОЙ — ставим 'Присутствует'.
         Если статус УЖЕ стоит (например, 'Болеет'), мы его НЕ ТРОГАЕМ.
         """
-        if any([self.grade_1_ui, self.grade_2_ui, self.grade_3_ui]):
+        if any([self.grade_1_ui, self.grade_2_ui]):
             if not self.attendance_type_id:
                 p_type = self.env['op.attendance.type'].search([('present', '=', True)], limit=1)
                 if p_type:
@@ -94,10 +101,10 @@ class OpAttendanceLine(models.Model):
         pass
 
     # --- ПРОВЕРКИ ---
-    @api.constrains('grade_1', 'grade_2', 'grade_3')
+    @api.constrains('grade_1', 'grade_2')
     def _check_grades_range(self):
         for rec in self:
-            for g in [rec.grade_1, rec.grade_2, rec.grade_3]:
+            for g in [rec.grade_1, rec.grade_2]:
                 if g > 0 and (g < 2 or g > 5):
                     raise ValidationError(_("Оценка должна быть от 2 до 5!"))
 
@@ -134,8 +141,8 @@ class OpAttendanceLine(models.Model):
                 name = l.attendance_type_id.name
                 type_counts[name] = type_counts.get(name, 0) + 1
 
-            # 3. Сбор оценок (из всех трех колонок)
-            for v in [l.grade_1, l.grade_2, l.grade_3]:
+            # 3. Сбор оценок за урок (ДЗ-оценки добавляет rost_lesson_homework override)
+            for v in [l.grade_1, l.grade_2]:
                 if v and 2 <= v <= 5:
                     marks.append(v)
                     res['counts'][int(v)] += 1
@@ -173,16 +180,15 @@ class OpAttendanceLine(models.Model):
             'attendance_type_id': False,
             'grade_1': 0.0,
             'grade_2': 0.0,
-            'grade_3': 0.0,
             'remark': False,
         })
 
     def action_clear_grades(self):
-        """Сброс всех оценок строки (grade_1/2/3) в 0.0."""
+        """Сброс оценок за урок (О1/О2). ДЗ-оценки сбрасывает override
+        в rost_lesson_homework."""
         self.write({
             'grade_1': 0.0,
             'grade_2': 0.0,
-            'grade_3': 0.0,
         })
 
     def action_clear_attendance(self):
