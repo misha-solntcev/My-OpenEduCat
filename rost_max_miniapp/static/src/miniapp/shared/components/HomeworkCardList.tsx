@@ -255,13 +255,27 @@ export const HomeworkRowItem: React.FC<{
   if (h.state === 'accept') {
     const tone = markTone(h.mark);
     right = (
-      <span style={{
-        minWidth: 36, height: 36, borderRadius: 9, flexShrink: 0,
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        fontSize: 18, fontWeight: 700, lineHeight: '24px',
-        background: tone.bg, border: `1px solid ${tone.border}`, color: tone.text,
-      }}>
-        {[h.mark, h.mark_2].filter(Boolean).join(' · ') || '—'}
+      <span style={{ display: 'inline-flex', gap: 4, flexShrink: 0 }}>
+        {h.mark && <span style={{
+          minWidth: 36, height: 36, borderRadius: 9,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontSize: 18, fontWeight: 700, lineHeight: '24px',
+          background: tone.bg, border: `1px solid ${tone.border}`, color: tone.text,
+        }}>{h.mark}</span>}
+        {h.mark_2 && <span style={{
+          minWidth: 36, height: 36, borderRadius: 9,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontSize: 18, fontWeight: 700, lineHeight: '24px',
+          background: markTone(h.mark_2).bg,
+          border: `1px solid ${markTone(h.mark_2).border}`,
+          color: markTone(h.mark_2).text,
+        }}>{h.mark_2}</span>}
+        {!h.mark && !h.mark_2 && <span style={{
+          minWidth: 36, height: 36, borderRadius: 9,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontSize: 18, fontWeight: 700, lineHeight: '24px',
+          background: tone.bg, border: `1px solid ${tone.border}`, color: tone.text,
+        }}>—</span>}
       </span>
     );
   } else if (h.state === 'change') {

@@ -17,26 +17,6 @@ import {
 import { JournalButton } from '@/shared/components/JournalButton';
 import type { HomeworkSubmissionsResponse, HomeworkSubmissionStudent } from '@/shared/lib/types';
 
-/* --- тон бейджа оценки (как в журнале/карточке ученика): цветной тинт +
-       рамка, текст text_primary (цветной текст на своём тинте не читается) */
-const markTone = (mark: number | null): React.CSSProperties => {
-  const map: Record<number, { bg: string; border: string }> = {
-    5: { bg: 'var(--vkui--color_background_positive_tint)', border: 'var(--vkui--color_stroke_positive)' },
-    4: { bg: 'var(--vkui--color_background_accent_tint)', border: 'var(--vkui--color_stroke_accent)' },
-    3: { bg: 'var(--vkui--color_background_warning)', border: 'var(--vkui--color_icon_warning)' },
-    2: { bg: 'var(--vkui--color_background_negative_tint)', border: 'var(--vkui--color_stroke_negative)' },
-  };
-  const tone = mark != null ? map[mark] : undefined;
-  return {
-    width: 36, height: 36, borderRadius: 10, flexShrink: 0,
-    display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-    fontSize: 17, fontWeight: 700,
-    background: tone?.bg ?? 'var(--vkui--color_background_secondary)',
-    border: `1px solid ${tone?.border ?? 'var(--vkui--color_separator_primary)'}`,
-    color: 'var(--vkui--color_text_primary)',
-  };
-};
-
 /* янтарная плашка «На доработке» (AmberChip: warning-тинта текста нет в VKUI 8) */
 const amberPill: React.CSSProperties = {
   fontSize: 11, fontWeight: 600, padding: '4px 8px', borderRadius: 8,
@@ -79,7 +59,7 @@ export const ReviewQueue: React.FC<{
   submission: HomeworkSubmissionsResponse;
   // subId === null значит «сдачи нет» — caller шлёт student_id на
   // /homework/<id>/review_student (приём без сдачи).
-  onReview: (subId: number | null, action: 'accept' | 'change', note: string, mark: number | null, studentId: number, mark2: number | null) => Promise<string | null>;
+  onReview: (subId: number | null, action: 'accept' | 'change', note: string | undefined, mark: number | null, studentId: number, mark2: number | null) => Promise<string | null>;
 }> = ({ submission, onReview }) => {
   const { students } = submission;
   const [seg, setSeg] = React.useState<SegKey>('submit');
@@ -87,6 +67,12 @@ export const ReviewQueue: React.FC<{
   const [notes, setNotes] = React.useState<Record<number, string>>({});
   const [marks, setMarks] = React.useState<Record<number, number | null>>({});
   const [marks2, setMarks2] = React.useState<Record<number, number | null>>({});
+  React.useEffect(() => {
+    setMarks(Object.fromEntries(students.map(s => [s.student_id, s.mark])));
+    setMarks2(Object.fromEntries(students.map(s => [s.student_id, s.mark_2])));
+    setNotes(Object.fromEntries(students.map(s => [s.student_id, s.teacher_note || ''])));
+  }, [students]);
+
   // undefined = юзер ещё не тапал (авто-раскрыта первая строка),
   // null = закрыл руками, число = открытая строка.
   const [expanded, setExpanded] = React.useState<number | null | undefined>(undefined);
@@ -117,6 +103,36 @@ export const ReviewQueue: React.FC<{
       (notes[s.student_id] || '').trim(), mark, s.student_id, mark2);
     setBusyId(null);
     return err;
+  };
+
+  const changeAcceptedMark = async (
+    s: HomeworkSubmissionStudent,
+    which: 1 | 2,
+    next: number | null,
+  ) => {
+    if (busyId !== null) return;
+
+    const previousMark = marks[s.student_id] ?? null;
+    const previousMark2 = marks2[s.student_id] ?? null;
+    const mark = which === 1 ? next : previousMark;
+    const mark2 = which === 2 ? next : previousMark2;
+
+    setBusyId(s.student_id);
+    if (which === 1) {
+      setMarks(prev => ({ ...prev, [s.student_id]: next }));
+    } else {
+      setMarks2(prev => ({ ...prev, [s.student_id]: next }));
+    }
+
+    // При точечной правке оценки не отправляем teacher_note: пустое поле
+    // в Input не должно стирать уже сохранённый комментарий учителя.
+    const err = await onReview(s.sub_id ?? null, 'accept', undefined,
+      mark, s.student_id, mark2);
+    if (err) {
+      setMarks(prev => ({ ...prev, [s.student_id]: previousMark }));
+      setMarks2(prev => ({ ...prev, [s.student_id]: previousMark2 }));
+    }
+    setBusyId(null);
   };
 
   return (
@@ -202,12 +218,32 @@ export const ReviewQueue: React.FC<{
                     {s.state === 'submit' && fmtSubmittedAt(s.submitted_at)}
                     {s.state === 'change' && (s.teacher_note
                       ? `ваш комментарий: «${s.teacher_note}»` : 'отправлен на доработку')}
-                    {s.state === 'accept' && (s.mark ? `принято${s.submitted_at ? ` · ${fmtSubmittedAt(s.submitted_at).replace('сдал ', '')}` : ''}` : 'принято')}
+                    {s.state === 'accept' && (s.mark || s.mark_2 ? `принято${s.submitted_at ? ` · ${fmtSubmittedAt(s.submitted_at).replace('сдал ', '')}` : ''}` : 'принято')}
                     {s.state === 'reject' && 'отклонено'}
                     {(s.state === 'none' || s.state === 'draft') && 'Не сдано'}
                   </Caption>
                 </div>
-                {s.state === 'accept' && <span style={markTone(s.mark)}>{[s.mark, s.mark_2].filter(Boolean).join(' · ') || '—'}</span>}
+                {s.state === 'accept' && (
+                  <span
+                    style={{ display: 'inline-flex', gap: 4, flexShrink: 0 }}
+                    onClick={e => e.stopPropagation()}
+                  >
+                    <JournalButton
+                      kind="grade"
+                      size="l"
+                      value={marks[subId] ?? null}
+                      onCycle={busyId === null ? next => changeAcceptedMark(s, 1, next) : undefined}
+                      title="Оценка 1 за домашнее задание"
+                    />
+                    <JournalButton
+                      kind="grade"
+                      size="l"
+                      value={marks2[subId] ?? null}
+                      onCycle={busyId === null ? next => changeAcceptedMark(s, 2, next) : undefined}
+                      title="Оценка 2 за домашнее задание"
+                    />
+                  </span>
+                )}
                 {s.state === 'submit' && <span style={grayPill}>На проверке</span>}
                 {s.state === 'change' && <span style={amberPill}>На доработке</span>}
                 {s.state === 'reject' && (
@@ -273,7 +309,7 @@ export const ReviewQueue: React.FC<{
                   <Input
                     value={notes[subId] || ''}
                     onChange={e => setNotes(prev => ({ ...prev, [subId]: e.target.value }))}
-                    placeholder="Комментарий — видит только ученик"
+                    placeholder="Например: хорошая работа"
                     aria-label="Комментарий учителя"
                     style={{ marginTop: 8 }}
                   />
@@ -301,18 +337,22 @@ export const ReviewQueue: React.FC<{
                         На доработку
                       </Button>
                     )}
-                    <JournalButton
-                      kind="grade"
-                      value={marks[subId] ?? null}
-                      onCycle={next => setMarks(prev => ({ ...prev, [subId]: next }))}
-                      title="Оценка 1 за домашнее задание"
-                    />
-                    <JournalButton
-                      kind="grade"
-                      value={marks2[subId] ?? null}
-                      onCycle={next => setMarks2(prev => ({ ...prev, [subId]: next }))}
-                      title="Оценка 2 за домашнее задание"
-                    />
+                    {s.state !== 'accept' && (
+                      <JournalButton
+                        kind="grade"
+                        value={marks[subId] ?? null}
+                        onCycle={next => setMarks(prev => ({ ...prev, [subId]: next }))}
+                        title="Оценка 1 за домашнее задание"
+                      />
+                    )}
+                    {s.state !== 'accept' && (
+                      <JournalButton
+                        kind="grade"
+                        value={marks2[subId] ?? null}
+                        onCycle={next => setMarks2(prev => ({ ...prev, [subId]: next }))}
+                        title="Оценка 2 за домашнее задание"
+                      />
+                    )}
                   </div>
                 </div>
               )}

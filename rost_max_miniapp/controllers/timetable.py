@@ -1842,6 +1842,7 @@ class RostMaxTimetableController(http.Controller):
                 {"error": "Invalid JSON"}, status=400)
 
         overwrite = bool(body.get('overwrite'))
+        clear = bool(body.get('clear'))
         note = (body.get('teacher_note') or '').strip()
         marks_vals = {}
         for key, field in (('mark', 'marks'), ('mark_2', 'marks_2')):
@@ -1853,6 +1854,17 @@ class RostMaxTimetableController(http.Controller):
 
         SubLine = request.env['op.assignment.sub.line'].sudo()
         done = 0
+        if clear:
+            for st in asg.allocation_ids:
+                sub = SubLine.search([
+                    ('assignment_id', '=', asg.id),
+                    ('student_id', '=', st.id),
+                ], limit=1)
+                if sub:
+                    sub.write({'marks': 0, 'marks_2': 0, 'teacher_note': False})
+                    done += 1
+            return request.make_json_response({"success": True, "updated": done})
+
         for st in asg.allocation_ids:
             sub = SubLine.search([
                 ('assignment_id', '=', asg.id),

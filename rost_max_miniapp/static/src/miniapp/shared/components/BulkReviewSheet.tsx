@@ -8,10 +8,10 @@
 import React from 'react';
 import {
   Flex, Switch, ModalPage, ModalPageHeader, PanelHeaderClose,
-  Button, AppRootPortal, Box,
+  Button, IconButton, AppRootPortal, Box, Alert,
   Caption, Input,
 } from '@vkontakte/vkui';
-import { Icon28ArrowUpRightOutSquareOutline } from '@vkontakte/icons';
+import { Icon28ArrowUpRightOutSquareOutline, Icon28DeleteOutline } from '@vkontakte/icons';
 import { JournalButton } from '@/shared/components/JournalButton';
 import { apiPost } from '@/shared/lib/api';
 
@@ -33,6 +33,7 @@ export const BulkReviewSheet: React.FC<BulkReviewSheetProps> = ({
   const [note, setNote] = React.useState('');
   const [overwrite, setOverwrite] = React.useState(false);
   const [busy, setBusy] = React.useState(false);
+  const [confirmClear, setConfirmClear] = React.useState(false);
 
   React.useEffect(() => {
     if (open) {
@@ -40,8 +41,31 @@ export const BulkReviewSheet: React.FC<BulkReviewSheetProps> = ({
       setMark2(null);
       setNote('');
       setOverwrite(false);
+      setConfirmClear(false);
     }
   }, [open]);
+
+  const clearAll = async () => {
+    if (busy) return;
+    setConfirmClear(false);
+    setBusy(true);
+    try {
+      const res = await apiPost<{ success?: boolean; updated?: number; error?: string }>(
+        `/rost_max/api/homework/${assignmentId}/review_bulk`,
+        { clear: true });
+      if (res.error) {
+        onError(res.error);
+      } else {
+        onApplied();
+        onClose();
+        return;
+      }
+    } catch {
+      onError('Не удалось очистить оценки у всего класса');
+    } finally {
+      setBusy(false);
+    }
+  };
 
   const applyAll = async () => {
     setBusy(true);
@@ -58,8 +82,9 @@ export const BulkReviewSheet: React.FC<BulkReviewSheetProps> = ({
       }
     } catch {
       onError('Не удалось применить ко всему классу');
+    } finally {
+      setBusy(false);
     }
-    setBusy(false);
   };
 
   return (
@@ -71,11 +96,24 @@ export const BulkReviewSheet: React.FC<BulkReviewSheetProps> = ({
           <ModalPageHeader
             before={<PanelHeaderClose onClick={onClose} />}
             after={
-              <Switch
-                checked={overwrite}
-                onChange={e => setOverwrite(e.target.checked)}
-                aria-label="Перезаписывать уже принятых"
-              />
+              <Flex align="center" gap={8}>
+                <Switch
+                  checked={overwrite}
+                  disabled={busy}
+                  onChange={e => setOverwrite(e.target.checked)}
+                  aria-label="Перезаписывать уже принятых"
+                />
+                <IconButton
+                  label="Очистить оценки и комментарий у всего класса"
+                  disabled={busy}
+                  onClick={e => {
+                    e.stopPropagation();
+                    setConfirmClear(true);
+                  }}
+                >
+                  <Icon28DeleteOutline />
+                </IconButton>
+              </Flex>
             }
           >
             Весь класс
@@ -120,7 +158,7 @@ export const BulkReviewSheet: React.FC<BulkReviewSheetProps> = ({
                 в MAX WebView футер может не показываться (как «ОК» в журнале). */}
             <Button
               size="l" mode="primary" appearance="accent" stretched
-              loading={busy} onClick={applyAll}
+              loading={busy} disabled={confirmClear} onClick={applyAll}
             >
               Принять у всех
             </Button>
@@ -136,6 +174,18 @@ export const BulkReviewSheet: React.FC<BulkReviewSheetProps> = ({
           </Flex>
         </Box>
       </ModalPage>
+      {confirmClear && (
+        <Alert
+          onClose={() => setConfirmClear(false)}
+          onClosed={() => setConfirmClear(false)}
+          title="Очистить у всего класса?"
+          description="Оценки и комментарии учителя будут удалены без возможности восстановления. Состояние сдач при этом не изменится."
+          actions={[
+            { title: 'Отмена', mode: 'cancel' },
+            { title: 'Очистить', mode: 'destructive', action: clearAll },
+          ]}
+        />
+      )}
     </AppRootPortal>
   );
 };

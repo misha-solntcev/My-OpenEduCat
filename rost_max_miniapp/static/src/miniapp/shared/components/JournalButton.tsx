@@ -55,7 +55,7 @@ const toneByAppearance = (appearance: 'positive' | 'accent' | 'warning' | 'negat
       return {
         bg: 'var(--vkui--color_background_accent_tint)',
         border: 'var(--vkui--color_stroke_accent)',
-        text: 'var(--vkui--color_text_accent)',
+        text: 'var(--vkui--color_text_primary)',
         dot: 'var(--vkui--color_background_accent)',
       };
     case 'warning':
