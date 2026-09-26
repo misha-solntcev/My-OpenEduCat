@@ -60,11 +60,13 @@ export async function apiGet<T>(url: string): Promise<T> {
   });
 
   if (res.status === 401) {
-    // Только 401 = реально нет сессии -> на логин. 403 (нет прав на
-    // конкретные данные) редиректом НЕ лечим: student с валидной сессией
-    // не должен вылетать на логин из-за ACL-ошибки бэкенда.
-    // Сохранённый sid мёртв — убираем, иначе бутстрап на /rost_max/login
-    // снова его подхватит и получится цикл перезагрузок.
+    // После рестарта/логина в WebView может остаться старый sid в
+    // localStorage, пока актуальная session_id-cookie уже новая. Сначала
+    // пробуем запрос без fallback-заголовка: cookie — источник истины.
+    if (sid) {
+      const cookieOnly = await fetch(url, { headers: { 'X-CSRF-TOKEN': getCsrfToken() }, credentials: 'include' });
+      if (cookieOnly.ok) return cookieOnly.json();
+    }
     clearSessionId();
     window.location.href = '/rost_max/login';
     throw new Error('Session expired');

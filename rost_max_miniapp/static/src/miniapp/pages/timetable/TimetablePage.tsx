@@ -10,6 +10,7 @@ import {
 import { Calendar } from '@vkontakte/vkui';
 import { apiGet } from '@/shared/lib/api';
 import { useToast } from '@/shared/components/Toast';
+import { useAppStore } from '@/shared/lib/store';
 import { TimedGroups } from '@/shared/components/TimedGroups';
 import { useSchoolNowMinutes } from '@/shared/hooks/useSchoolNow';
 import { initialsOf } from '@/shared/lib/initials';
@@ -147,9 +148,16 @@ const TimetableSlot: React.FC<{
         >
           {/* Строка 1: предмет + время справа */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 8 }}>
-            <Text weight="2" style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              {lesson.subject}{showBatch && lesson.batch ? ` · ${lesson.batch}` : ''}
-            </Text>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 4, minWidth: 0, flex: 1 }}>
+              <Text weight="2" style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {lesson.subject}
+              </Text>
+              {showBatch && lesson.batch && (
+                <Text weight="2" style={{ flexShrink: 0, whiteSpace: 'nowrap' }}>
+                  · {lesson.batch}
+                </Text>
+              )}
+            </div>
             <Text weight="1" style={{
               flexShrink: 0, fontSize: 13,
               color: subColor,
@@ -255,6 +263,8 @@ export const TimetablePage: React.FC<TimetablePageProps> = ({ id, onOpenLesson }
   const [globalDate, setGlobalDate] = React.useState(today);
   const [selectedFaculty, setSelectedFaculty] = React.useState<number | null>(null);
   const [selectedBatch, setSelectedBatch] = React.useState<number | null>(null);
+  const userInfo = useAppStore(s => s.userInfo);
+  const isTeacher = Boolean(userInfo?.is_teacher);
   const addToast = useToast();
 
   const [lessons, setLessons] = React.useState<Lesson[]>([]);
@@ -462,7 +472,7 @@ export const TimetablePage: React.FC<TimetablePageProps> = ({ id, onOpenLesson }
                 <TimetableTimeline
                   lessons={lessons}
                   isToday={isToday}
-                  showBatch={isAdmin}
+                  showBatch={isAdmin || isTeacher}
                   onOpenLesson={onOpenLesson}
                 />
               )}

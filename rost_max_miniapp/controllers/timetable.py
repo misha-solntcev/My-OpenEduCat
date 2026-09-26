@@ -320,12 +320,16 @@ class RostMaxTimetableController(http.Controller):
                 # иначе cookie не сохраняется при первичной аутентификации через fetch API.
                 # secure включаем только для HTTPS (локальная dev-среда работает по HTTP).
                 is_secure = request.httprequest.url.startswith('https')
+                # Для localhost/HTTP нельзя отправлять SameSite=None без
+                # Secure: браузер отвергает такую cookie, поэтому login проходит,
+                # но последующий запрос снова получает 401. В HTTPS оставляем
+                # None+Secure для cross-site WebView.
                 response.set_cookie(
                     'session_id',
                     request.session.sid,
                     max_age=90 * 86400,
                     httponly=True,
-                    samesite='None',
+                    samesite='None' if is_secure else 'Lax',
                     secure=is_secure
                 )
 
@@ -556,7 +560,7 @@ class RostMaxTimetableController(http.Controller):
                 {
                     "id": l.id,
                     "subject": l.subject_id.name,
-                    "batch": l.batch_id.name,
+                    "batch": self._batch_short(l.batch_id.name),
                     "timing": l.timing or "",
                     "state": l.state,
                     "faculty": f"{l.faculty_id.last_name or ''} {l.faculty_id.first_name or ''} {l.faculty_id.middle_name or ''}".strip(),
@@ -2293,7 +2297,7 @@ class RostMaxTimetableController(http.Controller):
 
         # Группируем ученик x предмет, статистика через движок get_stats_from_lines
         students_payload = []
-        stat_obj = request.env['op.attendance.line']
+        stat_obj = request.env['op.attendance.line'].sudo()
         for st in own_students:
             st_lines = request.env['op.attendance.line'].sudo().search([
                 ('student_id', '=', st.id),
@@ -2302,18 +2306,28 @@ class RostMaxTimetableController(http.Controller):
             ])
             by_subject = {}
             for ln in st_lines:
-                by_subject.setdefault(ln.subject_id, request.env['op.attendance.line'].browse())
-            for ln in st_lines:
-                by_subject[ln.subject_id] |= ln
+                by_subject.setdefault(ln.subject_id.id, []).append(ln.id)
+            by_subject = {
+                subject_id: request.env['op.attendance.line'].sudo().browse(line_ids)
+                for subject_id, line_ids in by_subject.items()
+            }
 
             subjects = []
-            for subj, subj_lines in by_subject.items():
+            for subj_id, subj_lines in by_subject.items():
+                subj = request.env['op.subject'].sudo().browse(subj_id)
                 if not subj:
                     continue
                 stats = stat_obj.get_stats_from_lines(subj_lines)
+                latest_grades = []
+                for line in subj_lines.sorted('attendance_date', reverse=True):
+                    payload = self._line_payload(line)
+                    for grade in payload['grades']:
+                        latest_grades.append({"grade": grade, "date": payload['date']})
                 subjects.append({
                     "subject_id": subj.id,
                     "name": subj.name,
+                    "subject_color": subj.color or 0,
+                    "latest_grades": latest_grades,
                     "average_mark": stats['avg'],
                     "attendance_rate": stats['rate'],
                     "total_classes": stats['total'],
@@ -2328,9 +2342,22 @@ class RostMaxTimetableController(http.Controller):
                 "subjects": subjects,
             })
 
+        all_counts = [
+            (int(mark), int(count))
+            for student in students_payload
+            for subject in student['subjects']
+            for mark, count in subject['counts'].items()
+            if int(count) > 0
+        ]
+        total_marks = sum(count for _, count in all_counts)
+        overall_average = round(
+            sum(mark * count for mark, count in all_counts) / total_marks, 2
+        ) if total_marks else 0.0
+
         return request.make_json_response({
             "quarter": q,
             "current_quarter": current_q,
+            "overall_average": overall_average,
             "quarters": [{"q": i, "name": q_map[i].name} for i in sorted(q_map)],
             "students": students_payload,
         })
@@ -2366,10 +2393,13 @@ class RostMaxTimetableController(http.Controller):
             ('attendance_date', '<=', term.term_end_date),
         ], order='attendance_date desc')
 
-        stats = request.env['op.attendance.line'].get_stats_from_lines(lines)
+        stats = request.env['op.attendance.line'].sudo().get_stats_from_lines(lines)
+        subject = request.env['op.subject'].sudo().browse(subject_id).exists()
         return request.make_json_response({
             "quarter": q,
             "subject_id": subject_id,
+            # Цвет предмета для иконки в шапке (палитра Odoo, как в карточках ДЗ).
+            "subject_color": subject.color or 0,
             "summary": {
                 "average_mark": stats['avg'],
                 "attendance_rate": stats['rate'],

@@ -26,7 +26,7 @@ import { useToast } from '@/shared/components/Toast';
 import { MaterialsEditor } from '@/shared/components/MaterialsEditor';
 import { ReviewQueue } from '@/shared/components/ReviewQueue';
 import { BulkReviewSheet } from '@/shared/components/BulkReviewSheet';
-import { SubjectIcon, subjectTint } from '@/shared/components/SubjectIcon';
+import { SubjectAvatar } from '@/shared/components/SubjectIcon';
 import { HomeworkFilterModal } from '@/pages/homework/HomeworkFilterModal';
 import { AccentSegmentedControl } from '@/shared/components/AccentSegmentedControl';
 import { TeacherHwCard, RightPill } from '@/shared/components/TeacherHomeworkCards';
@@ -308,13 +308,7 @@ const AssignmentDetail: React.FC<{
       >
         <PanelHeaderContent
           before={meta && (
-            <span style={{
-              width: 30, height: 30, borderRadius: 8, flexShrink: 0,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              ...subjectTint(meta.subject_color || 0),
-            }}>
-              <SubjectIcon subject={meta.subject} />
-            </span>
+            <SubjectAvatar subject={meta.subject} color={meta.subject_color} size={30} />
           )}
           subtitle={meta?.faculty || undefined}
         >

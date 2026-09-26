@@ -7,14 +7,14 @@ import {
   Flex,
   Text,
   Spinner,
-  Group,
-  SimpleCell,
   Placeholder,
-  Badge,
   Footnote,
+  Card as VkCard,
 } from '@vkontakte/vkui';
 import { Icon28ChevronBack, Icon56NotebookCheckOutline } from '@vkontakte/icons';
 import { apiGet } from '@/shared/lib/api';
+import { JournalButton } from '@/shared/components/JournalButton';
+import { SubjectAvatar } from '@/shared/components/SubjectIcon';
 import { useToast } from '@/shared/components/Toast';
 import type { MyGradesResponse } from '@/shared/lib/types';
 
@@ -27,9 +27,8 @@ interface SubjectGradesPageProps {
 
 const fmtDate = (iso: string): string => {
   if (!iso) return '';
-  return new Date(iso + 'T00:00:00').toLocaleDateString('ru-RU', {
-    day: 'numeric', month: 'long',
-  });
+  const [, month, day] = iso.split('-');
+  return `${day}.${month}`;
 };
 
 /** Детализация предмета: сводка четверти + хронология оценок/посещаемости */
@@ -63,7 +62,14 @@ export const SubjectGradesPage: React.FC<SubjectGradesPageProps> = ({
       <PanelHeader
         before={<IconButton label="Назад" onClick={onBack}><Icon28ChevronBack /></IconButton>}
       >
-        {subjectName}
+        {data ? (
+          <Flex align="center" gap={10}>
+            <SubjectAvatar subject={subjectName} color={data.subject_color} size={30} />
+            <Text weight="2" style={{ fontSize: 18 }}>{subjectName}</Text>
+          </Flex>
+        ) : (
+          <Text weight="2" style={{ fontSize: 18 }}>{subjectName}</Text>
+        )}
       </PanelHeader>
 
       <Box padding="m">
@@ -78,30 +84,60 @@ export const SubjectGradesPage: React.FC<SubjectGradesPageProps> = ({
           </Placeholder>
         ) : (
           <>
-            <Flex gap={8} paddingBlockEnd="m" wrap="wrap">
-              <Badge>Средняя: {data.summary.average_mark > 0 ? data.summary.average_mark.toFixed(2) : '—'}</Badge>
-              <Badge>Посещаемость: {data.summary.attendance_rate.toFixed(0)}%</Badge>
-              <Badge>Уроков: {data.summary.total_classes}</Badge>
+            <Flex gap={8} align="stretch" style={{ marginBottom: 12 }}>
+              {[
+                { label: 'Уроков', value: String(data.summary.total_classes) },
+                { label: 'Посещаемость', value: `${data.summary.attendance_rate.toFixed(0)}%` },
+                { label: 'Средний балл', value: data.summary.average_mark > 0 ? data.summary.average_mark.toFixed(2).replace('.', ',') : '—' },
+              ].map((item) => (
+                <VkCard
+                  key={item.label}
+                  mode="shadow"
+                  style={{ flex: 1, minWidth: 0, padding: 12, textAlign: 'center' }}
+                >
+                  <Text color="secondary" style={{ display: 'block', fontSize: 12, lineHeight: 1.2 }}>
+                    {item.label}
+                  </Text>
+                  <Text weight="2" style={{ display: 'block', fontSize: 22, lineHeight: 1.2, marginTop: 6 }}>
+                    {item.value}
+                  </Text>
+                </VkCard>
+              ))}
             </Flex>
 
-            <Group header="Оценки и посещаемость">
-              {data.lines.map(ln => (
-                <SimpleCell
+            <div>
+              {data.lines.map((ln) => (
+                <VkCard
                   key={ln.line_id}
-                  before={fmtDate(ln.date)}
-                  after={
-                    <Flex gap={2}>
-                      {ln.grades.map((g, i) => (
-                        <Text key={i} weight="2">{g}</Text>
-                      ))}
-                    </Flex>
-                  }
-                  subtitle={ln.attendance ?? ''}
+                  mode="shadow"
+                  style={{ padding: 12, marginBottom: 8, borderRadius: 12 }}
                 >
-                  {ln.topic || ln.subject}
-                </SimpleCell>
+                  <Flex align="center" gap={10} alignItems="flex-start">
+                    <Text weight="1" style={{ color: 'var(--vkui--color_text_secondary)', whiteSpace: 'nowrap', minWidth: 42 }}>
+                      {fmtDate(ln.date)}
+                    </Text>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <Text style={{ display: 'block', lineHeight: 1.35 }}>{ln.topic || 'Тема не указана'}</Text>
+                      {(ln.attendance_type_id || ln.grades.length > 0) && (
+                        <Flex gap={4} align="center" wrap="wrap" style={{ marginTop: 8 }}>
+                          {ln.attendance_type_id && (
+                            <JournalButton
+                              kind="attendance"
+                              value={ln.attendance_type_id}
+                              attendanceTypes={[{ id: ln.attendance_type_id, name: ln.attendance || '' }]}
+                              size="m"
+                            />
+                          )}
+                          {ln.grades.map((g, i) => (
+                            <JournalButton key={`${g}-${i}`} kind="grade" value={g} size="m" />
+                          ))}
+                        </Flex>
+                      )}
+                    </div>
+                  </Flex>
+                </VkCard>
               ))}
-            </Group>
+            </div>
 
             {data.summary.last_remark && data.summary.last_remark !== '—' && (
               <Box padding="m" paddingBlockStart="s">

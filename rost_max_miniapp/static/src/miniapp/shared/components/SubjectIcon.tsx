@@ -58,6 +58,69 @@ const TINTS = ['#cccccc', '#f68c8c', '#ecbc8f', '#f2da83', '#a3c4ec', '#caa9c1',
   '#739bd5', '#ff73e5', '#ffce73', '#93e373', '#73d7dc', '#739aff', '#dcb773', '#75ff73',
   '#73e5ff', '#7390dc', '#ff73c0', '#73dc9b', '#73c3d5', '#7375ff', '#d573a9', '#aac2b2'];
 
-export const subjectTint = (color: number): React.CSSProperties => color
-  ? { background: TINTS[((color - 1) % 55) + 1], color: 'var(--vkui--color_text_primary)' }
-  : { background: 'var(--vkui--color_background_secondary)', color: 'var(--vkui--color_text_secondary)' };
+const SUBJECT_BASE_COLORS = [
+  '#a2a2a2', '#ee2d2d', '#dc8534', '#e8bb1d', '#5794dd', '#9f628f', '#db8865', '#41a9a2',
+  '#304be0', '#ee2f8a', '#61c36e', '#9872e6', '#aa4b6b', '#30c381', '#97743a', '#f7cd1f',
+  '#4285f4', '#8e24aa', '#d6145f', '#173e43', '#348f50', '#aa3a38', '#795548', '#5e0231',
+  '#6be585', '#999966', '#e9d362', '#b56969', '#bdc3c7', '#649173', '#ea00ff', '#ff0026',
+  '#8bcc00', '#00bfaf', '#006aff', '#af00bf', '#bf001d', '#bf6300', '#8cff00', '#00f2ff',
+  '#004ab3', '#ff00d0', '#ffa600', '#3acc00', '#00b6bf', '#0048ff', '#bf7c00', '#04ff00',
+  '#00d0ff', '#0036bf', '#ff008c', '#00bf49', '#0092b3', '#0004ff', '#b20062', '#649173',
+];
+
+/** Затемняет цвет предмета до контраста не ниже 3:1 к пастельному фону. */
+const contrastingIconColor = (base: string, bg: string): string => {
+  const rgb = (hex: string) => [1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16));
+  const luminance = (channels: number[]) => {
+    const [r, g, b] = channels.map(channel => {
+      const value = channel / 255;
+      return value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4;
+    });
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+  };
+  const channels = rgb(base);
+  const background = luminance(rgb(bg));
+  for (let step = 0; step <= 100; step++) {
+    const darkened = channels.map(channel => Math.round(channel * (1 - step / 100)));
+    const foreground = luminance(darkened);
+    const contrast = (Math.max(background, foreground) + 0.05)
+      / (Math.min(background, foreground) + 0.05);
+    if (contrast >= 3) return `#${darkened.map(channel => channel.toString(16).padStart(2, '0')).join('')}`;
+  }
+  return '#000000';
+};
+
+const SUBJECT_COLORS = TINTS.map((bg, index) => ({
+  bg,
+  color: contrastingIconColor(SUBJECT_BASE_COLORS[index], bg),
+}));
+
+/** Единые цвета квадрата предмета: тот же расчёт, что в карточках ДЗ. */
+export const subjectColor = (color: number): { bg: string; color: string } => {
+  if (!color) {
+    return {
+      bg: 'var(--vkui--color_background_secondary)',
+      color: 'var(--vkui--color_text_secondary)',
+    };
+  }
+  return SUBJECT_COLORS[((color - 1) % 55) + 1];
+};
+
+/** Квадрат-аватар предмета: пастель из БД + глиф по названию.
+ *  ЕДИНСТВЕННЫЙ источник правды для всех экранов (лента ДЗ, вкладка
+ *  «Задания», «Оценки», экран задания) — раньше палитра дублировалась
+ *  в трёх файлах и иконки в «Оценках» рендерились чёрными. */
+export const SubjectAvatar: React.FC<{ subject: string; color?: number; size?: number }> = ({
+  subject, color = 0, size = 38,
+}) => {
+  const c = subjectColor(color);
+  return (
+    <span style={{
+      width: size, height: size, borderRadius: 10, flexShrink: 0,
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      background: c.bg, color: c.color,
+    }}>
+      <SubjectIcon subject={subject} />
+    </span>
+  );
+};

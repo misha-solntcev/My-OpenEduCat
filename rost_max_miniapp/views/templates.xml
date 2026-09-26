@@ -34,10 +34,13 @@
                 <!-- CSRF token from Odoo session -->
                 <script type="text/javascript">
                     window.csrf_token = "<t t-nocache='1' t-esc='csrf_token'/>";
-                    // MAX WebView fallback: если session_id есть в localStorage,
-                    // устанавливаем его как cookie (cross-site ограничения
-                    // могут блокировать автоматическое сохранение cookie).
+                    // Не подменяем cookie старым sid из localStorage при рендере
+                    // страницы. В обычном браузере cookie, установленный login,
+                    // является источником истины; подмена особенно ломала
+                    // локальный вход на http://localhost после перезапуска Odoo.
+                    // Fallback-установка из localStorage нужна только HTTPS/WebView.
                     (function() {
+                        if (location.protocol !== 'https:') return;
                         var sid = localStorage.getItem('rost_max_session_id');
                         if (sid) {
                             document.cookie = 'session_id=' + sid + '; path=/; SameSite=None; Secure';

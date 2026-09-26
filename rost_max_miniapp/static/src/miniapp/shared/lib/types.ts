@@ -110,6 +110,9 @@ export interface LessonJournalResponse {
 export interface SubjectSummary {
   subject_id: number;
   name: string;
+  /** Цвет предмета из op.subject (палитра Odoo). */
+  subject_color: number;
+  latest_grades: { grade: number; date: string }[];
   average_mark: number;
   attendance_rate: number;
   total_classes: number;
@@ -127,6 +130,8 @@ export interface StudentSubjects {
 export interface MySubjectsResponse {
   quarter: number;
   current_quarter: number;
+  /** Общий средний балл по всем предметам выбранной четверти. */
+  overall_average: number;
   quarters: { q: number; name: string }[];
   students: StudentSubjects[];
 }
@@ -146,6 +151,8 @@ export interface GradeLine {
 export interface MyGradesResponse {
   quarter: number;
   subject_id: number;
+  /** Цвет предмета из op.subject (палитра Odoo) — иконка в шапке. */
+  subject_color: number;
   summary: {
     average_mark: number;
     attendance_rate: number;

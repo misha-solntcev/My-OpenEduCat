@@ -9,6 +9,7 @@ import {
 } from '@vkontakte/icons';
 import { TimedGroups } from '@/shared/components/TimedGroups';
 import { JournalButton } from '@/shared/components/JournalButton';
+
 import { TodayTimeline } from './TodayTimeline';
 import { MaterialsEditor } from '@/shared/components/MaterialsEditor';
 import { initialsOf } from '@/shared/lib/initials';
@@ -185,17 +186,10 @@ export const GradesToday: React.FC<{
         <SimpleCell
           key={i}
           before={
-            <span style={{
-              width: 30, height: 30, borderRadius: '50%', flexShrink: 0,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              color: '#fff', fontWeight: 700, fontSize: 14,
-              background: Math.max(...g.grades) >= 4
-                ? 'var(--vkui--color_background_positive)'
-                : Math.max(...g.grades) === 3
-                  ? 'var(--vkui--color_background_warning)'
-                  : 'var(--vkui--color_background_negative)',
-            }}>
-              {g.grades.join(' ')}
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
+              {g.grades.map((grade, gradeIndex) => (
+                <JournalButton key={`${grade}-${gradeIndex}`} kind="grade" value={grade} />
+              ))}
             </span>
           }
           subtitle={g.comment || undefined}

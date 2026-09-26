@@ -1,56 +1,7 @@
 import React from 'react';
 import { Caption, Text, Tappable, useColorScheme } from '@vkontakte/vkui';
-import { SubjectIcon } from './SubjectIcon';
+import { SubjectAvatar } from './SubjectIcon';
 import type { TeacherHomeworkItem } from '@/shared/lib/types';
-
-/* --- Палитра предметов (та же формула, что в HomeworkCardList) --- */
-
-const ODOO_COLORS: { bg: string; color: string }[] = [
-  { bg: '#cccccc', color: '#a2a2a2' }, { bg: '#f68c8c', color: '#ee2d2d' }, { bg: '#ecbc8f', color: '#dc8534' }, { bg: '#f2da83', color: '#e8bb1d' }, { bg: '#a3c4ec', color: '#5794dd' }, { bg: '#caa9c1', color: '#9f628f' }, { bg: '#ebbeaa', color: '#db8865' }, { bg: '#96d0cc', color: '#41a9a2' },
-  { bg: '#8d9cee', color: '#304be0' }, { bg: '#f68dbf', color: '#ee2f8a' }, { bg: '#a8deaf', color: '#61c36e' }, { bg: '#c6b1f1', color: '#9872e6' }, { bg: '#d09cae', color: '#aa4b6b' }, { bg: '#8ddeba', color: '#30c381' }, { bg: '#c6b393', color: '#97743a' }, { bg: '#fbe484', color: '#f7cd1f' },
-  { bg: '#97bcf9', color: '#4285f4' }, { bg: '#c187d0', color: '#8e24aa' }, { bg: '#e87ea7', color: '#d6145f' }, { bg: '#7f9598', color: '#173e43' }, { bg: '#8fc19f', color: '#348f50' }, { bg: '#d09392', color: '#aa3a38' }, { bg: '#b5a29a', color: '#795548' }, { bg: '#a6748e', color: '#5e0231' },
-  { bg: '#aef1bc', color: '#6be585' }, { bg: '#c7c7ab', color: '#999966' }, { bg: '#f3e7a9', color: '#e9d362' }, { bg: '#d6acac', color: '#b56969' }, { bg: '#dbdee0', color: '#bdc3c7' }, { bg: '#aac2b2', color: '#649173' }, { bg: '#f373ff', color: '#ea00ff' }, { bg: '#ff7388', color: '#ff0026' },
-  { bg: '#bfe373', color: '#8bcc00' }, { bg: '#73dcd3', color: '#00bfaf' }, { bg: '#73adff', color: '#006aff' }, { bg: '#d373dc', color: '#af00bf' }, { bg: '#dc7383', color: '#bf001d' }, { bg: '#dca973', color: '#bf6300' }, { bg: '#c0ff73', color: '#8cff00' }, { bg: '#73f8ff', color: '#00f2ff' },
-  { bg: '#739bd5', color: '#004ab3' }, { bg: '#ff73e5', color: '#ff00d0' }, { bg: '#ffce73', color: '#ffa600' }, { bg: '#93e373', color: '#3acc00' }, { bg: '#73d7dc', color: '#00b6bf' }, { bg: '#739aff', color: '#0048ff' }, { bg: '#dcb773', color: '#bf7c00' }, { bg: '#75ff73', color: '#04ff00' },
-  { bg: '#73e5ff', color: '#00d0ff' }, { bg: '#7390dc', color: '#0036bf' }, { bg: '#ff73c0', color: '#ff008c' }, { bg: '#73dc9b', color: '#00bf49' }, { bg: '#73c3d5', color: '#0092b3' }, { bg: '#7375ff', color: '#0004ff' }, { bg: '#d573a9', color: '#b20062' }, { bg: '#aac2b2', color: '#649173' },
-];
-
-/** Затемнение базового цвета до контраста 3:1 с пастельным фоном. */
-const contrastingIconColor = (base: string, bg: string): string => {
-  const rgb = (hex: string) => [1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16));
-  const luminance = (channels: number[]) => {
-    const [r, g, b] = channels.map(channel => {
-      const s = channel / 255;
-      return s <= 0.04045 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4;
-    });
-    return 0.2126 * r + 0.7152 * g + 0.0722 * b;
-  };
-  const channels = rgb(base);
-  const background = luminance(rgb(bg));
-  for (let step = 0; step <= 100; step++) {
-    const darkened = channels.map(channel => Math.round(channel * (1 - step / 100)));
-    const foreground = luminance(darkened);
-    const contrast = (Math.max(background, foreground) + 0.05)
-      / (Math.min(background, foreground) + 0.05);
-    if (contrast >= 3) return `#${darkened.map(channel => channel.toString(16).padStart(2, '0')).join('')}`;
-  }
-  return '#000000';
-};
-
-// Палитра постоянна: считаем контраст один раз, не при рендере карточки.
-const SUBJECT_COLORS = ODOO_COLORS.map(({ bg, color }) => ({
-  bg, color: contrastingIconColor(color, bg),
-}));
-
-/** Цвет предмета (Integer op.subject.color) -> пастель + контрастная иконка.
- *  index = ((c-1)%55)+1 (см. HomeworkCardList: Алгебра color=4 -> #a3c4ec). */
-const subjectColor = (color: number): { bg: string; color: string } => {
-  if (!color) return {
-    bg: 'var(--vkui--color_background_secondary)',
-    color: 'var(--vkui--color_text_secondary)',
-  };
-  return SUBJECT_COLORS[((color - 1) % 55) + 1];
-};
 
 export const SECTION_TONES = {
   review: '#216ebd',
@@ -156,7 +107,6 @@ interface TeacherHwCardProps {
 }
 
 export const TeacherHwCard: React.FC<TeacherHwCardProps> = ({ h, showFaculty, onOpen }) => {
-  const c = subjectColor(h.subject_color || 0);
   const colors = statusColors(useColorScheme() === 'dark');
   const overdue = h.state !== 'finish' && h.overdue;
   const due = fmtDueTeacher(h.due); // «до 24 сен»
@@ -176,13 +126,7 @@ export const TeacherHwCard: React.FC<TeacherHwCardProps> = ({ h, showFaculty, on
     >
       <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-start', gap: 10 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, flex: '1 0 auto', width: 'max-content', maxWidth: '100%', minWidth: 0 }}>
-          <span style={{
-            width: 38, height: 38, borderRadius: 10, flexShrink: 0,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            background: c.bg, color: c.color,
-          }}>
-            <SubjectIcon subject={h.subject} />
-          </span>
+          <SubjectAvatar subject={h.subject} color={h.subject_color} />
           <div style={{ minWidth: 0, flex: 1 }}>
             <Text weight="2" style={{
               fontSize: 16, fontWeight: 600, lineHeight: '22px',
