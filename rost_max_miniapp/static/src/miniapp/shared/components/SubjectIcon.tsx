@@ -110,15 +110,19 @@ export const subjectColor = (color: number): { bg: string; color: string } => {
  *  ЕДИНСТВЕННЫЙ источник правды для всех экранов (лента ДЗ, вкладка
  *  «Задания», «Оценки», экран задания) — раньше палитра дублировалась
  *  в трёх файлах и иконки в «Оценках» рендерились чёрными. */
-export const SubjectAvatar: React.FC<{ subject: string; color?: number; size?: number }> = ({
-  subject, color = 0, size = 38,
-}) => {
+export const SubjectAvatar: React.FC<{
+  subject: string;
+  color?: number;
+  size?: number;
+  /** Чужой предмет у учителя: иконка приглушена (карточка не кликабельна). */
+  muted?: boolean;
+}> = ({ subject, color = 0, size = 38, muted = false }) => {
   const c = subjectColor(color);
   return (
     <span style={{
       width: size, height: size, borderRadius: 10, flexShrink: 0,
       display: 'flex', alignItems: 'center', justifyContent: 'center',
-      background: c.bg, color: c.color,
+      background: c.bg, color: c.color, opacity: muted ? 0.45 : 1,
     }}>
       <SubjectIcon subject={subject} />
     </span>

@@ -10,6 +10,7 @@ import { Caption, Div, Input, Button, Card as VkCard, Text } from '@vkontakte/vk
 import { Icon28AttachOutline, Icon28ClockOutline } from '@vkontakte/icons';
 import { SubjectAvatar } from './SubjectIcon';
 import { fileToBase64 } from '@/shared/lib/api';
+import { gradeTone } from './JournalButton';
 import type { HomeworkItem } from '@/shared/lib/types';
 
 const MONTHS = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
@@ -52,40 +53,6 @@ const HW_STATE_LABEL: Record<string, string> = {
   accept: 'Принято',
   change: 'На доработке',
   reject: 'Отклонено',
-};
-
-/** Тон оценки как в журнале (JournalButton): 5 зелёная, 4 синяя,
- *  3 янтарная (warning — светлого тинта нет в VKUI 8.3.1, берём
- *  заливку background_warning), 2 красная; не задана — «—».
- *  ВАЖНО: текст на тинте — text_primary (адаптивный тёмный/светлый),
- *  НЕ цветной — цветной цвет на своём тинте не читается ни в одной
- *  теме (замечание Миши). Цвет несёт фон+рамка. */
-const markTone = (mark: number | null) => {
-  if (mark === 5) return {
-    bg: 'var(--vkui--color_background_positive_tint)',
-    border: 'var(--vkui--color_stroke_positive)',
-    text: 'var(--vkui--color_text_primary)',
-  };
-  if (mark === 4) return {
-    bg: 'var(--vkui--color_background_accent_tint)',
-    border: 'var(--vkui--color_stroke_accent)',
-    text: 'var(--vkui--color_text_primary)',
-  };
-  if (mark === 3) return {
-    bg: 'var(--vkui--color_background_warning)',
-    border: 'var(--vkui--color_icon_warning)',
-    text: 'var(--vkui--color_text_primary)',
-  };
-  if (mark === 2) return {
-    bg: 'var(--vkui--color_background_negative_tint)',
-    border: 'var(--vkui--color_stroke_negative)',
-    text: 'var(--vkui--color_text_primary)',
-  };
-  return {
-    bg: 'var(--vkui--color_background_secondary)',
-    border: 'var(--vkui--color_separator_primary)',
-    text: 'var(--vkui--color_text_secondary)',
-  };
 };
 
 /** Янтарная плашка статуса «на доработке» (у Counter в VKUI 8 нет
@@ -179,7 +146,7 @@ export const HomeworkRowItem: React.FC<{
   // остальных — статус/срок.
   let right: React.ReactNode;
   if (h.state === 'accept') {
-    const tone = markTone(h.mark);
+    const tone = gradeTone(h.mark);
     right = (
       <span style={{ display: 'inline-flex', gap: 4, flexShrink: 0 }}>
         {h.mark && <span style={{
@@ -192,9 +159,9 @@ export const HomeworkRowItem: React.FC<{
           minWidth: 36, height: 36, borderRadius: 9,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           fontSize: 18, fontWeight: 700, lineHeight: '24px',
-          background: markTone(h.mark_2).bg,
-          border: `1px solid ${markTone(h.mark_2).border}`,
-          color: markTone(h.mark_2).text,
+          background: gradeTone(h.mark_2).bg,
+          border: `1px solid ${gradeTone(h.mark_2).border}`,
+          color: gradeTone(h.mark_2).text,
         }}>{h.mark_2}</span>}
         {!h.mark && !h.mark_2 && <span style={{
           minWidth: 36, height: 36, borderRadius: 9,

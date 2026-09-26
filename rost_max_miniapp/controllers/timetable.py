@@ -3,6 +3,8 @@ import secrets
 import re
 import base64
 import os
+import datetime
+from datetime import timedelta, time as dt_time
 from odoo import http
 from odoo.http import request
 from odoo import fields, tools
@@ -1162,26 +1164,35 @@ class RostMaxTimetableController(http.Controller):
 
         feed = {"lessons": lessons_feed}
 
-        # --- Ученик / родитель: оценки за сегодня + ДЗ ---
+        # --- Ученик / родитель: последние оценки + ДЗ ---
+        # Блок на главной называется «Последние оценки», поэтому берём
+        # НЕ только сегодня: иначе после 18:00 блок пустеет, хотя оценки
+        # сегодня уже выставлены (жалоба Миши 2026-09-26). Окно — последние
+        # 14 дней, порядок «свежие сверху», максимум 5 строк (Миша, 2026-09-26).
         if role in ('student', 'parent') and own_students:
-            today_lines = request.env['op.attendance.line'].sudo().search([
+            recent_lines = request.env['op.attendance.line'].sudo().search([
                 ('student_id', 'in', own_students.ids),
-                ('attendance_date', '=', date_val),
-            ], order='attendance_date asc, id asc')
+                ('attendance_date', '>=', date_val - timedelta(days=14)),
+                ('attendance_date', '<=', date_val),
+            ], order='attendance_date desc, id desc')
             grades_today = []
-            for ln in today_lines:
+            for ln in recent_lines:
                 grades = [int(g) for g in (ln.grade_1, ln.grade_2)
                           if g and g > 0]
                 sub = ln.hw_sub_line_id
                 if sub:
                     grades += [int(g) for g in (sub.marks, sub.marks_2)
                                if g and g > 0]
-                if grades:
-                    grades_today.append({
-                        "grades": grades,
-                        "subject": ln.subject_id.name if ln.subject_id else "",
-                        "comment": ln.remark or ln.lesson_topic or "",
-                    })
+                if not grades:
+                    continue
+                grades_today.append({
+                    "grades": grades,
+                    "subject": ln.subject_id.name if ln.subject_id else "",
+                    "comment": ln.remark or ln.lesson_topic or "",
+                    "date": str(ln.attendance_date),
+                })
+                if len(grades_today) >= 5:
+                    break
             feed["grades_today"] = grades_today
             feed["homework"] = self._student_homework_feed(own_students, now)
 
@@ -2363,15 +2374,45 @@ class RostMaxTimetableController(http.Controller):
         })
 
     @http.route("/rost_max/api/my/grades/<int:subject_id>", type="http", auth="public", methods=["GET"])
-    def api_my_grades(self, subject_id, quarter=None, **kw):
-        """API: хронология оценок/посещаемости ученика по предмету за четверть."""
+    def api_my_grades(self, subject_id, quarter=None, student_id=None, **kw):
+        """API: хронология оценок/посещаемости ученика по предмету за четверть.
+
+        student_id передаёт учитель/админ (вкладка «Оценки»): смотрим чужого
+        ученика, но ТОЛЬКО по своему предмету. Ученик/родитель параметр не
+        принимает — его домен всегда «мои ученики».
+        """
         restore_session_if_needed()
         if not request.session.uid:
             return request.make_json_response({"error": "Unauthorized"}, status=401)
 
         user = request.env.user
         role, own_students = _get_user_students(user)
-        if role not in ('student', 'parent') or not own_students:
+        target = own_students
+        student_name = ''
+        if role in ('teacher', 'admin') and student_id:
+            t_role, t_faculty = self._teacher_scope(user)
+            if not t_role:
+                return request.make_json_response(
+                    {"error": "Доступно только учителю и админу"}, status=403)
+            stu = request.env['op.student'].sudo().browse(int(student_id)).exists()
+            if not stu:
+                return request.make_json_response(
+                    {"error": "Ученик не найден"}, status=404)
+            # Учитель открывает только свой предмет: ищем пару «класс+предмет»
+            # в его сессиях. Админу доступно всё.
+            if t_role == 'teacher':
+                mine = request.env['op.session'].sudo().search_count([
+                    ('faculty_id', '=', t_faculty.id),
+                    ('subject_id', '=', int(subject_id)),
+                    ('batch_id', '=', stu.active_batch_id.id if stu.active_batch_id else 0),
+                    ('state', 'not in', ('cancel', 'draft')),
+                ])
+                if not mine:
+                    return request.make_json_response(
+                        {"error": "Это не ваш предмет"}, status=403)
+            target = stu
+            student_name = stu.partner_id.name or ""
+        elif role not in ('student', 'parent') or not own_students:
             return request.make_json_response(
                 {"error": "Доступно только ученикам и родителям"}, status=403)
 
@@ -2387,7 +2428,9 @@ class RostMaxTimetableController(http.Controller):
 
         term = q_map[q]
         lines = request.env['op.attendance.line'].sudo().search([
-            ('student_id', 'in', own_students.ids),
+            # target: у ученика/родителя — его ученики, у учителя —
+            # выбранный ученик (own_students у него пуст).
+            ('student_id', 'in', target.ids),
             ('subject_id', '=', subject_id),
             ('attendance_date', '>=', term.term_start_date),
             ('attendance_date', '<=', term.term_end_date),
@@ -2400,6 +2443,9 @@ class RostMaxTimetableController(http.Controller):
             "subject_id": subject_id,
             # Цвет предмета для иконки в шапке (палитра Odoo, как в карточках ДЗ).
             "subject_color": subject.color or 0,
+            # Кого смотрим: у ученика — себя, у учителя — выбранного ученика.
+            "student_id": target.id if student_name else None,
+            "student_name": student_name,
             "summary": {
                 "average_mark": stats['avg'],
                 "attendance_rate": stats['rate'],
@@ -2409,4 +2455,280 @@ class RostMaxTimetableController(http.Controller):
                 "last_remark": stats['last_remark'],
             },
             "lines": [self._line_payload(ln) for ln in lines],
+        })
+
+    # --- ОЦЕНКИ УЧИТЕЛЯ / АДМИНА -----------------------------------------
+
+    def _teacher_scope(self, user):
+        """(role, faculty) для экранов учителя. Админ — faculty пустой.
+
+        Учитель видит ТОЛЬКО свои предметы (сессии своего faculty_id) —
+        так же, как в /api/teacher_homework и расписании.
+        """
+        is_admin = user.has_group('base.group_system')
+        faculty = request.env['op.faculty'].sudo().search([
+            ('partner_id', '=', user.partner_id.id)], limit=1)
+        if not is_admin and not faculty:
+            return None, None
+        return ('admin' if is_admin else 'teacher'), faculty
+
+    def _pair_domain(self, role, faculty, batch_id=None, subject_id=None):
+        """Домен op.session за четверть для пары «класс + предмет».
+
+        Источник — op.session (уроки), а не attendance.line: у пары может
+        не быть ни одного заполненного журнала, но пара существует и её
+        надо показать с нулями. Учитель — свои сессии, админ — все.
+        """
+        domain = [('state', 'not in', ('cancel', 'draft'))]
+        if role == 'teacher':
+            domain.append(('faculty_id', '=', faculty.id))
+        if batch_id:
+            domain.append(('batch_id', '=', int(batch_id)))
+        if subject_id:
+            domain.append(('subject_id', '=', int(subject_id)))
+        return domain
+
+    def _pair_stats(self, sessions, term=None):
+        """Агрегаты пары: уроки, посещаемость, средний балл, счётчики 5/4/3/2.
+
+        Статистика берётся движком get_stats_from_lines по строкам
+        ЖУРНАЛОВ этих сессий за четверть — тот же источник, что у ученика
+        на /api/my/grades, поэтому числа сходятся.
+        """
+        sheets = request.env['op.attendance.sheet'].sudo().search(
+            [('session_id', 'in', sessions.ids)])
+        line_domain = [('attendance_id', 'in', sheets.ids)]
+        if term:
+            line_domain += [
+                ('attendance_date', '>=', term.term_start_date),
+                ('attendance_date', '<=', term.term_end_date),
+            ]
+        lines = request.env['op.attendance.line'].sudo().search(
+            line_domain, order='attendance_date desc')
+        stats = request.env['op.attendance.line'].sudo().get_stats_from_lines(lines)
+        # Последние оценки пары — те же чипы, что у ученика. Счётчики
+        # 5/4/3/2 убраны по решению Миши: детали смотрим внутри.
+        latest = []
+        for ln in lines:
+            # ДЗ-оценки тоже, как их считает get_stats_from_lines
+            # (override в rost_lesson_homework), иначе среднее 5,00
+            # шло бы в паре без единой оценки в списке.
+            sub = getattr(ln, 'hw_sub_line_id', None)
+            for g in (ln.grade_1, ln.grade_2,
+                      sub.marks if sub else 0.0,
+                      sub.marks_2 if sub else 0.0):
+                if g and 2 <= g <= 5:
+                    latest.append({
+                        "grade": int(g),
+                        "date": str(ln.attendance_date),
+                    })
+        return {
+            "total_classes": stats['total'],
+            "attendance_rate": round(stats['rate'], 1),
+            "average_mark": round(stats['avg'], 2) if stats['avg'] else 0.0,
+            "latest_grades": latest[:6],
+        }
+
+    @http.route("/rost_max/api/teacher/grades", type="http", auth="public",
+                methods=["GET"])
+    def api_teacher_grades(self, quarter=None, batch_id=None, subject_id=None,
+                           student_id=None, **kw):
+        """API: вкладка «Оценки» учителя/админа (мокап
+        design/teacher-grades-mockup.html).
+
+        Один эндпоинт на три экрана — режим по наличию параметров:
+          1. без параметров   -> СПИСОК ПАР (свои предметы; админ — вся школа)
+          2. batch_id+subject_id -> УЧЕНИКИ ПАРЫ
+          3. student_id          -> КАРТОЧКА УЧЕНИКА (все его предметы)
+
+        Оценку отсюда НЕ ставим: просмотр только, правка — в журнале урока.
+        Учителю его пара даёт полную картину ученика, но чужие предметы
+        помечены mine=False — фронт показывает их приглушённо, без перехода.
+        """
+        restore_session_if_needed()
+        if not request.session.uid:
+            return request.make_json_response(
+                {"error": "Unauthorized"}, status=401)
+
+        user = request.env.user
+        role, faculty = self._teacher_scope(user)
+        if not role:
+            return request.make_json_response(
+                {"error": "Доступно только учителю и админу"}, status=403)
+
+        q_map = self._get_quarter_terms()
+        current_q = self._get_current_quarter(q_map)
+        try:
+            q = int(quarter) if quarter else current_q
+        except ValueError:
+            q = current_q
+        if q not in q_map:
+            return request.make_json_response(
+                {"error": "Четверть не найдена"}, status=404)
+        term = q_map[q]
+        quarters = [{"q": i, "name": q_map[i].name} for i in sorted(q_map)]
+
+        # --- 3. Карточка ученика: все его предметы за четверть -----------
+        if student_id:
+            stu = request.env['op.student'].sudo().browse(int(student_id)).exists()
+            if not stu:
+                return request.make_json_response(
+                    {"error": "Ученик не найден"}, status=404)
+            lines = request.env['op.attendance.line'].sudo().search([
+                ('student_id', '=', stu.id),
+                ('attendance_date', '>=', term.term_start_date),
+                ('attendance_date', '<=', term.term_end_date),
+            ])
+            by_subject = {}
+            for ln in lines:
+                # id, а не записи: browse() ниже принимает только id
+                # (записи -> «can't adapt type 'op.attendance.line'»).
+                by_subject.setdefault(ln.subject_id.id, []).append(ln.id)
+            # «Свой предмет» = пара (КЛАСС ученика + предмет), которую
+            # учитель ведёт. Проверять надо по паре, а не по предмету:
+            # иначе учитель, ведущий алгебру в 10 А, считает «своим»
+            # алгебру ученика из 7 А и получает 403 на детализации.
+            my_subjects = set()
+            stu_batch = stu.active_batch_id
+            if faculty and stu_batch:
+                # Границы четверти отсекаем в Python, как в списке пар:
+                # term_*_date — это date, а start_datetime — datetime,
+                # и их нельзя смешивать в домене.
+                my_sessions = request.env['op.session'].sudo().search([
+                    ('faculty_id', '=', faculty.id),
+                    ('state', 'not in', ('cancel', 'draft')),
+                ]).filtered(
+                    lambda s: s.start_datetime
+                    and term.term_start_date
+                    <= s.start_datetime.date() <= term.term_end_date
+                )
+                my_subjects = set(my_sessions.filtered(
+                    lambda s: s.batch_id == stu_batch
+                ).mapped('subject_id').ids)
+            line_model = request.env['op.attendance.line'].sudo()
+            subjects = []
+            for sid, lids in by_subject.items():
+                subj = request.env['op.subject'].sudo().browse(sid)
+                subj_lines = line_model.browse(lids)
+                stats = line_model.get_stats_from_lines(subj_lines)
+                latest = []
+                for ln in subj_lines.sorted('attendance_date', reverse=True):
+                    sub = getattr(ln, 'hw_sub_line_id', None)
+                    for g in (ln.grade_1, ln.grade_2,
+                              sub.marks if sub else 0.0,
+                              sub.marks_2 if sub else 0.0):
+                        if g and 2 <= g <= 5:
+                            latest.append({
+                                "grade": int(g),
+                                "date": str(ln.attendance_date),
+                            })
+                subjects.append({
+                    "subject_id": subj.id,
+                    "name": subj.name,
+                    "subject_color": subj.color or 0,
+                    "average_mark": round(stats['avg'], 2) if stats['avg'] else 0.0,
+                    "attendance_rate": round(stats['rate'], 1),
+                    "total_classes": stats['total'],
+                    "latest_grades": latest[:6],
+                    # Свой предмет учителя? Только тогда карточка кликабельна.
+                    "mine": role == 'admin' or subj.id in my_subjects,
+                })
+            subjects.sort(key=lambda s: (not s['mine'], -(s['average_mark'] or 0)))
+            return request.make_json_response({
+                "quarter": q, "current_quarter": current_q, "quarters": quarters,
+                "student": {
+                    "id": stu.id,
+                    "name": stu.partner_id.name or "",
+                    "batch": self._batch_short(
+                        stu.active_batch_id.name) if stu.active_batch_id else "",
+                },
+                "subjects": subjects,
+            })
+
+        base_domain = self._pair_domain(role, faculty, batch_id, subject_id)
+        # --- 2. Ученики пары ---------------------------------------------
+        if batch_id and subject_id:
+            sessions = request.env['op.session'].sudo().search(
+                base_domain, order='start_datetime')
+            if not sessions:
+                return request.make_json_response(
+                    {"error": "Пара не найдена"}, status=404)
+            sheets = request.env['op.attendance.sheet'].sudo().search(
+                [('session_id', 'in', sessions.ids)])
+            lines = request.env['op.attendance.line'].sudo().search([
+                ('attendance_id', 'in', sheets.ids),
+                ('attendance_date', '>=', term.term_start_date),
+                ('attendance_date', '<=', term.term_end_date),
+            ])
+            by_student = {}
+            for ln in lines:
+                # Собираем id, а не записи: browse() принимает только id.
+                by_student.setdefault(ln.student_id.id, []).append(ln.id)
+            line_model = request.env['op.attendance.line'].sudo()
+            students = []
+            for stid, lids in by_student.items():
+                stu = request.env['op.student'].sudo().browse(stid)
+                stu_lines = line_model.browse(lids)
+                stats = line_model.get_stats_from_lines(stu_lines)
+                latest = []
+                for ln in stu_lines.sorted('attendance_date', reverse=True):
+                    sub = getattr(ln, 'hw_sub_line_id', None)
+                    for g in (ln.grade_1, ln.grade_2,
+                              sub.marks if sub else 0.0,
+                              sub.marks_2 if sub else 0.0):
+                        if g and 2 <= g <= 5:
+                            latest.append(int(g))
+                students.append({
+                    "id": stu.id,
+                    # «Фамилия Имя» без отчества (как в /submissions).
+                    "name": " ".join((stu.partner_id.name or "").split(" ")[:2]),
+                    "average_mark": round(stats['avg'], 2) if stats['avg'] else 0.0,
+                    "attendance_rate": round(stats['rate'], 1),
+                    "total_classes": stats['total'],
+                    "latest_grades": latest[:6],
+                })
+            students.sort(key=lambda s: (s['average_mark'] or 0, s['name']))
+            pair = self._pair_stats(sessions, term)
+            subj = request.env['op.subject'].sudo().browse(int(subject_id))
+            return request.make_json_response({
+                "quarter": q, "current_quarter": current_q, "quarters": quarters,
+                "pair": {
+                    "subject_id": subj.id,
+                    "subject": subj.name,
+                    "subject_color": subj.color or 0,
+                    "batch": self._batch_short(
+                        sessions[0].batch_id.name) if sessions[0].batch_id else "",
+                    "faculty": self._faculty_name(sessions[0].faculty_id),
+                    **pair,
+                },
+                "students": students,
+            })
+
+        # --- 1. Список пар ------------------------------------------------
+        sessions = request.env['op.session'].sudo().search(
+            base_domain, order='batch_id, subject_id, start_datetime')
+        sessions = sessions.filtered(
+            lambda s: s.start_datetime
+            and term.term_start_date <= s.start_datetime.date() <= term.term_end_date)
+        pairs = {}
+        for s in sessions:
+            key = (s.batch_id.id, s.subject_id.id)
+            entry = pairs.setdefault(key, {
+                "batch_id": s.batch_id.id,
+                "subject_id": s.subject_id.id,
+                "subject": s.subject_id.name if s.subject_id else "",
+                "subject_color": s.subject_id.color if s.subject_id else 0,
+                "batch": self._batch_short(s.batch_id.name) if s.batch_id else "",
+                "faculty": self._faculty_name(s.faculty_id),
+                "_sessions": [],
+            })
+            entry["_sessions"].append(s.id)
+        result = []
+        for entry in pairs.values():
+            sess = request.env['op.session'].sudo().browse(entry.pop("_sessions"))
+            result.append({**entry, **self._pair_stats(sess, term)})
+        result.sort(key=lambda p: (p['batch'], p['subject']))
+        return request.make_json_response({
+            "quarter": q, "current_quarter": current_q, "quarters": quarters,
+            "role": role, "pairs": result,
         })

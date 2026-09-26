@@ -23,6 +23,10 @@ interface SubjectGradesPageProps {
   subjectId: number;
   subjectName: string;
   onBack: () => void;
+  /** Учитель смотрит чужого ученика (вкладка «Оценки»). Ученик/родитель
+   *  не передают — их домен «мои ученики» формирует бэк. */
+  studentId?: number | undefined;
+  quarter?: number | undefined;
 }
 
 const fmtDate = (iso: string): string => {
@@ -37,6 +41,8 @@ export const SubjectGradesPage: React.FC<SubjectGradesPageProps> = ({
   subjectId,
   subjectName,
   onBack,
+  studentId,
+  quarter,
 }) => {
   const addToast = useToast();
   const [data, setData] = React.useState<MyGradesResponse | null>(null);
@@ -45,7 +51,10 @@ export const SubjectGradesPage: React.FC<SubjectGradesPageProps> = ({
   React.useEffect(() => {
     let cancelled = false;
     setLoading(true);
-    apiGet<MyGradesResponse>(`/rost_max/api/my/grades/${subjectId}`)
+    apiGet<MyGradesResponse>(
+      `/rost_max/api/my/grades/${subjectId}`
+      + (studentId ? `?student_id=${studentId}` : '')
+      + (quarter ? `${studentId ? '&' : '?'}quarter=${quarter}` : ''))
       .then(res => { if (!cancelled) setData(res); })
       .catch(() => {
         if (!cancelled) {
@@ -55,7 +64,7 @@ export const SubjectGradesPage: React.FC<SubjectGradesPageProps> = ({
       })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
-  }, [subjectId, addToast]);
+  }, [subjectId, studentId, quarter, addToast]);
 
   return (
     <Panel id={id}>

@@ -345,3 +345,70 @@ export interface DashboardInfoResponse {
 export interface HomeworkListResponse {
   homework: HomeworkItem[];
 }
+
+// --- ОЦЕНКИ УЧИТЕЛЯ (/api/teacher/grades) ---------------------------
+
+/** Агрегат одной пары «класс + предмет» за четверть. */
+export interface TeacherPair {
+  batch_id: number;
+  subject_id: number;
+  subject: string;
+  subject_color: number;
+  batch: string;
+  faculty: string;
+  total_classes: number;
+  attendance_rate: number;
+  average_mark: number;
+  /** Последние оценки пары, свежие сверху (детали — внутри). */
+  latest_grades: { grade: number; date: string }[];
+}
+
+export interface TeacherPairsResponse {
+  quarter: number;
+  current_quarter: number;
+  quarters: { q: number; name: string }[];
+  role: 'teacher' | 'admin';
+  pairs: TeacherPair[];
+}
+
+export interface PairStudent {
+  id: number;
+  /** «Фамилия Имя» без отчества. */
+  name: string;
+  average_mark: number;
+  attendance_rate: number;
+  total_classes: number;
+  latest_grades: number[];
+}
+
+export interface TeacherPairStudentsResponse {
+  quarter: number;
+  current_quarter: number;
+  quarters: { q: number; name: string }[];
+  pair: Omit<TeacherPair, 'batch_id' | 'subject_id' | 'counts' | 'faculty'> & {
+    subject_id: number;
+    batch: string;
+    faculty: string;
+  };
+  students: PairStudent[];
+}
+
+export interface StudentSubjectCard {
+  subject_id: number;
+  name: string;
+  subject_color: number;
+  average_mark: number;
+  attendance_rate: number;
+  total_classes: number;
+  latest_grades: { grade: number; date: string }[];
+  /** Свой предмет учителя — карточка кликабельна, чужие только для чтения. */
+  mine: boolean;
+}
+
+export interface TeacherStudentResponse {
+  quarter: number;
+  current_quarter: number;
+  quarters: { q: number; name: string }[];
+  student: { id: number; name: string; batch: string };
+  subjects: StudentSubjectCard[];
+}

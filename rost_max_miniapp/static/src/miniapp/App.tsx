@@ -97,6 +97,29 @@ export default function App() {
     setSubjectsHistory(h => [...h, 'subject-grades-panel']);
   };
 
+  // Вложенная навигация вкладки «Оценки» учителя: список пар -> ученики ->
+  // карточка ученика -> детализация предмета.
+  const [teacherGradesHistory, setTeacherGradesHistory] = React.useState<string[]>(
+    ['teacher-subjects-panel']
+  );
+  const [teacherSubject, setTeacherSubject] = React.useState<{
+    id: number; name: string; studentId?: number; quarter?: number;
+  } | null>(null);
+  const activeTeacherGradesPanel =
+    teacherGradesHistory[teacherGradesHistory.length - 1];
+
+  const handleTeacherOpenSubject = (
+    subjectId: number, subjectName: string, studentId: number,
+  ) => {
+    setTeacherSubject({ id: subjectId, name: subjectName, studentId });
+    setTeacherGradesHistory(h => [...h, 'teacher-subject-grades-panel']);
+  };
+
+  const handleTeacherGradesBack = () => {
+    setTeacherGradesHistory(h => (h.length > 1 ? h.slice(0, -1) : h));
+    setTeacherSubject(null);
+  };
+
   const handleSubjectsBack = () => {
     if (subjectsHistory.length > 1) {
       setSubjectsHistory(h => h.slice(0, -1));
@@ -266,9 +289,27 @@ export default function App() {
               />
             </View>
 
-            {/* Оценки учителя/админа — заглушка «в разработке». */}
-            <View id="teacher-subjects" activePanel="teacher-subjects-panel">
-              <TeacherGradesPage id="teacher-subjects-panel" />
+            {/* Оценки учителя/админа: список своих пар -> ученики ->
+                карточка ученика. Детализация предмета — тот же экран
+                SubjectGradesPage, что у ученика, с studentId. */}
+            <View
+              id="teacher-subjects"
+              activePanel={activeTeacherGradesPanel}
+              history={teacherGradesHistory}
+              onSwipeBack={handleTeacherGradesBack}
+            >
+              <TeacherGradesPage
+                id="teacher-subjects-panel"
+                onOpenSubject={handleTeacherOpenSubject}
+              />
+              <SubjectGradesPage
+                id="teacher-subject-grades-panel"
+                subjectId={teacherSubject?.id ?? 0}
+                subjectName={teacherSubject?.name ?? ''}
+                studentId={teacherSubject?.studentId}
+                quarter={teacherSubject?.quarter}
+                onBack={handleTeacherGradesBack}
+              />
             </View>
           </Epic>
 

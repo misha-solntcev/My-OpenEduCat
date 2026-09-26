@@ -15,7 +15,7 @@ import { Icon56UserBookOutline } from '@vkontakte/icons';
 import { apiGet } from '@/shared/lib/api';
 import { useToast } from '@/shared/components/Toast';
 import { SubjectAvatar } from '@/shared/components/SubjectIcon';
-import { getGradeAppearance } from '@/shared/lib/cycle';
+import { GradeChip } from '@/shared/components/JournalButton';
 import type { MySubjectsResponse, SubjectSummary } from '@/shared/lib/types';
 
 interface SubjectsPageProps {
@@ -28,14 +28,6 @@ const fmtGradeDate = (date: string): string => {
   if (!date) return '';
   const [, month, day] = date.split('-');
   return `${day}.${month}`;
-};
-
-const gradeTone = (grade: number): React.CSSProperties => {
-  const appearance = getGradeAppearance(grade);
-  if (appearance === 'positive') return { background: 'var(--vkui--color_background_positive_tint)', borderColor: 'var(--vkui--color_stroke_positive)', color: 'var(--vkui--color_text_positive)' };
-  if (appearance === 'accent') return { background: 'var(--vkui--color_background_accent_tint)', borderColor: 'var(--vkui--color_stroke_accent)', color: 'var(--vkui--color_text_primary)' };
-  if (appearance === 'warning') return { background: 'var(--vkui--color_background_warning)', borderColor: 'var(--vkui--color_icon_warning)', color: 'var(--vkui--color_text_primary)' };
-  return { background: 'var(--vkui--color_background_negative_tint)', borderColor: 'var(--vkui--color_stroke_negative)', color: 'var(--vkui--color_text_negative)' };
 };
 
 const SubjectGradeCard: React.FC<{ subject: SubjectSummary; onClick: () => void }> = ({ subject, onClick }) => (
@@ -52,7 +44,7 @@ const SubjectGradeCard: React.FC<{ subject: SubjectSummary; onClick: () => void 
             <Caption style={{ color: 'var(--vkui--color_text_secondary)' }}>Оценок пока нет</Caption>
           ) : subject.latest_grades.map((item, index) => (
             <span key={`${item.date}-${item.grade}-${index}`} style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'center', gap: 3, flexShrink: 0 }}>
-              <span style={{ ...gradeTone(item.grade), minWidth: 30, height: 30, padding: '0 8px', borderRadius: 9, border: '1px solid', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 700 }}>{item.grade}</span>
+              <GradeChip grade={item.grade} size="m" />
               <Caption style={{ color: 'var(--vkui--color_text_secondary)', fontSize: 10, lineHeight: 1 }}>{fmtGradeDate(item.date)}</Caption>
             </span>
           ))}

@@ -72,6 +72,21 @@ export async function apiGet<T>(url: string): Promise<T> {
     throw new Error('Session expired');
   }
 
+  // Ошибку 403/404/500 НЕ отдаём как успешный ответ: раньше страница
+  // получала {error: ...} без данных и падала на обращении к полям
+  // (a.lines is undefined). Теперь бросаем — вызывающий покажет тост
+  // или заглушку.
+  if (!res.ok) {
+    let message = `Ошибка ${res.status}`;
+    try {
+      const body = await res.json();
+      if (body?.error) message = body.error;
+    } catch {
+      // тело не JSON — оставляем сообщение по статусу
+    }
+    throw new Error(message);
+  }
+
   return res.json();
 }
 

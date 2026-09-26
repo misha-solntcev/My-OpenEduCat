@@ -168,7 +168,28 @@ export interface GradeToday {
   grades: number[];
   subject: string;
   comment: string;
+  /** Дата урока (ISO) — блок «Последние оценки» берёт окно в 14 дней. */
+  date?: string;
 }
+
+const MONTHS_SHORT = ['янв', 'фев', 'мар', 'апр', 'мая', 'июн',
+  'июл', 'авг', 'сен', 'окт', 'ноя', 'дек'];
+
+/** «сегодня» / «вчера» / «25 сен» — чтобы «последние» читалось как последние. */
+const fmtGradeDay = (iso?: string): string => {
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return '';
+  const now = new Date();
+  const sameDay = (a: Date, b: Date) =>
+    a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth()
+    && a.getDate() === b.getDate();
+  const yest = new Date(now);
+  yest.setDate(now.getDate() - 1);
+  if (sameDay(d, now)) return 'сегодня';
+  if (sameDay(d, yest)) return 'вчера';
+  return `${d.getDate()} ${MONTHS_SHORT[d.getMonth()]}`;
+};
 
 export const GradesToday: React.FC<{
   grades: GradeToday[];
@@ -192,7 +213,7 @@ export const GradesToday: React.FC<{
               ))}
             </span>
           }
-          subtitle={g.comment || undefined}
+          subtitle={g.comment || fmtGradeDay(g.date) || undefined}
         >
           {g.subject}
         </SimpleCell>
