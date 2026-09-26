@@ -37,8 +37,15 @@ class OpAttendanceLineHw(models.Model):
 
     @api.depends('attendance_id.homework_assignment_id.assignment_sub_line')
     def _compute_hw_sub_line(self):
+        # sudo на чтение журнала: rule 611 режет ученику все op.attendance.sheet
+        # (домен [(0,'=',1)]), а ДЗ-оценки мы обязаны отдавать ученику в
+        # «Электронном дневнике» — columns hw_grade_1_ui/2_ui non-stored и
+        # тянут этот compute на каждом чтении. Без sudo ученик получал
+        # AccessError вместо дневника (см. логи prod, 20 uid, с 01.09).
+        # Утечки нет: наружу уходит только marks/marks_2 своей строки сдачи.
+        Sheet = self.env['op.attendance.sheet'].sudo()
         for rec in self:
-            asg = rec.attendance_id.homework_assignment_id
+            asg = Sheet.browse(rec.attendance_id.id).homework_assignment_id
             rec.hw_sub_line_id = (asg and asg.assignment_sub_line.filtered(
                 lambda s: s.student_id == rec.student_id)[:1]) or False
 
