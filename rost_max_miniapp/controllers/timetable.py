@@ -2539,11 +2539,11 @@ class RostMaxTimetableController(http.Controller):
         Один эндпоинт на три экрана — режим по наличию параметров:
           1. без параметров   -> СПИСОК ПАР (свои предметы; админ — вся школа)
           2. batch_id+subject_id -> УЧЕНИКИ ПАРЫ
-          3. student_id          -> КАРТОЧКА УЧЕНИКА (все его предметы)
+          3. student_id          -> КАРТОЧКА УЧЕНИКА
 
-        Оценку отсюда НЕ ставим: просмотр только, правка — в журнале урока.
-        Учителю его пара даёт полную картину ученика, но чужие предметы
-        помечены mine=False — фронт показывает их приглушённо, без перехода.
+        Карточка ученика: учителю-ведящему — только его предметы, классному
+        руководителю — все предметы своего класса. Правка оценок отсюда
+        недоступна обоим: оценки ставятся только в своём журнале урока.
         """
         restore_session_if_needed()
         if not request.session.uid:
@@ -2574,22 +2574,13 @@ class RostMaxTimetableController(http.Controller):
             if not stu:
                 return request.make_json_response(
                     {"error": "Ученик не найден"}, status=404)
-            lines = request.env['op.attendance.line'].sudo().search([
-                ('student_id', '=', stu.id),
-                ('attendance_date', '>=', term.term_start_date),
-                ('attendance_date', '<=', term.term_end_date),
-            ])
-            by_subject = {}
-            for ln in lines:
-                # id, а не записи: browse() ниже принимает только id
-                # (записи -> «can't adapt type 'op.attendance.line'»).
-                by_subject.setdefault(ln.subject_id.id, []).append(ln.id)
             # «Свой предмет» = пара (КЛАСС ученика + предмет), которую
             # учитель ведёт. Проверять надо по паре, а не по предмету:
             # иначе учитель, ведущий алгебру в 10 А, считает «своим»
             # алгебру ученика из 7 А и получает 403 на детализации.
             my_subjects = set()
             stu_batch = stu.active_batch_id
+            is_homeroom = False
             if faculty and stu_batch:
                 # Границы четверти отсекаем в Python, как в списке пар:
                 # term_*_date — это date, а start_datetime — datetime,
@@ -2605,6 +2596,39 @@ class RostMaxTimetableController(http.Controller):
                 my_subjects = set(my_sessions.filtered(
                     lambda s: s.batch_id == stu_batch
                 ).mapped('subject_id').ids)
+                is_homeroom = stu_batch in faculty.current_homeroom_batch_ids
+            # Карточку ученика открывает только тот, кто его ведёт
+            # (хотя бы один предмет в его классе) ИЛИ классный руководитель.
+            # Иначе перебор student_id в URL выгружал бы весь школьный
+            # дневник: sudo() отключает rule 615 «Faculty: Edit Own
+            # Attendance Lines Only», так что сверяться больше не с чем.
+            teaches_here = bool(my_subjects)
+            if role != 'admin' and not (teaches_here or is_homeroom):
+                _logger.warning(
+                    "Security read violation: User %s (ID %s) attempted to read "
+                    "grades of unauthorized student ID %s",
+                    user.login, user.id, stu.id,
+                )
+                return request.make_json_response(
+                    {"error": "Нет доступа к оценкам этого ученика"}, status=403)
+            # Чужие предметы не отдаём: обычный учитель в разделе «Оценки»
+            # видит только те, что ведёт, а классный руководитель — все
+            # предметы своего класса. Правки нигде не отдаём: оценки ставятся
+            # только в своём журнале урока (см. _check_lesson_write_access).
+            see_all_subjects = role == 'admin' or is_homeroom
+            line_domain = [
+                ('student_id', '=', stu.id),
+                ('attendance_date', '>=', term.term_start_date),
+                ('attendance_date', '<=', term.term_end_date),
+            ]
+            if not see_all_subjects:
+                line_domain.append(('subject_id', 'in', list(my_subjects)))
+            lines = request.env['op.attendance.line'].sudo().search(line_domain)
+            by_subject = {}
+            for ln in lines:
+                # id, а не записи: browse() ниже принимает только id
+                # (записи -> «can't adapt type 'op.attendance.line'»).
+                by_subject.setdefault(ln.subject_id.id, []).append(ln.id)
             line_model = request.env['op.attendance.line'].sudo()
             subjects = []
             for sid, lids in by_subject.items():
