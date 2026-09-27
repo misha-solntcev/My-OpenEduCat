@@ -44,11 +44,14 @@ class OpAttendanceLine(models.Model):
     # строке сдачи задания урока, здесь их поле-источник недоступно.
     grade_1 = fields.Float('Оценка 1', default=0.0, aggregator="avg")
     grade_2 = fields.Float('Оценка 2', default=0.0, aggregator="avg")
-    # DEPRECATED (4 оценки: О1, О2, ДЗ 1, ДЗ 2). Поле скрыто из всех вьюх,
-    # не участвует в среднем балле и проверках. Оставлено, пока данные О3
-    # не перенесены в marks_2 (scripts/migrate_grade3_to_marks2.py) — тогда
-    # поле удалим отдельным коммитом.
-    grade_3 = fields.Float('Оценка 3 (устаревшее)', default=0.0)
+    # DEPRECATED (4 оценки: О1, О2, ДЗ 1, ДЗ 2). Оценки текущего года
+    # перенесены 2026-09-27 в свободные ячейки (О1/О2/ДЗ 2) скриптом
+    # rost_lesson_homework/scripts/migrate_grade3_free_slot.py: в базе
+    # осталось 46 записей 2025-2026, где обе обычные оценки уже стояли
+    # и затирать их было нельзя. Поле НЕ удаляем — держим эти данные.
+    # aggregator=False убирает его из списка мер пивота «Электронного
+    # дневника»: числовое поле без агрегатора Odoo мерой не считает.
+    grade_3 = fields.Float('Оценка 3 (устаревшее)', default=0.0, aggregator=False)
 
     grade_1_ui = fields.Selection([('2','2'),('3','3'),('4','4'),('5','5')], string='О1',
         compute='_compute_grade_ui', inverse='_set_grade_1_ui')
