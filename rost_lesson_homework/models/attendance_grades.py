@@ -90,6 +90,22 @@ class OpAttendanceLineHw(models.Model):
         for rec in self:
             rec._hw_set_grade('marks_2', rec.hw_grade_2_ui)
 
+    def write(self, vals):
+        """Правка обычных оценок тоже обязана обновить stored-поля.
+
+        @api.depends на grade_1/grade_2 у _rost_compute_grade_avg есть, но
+        полагаться только на него нельзя: при массовом изменении состава
+        оценок stored-значения расходились с фактическим (проверено на проде
+        27.09.2026 — 43 строки без ДЗ-оценок, расхождение до 0.67).
+        Пересчитываем явно и синхронизируем агрегаты листа.
+        """
+        res = super().write(vals)
+        if 'grade_1' in vals or 'grade_2' in vals:
+            self.invalidate_recordset(['grade_avg'])
+            self._rost_compute_grade_avg()
+            self.mapped('attendance_id')._rost_compute_all_stats()
+        return res
+
     @api.depends('grade_1', 'grade_2',
                  'attendance_id.homework_assignment_id.assignment_sub_line.marks',
                  'attendance_id.homework_assignment_id.assignment_sub_line.marks_2')
@@ -211,19 +227,42 @@ class OpAttendanceSheetHw(models.Model):
 class OpAssignmentSubLineHw(models.Model):
     _inherit = 'op.assignment.sub.line'
 
+    @api.model_create_multi
+    def create(self, vals_list):
+        """create тоже пересчитывает: ДЗ-оценка часто ставится созданием
+        строки сдачи (_hw_set_grade), а на create перехвата не было —
+        средний балл строки обновлялся, агрегаты листа оставались старые.
+        Именно так просел лист 9023 от 25.09: 5 ДЗ-оценок, статистика 0."""
+        subs = super().create(vals_list)
+        subs._rost_recalc_attendance_stats()
+        return subs
+
     def write(self, vals):
         """При смене ДЗ-оценки пересчитываем средний балл журналов и
         статистику листа (grade_avg — store=True, путь через
         homework_assignment_id живёт в этом же модуле)."""
         res = super().write(vals)
         if 'marks' in vals or 'marks_2' in vals or 'state' in vals:
-            Sub = self
-            env = self.env
-            lines = env['op.attendance.line'].search([
-                ('attendance_id.homework_assignment_id', 'in', Sub.mapped('assignment_id').ids),
-                ('student_id', 'in', Sub.mapped('student_id').ids),
-            ])
-            if lines:
-                lines._rost_compute_grade_avg()
-                lines.mapped('attendance_id')._rost_compute_all_stats()
+            self._rost_recalc_attendance_stats()
         return res
+
+    def _rost_recalc_attendance_stats(self):
+        """Пересчёт grade_avg строк дневника и агрегатов затронутых листов.
+
+        Явный пересчёт, а не только @api.depends: у grade_avg и агрегатов
+        листа одинаковый путь зависимостей, но при изменении состава оценок
+        (массовая правка, в т.ч. удаление полей x_mark/x_behavior 06.05.2026)
+        stored-поля оставались с прежними значениями. Штатная правка одной
+        оценки работает через depends — этот метод страхует остальное.
+        """
+        if not self:
+            return
+        lines = self.env['op.attendance.line'].sudo().search([
+            ('attendance_id.homework_assignment_id', 'in',
+             self.mapped('assignment_id').ids),
+            ('student_id', 'in', self.mapped('student_id').ids),
+        ])
+        if not lines:
+            return
+        lines._rost_compute_grade_avg()
+        lines.mapped('attendance_id')._rost_compute_all_stats()

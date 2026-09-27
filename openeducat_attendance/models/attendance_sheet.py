@@ -158,6 +158,13 @@ class OpAttendanceSheet(models.Model):
             if to_create:
                 GradeObj.create([{'student_id': s, 'subject_id': sheet.subject_id.id, 'batch_id': sheet.batch_id.id} for s in to_create])
             GradeObj.search([('student_id', 'in', student_ids), ('subject_id', '=', sheet.subject_id.id)]).action_force_recompute()
+            # Пересчёт агрегатов САМОГО листа. Нужен явно: после «Завершить»
+            # лист закрывается и учитель в него больше не возвращается, а
+            # @api.depends на ДЗ-оценки (path через homework_assignment_id)
+            # к этому моменту уже не разрешается. На проде так потерял
+            # статистику лист 9023 от 25.09.2026: 5 выставленных ДЗ-оценок,
+            # count_5..2 и average_grade_lesson = 0.
+            sheet._rost_compute_all_stats()
 
 
     # --- Кнопки интерфейса Журнала (вызывают логику Сессии) ---
