@@ -11,6 +11,7 @@
                     <field name="submission_date" />
                     <field name="state" />
                     <field name="marks" optional="hide" />
+                    <field name="marks_2" optional="hide" />
                 </list>
             </field>
         </record>
@@ -65,6 +66,7 @@
                                 <field name="student_id"/>
                                 <field name="assignment_id" domain="[('allocation_ids','=',student_id),('state','=','publish')]" />
                                 <field name="marks" readonly="state == 'accept'" invisible="state != 'accept' or user_boolean == False" />
+                                <field name="marks_2" readonly="state == 'accept'" invisible="state != 'accept' or user_boolean == False" />
                             </group>
                             <group>
                                 <field name="submission_date" />
@@ -135,6 +137,7 @@
                         <filter string="State" domain="[]" name="group_by_assignment_state" context="{'group_by':'state'}" />
                         <filter string="Submission Date" domain="[]" name="group_by_assignment_submission" context="{'group_by':'submission_date'}" />
                         <filter string="Marks" domain="[]" name="group_by_assignment_marks" context="{'group_by':'marks'}" />
+                        <filter string="Marks 2" domain="[]" name="group_by_assignment_marks_2" context="{'group_by':'marks_2'}" />
                     </group>
                 </search>
             </field>

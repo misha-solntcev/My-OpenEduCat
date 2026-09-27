@@ -140,6 +140,12 @@
                 <!-- Для остальных пользователей - редактируемое -->
                 <xpath expr="//field[@name='marks']" position="after">
                     <field name="marks" readonly="state == 'accept'" groups="!openeducat_core.group_op_students"/>
+                    <field name="marks_2" readonly="state == 'accept'" groups="!openeducat_core.group_op_students"/>
+                </xpath>
+
+                <!-- ДЗ 2 — только для чтения у студентов (как и ДЗ 1) -->
+                <xpath expr="//field[@name='marks_2']" position="attributes">
+                    <attribute name="groups">openeducat_core.group_op_students</attribute>
                 </xpath>
 
                 <!-- Поле Примечание для студентов - только для чтения -->

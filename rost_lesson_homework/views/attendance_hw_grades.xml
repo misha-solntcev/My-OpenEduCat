@@ -64,4 +64,76 @@
             </xpath>
         </field>
     </record>
+
+    <!-- 3. Дашборд Успеваемости (op.subject.grades): в списках строк по
+            четвертям выводятся только О1/О2, ДЗ-оценок не видно — хотя
+            они уже учитываются в среднем балле и в гистограмме.
+            Добавляем обе колонки скрытыми по умолчанию (optional="hide"):
+            учитель включает их через «Настроить столбцы».
+
+            Наследуем здесь, а не в openeducat_attendance: поля hw_grade_*_ui
+            определены в этом модуле, а attendance от него не зависит. -->
+    <record id="view_op_subject_grades_hw" model="ir.ui.view">
+        <field name="name">op.subject.grades.hw.grades</field>
+        <field name="model">op.subject.grades</field>
+        <field name="inherit_id" ref="openeducat_attendance.view_op_subject_grades_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='q1_line_ids']//field[@name='grade_2']" position="after">
+                <field name="hw_grade_1_ui" string="ДЗ 1" optional="hide"
+                    widget="selection_badge" options="{'horizontal': true}"
+                    decoration-success="hw_grade_1_ui == '5'"
+                    decoration-info="hw_grade_1_ui == '4'"
+                    decoration-warning="hw_grade_1_ui == '3'"
+                    decoration-danger="hw_grade_1_ui == '2'"/>
+                <field name="hw_grade_2_ui" string="ДЗ 2" optional="hide"
+                    widget="selection_badge" options="{'horizontal': true}"
+                    decoration-success="hw_grade_2_ui == '5'"
+                    decoration-info="hw_grade_2_ui == '4'"
+                    decoration-warning="hw_grade_2_ui == '3'"
+                    decoration-danger="hw_grade_2_ui == '2'"/>
+            </xpath>
+            <xpath expr="//field[@name='q2_line_ids']//field[@name='grade_2']" position="after">
+                <field name="hw_grade_1_ui" string="ДЗ 1" optional="hide"
+                    widget="selection_badge" options="{'horizontal': true}"
+                    decoration-success="hw_grade_1_ui == '5'"
+                    decoration-info="hw_grade_1_ui == '4'"
+                    decoration-warning="hw_grade_1_ui == '3'"
+                    decoration-danger="hw_grade_1_ui == '2'"/>
+                <field name="hw_grade_2_ui" string="ДЗ 2" optional="hide"
+                    widget="selection_badge" options="{'horizontal': true}"
+                    decoration-success="hw_grade_2_ui == '5'"
+                    decoration-info="hw_grade_2_ui == '4'"
+                    decoration-warning="hw_grade_2_ui == '3'"
+                    decoration-danger="hw_grade_2_ui == '2'"/>
+            </xpath>
+            <xpath expr="//field[@name='q3_line_ids']//field[@name='grade_2']" position="after">
+                <field name="hw_grade_1_ui" string="ДЗ 1" optional="hide"
+                    widget="selection_badge" options="{'horizontal': true}"
+                    decoration-success="hw_grade_1_ui == '5'"
+                    decoration-info="hw_grade_1_ui == '4'"
+                    decoration-warning="hw_grade_1_ui == '3'"
+                    decoration-danger="hw_grade_1_ui == '2'"/>
+                <field name="hw_grade_2_ui" string="ДЗ 2" optional="hide"
+                    widget="selection_badge" options="{'horizontal': true}"
+                    decoration-success="hw_grade_2_ui == '5'"
+                    decoration-info="hw_grade_2_ui == '4'"
+                    decoration-warning="hw_grade_2_ui == '3'"
+                    decoration-danger="hw_grade_2_ui == '2'"/>
+            </xpath>
+            <xpath expr="//field[@name='q4_line_ids']//field[@name='grade_2']" position="after">
+                <field name="hw_grade_1_ui" string="ДЗ 1" optional="hide"
+                    widget="selection_badge" options="{'horizontal': true}"
+                    decoration-success="hw_grade_1_ui == '5'"
+                    decoration-info="hw_grade_1_ui == '4'"
+                    decoration-warning="hw_grade_1_ui == '3'"
+                    decoration-danger="hw_grade_1_ui == '2'"/>
+                <field name="hw_grade_2_ui" string="ДЗ 2" optional="hide"
+                    widget="selection_badge" options="{'horizontal': true}"
+                    decoration-success="hw_grade_2_ui == '5'"
+                    decoration-info="hw_grade_2_ui == '4'"
+                    decoration-warning="hw_grade_2_ui == '3'"
+                    decoration-danger="hw_grade_2_ui == '2'"/>
+            </xpath>
+        </field>
+    </record>
 </odoo>
