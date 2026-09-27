@@ -24,7 +24,8 @@ Sheet = env['op.attendance.sheet'].sudo()
 today = _date.today()
 
 # ---------------------------------------------------------------- grade_avg
-lines = Line.search([('grade_1', '>', 0), '|', ('grade_2', '>', 0)])
+# В Odoo префиксное ИЛИ: '|' ставится ПЕРЕД операндами, которые объединяет.
+lines = Line.search(['|', ('grade_1', '>', 0), ('grade_2', '>', 0)])
 print("=" * 72)
 print("СТРОК С ОБЫЧНЫМИ ОЦЕНКАМИ: %d" % len(lines))
 print("=" * 72)
