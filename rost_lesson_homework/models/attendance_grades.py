@@ -146,6 +146,21 @@ class OpAttendanceLineHw(models.Model):
             if rec.hw_sub_line_id:
                 rec.hw_sub_line_id.write({'marks': 0.0, 'marks_2': 0.0})
 
+    def action_clear_line_data(self):
+        """Ластик в строке журнала. Базовый метод (openeducat_attendance)
+        чистит только О1/О2, поэтому ДЗ 1 / ДЗ 2 оставались: учитель не мог
+        снять ошибочно выставленную оценку за домашнее задание.
+
+        Проверено на test4 27.09.2026: до вызова ДЗ2=2.0, после — 2.0.
+        Здесь сбрасываем оценки и статус посещаемости/заметку — как в базовом
+        методе, — плюс обе ДЗ-оценки.
+        """
+        res = super().action_clear_line_data()
+        for rec in self:
+            if rec.hw_sub_line_id:
+                rec.hw_sub_line_id.write({'marks': 0.0, 'marks_2': 0.0})
+        return res
+
 
 class OpAttendanceSheetHw(models.Model):
     _inherit = 'op.attendance.sheet'
