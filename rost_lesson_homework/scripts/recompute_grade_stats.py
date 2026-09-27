@@ -49,9 +49,15 @@ for i, rec in enumerate(lines, 1):
 print("\nИСПРАВЛЕНО grade_avg: %d" % fixed_avg)
 
 # ---------------------------------------------------------- агрегаты листов
-sheets = Sheet.search([('attendance_line.grade_1', '>', 0)])
+# Отбор: листы с ОБЫЧНЫМИ оценками ИЛИ с листом, у которого задание ДЗ
+# назначено и есть строки сдачи. Раньше стоял только первый критерий, и
+# лист 9023 от 25.09.2026 (Литература, 5А — пять оценок только за ДЗ,
+# обычных нет) выпадал из пересчёта: агрегаты оставались нулевыми.
+sheets = Sheet.search(['|',
+                       ('attendance_line.grade_1', '>', 0),
+                       ('homework_assignment_id', '!=', False)])
 print("\n" + "=" * 72)
-print("ЛИСТОВ С ОЦЕНКАМИ: %d" % len(sheets))
+print("ЛИСТОВ К ПЕРЕСЧЁТУ: %d" % len(sheets))
 print("=" * 72)
 
 fixed_sheet = 0
@@ -78,11 +84,14 @@ print("\nИСПРАВЛЕНО ЛИСТОВ: %d" % fixed_sheet)
 print("\n" + "=" * 72)
 print("ПРОВЕРКА: листы с оценками, но с нулевой статистикой")
 print("=" * 72)
-bad = Sheet.search([
-    ('attendance_line.grade_1', '>', 0),
-    ('count_5', '=', 0), ('count_4', '=', 0),
-    ('count_3', '=', 0), ('count_2', '=', 0),
-])
+# Отбор тот же, что и при пересчёте: обычные оценки ИЛИ назначенное
+# задание ДЗ. Условие «нулевая статистика» накладываем в Python — в домене
+# второй префиксный '|' применился бы ко ВСЕМУ выражению, а не к этой паре.
+bad = Sheet.search(['|',
+                    ('attendance_line.grade_1', '>', 0),
+                    ('homework_assignment_id', '!=', False)])
+bad = bad.filtered(
+    lambda s: not (s.count_5 or s.count_4 or s.count_3 or s.count_2))
 for sh in bad[:10]:
     marks = 0
     for l in sh.attendance_line:
