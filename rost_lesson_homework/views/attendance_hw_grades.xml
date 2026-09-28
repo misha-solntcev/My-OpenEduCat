@@ -48,15 +48,20 @@
         <field name="model">op.attendance.line</field>
         <field name="inherit_id" ref="openeducat_attendance.view_op_attendance_line_tree"/>
         <field name="arch" type="xml">
-            <xpath expr="//field[@name='grade_2_ui']" position="after">
-                <field name="hw_grade_1_ui" string="ДЗ 1" optional="hide"
+            <!-- Якорь — grade_2, а не grade_2_ui: в базовой вьюхе
+                 grade_2_ui убран (оценка рисуется бейджем прямо по grade_2),
+                 поэтому старый xpath больше бы не нашёл узел. -->
+            <xpath expr="//field[@name='grade_2']" position="after">
+                <field name="hw_grade_1_ui" string="ДЗ 1" optional="show"
                     widget="selection_badge" options="{'horizontal': true}"
+                    readonly="1"
                     decoration-success="hw_grade_1_ui == '5'"
                     decoration-info="hw_grade_1_ui == '4'"
                     decoration-warning="hw_grade_1_ui == '3'"
                     decoration-danger="hw_grade_1_ui == '2'" />
-                <field name="hw_grade_2_ui" string="ДЗ 2" optional="hide"
+                <field name="hw_grade_2_ui" string="ДЗ 2" optional="show"
                     widget="selection_badge" options="{'horizontal': true}"
+                    readonly="1"
                     decoration-success="hw_grade_2_ui == '5'"
                     decoration-info="hw_grade_2_ui == '4'"
                     decoration-warning="hw_grade_2_ui == '3'"
