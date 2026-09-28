@@ -24,15 +24,169 @@
         </field>
     </record>
 
-    <!-- ===== op.session: кнопки формы видны и учителям ===== -->
+    <!-- ===== op.session: кнопки формы видны и учителям =====
+
+         В Odoo position="attributes" применяется ТОЛЬКО к первому
+         совпавшему узлу. Выражение "//header/button" матчит все шесть кнопок
+         шапки, но атрибут groups доезжал лишь до lecture_confirm — из-за
+         чего учитель видел в форме 2 кнопки из 7 (пропали «Начать урок»,
+         «Завершить», «Отменить урок», «Восстановить», «Редактировать»).
+         Воспроизведено на test4 и на проде: BTN_COUNT 2.
+
+         Поэтому перечисляем кнопки ПО ИМЕНИ, по одному xpath на каждую.
+         Новую кнопку в header базовой вьюхи надо будет дописать сюда же.
+    -->
     <record id="view_session_buttons_faculty" model="ir.ui.view">
         <field name="name">Добавляем группу учителей к кнопкам</field>
         <field name="model">op.session</field>
         <field name="inherit_id" ref="openeducat_timetable.view_op_session_form"/>
         <field name="arch" type="xml">
-            <xpath expr="//header/button" position="attributes">
+            <xpath expr="//header/button[@name='lecture_confirm']" position="attributes">
                 <attribute name="groups">openeducat_timetable.group_op_timetable_user,openeducat_timetable.group_teacher_timetable</attribute>
             </xpath>
+            <xpath expr="//header/button[@name='lecture_start']" position="attributes">
+                <attribute name="groups">openeducat_timetable.group_op_timetable_user,openeducat_timetable.group_teacher_timetable</attribute>
+            </xpath>
+            <xpath expr="//header/button[@name='lecture_done']" position="attributes">
+                <attribute name="groups">openeducat_timetable.group_op_timetable_user,openeducat_timetable.group_teacher_timetable</attribute>
+            </xpath>
+            <xpath expr="//header/button[@name='lecture_cancel']" position="attributes">
+                <attribute name="groups">openeducat_timetable.group_op_timetable_user,openeducat_timetable.group_teacher_timetable</attribute>
+            </xpath>
+            <xpath expr="//header/button[@name='lecture_draft']" position="attributes">
+                <attribute name="groups">openeducat_timetable.group_op_timetable_user,openeducat_timetable.group_teacher_timetable</attribute>
+            </xpath>
+            <xpath expr="//header/button[@name='lecture_edit']" position="attributes">
+                <attribute name="groups">openeducat_timetable.group_op_timetable_user,openeducat_timetable.group_teacher_timetable</attribute>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- ===== op.session: форма урока учителю только для чтения =====
+
+         Учитель попадает в форму через кнопку Edit в попапе календаря —
+         это единственный путь к журналу (из формы кнопка «Attendance
+         Sheet»). Раньше форма была полностью редактируемой: учитель
+         мог поменять «1 урок» на «3 урок», предмет, класс, кабинет и
+         время. Сдвиг времени ломает пару уроков в паре, а смена
+         предмета/класса — расписание целиком.
+
+         Снять права на write нельзя: учителю нужен write в op.session
+         для кнопок «Начать урок» / «Завершить» (lecture_start/done).
+         Поэтому readonly ставим на ПОЛЯ формы, кнопки в header
+         продолжают работать.
+
+         Гейт по группе: завуч (group_op_timetable_manager) правит всё,
+         учителю (group_teacher_timetable) поля readonly.
+
+         Механизм — ДВА дубля каждого поля с groups (как в попапе календаря
+         ниже), а НЕ readonly="... user.groups_id ...". В Odoo 18 readonly
+         вычисляется на клиенте через evaluateBooleanExpr по evalContext
+         record'а, а он содержит только поля записи и parent — `user` там
+         нет (web/static/src/model/relational_model/record.js:49-62),
+         такое выражение упало бы с EvalError. В проекте таких нет ни
+         одного. groups же разбирается на сервере при загрузке вьюхи.
+    -->
+    <record id="view_session_form_readonly_teacher" model="ir.ui.view">
+        <field name="name">op.session.form: поля readonly для учителя</field>
+        <field name="model">op.session</field>
+        <field name="inherit_id" ref="openeducat_timetable.view_op_session_form"/>
+        <field name="arch" type="xml">
+            <data>
+                <xpath expr="//header/field[@name='state']" position="replace">
+                    <field name="state" widget="statusbar"
+                        statusbar_visible="draft,confirm,start,done"
+                        groups="openeducat_timetable.group_op_timetable_manager"/>
+                    <field name="state" widget="statusbar"
+                        statusbar_visible="draft,confirm,start,done" readonly="1"
+                        groups="!openeducat_timetable.group_op_timetable_manager"/>
+                </xpath>
+                <xpath expr="//sheet//field[@name='name']" position="replace">
+                    <field name="name" placeholder="e.g. Mathematics Intro"
+                        groups="openeducat_timetable.group_op_timetable_manager"/>
+                    <field name="name" readonly="1"
+                        groups="!openeducat_timetable.group_op_timetable_manager"/>
+                </xpath>
+                <xpath expr="//sheet//field[@name='faculty_id']" position="replace">
+                    <field name="faculty_id" widget="many2one_avatar_user"
+                        options="{'no_create': True}"
+                        groups="openeducat_timetable.group_op_timetable_manager"/>
+                    <field name="faculty_id" widget="many2one_avatar_user"
+                        options="{'no_create': True, 'no_open': True}" readonly="1"
+                        groups="!openeducat_timetable.group_op_timetable_manager"/>
+                </xpath>
+                <xpath expr="//sheet//field[@name='subject_id']" position="replace">
+                    <field name="subject_id" options="{'no_create': True}"
+                        groups="openeducat_timetable.group_op_timetable_manager"/>
+                    <field name="subject_id" options="{'no_create': True, 'no_open': True}" readonly="1"
+                        groups="!openeducat_timetable.group_op_timetable_manager"/>
+                </xpath>
+                <xpath expr="//sheet//field[@name='course_id']" position="replace">
+                    <field name="course_id" options="{'no_create': True}"
+                        groups="openeducat_timetable.group_op_timetable_manager"/>
+                    <field name="course_id" options="{'no_create': True, 'no_open': True}" readonly="1"
+                        groups="!openeducat_timetable.group_op_timetable_manager"/>
+                </xpath>
+                <xpath expr="//sheet//field[@name='batch_id']" position="replace">
+                    <field name="batch_id"
+                        context="{'course_id': course_id, 'get_parent_batch': 1}"
+                        options="{'no_create': True}"
+                        groups="openeducat_timetable.group_op_timetable_manager"/>
+                    <field name="batch_id" readonly="1"
+                        context="{'course_id': course_id, 'get_parent_batch': 1}"
+                        options="{'no_create': True, 'no_open': True}"
+                        groups="!openeducat_timetable.group_op_timetable_manager"/>
+                </xpath>
+                <xpath expr="//sheet//field[@name='timing_id']" position="replace">
+                    <field name="timing_id" options="{'no_create': True}"
+                        groups="openeducat_timetable.group_op_timetable_manager"/>
+                    <field name="timing_id" options="{'no_create': True, 'no_open': True}" readonly="1"
+                        groups="!openeducat_timetable.group_op_timetable_manager"/>
+                </xpath>
+                <xpath expr="//sheet//field[@name='start_datetime']" position="replace">
+                    <field name="start_datetime" widget="daterange" required="1"
+                        options="{'related_start_date': 'start_datetime', 'show_seconds': False, 'rounding': 10}"
+                        groups="openeducat_timetable.group_op_timetable_manager"/>
+                    <field name="start_datetime" widget="daterange" readonly="1"
+                        options="{'related_start_date': 'start_datetime', 'show_seconds': False, 'rounding': 10}"
+                        groups="!openeducat_timetable.group_op_timetable_manager"/>
+                </xpath>
+                <xpath expr="//sheet//field[@name='end_datetime']" position="replace">
+                    <field name="end_datetime" widget="daterange" required="1"
+                        options="{'related_end_date': 'end_datetime', 'show_seconds': False, 'rounding': 10}"
+                        groups="openeducat_timetable.group_op_timetable_manager"/>
+                    <field name="end_datetime" widget="daterange" readonly="1"
+                        options="{'related_end_date': 'end_datetime', 'show_seconds': False, 'rounding': 10}"
+                        groups="!openeducat_timetable.group_op_timetable_manager"/>
+                </xpath>
+                <xpath expr="//sheet//field[@name='classroom_id']" position="replace">
+                    <field name="classroom_id" options="{'no_create_edit': True}"
+                        groups="openeducat_timetable.group_op_timetable_manager"/>
+                    <field name="classroom_id" options="{'no_create_edit': True, 'no_open': True}" readonly="1"
+                        groups="!openeducat_timetable.group_op_timetable_manager"/>
+                </xpath>
+                <!-- «Разрешить совмещение» / «Запретить совмещение»: конфликт
+                     ресурсов решает завуч, у учителя это не его урок.
+                     Таких полей ДВА — по одному в каждом баннере, и
+                     позиционные xpath '(...)[1]' / '(...)[2]' отрабатывают
+                     не предсказуемо (один узел заменялся дважды, второй
+                     оставался редактируемым — поймано на test4). Поэтому
+                     целимся в баннеры по классам: alert-danger = «конфликт
+                     обнаружен», alert-success = «совмещение разрешено».
+                     Третье вхождение (invisible="1", без widget) служебное. -->
+                <xpath expr="//div[hasclass('alert-danger')]//field[@name='conflict_override']" position="replace">
+                    <field name="conflict_override" widget="boolean_toggle"
+                        groups="openeducat_timetable.group_op_timetable_manager"/>
+                    <field name="conflict_override" widget="boolean_toggle" readonly="1"
+                        groups="!openeducat_timetable.group_op_timetable_manager"/>
+                </xpath>
+                <xpath expr="//div[hasclass('alert-success')]//field[@name='conflict_override']" position="replace">
+                    <field name="conflict_override" widget="boolean_toggle"
+                        groups="openeducat_timetable.group_op_timetable_manager"/>
+                    <field name="conflict_override" widget="boolean_toggle" readonly="1"
+                        groups="!openeducat_timetable.group_op_timetable_manager"/>
+                </xpath>
+            </data>
         </field>
     </record>
 
