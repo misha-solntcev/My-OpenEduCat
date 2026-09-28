@@ -36,6 +36,53 @@
         </field>
     </record>
 
+    <!-- ===== op.session: попап урока в календаре — read-only без админа =====
+
+         Клик по уроку в «Расписании» открывает НЕ форму, а popover
+         (web.CalendarCommonPopover). Он строится из <field> внутри <calendar>:
+         значения рендерятся read-only-виджетом, где many2one остаётся
+         ссылкой (кликабельной), а в футере всегда горит кнопка Edit —
+         CalendarCommonPopover.isEventEditable в Odoo 18 жёстко `return true`.
+
+         Здесь: убираем ссылку у many2one (no_open) для всех, кроме завуч.
+         Кнопку Edit убирает session_calendar.js (isEventEditable через
+         hasEditPermission) — из XML это не лечится.
+    -->
+    <record id="view_session_calendar_popover_readonly" model="ir.ui.view">
+        <field name="name">Попап урока в календаре: поля без ссылок. Расписание</field>
+        <field name="model">op.session</field>
+        <field name="inherit_id" ref="openeducat_timetable.view_op_session_calendar"/>
+        <field name="arch" type="xml">
+            <data>
+                <xpath expr="//field[@name='course_id']" position="replace">
+                    <field name="course_id" filters="1"
+                           groups="openeducat_timetable.group_op_timetable_manager"/>
+                    <field name="course_id" filters="1" options="{'no_open': True}"
+                           groups="!openeducat_timetable.group_op_timetable_manager"/>
+                </xpath>
+                <xpath expr="//field[@name='faculty_id']" position="replace">
+                    <field name="faculty_id" avatar_field="image_128" filters="1"
+                           groups="openeducat_timetable.group_op_timetable_manager"/>
+                    <field name="faculty_id" avatar_field="image_128" filters="1"
+                           options="{'no_open': True}"
+                           groups="!openeducat_timetable.group_op_timetable_manager"/>
+                </xpath>
+                <xpath expr="//field[@name='subject_id']" position="replace">
+                    <field name="subject_id" filters="1"
+                           groups="openeducat_timetable.group_op_timetable_manager"/>
+                    <field name="subject_id" filters="1" options="{'no_open': True}"
+                           groups="!openeducat_timetable.group_op_timetable_manager"/>
+                </xpath>
+                <xpath expr="//field[@name='classroom_id']" position="replace">
+                    <field name="classroom_id" filters="1"
+                           groups="openeducat_timetable.group_op_timetable_manager"/>
+                    <field name="classroom_id" filters="1" options="{'no_open': True}"
+                           groups="!openeducat_timetable.group_op_timetable_manager"/>
+                </xpath>
+            </data>
+        </field>
+    </record>
+
     <!-- ===== op.session: чаттер скрыт от учеников ===== -->
     <record id="view_session_hide_chatter" model="ir.ui.view">
         <field name="name">Отключаем чаттер для Учеников</field>

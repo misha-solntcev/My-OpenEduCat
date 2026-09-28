@@ -1,10 +1,41 @@
 /** @odoo-module **/
 
 import { CalendarCommonRenderer } from "@web/views/calendar/calendar_common/calendar_common_renderer";
+import { CalendarCommonPopover } from "@web/views/calendar/calendar_common/calendar_common_popover";
+import { useState, onWillStart } from "@odoo/owl";
+import { user } from "@web/core/user";
 
 // В Odoo 18 @web/core/l10n/dates не экспортирует класс DateTime —
 // ядро берёт luxon из глобала (см. calendar_common_renderer.js).
 const { DateTime } = luxon;
+
+// Попап урока: кнопка Edit (и Delete) — только завучу.
+// CalendarCommonPopover.isEventEditable в Odoo 18 жёстко `return true`,
+// поэтому штатно кнопка горит у всех, кто попал в «Расписание».
+// Ученику и учителю она ничего не даёт (прав на запись у них нет), но
+// выглядит как рабочая кнопка — убираем.
+//
+// ВАЖНО: user.hasGroup() возвращает Promise (LazyCache.read), а не boolean.
+// Без await геттер отдаёт Promise — объект, который всегда truthy, и кнопка
+// осталась бы у всех. Ядро делает так же: см. list_controller.js:109
+// (`await user.hasGroup(...)`) и export_all.js:37.
+class SessionPopover extends CalendarCommonPopover {
+    setup() {
+        super.setup();
+        this.state = useState({ isTimetableManager: false });
+        onWillStart(async () => {
+            this.state.isTimetableManager = await user.hasGroup(
+                "openeducat_timetable.group_op_timetable_manager"
+            );
+        });
+    }
+    get isEventEditable() {
+        return this.state.isTimetableManager;
+    }
+    get isEventDeletable() {
+        return this.state.isTimetableManager && this.props.model.canDelete;
+    }
+}
 
 // Зона нативная (браузер), как в стоковом календаре: дни/недели правильные
 // у всех, время уроков локальное. Раньше здесь были timeZone: "Europe/Moscow"
@@ -37,6 +68,14 @@ function schoolWindowLocal() {
 }
 
 export class SessionCalendarCommonRenderer extends CalendarCommonRenderer {
+    /**
+     * Попап урока вместо стокового: без Edit/Delete у всех, кроме завуч.
+     */
+    static components = {
+        ...CalendarCommonRenderer.components,
+        Popover: SessionPopover,
+    };
+
     /**
      * @override
      * Добавляем FullCalendar slotMinTime/slotMaxTime — сетка от начала
