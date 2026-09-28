@@ -49,8 +49,11 @@ class OpAttendanceLine(models.Model):
     # «Оценка 1»/«Оценка 2» показывались в «Настроить столбцы» дважды.
     # Дробных оценок в базе нет (проверено 2026-09-28), так что Integer
     # хранит те же значения, а бейдж рисуется прямо по этому полю.
-    grade_1 = fields.Integer('Оценка 1', default=0)
-    grade_2 = fields.Integer('Оценка 2', default=0)
+    # aggregator="avg" обязателен: у Integer в Odoo агрегатор по умолчанию
+    # sum (fields.py:1620), и подвал списка Электронного дневника показывал
+    # СУММУ оценок вместо средней. Среднее по полю не подходит — см. grade_avg.
+    grade_1 = fields.Integer('Оценка 1', default=0, aggregator="avg")
+    grade_2 = fields.Integer('Оценка 2', default=0, aggregator="avg")
     # DEPRECATED (4 оценки: О1, О2, ДЗ 1, ДЗ 2). Оценки текущего года
     # перенесены 2026-09-27 в свободные ячейки (О1/О2/ДЗ 2) скриптом
     # rost_lesson_homework/scripts/migrate_grade3_free_slot.py: в базе
