@@ -42,8 +42,15 @@ class OpAttendanceLine(models.Model):
     # О1/О2 — оценки за урок. ДЗ-оценки («ДЗ 1»/«ДЗ 2») добавляет
     # rost_lesson_homework (hw_grade_1_ui / hw_grade_2_ui): они живут на
     # строке сдачи задания урока, здесь их поле-источник недоступно.
-    grade_1 = fields.Float('Оценка 1', default=0.0, aggregator="avg")
-    grade_2 = fields.Float('Оценка 2', default=0.0, aggregator="avg")
+    # Оценки — ЦЕЛЫЕ числа (2..5), а дробным остаётся только среднее
+    # (grade_avg ниже). Раньше оценки были Float, а для показа в списке
+    # рядом существовали дублирующие поля grade_1_ui/grade_2_ui
+    # (Selection с compute/inverse, округлявшие через int()) — из-за них
+    # «Оценка 1»/«Оценка 2» показывались в «Настроить столбцы» дважды.
+    # Дробных оценок в базе нет (проверено 2026-09-28), так что Integer
+    # хранит те же значения, а бейдж рисуется прямо по этому полю.
+    grade_1 = fields.Integer('Оценка 1', default=0)
+    grade_2 = fields.Integer('Оценка 2', default=0)
     # DEPRECATED (4 оценки: О1, О2, ДЗ 1, ДЗ 2). Оценки текущего года
     # перенесены 2026-09-27 в свободные ячейки (О1/О2/ДЗ 2) скриптом
     # rost_lesson_homework/scripts/migrate_grade3_free_slot.py: в базе
@@ -53,27 +60,14 @@ class OpAttendanceLine(models.Model):
     # дневника»: числовое поле без агрегатора Odoo мерой не считает.
     grade_3 = fields.Float('Оценка 3 (устаревшее)', default=0.0, aggregator=False)
 
-    grade_1_ui = fields.Selection([('2','2'),('3','3'),('4','4'),('5','5')], string='О1',
-        compute='_compute_grade_ui', inverse='_set_grade_1_ui')
-    grade_2_ui = fields.Selection([('2','2'),('3','3'),('4','4'),('5','5')], string='О2',
-        compute='_compute_grade_ui', inverse='_set_grade_2_ui')
-
     grade_avg = fields.Float('Средний балл', compute='_compute_grade_avg', store=True, aggregator="avg")
     remark = fields.Char('Remark', size=256)
     color = fields.Integer(related='attendance_type_id.color')
     student_avatar = fields.Image(related='student_id.image_128', string="Фото")
 
     # --- ЛОГИКА ОЦЕНОК ---
-    @api.depends('grade_1', 'grade_2')
-    def _compute_grade_ui(self):
-        for rec in self:
-            rec.grade_1_ui = str(int(rec.grade_1)) if rec.grade_1 > 0 else False
-            rec.grade_2_ui = str(int(rec.grade_2)) if rec.grade_2 > 0 else False
-
-    def _set_grade_1_ui(self):
-        for rec in self: rec.grade_1 = float(rec.grade_1_ui) if rec.grade_1_ui else 0.0
-    def _set_grade_2_ui(self):
-        for rec in self: rec.grade_2 = float(rec.grade_2_ui) if rec.grade_2_ui else 0.0
+    # grade_1_ui/grade_2_ui и их compute/inverse удалены 2026-09-28 вместе
+    # с переводом оценок в Integer — см. комментарий у самих полей.
 
     # --- ОЦЕНКИ ЗА ДОМАШНЕЕ ЗАДАНИЕ ---
     # Логика ДЗ-оценок (compute/inverse, создание строки сдачи, средний
@@ -87,13 +81,13 @@ class OpAttendanceLine(models.Model):
             rec.grade_avg = sum(marks) / len(marks) if marks else 0.0
 
     # --- АВТОМАТИЗАЦИЯ ---
-    @api.onchange('grade_1_ui', 'grade_2_ui')
+    @api.onchange('grade_1', 'grade_2')
     def _onchange_grades_auto_present(self):
         """
         Логика: если поставили оценку, а статус ПУСТОЙ — ставим 'Присутствует'.
         Если статус УЖЕ стоит (например, 'Болеет'), мы его НЕ ТРОГАЕМ.
         """
-        if any([self.grade_1_ui, self.grade_2_ui]):
+        if any([self.grade_1, self.grade_2]):
             if not self.attendance_type_id:
                 p_type = self.env['op.attendance.type'].search([('present', '=', True)], limit=1)
                 if p_type:

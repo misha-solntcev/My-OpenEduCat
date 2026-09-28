@@ -17,7 +17,7 @@
                 <field name="mass_target_hw_2" widget="boolean_toggle" class="m-0"
                     title="ДЗ 2" invisible="not homework_assignment_id"/>
             </xpath>
-            <xpath expr="//list//field[@name='grade_2_ui']" position="after">
+            <xpath expr="//list//field[@name='grade_2']" position="after">
                 <field name="hw_grade_1_ui" string="ДЗ 1"
                     widget="selection_badge"
                     width="80px" optional="show"
