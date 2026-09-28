@@ -111,7 +111,16 @@
                     <field name="faculty_id" widget="many2one_avatar_user"
                         options="{'no_create': True}"
                         groups="openeducat_timetable.group_op_timetable_manager"/>
-                    <field name="faculty_id" widget="many2one_avatar_user"
+                    <!-- Учителю поле «Учитель» БЕЗ виджета many2one_avatar_user:
+                         этот виджет ПЕРЕЗАПИСЫВАЕТ canOpen — extractProps ставит
+                         props.canOpen = fieldInfo.viewType === "form"
+                         (web/static/src/views/fields/many2one_avatar/
+                         many2one_avatar_field.js:21), из-за чего options.no_open
+                         игнорировался и поле оставалось кликабельным (вход в
+                         карточку преподавателя). Обычный many2one считает
+                         canOpen = !options.no_open (many2one_field.js:380) —
+                         работает корректно. Теряется только аватарка. -->
+                    <field name="faculty_id"
                         options="{'no_create': True, 'no_open': True}" readonly="1"
                         groups="!openeducat_timetable.group_op_timetable_manager"/>
                 </xpath>
