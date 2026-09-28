@@ -4,24 +4,19 @@ import { CalendarCommonRenderer } from "@web/views/calendar/calendar_common/cale
 import { CalendarCommonPopover } from "@web/views/calendar/calendar_common/calendar_common_popover";
 import { useState, onWillStart } from "@odoo/owl";
 import { user } from "@web/core/user";
-import { useService } from "@web/core/utils/hooks";
 
 // В Odoo 18 @web/core/l10n/dates не экспортирует класс DateTime —
 // ядро берёт luxon из глобала (см. calendar_common_renderer.js).
 const { DateTime } = luxon;
 
-// Попап урока: кнопка Edit — завучу и УЧИТЕЛЮ, но учителю только на его
-// собственных уроках. Delete — только завучу (ACL на unlink у учителя 0).
-// CalendarCommonPopover.isEventEditable в Odoo 18 жёстко `return true`,
-// поэтому штатно кнопка горит у всех, кто попал в «Расписание».
-// Ученику она ничего не даёт (прав на запись нет) — убираем.
+// Попап урока: кнопка Edit — завучу и УЧИТЕЛЮ, Delete — только завучу
+// (ACL на unlink у учителя 0). CalendarCommonPopover.isEventEditable в
+// Odoo 18 жёстко `return true`, поэтому штатно кнопка горит у всех, кто
+// попал в «Расписание». Ученику она ничего не даёт (прав на запись нет) —
+// убираем.
 //
-// Учителю Edit нужен как вход в форму урока, а оттуда — кнопка
+// Учителю Edit нужен как вход в форму урока, а оттуда кнопка
 // «Attendance Sheet» (openeducat_attendance) ведёт в журнал урока.
-// Право на write у учителя ограничено rule'ом teacher_session_write_rule
-// (faculty_id.user_id == user), поэтому на чужом уроке Edit не показываем:
-// открылась бы форма, в которой всё равно нельзя ничего сохранить, а журнал
-// чужого урока учителю видеть не нужно.
 //
 // ВАЖНО: user.hasGroup() возвращает Promise (LazyCache.read), а не boolean.
 // Без await геттер отдаёт Promise — объект, который всегда truthy, и кнопка
@@ -30,40 +25,18 @@ const { DateTime } = luxon;
 class SessionPopover extends CalendarCommonPopover {
     setup() {
         super.setup();
-        this.orm = useService("orm");
-        this.state = useState({
-            isTimetableManager: false,
-            isTeacher: false,
-            ownFacultyIds: [],
-        });
+        this.state = useState({ canEditLesson: false, isTimetableManager: false });
         onWillStart(async () => {
             const [isManager, isTeacher] = await Promise.all([
                 user.hasGroup("openeducat_timetable.group_op_timetable_manager"),
                 user.hasGroup("openeducat_timetable.group_teacher_timetable"),
             ]);
             this.state.isTimetableManager = isManager;
-            this.state.isTeacher = isTeacher;
-            if (isTeacher) {
-                // свои faculty_id нужны, чтобы отличить свой урок от чужого
-                this.state.ownFacultyIds = await this.orm.search(
-                    "op.faculty",
-                    [["user_id", "=", user.userId]],
-                    { limit: 100 }
-                );
-            }
+            this.state.canEditLesson = isManager || isTeacher;
         });
     }
-    get isOwnLesson() {
-        const faculty = this.props.record?.data?.faculty_id;
-        // many2one приходит кортежем [id, display_name]
-        const facultyId = Array.isArray(faculty) ? faculty[0] : faculty;
-        return !!facultyId && this.state.ownFacultyIds.includes(facultyId);
-    }
     get isEventEditable() {
-        if (this.state.isTimetableManager) {
-            return true;
-        }
-        return this.state.isTeacher && this.isOwnLesson;
+        return this.state.canEditLesson;
     }
     get isEventDeletable() {
         return this.state.isTimetableManager && this.props.model.canDelete;
