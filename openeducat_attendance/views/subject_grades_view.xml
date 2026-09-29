@@ -342,8 +342,31 @@
                                     <field name="attendance_date" />
                                     <field name="lesson_topic" string="Тема" />
                                     <field name="attendance_type_id" widget="badge" options="{'color_field': 'color'}"/>
-                                    <field name="grade_1" />
-                                    <field name="grade_2" />
+                                    <!-- Оценки рисуем как бейджи через Selection-обертки
+                                         grade_1_ui/grade_2_ui — тем же видом, что и
+                                         ДЗ 1/ДЗ 2 и как в журнале урока. На целом
+                                         Integer виджет selection_badge не вешается
+                                         (supportedTypes: many2one/selection), а
+                                         widget="badge" целые НЕ красит по значению.
+                                         Списки read-only (edit="0"), инверс не нужен.
+                                         Целые grade_1/grade_2 скрыты, но остаются
+                                         источником правды. -->
+                                    <field name="grade_1" column_invisible="True"/>
+                                    <field name="grade_2" column_invisible="True"/>
+                                    <field name="grade_1_ui" string="Оценка 1"
+                                        widget="selection_badge" optional="show"
+                                        decoration-bf="1"
+                                        decoration-success="grade_1_ui == '5'"
+                                        decoration-info="grade_1_ui == '4'"
+                                        decoration-warning="grade_1_ui == '3'"
+                                        decoration-danger="grade_1_ui == '2'" />
+                                    <field name="grade_2_ui" string="Оценка 2"
+                                        widget="selection_badge" optional="show"
+                                        decoration-bf="1"
+                                        decoration-success="grade_2_ui == '5'"
+                                        decoration-info="grade_2_ui == '4'"
+                                        decoration-warning="grade_2_ui == '3'"
+                                        decoration-danger="grade_2_ui == '2'" />
                                     <field name="remark" optional="show" />
                                     <button name="action_open_sheet" type="object" icon="fa-external-link" title="Открыть журнал"/>
                                 </list>
@@ -393,8 +416,31 @@
                                     <field name="attendance_date" />
                                     <field name="lesson_topic" string="Тема" />
                                     <field name="attendance_type_id" widget="badge" options="{'color_field': 'color'}"/>
-                                    <field name="grade_1" />
-                                    <field name="grade_2" />
+                                    <!-- Оценки рисуем как бейджи через Selection-обертки
+                                         grade_1_ui/grade_2_ui — тем же видом, что и
+                                         ДЗ 1/ДЗ 2 и как в журнале урока. На целом
+                                         Integer виджет selection_badge не вешается
+                                         (supportedTypes: many2one/selection), а
+                                         widget="badge" целые НЕ красит по значению.
+                                         Списки read-only (edit="0"), инверс не нужен.
+                                         Целые grade_1/grade_2 скрыты, но остаются
+                                         источником правды. -->
+                                    <field name="grade_1" column_invisible="True"/>
+                                    <field name="grade_2" column_invisible="True"/>
+                                    <field name="grade_1_ui" string="Оценка 1"
+                                        widget="selection_badge" optional="show"
+                                        decoration-bf="1"
+                                        decoration-success="grade_1_ui == '5'"
+                                        decoration-info="grade_1_ui == '4'"
+                                        decoration-warning="grade_1_ui == '3'"
+                                        decoration-danger="grade_1_ui == '2'" />
+                                    <field name="grade_2_ui" string="Оценка 2"
+                                        widget="selection_badge" optional="show"
+                                        decoration-bf="1"
+                                        decoration-success="grade_2_ui == '5'"
+                                        decoration-info="grade_2_ui == '4'"
+                                        decoration-warning="grade_2_ui == '3'"
+                                        decoration-danger="grade_2_ui == '2'" />
                                     <field name="remark" optional="show" />
                                     <button name="action_open_sheet" type="object" icon="fa-external-link" title="Открыть журнал"/>
                                 </list>
@@ -444,8 +490,31 @@
                                     <field name="attendance_date" />
                                     <field name="lesson_topic" string="Тема" />
                                     <field name="attendance_type_id" widget="badge" options="{'color_field': 'color'}"/>
-                                    <field name="grade_1" />
-                                    <field name="grade_2" />
+                                    <!-- Оценки рисуем как бейджи через Selection-обертки
+                                         grade_1_ui/grade_2_ui — тем же видом, что и
+                                         ДЗ 1/ДЗ 2 и как в журнале урока. На целом
+                                         Integer виджет selection_badge не вешается
+                                         (supportedTypes: many2one/selection), а
+                                         widget="badge" целые НЕ красит по значению.
+                                         Списки read-only (edit="0"), инверс не нужен.
+                                         Целые grade_1/grade_2 скрыты, но остаются
+                                         источником правды. -->
+                                    <field name="grade_1" column_invisible="True"/>
+                                    <field name="grade_2" column_invisible="True"/>
+                                    <field name="grade_1_ui" string="Оценка 1"
+                                        widget="selection_badge" optional="show"
+                                        decoration-bf="1"
+                                        decoration-success="grade_1_ui == '5'"
+                                        decoration-info="grade_1_ui == '4'"
+                                        decoration-warning="grade_1_ui == '3'"
+                                        decoration-danger="grade_1_ui == '2'" />
+                                    <field name="grade_2_ui" string="Оценка 2"
+                                        widget="selection_badge" optional="show"
+                                        decoration-bf="1"
+                                        decoration-success="grade_2_ui == '5'"
+                                        decoration-info="grade_2_ui == '4'"
+                                        decoration-warning="grade_2_ui == '3'"
+                                        decoration-danger="grade_2_ui == '2'" />
                                     <field name="remark" optional="show" />
                                     <button name="action_open_sheet" type="object" icon="fa-external-link" title="Открыть журнал"/>
                                 </list>
@@ -495,8 +564,31 @@
                                     <field name="attendance_date" />
                                     <field name="lesson_topic" string="Тема" />
                                     <field name="attendance_type_id" widget="badge" options="{'color_field': 'color'}"/>
-                                    <field name="grade_1" />
-                                    <field name="grade_2" />
+                                    <!-- Оценки рисуем как бейджи через Selection-обертки
+                                         grade_1_ui/grade_2_ui — тем же видом, что и
+                                         ДЗ 1/ДЗ 2 и как в журнале урока. На целом
+                                         Integer виджет selection_badge не вешается
+                                         (supportedTypes: many2one/selection), а
+                                         widget="badge" целые НЕ красит по значению.
+                                         Списки read-only (edit="0"), инверс не нужен.
+                                         Целые grade_1/grade_2 скрыты, но остаются
+                                         источником правды. -->
+                                    <field name="grade_1" column_invisible="True"/>
+                                    <field name="grade_2" column_invisible="True"/>
+                                    <field name="grade_1_ui" string="Оценка 1"
+                                        widget="selection_badge" optional="show"
+                                        decoration-bf="1"
+                                        decoration-success="grade_1_ui == '5'"
+                                        decoration-info="grade_1_ui == '4'"
+                                        decoration-warning="grade_1_ui == '3'"
+                                        decoration-danger="grade_1_ui == '2'" />
+                                    <field name="grade_2_ui" string="Оценка 2"
+                                        widget="selection_badge" optional="show"
+                                        decoration-bf="1"
+                                        decoration-success="grade_2_ui == '5'"
+                                        decoration-info="grade_2_ui == '4'"
+                                        decoration-warning="grade_2_ui == '3'"
+                                        decoration-danger="grade_2_ui == '2'" />
                                     <field name="remark" optional="show" />
                                     <button name="action_open_sheet" type="object" icon="fa-external-link" title="Открыть журнал"/>
                                 </list>

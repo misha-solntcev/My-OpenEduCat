@@ -83,7 +83,7 @@
         <field name="model">op.subject.grades</field>
         <field name="inherit_id" ref="openeducat_attendance.view_op_subject_grades_form"/>
         <field name="arch" type="xml">
-            <xpath expr="//field[@name='q1_line_ids']//field[@name='grade_2']" position="after">
+            <xpath expr="//field[@name='q1_line_ids']//field[@name='grade_2_ui']" position="after">
                 <field name="hw_grade_1_ui" string="ДЗ 1" optional="hide"
                     widget="selection_badge" options="{'horizontal': true}"
                     decoration-success="hw_grade_1_ui == '5'"
@@ -97,7 +97,7 @@
                     decoration-warning="hw_grade_2_ui == '3'"
                     decoration-danger="hw_grade_2_ui == '2'"/>
             </xpath>
-            <xpath expr="//field[@name='q2_line_ids']//field[@name='grade_2']" position="after">
+            <xpath expr="//field[@name='q2_line_ids']//field[@name='grade_2_ui']" position="after">
                 <field name="hw_grade_1_ui" string="ДЗ 1" optional="hide"
                     widget="selection_badge" options="{'horizontal': true}"
                     decoration-success="hw_grade_1_ui == '5'"
@@ -111,7 +111,7 @@
                     decoration-warning="hw_grade_2_ui == '3'"
                     decoration-danger="hw_grade_2_ui == '2'"/>
             </xpath>
-            <xpath expr="//field[@name='q3_line_ids']//field[@name='grade_2']" position="after">
+            <xpath expr="//field[@name='q3_line_ids']//field[@name='grade_2_ui']" position="after">
                 <field name="hw_grade_1_ui" string="ДЗ 1" optional="hide"
                     widget="selection_badge" options="{'horizontal': true}"
                     decoration-success="hw_grade_1_ui == '5'"
@@ -125,7 +125,7 @@
                     decoration-warning="hw_grade_2_ui == '3'"
                     decoration-danger="hw_grade_2_ui == '2'"/>
             </xpath>
-            <xpath expr="//field[@name='q4_line_ids']//field[@name='grade_2']" position="after">
+            <xpath expr="//field[@name='q4_line_ids']//field[@name='grade_2_ui']" position="after">
                 <field name="hw_grade_1_ui" string="ДЗ 1" optional="hide"
                     widget="selection_badge" options="{'horizontal': true}"
                     decoration-success="hw_grade_1_ui == '5'"
@@ -153,10 +153,10 @@
             <xpath expr="//field[@name='q1_line_ids']//field[@name='attendance_type_id']" position="attributes">
                 <attribute name="optional">show</attribute>
             </xpath>
-            <xpath expr="//field[@name='q1_line_ids']//field[@name='grade_1']" position="attributes">
+            <xpath expr="//field[@name='q1_line_ids']//field[@name='grade_1_ui']" position="attributes">
                 <attribute name="optional">show</attribute>
             </xpath>
-            <xpath expr="//field[@name='q1_line_ids']//field[@name='grade_2']" position="attributes">
+            <xpath expr="//field[@name='q1_line_ids']//field[@name='grade_2_ui']" position="attributes">
                 <attribute name="optional">show</attribute>
             </xpath>
             <xpath expr="//field[@name='q2_line_ids']//field[@name='attendance_date']" position="attributes">
@@ -168,10 +168,10 @@
             <xpath expr="//field[@name='q2_line_ids']//field[@name='attendance_type_id']" position="attributes">
                 <attribute name="optional">show</attribute>
             </xpath>
-            <xpath expr="//field[@name='q2_line_ids']//field[@name='grade_1']" position="attributes">
+            <xpath expr="//field[@name='q2_line_ids']//field[@name='grade_1_ui']" position="attributes">
                 <attribute name="optional">show</attribute>
             </xpath>
-            <xpath expr="//field[@name='q2_line_ids']//field[@name='grade_2']" position="attributes">
+            <xpath expr="//field[@name='q2_line_ids']//field[@name='grade_2_ui']" position="attributes">
                 <attribute name="optional">show</attribute>
             </xpath>
             <xpath expr="//field[@name='q3_line_ids']//field[@name='attendance_date']" position="attributes">
@@ -183,10 +183,10 @@
             <xpath expr="//field[@name='q3_line_ids']//field[@name='attendance_type_id']" position="attributes">
                 <attribute name="optional">show</attribute>
             </xpath>
-            <xpath expr="//field[@name='q3_line_ids']//field[@name='grade_1']" position="attributes">
+            <xpath expr="//field[@name='q3_line_ids']//field[@name='grade_1_ui']" position="attributes">
                 <attribute name="optional">show</attribute>
             </xpath>
-            <xpath expr="//field[@name='q3_line_ids']//field[@name='grade_2']" position="attributes">
+            <xpath expr="//field[@name='q3_line_ids']//field[@name='grade_2_ui']" position="attributes">
                 <attribute name="optional">show</attribute>
             </xpath>
             <xpath expr="//field[@name='q4_line_ids']//field[@name='attendance_date']" position="attributes">
@@ -198,10 +198,10 @@
             <xpath expr="//field[@name='q4_line_ids']//field[@name='attendance_type_id']" position="attributes">
                 <attribute name="optional">show</attribute>
             </xpath>
-            <xpath expr="//field[@name='q4_line_ids']//field[@name='grade_1']" position="attributes">
+            <xpath expr="//field[@name='q4_line_ids']//field[@name='grade_1_ui']" position="attributes">
                 <attribute name="optional">show</attribute>
             </xpath>
-            <xpath expr="//field[@name='q4_line_ids']//field[@name='grade_2']" position="attributes">
+            <xpath expr="//field[@name='q4_line_ids']//field[@name='grade_2_ui']" position="attributes">
                 <attribute name="optional">show</attribute>
             </xpath>
         </field>
