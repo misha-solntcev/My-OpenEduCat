@@ -271,26 +271,39 @@
                                     <field name="student_id" readonly="1" decoration-bf="1"
                                         options="{'no_open': True}" optional="show" />
 
-                                    <!-- 3. Оценки. Раньше здесь стояли grade_1_ui/grade_2_ui
-                                         (Selection с compute/inverse) — им нельзя было
-                                         отдать Integer, поэтому после перевода оценок
-                                         в Integer бейдж рисуем на самом поле.
-                                         Виджет badge НЕ ставим: в этом списке
-                                         editable="top", а badge нередактируемый —
-                                         Integer без виджета даёт и ввод, и цвет. -->
-                                    <field name="grade_1" string="Оценка 1"
-                                        width="80px" optional="show"
-                                        decoration-success="grade_1 == 5"
-                                        decoration-info="grade_1 == 4"
-                                        decoration-warning="grade_1 == 3"
-                                        decoration-danger="grade_1 == 2" />
+                                    <!-- 3. Оценки. Целые grade_1/grade_2 — источник
+                                         правды (хранятся, считаются в grade_avg),
+                                         но в ЭТОМ списке они скрыты: ввод идёт
+                                         через grade_1_ui/grade_2_ui (Selection +
+                                         selection_badge), как у ДЗ 1/ДЗ 2 —
+                                         учитель выбирает 2/3/4/5 кликом.
+                                         Виджет selection_badge поддерживает только
+                                         many2one/selection (badge_selection_field.js),
+                                         на Integer его не навесить, поэтому
+                                         для ввода нужен Selection-слой.
+                                         В read-only списках (Электронный дневник,
+                                         пивот) ui-полей нет — там целые, иначе
+                                         дубли в «Настроить столбки». -->
+                                    <field name="grade_1" column_invisible="True"/>
+                                    <field name="grade_2" column_invisible="True"/>
 
-                                    <field name="grade_2" string="Оценка 2"
+                                    <field name="grade_1_ui" string="Оценка 1"
                                         width="80px" optional="show"
-                                        decoration-success="grade_2 == 5"
-                                        decoration-info="grade_2 == 4"
-                                        decoration-warning="grade_2 == 3"
-                                        decoration-danger="grade_2 == 2" />
+                                        widget="selection_badge"
+                                        decoration-bf="1"
+                                        decoration-success="grade_1_ui == '5'"
+                                        decoration-info="grade_1_ui == '4'"
+                                        decoration-warning="grade_1_ui == '3'"
+                                        decoration-danger="grade_1_ui == '2'" />
+
+                                    <field name="grade_2_ui" string="Оценка 2"
+                                        width="80px" optional="show"
+                                        widget="selection_badge"
+                                        decoration-bf="1"
+                                        decoration-success="grade_2_ui == '5'"
+                                        decoration-info="grade_2_ui == '4'"
+                                        decoration-warning="grade_2_ui == '3'"
+                                        decoration-danger="grade_2_ui == '2'" />
 
                                     <!-- ДЗ-колонки (ДЗ 1 / ДЗ 2) добавляет rost_lesson_homework -->
 

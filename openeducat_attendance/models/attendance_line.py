@@ -54,6 +54,37 @@ class OpAttendanceLine(models.Model):
     # СУММУ оценок вместо средней. Среднее по полю не подходит — см. grade_avg.
     grade_1 = fields.Integer('Оценка 1', default=0, aggregator="avg")
     grade_2 = fields.Integer('Оценка 2', default=0, aggregator="avg")
+
+    # Поля-обёртки ДЛЯ ВВОДА в журнале урока: Selection + selection_badge,
+    # чтобы учитель выбирал 2/3/4/5 кликом, как у ДЗ 1/ДЗ 2, а не вписывал
+    # число руками. widget="selection_badge" поддерживает только many2one и
+    # selection (badge_selection_field.js: supportedTypes), на Integer он не
+    # вешается — поэтому нужен Selection-слой поверх целого.
+    # compute берёт значение из grade_1/grade_2, inverse пишет обратно.
+    # В read-only списках (Электронный дневник, пивот) эти поля НЕ
+    # используются — там остаются целочисленные grade_1/grade_2, иначе
+    # «Оценка 1»/«Оценка 2» снова появятся в «Настроить столбцы» дважды
+    # (именно из-за них их удаляли в 9e16add). Показываются только в
+    # редактируемом списке формы журнала.
+    grade_1_ui = fields.Selection([('2', '2'), ('3', '3'), ('4', '4'), ('5', '5')],
+        string='Оценка 1 (ввод)', compute='_compute_grade_ui', inverse='_set_grade_1_ui')
+    grade_2_ui = fields.Selection([('2', '2'), ('3', '3'), ('4', '4'), ('5', '5')],
+        string='Оценка 2 (ввод)', compute='_compute_grade_ui', inverse='_set_grade_2_ui')
+
+    @api.depends('grade_1', 'grade_2')
+    def _compute_grade_ui(self):
+        for rec in self:
+            rec.grade_1_ui = str(rec.grade_1) if rec.grade_1 else False
+            rec.grade_2_ui = str(rec.grade_2) if rec.grade_2 else False
+
+    def _set_grade_1_ui(self):
+        for rec in self:
+            rec.grade_1 = int(rec.grade_1_ui) if rec.grade_1_ui else 0
+
+    def _set_grade_2_ui(self):
+        for rec in self:
+            rec.grade_2 = int(rec.grade_2_ui) if rec.grade_2_ui else 0
+
     # DEPRECATED (4 оценки: О1, О2, ДЗ 1, ДЗ 2). Оценки текущего года
     # перенесены 2026-09-27 в свободные ячейки (О1/О2/ДЗ 2) скриптом
     # rost_lesson_homework/scripts/migrate_grade3_free_slot.py: в базе
