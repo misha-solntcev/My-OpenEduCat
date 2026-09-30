@@ -20,6 +20,7 @@ import { SubjectsPage } from '@/pages/subjects/SubjectsPage';
 import { SubjectGradesPage } from '@/pages/subjects/SubjectGradesPage';
 import { TeacherGradesPage } from '@/pages/subjects/TeacherGradesPage';
 import { LessonJournalPage } from '@/pages/lesson-journal/LessonJournalPage';
+import type { LessonHomeworkFilter } from '@/pages/lesson-journal/LessonJournalPage';
 import { ProfilePage } from '@/pages/profile/ProfilePage';
 import { ToastContainer } from '@/shared/components/Toast';
 import { useAppStore } from '@/shared/lib/store';
@@ -53,6 +54,40 @@ export default function App() {
   const [selectedLessonId, setSelectedLessonId] = React.useState<number | null>(
     savedNav.selectedLessonId ?? null
   );
+
+  // Фильтр-задание, пришедший из журнала урока («Проверить ДЗ»). Живёт в App,
+  // потому что переход меняет экран целиком: lesson-journal -> вкладка «Задания».
+  // Сбрасывается, когда учитель уходит с вкладки сам (см. onOpenHomeworkFromLesson
+  // и handleTimetableBack), иначе фильтр «прилипнет» к следующему открытию.
+  const [lessonHomeworkFilter, setLessonHomeworkFilter] =
+    React.useState<LessonHomeworkFilter | null>(null);
+
+  // Вход из журнала урока -> вкладка «Задания» с фильтром по предмету и классу.
+  // lessonId сохраняем, чтобы кнопка «Назад» на «Задания» вернула ровно в тот
+  // же урок, а не просто в расписание.
+  const [lessonIdForHw, setLessonIdForHw] = React.useState<number | null>(null);
+  const handleOpenHomeworkFromLesson = (filter: LessonHomeworkFilter) => {
+    setLessonHomeworkFilter(filter);
+    setLessonIdForHw(selectedLessonId);
+    setActiveView('main');
+    setActiveTab('homework');
+    setSelectedLessonId(null);
+  };
+
+  // Назад с «Заданий» в тот же урок. Если урок снят/не найден — просто
+  // уходим на таб «Расписание» (selectedLessonId=null откроет список уроков).
+  const handleBackToLesson = () => {
+    setLessonHomeworkFilter(null);
+    if (lessonIdForHw != null) {
+      setSelectedLessonId(lessonIdForHw);
+      setActiveView('lesson-journal');
+    } else {
+      setActiveView('main');
+      setActiveTab('timetable');
+      setSelectedLessonId(null);
+    }
+    setLessonIdForHw(null);
+  };
 
   // Вложенная навигация внутри таба "Успеваемость"
   const [subjectsHistory, setSubjectsHistory] = React.useState<string[]>(
@@ -271,7 +306,11 @@ export default function App() {
               <HomeworkPage id="homework-panel" />
             </View>
             <View id="teacher-homework" activePanel="teacher-homework-panel">
-              <TeacherHomeworkPage id="teacher-homework-panel" />
+              <TeacherHomeworkPage
+                id="teacher-homework-panel"
+                initialFilter={lessonHomeworkFilter}
+                onBackToLesson={lessonIdForHw != null ? handleBackToLesson : undefined}
+              />
             </View>
 
             <View
@@ -320,6 +359,7 @@ export default function App() {
               id="lesson-journal-panel"
               lessonId={selectedLessonId}
               onBack={handleTimetableBack}
+              onOpenHomework={handleOpenHomeworkFromLesson}
             />
           </View>
 

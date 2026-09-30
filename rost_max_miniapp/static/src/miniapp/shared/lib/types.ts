@@ -86,6 +86,10 @@ export interface LessonInfo {
   homework_assignment_id: number | null;
   /** «Требуется ответ при сдаче» (с задания или sheet). */
   homework_answer_required: boolean;
+  /** Сколько заданий к проверке у этого урока (счётчик у кнопки
+   *  «Проверить»). Считается по заданиям этого учителя, класса и предмета;
+   *  0 — показываем явно, это тоже ответ (проверять нечего). */
+  hw_to_review?: number;
 }
 
 /** Персональная настройка колонок журнала. О1 и посещаемость всегда true. */
@@ -243,6 +247,8 @@ export interface MyHomeworkItem {
 }
 
 export interface HomeworkAttachment {
+  /** id вложения ir.attachment — нужен для удаления файла. */
+  id?: number;
   name: string;
   mimetype: string;
   /** Одноразовая ссылка /rost_max/hw_att/<token> (живёт 24 ч). */

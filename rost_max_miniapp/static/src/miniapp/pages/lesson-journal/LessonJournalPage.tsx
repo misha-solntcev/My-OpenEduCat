@@ -4,18 +4,32 @@ import { BulkSheet } from '@/pages/lesson-journal/components/BulkSheet';
 import { ColumnsSettingsSheet } from '@/pages/lesson-journal/components/ColumnsSettingsSheet';
 import { TopicHomeworkCard } from '@/pages/lesson-journal/components/TopicHomeworkCard';
 import { LessonJournalContent } from '@/pages/lesson-journal/components/LessonJournalContent';
+import { shortBatchName } from '@/shared/components/LessonRow';
 import { LessonJournalToolbar } from '@/pages/lesson-journal/components/LessonJournalToolbar';
 import { useLessonJournal } from '@/pages/lesson-journal/hooks/useLessonJournal';
 import { useBulkSheet } from '@/pages/lesson-journal/hooks/useBulkSheet';
 import type { GradeField } from '@/shared/lib/types';
 
+/** Фильтр-задание для входа в «Задания» из журнала урока. */
+export interface LessonHomeworkFilter {
+  /** Класс БЕЗ учебного года, как в ленте заданий: бэк отдаёт
+   *  op.batch.name через _batch_short («7 А  2026/2027» -> «7 А»).
+   *  Сырое имя из урока здесь не подошло бы — чип фильтра не совпал бы
+   *  со значением из ленты и фильтр отсёк бы все задания. */
+  batch: string;
+  /** Название предмета (op.subject.name). */
+  subject: string;
+}
+
 interface LessonJournalPageProps {
   id: string;
   lessonId: number | null;
   onBack: () => void;
+  /** Переход на вкладку «Задания» с фильтром по предмету и классу урока. */
+  onOpenHomework: (filter: LessonHomeworkFilter) => void;
 }
 
-export const LessonJournalPage: React.FC<LessonJournalPageProps> = ({ id, lessonId, onBack }) => {
+export const LessonJournalPage: React.FC<LessonJournalPageProps> = ({ id, lessonId, onBack, onOpenHomework }) => {
   // Основная бизнес-логика вынесена в хук
   const {
     lesson,
@@ -50,6 +64,17 @@ export const LessonJournalPage: React.FC<LessonJournalPageProps> = ({ id, lesson
 
   // Ученик/родитель: бэкенд отдал только его строки и can_edit=false
   const canEdit = lesson?.can_edit !== false;
+
+  // Вход на «Задания» из карточки темы. Класс режем через shortBatchName:
+  // лента заданий отдаёт batch уже без года (op.batch.name через
+  // _batch_short), и без среза фильтр не совпал бы с классом урока.
+  const openHomework = () => {
+    if (!lesson) return;
+    onOpenHomework({
+      batch: shortBatchName(lesson.batch),
+      subject: lesson.subject,
+    });
+  };
 
   // Логика массовой шторки вынесена в отдельный хук
   const bulkSetGrade = (field: GradeField, value: number | null) => {
@@ -129,6 +154,7 @@ export const LessonJournalPage: React.FC<LessonJournalPageProps> = ({ id, lesson
                 onHomeworkChange={setHomework}
                 onAnswerRequiredChange={setAnswerRequired}
                 onAssignmentCreated={setAssignmentId}
+                onCheckHomework={canEdit ? openHomework : undefined}
               />
             </Box>
           )}
@@ -141,7 +167,7 @@ export const LessonJournalPage: React.FC<LessonJournalPageProps> = ({ id, lesson
             attendanceTypes={attendanceTypes}
             columns={columns}
             canEdit={canEdit}
-            hwEnabled={Boolean(lesson?.homework_assignment_id)}
+            hwEnabled={false}
             onCycleGrade={cycleGradeField}
             onCycleAttendance={cycleAttendance}
             onRemarkChange={setRemark}
@@ -175,7 +201,10 @@ export const LessonJournalPage: React.FC<LessonJournalPageProps> = ({ id, lesson
             onBulkRemark={bulkSetRemark}
             onClearAll={clearAll}
             columns={columns}
-            hwEnabled={Boolean(lesson?.homework_assignment_id)}
+            // Молния (массовые операции) о ДЗ не знает: оценки за ДЗ ставятся
+            // только в задании. Передаём hwEnabled={false}, иначе BulkSheet
+            // со своим дефолтом =true нарисовал бы кнопки ДЗ 1 / ДЗ 2.
+            hwEnabled={false}
           />
         )}
 
@@ -185,7 +214,6 @@ export const LessonJournalPage: React.FC<LessonJournalPageProps> = ({ id, lesson
             onClose={() => setColumnsOpen(false)}
             columns={columns}
             onToggle={toggleColumn}
-            hwEnabled={Boolean(lesson?.homework_assignment_id)}
           />
         )}
       </Flex>

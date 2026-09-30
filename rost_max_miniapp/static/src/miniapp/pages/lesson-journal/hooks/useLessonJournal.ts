@@ -29,7 +29,9 @@ interface UseLessonJournalReturn {
   setAnswerRequired: (value: boolean) => void;
   setAssignmentId: (id: number) => void;
   saveAll: () => Promise<void>;
-  toggleColumn: (key: 'grade_2' | 'hw_grade_1' | 'hw_grade_2' | 'note', value: boolean) => Promise<void>;
+  /** Переключаемые колонки журнала. ДЗ 1 / ДЗ 2 не переключаются: оценки за
+   *  ДЗ ставятся в задании, а не в журнале (кнопка «Проверить ДЗ»). */
+  toggleColumn: (key: 'grade_2' | 'note', value: boolean) => Promise<void>;
   handleBack: () => void;
   exitSave: () => Promise<void>;
   exitDiscard: () => void;
@@ -185,7 +187,7 @@ export function useLessonJournal(lessonId: number | null, onBack: () => void): U
   // Настройка колонок: состояние локальное и мгновенное (как тумблер в
   // BulkSheet), сервер сохраняем в фоне без отката UI — при сбое настройки
   // досинхронизируются с сервера при следующем открытии журнала.
-  const toggleColumn = async (key: 'grade_2' | 'hw_grade_1' | 'hw_grade_2' | 'note', value: boolean) => {
+  const toggleColumn = async (key: 'grade_2' | 'note', value: boolean) => {
     setColumns(prev => ({ ...prev, [key]: value }));
     try {
       const res = await apiPost<{ columns?: JournalColumns }>(

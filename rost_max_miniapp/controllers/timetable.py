@@ -662,6 +662,25 @@ class RostMaxTimetableController(http.Controller):
                 "remark": ln.remark or '',
             })
 
+        # Сколько заданий к проверке у этого урока (счётчик у кнопки
+        # «Проверить» в карточке темы). Один read_group по заданиям учителя
+        # его класса и предмета: не грузим весь список заданий на клиент и не
+        # делаем второй HTTP-запрос — журнал уже сейчас в этом ответе.
+        hw_to_review = 0
+        if sheet.subject_id and sheet.batch_id:
+            hw_pending = request.env['op.assignment.sub.line'].sudo().search([
+                ('assignment_id.state', '=', 'publish'),
+                ('assignment_id.faculty_id', '=', sheet.faculty_id.id),
+                ('assignment_id.subject_id', '=', sheet.subject_id.id),
+                ('assignment_id.batch_id', '=', sheet.batch_id.id),
+                ('state', '=', 'submit'),
+            ])
+            # Счётчик — про ЗАДАНИЯ, а не про работы: несколько сдач одного
+            # задания должны давать единицу (как счётчик у сегмента
+            # «Проверить» на странице «Заданий»). Поэтому берём количество
+            # РАЗНЫХ assignment_id среди найденных строк.
+            hw_to_review = len(hw_pending.mapped('assignment_id')) if hw_pending else 0
+
         lesson = {
             "subject": sheet.subject_id.name if sheet.subject_id else '',
             "can_edit": role in ('admin', 'teacher'),
@@ -682,6 +701,15 @@ class RostMaxTimetableController(http.Controller):
                 sheet.homework_assignment_id.answer_required
                 if getattr(sheet, 'homework_assignment_id', False)
                 else getattr(sheet, 'homework_answer_required', False)),
+            # Сколько заданий к проверке — для счётчика у кнопки «Проверить»
+            # в карточке темы. Считаем задания ЭТОГО урока: тот же факультет,
+            # тот же предмет и класс (как фильтр на экране «Задания», и с тем
+            # же срезом названия класса — сравниваем по id, а не по строке,
+            # тогда двойной пробел в имени не мешает).
+            # К проверке = задание опубликовано и есть сдачи в состоянии
+            # 'submit' (их учитель ещё не принял) — ровно тот же критерий,
+            # что даёт сегмент «Проверить» на странице «Заданий».
+            "hw_to_review": hw_to_review,
         }
 
         # Персональная настройка колонок (вариант B, res.users).
@@ -1923,8 +1951,13 @@ class RostMaxTimetableController(http.Controller):
         domain = [('state', 'in', ('publish', 'finish'))]
         if not is_admin:
             domain.append(('faculty_id', '=', faculty.id))
+        # Свежие сверху: срок сдачи DESC, id DESC как тайбрейк — без него
+        # задания с пустым submission_date (срок не задан) шли в произвольном
+        # порядке и «прыгали» между открытиями ленты. По сроку DESC нужна
+        # в том числе для входа из журнала урока: «ДЗ прошлого урока» должно
+        # быть вверху списка, а не внизу.
         asgs = request.env['op.assignment'].sudo().search(
-            domain, order='submission_date asc')
+            domain, order='submission_date desc, id desc')
 
         submitted_counts = {
             s['assignment_id'][0]: s['assignment_id_count']

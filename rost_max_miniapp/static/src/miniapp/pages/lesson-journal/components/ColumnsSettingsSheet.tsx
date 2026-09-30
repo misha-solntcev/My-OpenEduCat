@@ -14,16 +14,19 @@ import type { JournalColumns } from '@/shared/lib/types';
 
 interface ColumnsSettingsSheetProps {
   columns: JournalColumns;
-  onToggle: (key: 'grade_2' | 'hw_grade_1' | 'hw_grade_2' | 'note', value: boolean) => void;
+  onToggle: (key: 'grade_2' | 'note', value: boolean) => void;
   onClose: () => void;
   open: boolean;
-  /** ДЗ-тумблеры показываем только когда у урока есть задание ДЗ:
-   *  без задания колонки hw_* всё равно скрыты (hwEnabled-цепочка). */
-  hwEnabled: boolean;
 }
 
+/** Переключаемые колонки журнала. ДЗ 1 / ДЗ 2 сюда НЕ входят: оценки за ДЗ
+ *  живут в задании и проверяются на экране «Задания» (кнопка «Проверить ДЗ»
+ *  в журнале), поэтому в списке колонок тумблеров для них не существует.
+ *  О1 и посещаемость включены всегда и потому locked. */
+type ColumnKey = 'grade_2' | 'note';
+
 interface ColumnRow {
-  key: 'grade_2' | 'hw_grade_1' | 'hw_grade_2' | 'note' | null;
+  key: ColumnKey | null;
   title: string;
   checked: boolean;
   locked?: boolean;
@@ -35,19 +38,10 @@ export const ColumnsSettingsSheet: React.FC<ColumnsSettingsSheetProps> = ({
   onToggle,
   onClose,
   open,
-  hwEnabled,
 }) => {
-  // О1 и посещаемость включены всегда, переключатели остальных идут на сервер.
-  // ДЗ-тумблеры — только при задании ДЗ (иначе колонки скрыты и тумблер лжёт).
   const rows: ColumnRow[] = [
     { key: null, title: 'Оценка 1', checked: true, locked: true },
     { key: 'grade_2', title: 'Оценка 2', checked: columns.grade_2 },
-    ...(hwEnabled
-      ? [
-          { key: 'hw_grade_1', title: 'ДЗ 1', checked: columns.hw_grade_1 },
-          { key: 'hw_grade_2', title: 'ДЗ 2', checked: columns.hw_grade_2 },
-        ]
-      : []),
     { key: null, title: 'Посещаемость', checked: true, locked: true },
     { key: 'note', title: 'Примечание', checked: columns.note },
   ];

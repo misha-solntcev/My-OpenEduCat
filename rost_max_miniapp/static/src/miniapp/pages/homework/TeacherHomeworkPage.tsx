@@ -469,7 +469,20 @@ const AssignmentDetail: React.FC<{
   );
 };
 
-export const TeacherHomeworkPage: React.FC<{ id: string }> = ({ id }) => {
+/** Фильтр-задание, приходящий из журнала урока (кнопка «Проверить ДЗ»). */
+export interface TeacherHomeworkInitialFilter {
+  batch: string;
+  subject: string;
+}
+
+export const TeacherHomeworkPage: React.FC<{
+  id: string;
+  /** Стартовый фильтр из урока: показываем только его класс и предмет. */
+  initialFilter?: TeacherHomeworkInitialFilter | null;
+  /** Возврат в журнал урока. Задаётся ТОЛЬКО при входе из урока: во вкладке
+   *  «Задания» кнопки «Назад» в шапке быть не должно, там и так таббар. */
+  onBackToLesson?: () => void;
+}> = ({ id, initialFilter, onBackToLesson }) => {
   const addToast = useToast();
   const [items, setItems] = React.useState<TeacherHomeworkItem[] | null>(null);
   const [loading, setLoading] = React.useState(false);
@@ -479,6 +492,30 @@ export const TeacherHomeworkPage: React.FC<{ id: string }> = ({ id }) => {
   const [filtersOpen, setFiltersOpen] = React.useState(false);
   // Активный сегмент статуса (сегмент-контрол как в ReviewQueue).
   const [status, setStatus] = React.useState<StatusKey>('review');
+
+  // Вход из журнала урока: фильтр ставится РОВНО на каждое новое значение
+  // initialFilter. Отдельно держим lastApplied — без него эффект не отличил бы
+  // «учитель снял чипы руками» от «пришёл новый фильтр из урока»: фильтр
+  // нулевой → setFilters на изменение не срабатывает, и вторая кнопка
+  // «Проверить ДЗ» (другой класс) показала бы старый фильтр.
+  const lastAppliedRef = React.useRef<string>('');
+  // Флаг «сегмент ещё не выбран для текущего фильтра». Сегмент выбираем не
+  // здесь, а отдельным эффектом по данным: на момент применения фильтра
+  // items может быть ещё null (список грузится), и тогда любое решение
+  // принималось бы вслепую.
+  const pendingLessonSegmentRef = React.useRef(false);
+  React.useEffect(() => {
+    const f = initialFilter;
+    if (!f || !f.batch || !f.subject) return;
+    const key = `${f.batch}|${f.subject}`;
+    if (lastAppliedRef.current === key) return;
+    lastAppliedRef.current = key;
+    setFilters({
+      batches: new Set([f.batch]),
+      subjects: new Set([f.subject]),
+    });
+    pendingLessonSegmentRef.current = true;
+  }, [initialFilter?.batch, initialFilter?.subject]);
 
   const load = React.useCallback(async () => {
     setLoading(true);
@@ -512,6 +549,26 @@ export const TeacherHomeworkPage: React.FC<{ id: string }> = ({ id }) => {
 
   const filterActive = filters.batches.size > 0 || filters.subjects.size > 0;
 
+  // Выбор стартового сегмента при входе из урока — ПОСЛЕ того как список
+  // загрузился и groups посчитан. Логика: кнопка «Проверить ДЗ» ведёт
+  // проверять, поэтому если в фильтре есть что проверять — открываем
+  // «Проверить». Жёстко ставить «Выдано» нельзя: на живых данных урока
+  // 7 А Литература сегмент «Выдано» пуст (0 заданий), а «Проверить» — 3,
+  // и учитель после тапа увидел бы пустую ленту и решил, что что-то сломано.
+  // Если проверять нечего — «Выдано» (там лежат свежие невыданные).
+  React.useEffect(() => {
+    if (!pendingLessonSegmentRef.current) return;
+    if (!items) return;                       // список ещё грузится — ждём
+    pendingLessonSegmentRef.current = false;
+    if (groups.review.length > 0) {
+      setStatus('review');
+    } else if (groups.issued.length > 0) {
+      setStatus('issued');
+    } else if (groups.checked.length > 0) {
+      setStatus('checked');
+    }
+  }, [items, groups]);
+
   const removeFilter = (kind: 'batch' | 'subject', v: string) => {
     setFilters(prev => {
       const key = kind === 'batch' ? 'batches' : 'subjects';
@@ -523,6 +580,13 @@ export const TeacherHomeworkPage: React.FC<{ id: string }> = ({ id }) => {
 
   const resetFilters = () =>
     setFilters({ batches: new Set<string>(), subjects: new Set<string>() });
+
+  // Подзаголовок под «Задания»: при входе из урока показываем, по чему
+  // список отфильтрован, — иначе учитель не понимает, почему тут пять
+  // заданий вместо всех его. Если фильтр сняли чипами — подпись исчезает.
+  const fromLesson = filterActive && initialFilter
+    && [...filters.batches].includes(initialFilter.batch)
+    && [...filters.subjects].includes(initialFilter.subject);
 
   // Админский список (все ДЗ школы) показывает преподавателя в строке;
   // у учителя свои задания — информативнее класс. Роль — из стора.
@@ -557,10 +621,24 @@ export const TeacherHomeworkPage: React.FC<{ id: string }> = ({ id }) => {
                 display: 'flex', alignItems: 'center', gap: 12, padding: '14px 18px',
                 background: 'var(--vkui--color_background_content)',
               }}>
+                {onBackToLesson && (
+                  <PanelHeaderBack
+                    onClick={onBackToLesson}
+                    aria-label="Вернуться в журнал урока"
+                  />
+                )}
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <Text Component="h1" weight="2" style={{ fontSize: 23, letterSpacing: '-0.6px', margin: 0 }}>
                     Задания
                   </Text>
+                  {fromLesson && initialFilter && (
+                    <Caption
+                      level="3"
+                      style={{ color: 'var(--vkui--color_text_secondary)', marginTop: 2 }}
+                    >
+                      {`из урока: ${initialFilter.subject}, ${initialFilter.batch}`}
+                    </Caption>
+                  )}
                 </div>
                 <IconButton
                   label="Фильтры"
