@@ -922,7 +922,7 @@ class RostMaxTimetableController(http.Controller):
             return request.make_json_response(
                 {"error": "Не удалось создать задание — обратитесь к администратору"},
                 status=409)
-        asg._hw_store_attachments(clean_files)
+        asg._hw_store_attachments(clean_files, replace=False)
         if created and hasattr(type(sheet), '_hw_channel_announce'):
             # Задание создано контроллером (ДЗ = фото доски): синк уже запостил
             # объявление, но без вложений — дополним сообщение материалами.
@@ -1600,7 +1600,72 @@ class RostMaxTimetableController(http.Controller):
         clean_files, err = _clean_hw_files(body.get('files') or [])
         if err:
             return err
-        asg._hw_store_attachments(clean_files)
+        # append: фронт шлёт только новые файлы — замена набора затирала бы
+        # ранее загруженные.
+        asg._hw_store_attachments(clean_files, replace=False)
+        return request.make_json_response({
+            "success": True,
+            "materials": asg._hw_material_payload(),
+        })
+
+    @http.route("/rost_max/api/homework/<int:assignment_id>/materials/delete",
+                type="http", auth="public", methods=["POST"], cors="*",
+                csrf=False)
+    def api_homework_materials_delete(self, assignment_id):
+        """API: удалить ОДИН материал задания (ошибочно загруженный файл).
+
+        Права те же, что у прикрепления: автор задания или админ — иначе
+        учитель чужого задания (или ученик) снёс бы чужие материалы.
+        Вложение обязано принадлежать ИМЕННО этому заданию: иначе по
+        переданному id можно было бы удалить файл из чужого задания,
+        зная его id. Само вложение удаляется физически (unlink), а не
+        просто убирается из many2many — иначе файл остался бы в БД сиротой.
+        """
+        restore_session_if_needed()
+        csrf_err = _check_spa_csrf()
+        if csrf_err:
+            return csrf_err
+        if not request.session.uid:
+            return request.make_json_response(
+                {"error": "Unauthorized"}, status=401)
+
+        user = request.env.user
+        is_admin = user.has_group('base.group_system')
+        faculty = request.env['op.faculty'].sudo().search([
+            ('partner_id', '=', user.partner_id.id)], limit=1)
+
+        asg = request.env['op.assignment'].sudo().browse(assignment_id)
+        if not asg.exists():
+            return request.make_json_response(
+                {"error": "Задание не найдено"}, status=404)
+        if not is_admin and (not faculty or asg.faculty_id != faculty):
+            return request.make_json_response(
+                {"error": "Доступно только автору задания"}, status=403)
+
+        try:
+            body = request.get_json_data()
+        except Exception:
+            return request.make_json_response(
+                {"error": "Invalid JSON"}, status=400)
+
+        att_id = body.get('attachment_id')
+        try:
+            att_id = int(att_id)
+        except (TypeError, ValueError):
+            return request.make_json_response(
+                {"error": "Не указан файл"}, status=400)
+
+        att = asg.material_ids.filtered(lambda a: a.id == att_id)
+        if not att:
+            # Нет среди материалов этого задания — либо опечатка, либо
+            # попытка удалить чужое вложение. Отвечаем 404, разницы
+            # пользователю знать не нужно.
+            return request.make_json_response(
+                {"error": "Файл не найден среди материалов задания"}, status=404)
+
+        # Токены на удалённое вложение cascade-ятся (ondelete='cascade'),
+        # так что «протухшие» ссылки на него перестают работать.
+        att.sudo().unlink()
         return request.make_json_response({
             "success": True,
             "materials": asg._hw_material_payload(),

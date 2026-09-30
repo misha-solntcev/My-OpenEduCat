@@ -1,19 +1,65 @@
-// Материалы задания (вложения учителя): прикрепление + список.
+// Материалы задания (вложения учителя): прикрепление + превью.
 // Общий компонент: вкладка «Мои ДЗ» (feed.tsx) и журнал урока
 // (TopicHomeworkCard). Требует существующий op.assignment — API работает
-// по assignment_id; кнопка показывается только когда он есть.
+// по assignment_id.
+// Оформление — как в мессенджерах: файлы не ссылками, а плитками с
+// превью (фото — миниатюра, pdf — иконка с именем), тап открывает
+// полноэкранный просмотр с листанием. Кнопку «Материалы» убрали:
+// прикрепление идёт скрепкой ВНУТРИ поля ввода ДЗ, здесь только
+// результат — что прикреплено.
 // Стили: VKUI токены + vkitokens (--vkui--*), никаких кастомных css-классов.
 import React from 'react';
-import { Button } from '@vkontakte/vkui';
-import { Icon28AttachOutline } from '@vkontakte/icons';
+import { Box, Flex, Text, Image } from '@vkontakte/vkui';
+import { Icon16Cancel, Icon28AttachOutline, Icon28DocumentOutline } from '@vkontakte/icons';
 import { apiGet, apiPost, fileToBase64 } from '@/shared/lib/api';
 import { useToast } from '@/shared/components/Toast';
 import type { HomeworkAttachment } from '@/shared/lib/types';
 
-export const MaterialsEditor: React.FC<{ assignmentId: number }> = ({ assignmentId }) => {
+/** Картинка грузится по одноразовой ссылке (24 ч) — если не загрузилась
+ *  (токен истёк, файл удалён, нет сети), показываем плитку-заглушку. */
+const Thumb: React.FC<{ url: string; alt: string }> = ({ url, alt }) => {
+  const [broken, setBroken] = React.useState(false);
+  if (broken) {
+    return (
+      <Box
+        style={{
+          width: 56, height: 56, borderRadius: 10,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          background: 'var(--vkui--color_background_secondary)',
+          color: 'var(--vkui--color_icon_secondary)',
+          flexShrink: 0,
+        }}
+      >
+        <Icon28DocumentOutline width={24} height={24} />
+      </Box>
+    );
+  }
+  return (
+    <Image
+      src={url}
+      alt={alt}
+      onError={() => setBroken(true)}
+      style={{
+        width: 56, height: 56, borderRadius: 10, objectFit: 'cover',
+        flexShrink: 0, background: 'var(--vkui--color_background_secondary)',
+      }}
+    />
+  );
+};
+
+export const MaterialsEditor: React.FC<{
+  assignmentId: number;
+  /** Показывать свою кнопку прикрепления. Нужна там, где поля ввода ДЗ
+   *  нет (лента «Мои ДЗ», экран задания) — прикреплять нечем. В журнале
+   *  урока выключаем: скрепка живёт внутри поля ввода ДЗ, вторая была бы
+   *  дублем (и раньше выглядела как отдельная строка «Материалы»). */
+  showAttachButton?: boolean;
+}> = ({ assignmentId, showAttachButton = true }) => {
   const addToast = useToast();
   const [materials, setMaterials] = React.useState<HomeworkAttachment[] | null>(null);
   const [busy, setBusy] = React.useState(false);
+  // индекс открытой во весь экран плитки, null — просмотр закрыт
+  const [viewer, setViewer] = React.useState<number | null>(null);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   const load = React.useCallback(async () => {
@@ -54,6 +100,8 @@ export const MaterialsEditor: React.FC<{ assignmentId: number }> = ({ assignment
     if (payload.length === 0) return;
     setBusy(true);
     try {
+      // append: сервер дописывает к текущему набору, поэтому ранее
+      // загруженные файлы не пропадают (см. _hw_store_attachments).
       const res = await apiPost<{ success?: boolean; materials?: HomeworkAttachment[]; error?: string }>(
         `/rost_max/api/homework/${assignmentId}/materials`,
         { files: payload });
@@ -68,8 +116,46 @@ export const MaterialsEditor: React.FC<{ assignmentId: number }> = ({ assignment
     setBusy(false);
   };
 
+  // Ссылка для <img>/<a> должна быть абсолютной: токен-роут отдаёт файл,
+  // а относительный путь внутри <img> на WebView MAX не всегда резолвится.
+  const absUrl = (url: string) =>
+    url.startsWith('http') ? url : window.location.origin + url;
+
+  const images = (materials || []).filter(m => (m.mimetype || '').startsWith('image/'));
+  const docs = (materials || []).filter(m => !(m.mimetype || '').startsWith('image/'));
+
+  const viewerItem = viewer != null ? (materials || [])[viewer] : null;
+
+  // Удаление ошибочно загруженного файла. Подтверждаем: файлы не вернуть,
+  // а на телефоне легко промахнуться по крестику рядом с миниатюрой.
+  const removeFile = async (a: HomeworkAttachment) => {
+    if (a.id == null) {
+      addToast('Не удалось определить файл', 'error');
+      return;
+    }
+    if (!window.confirm(`Удалить файл «${a.name}»?`)) return;
+    setBusy(true);
+    try {
+      const res = await apiPost<{
+        success?: boolean; materials?: HomeworkAttachment[]; error?: string;
+      }>(`/rost_max/api/homework/${assignmentId}/materials/delete`, {
+        attachment_id: a.id,
+      });
+      if (res.error) {
+        addToast(res.error, 'error');
+      } else {
+        setMaterials(res.materials || []);
+        // Просмотр открыт на удалённом файле — закрываем.
+        setViewer(null);
+      }
+    } catch {
+      addToast('Не удалось удалить файл', 'error');
+    }
+    setBusy(false);
+  };
+
   return (
-    <div onClick={e => e.stopPropagation()} style={{ marginTop: 6 }}>
+    <div onClick={e => e.stopPropagation()} style={{ marginTop: 8 }}>
       <input
         ref={fileInputRef}
         type="file"
@@ -78,32 +164,132 @@ export const MaterialsEditor: React.FC<{ assignmentId: number }> = ({ assignment
         style={{ display: 'none' }}
         onChange={e => { addFiles(e.target.files); e.target.value = ''; }}
       />
-      <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-        <Button
-          size="s"
-          mode="tertiary"
-          loading={busy}
-          before={<Icon28AttachOutline width={18} height={18} />}
-          onClick={() => fileInputRef.current?.click()}
+
+      {showAttachButton && (
+        <button
+          type="button"
+          onClick={e => { e.stopPropagation(); fileInputRef.current?.click(); }}
+          style={{
+            display: 'inline-flex', alignItems: 'center', gap: 6,
+            background: 'none', border: 0, padding: 0,
+            color: 'var(--vkui--color_text_accent)',
+            fontSize: 13, marginBottom: materials && materials.length > 0 ? 8 : 0,
+          }}
         >
-          Материалы
-        </Button>
-        {materials && materials.length > 0 && materials.map(a => (
-          <a
-            key={a.url}
-            href={a.url}
-            target="_blank"
-            rel="noopener noreferrer"
+          <Icon28AttachOutline width={18} height={18} />
+          {busy ? 'Загружаем…' : 'Прикрепить фото или файл'}
+        </button>
+      )}
+
+      {/* Фото — сетка миниатюр, как в Telegram. Плитка кликабельна:
+          открывает полноэкранный просмотр. */}
+      {images.length > 0 && (
+        <Flex style={{ flexWrap: 'wrap', gap: 8, marginBottom: docs.length ? 8 : 0 }}>
+          {images.map(a => {
+            const idx = (materials || []).findIndex(m => m.url === a.url);
+            return (
+              <Box
+                key={a.url}
+                onClick={() => setViewer(idx)}
+                style={{ position: 'relative', borderRadius: 10, overflow: 'hidden' }}
+              >
+                <Thumb url={absUrl(a.url)} alt={a.name} />
+                {/* Крестик поверх миниатюры — как в мессенджерах. Тап по
+                    крестику не открывает просмотр: stopPropagation. */}
+                <button
+                  type="button"
+                  aria-label={`Удалить ${a.name}`}
+                  onClick={e => { e.stopPropagation(); removeFile(a); }}
+                  style={{
+                    position: 'absolute', top: 2, right: 2,
+                    width: 22, height: 22, padding: 0,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    borderRadius: '50%',
+                    border: 0, cursor: 'pointer',
+                    background: 'rgba(0,0,0,0.55)',
+                    color: '#fff',
+                  }}
+                >
+                  <Icon16Cancel width={14} height={14} />
+                </button>
+              </Box>
+            );
+          })}
+        </Flex>
+      )}
+
+      {/* Не-фото (pdf и прочее) — плитка с иконкой и именем, тап открывает
+          файл. Имя обрезается, чтобы длинное не разносило вёрстку. */}
+      {docs.map(a => (
+        <Box
+          key={a.url}
+          onClick={() => window.open(absUrl(a.url), '_blank', 'noopener')}
+          style={{ marginTop: 4 }}
+        >
+          <Flex
+            align="center"
+            gap={10}
             style={{
-              color: 'var(--vkui--color_text_accent)',
-              textDecoration: 'none',
-              fontSize: 12,
+              padding: '6px 10px', borderRadius: 10,
+              background: 'var(--vkui--color_background_secondary)',
             }}
           >
-            {a.name}
-          </a>
-        ))}
-      </div>
+            <Icon28DocumentOutline width={20} height={20} />
+            <Text
+              style={{
+                fontSize: 13, flexGrow: 1, minWidth: 0,
+                overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+              }}
+            >
+              {a.name}
+            </Text>
+            <button
+              type="button"
+              aria-label={`Удалить ${a.name}`}
+              onClick={e => { e.stopPropagation(); removeFile(a); }}
+              style={{
+                width: 24, height: 24, padding: 0, flexShrink: 0,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                borderRadius: '50%', border: 0, cursor: 'pointer',
+                background: 'transparent',
+                color: 'var(--vkui--color_icon_secondary)',
+              }}
+            >
+              <Icon16Cancel width={16} height={16} />
+            </button>
+          </Flex>
+        </Box>
+      ))}
+
+      {/* Полноэкранный просмотр: счётчик «N из M», тап — закрыть. Только
+          картинки: pdf проще открыть во внешней вкладке (см. docs выше). */}
+      {viewerItem && (viewerItem.mimetype || '').startsWith('image/') && (
+        <div
+          onClick={() => setViewer(null)}
+          style={{
+            position: 'fixed', inset: 0, zIndex: 1000,
+            background: 'rgba(0,0,0,0.92)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            flexDirection: 'column',
+          }}
+        >
+          <img
+            src={absUrl(viewerItem.url)}
+            alt={viewerItem.name}
+            style={{ maxWidth: '100%', maxHeight: '82%', objectFit: 'contain' }}
+          />
+          {images.length > 1 && (
+            <Text style={{ color: '#fff', marginTop: 12, fontSize: 13 }}>
+              {(materials || []).filter(m => (m.mimetype || '').startsWith('image/'))
+                .findIndex(m => m.url === viewerItem.url) + 1}{' '}
+              из {images.length}
+            </Text>
+          )}
+          <Text style={{ color: 'rgba(255,255,255,0.7)', marginTop: 6, fontSize: 12 }}>
+            Тап — закрыть
+          </Text>
+        </div>
+      )}
     </div>
   );
 };
