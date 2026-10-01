@@ -6,6 +6,7 @@ from . import faculty
 from . import hr
 from . import department
 from . import res_company
+from . import channel_groups
 from . import student
 from . import subject
 from . import subject_registration

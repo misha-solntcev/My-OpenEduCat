@@ -1,5 +1,9 @@
+import logging
+
 from odoo import _, api, fields, models
 from odoo.exceptions import ValidationError
+
+_logger = logging.getLogger(__name__)
 
 
 class OpStudentCourse(models.Model):
@@ -43,7 +47,8 @@ class OpStudentCourse(models.Model):
 class OpStudent(models.Model):
     _name = "op.student"
     _description = "Student"
-    _inherit = ['mail.thread', 'mail.activity.mixin', 'op.person.base']
+    _inherit = ['mail.thread', 'mail.activity.mixin', 'op.person.base',
+                'rost.channel.groups']
     _inherits = {"res.partner": "partner_id"}
     _order = "name"
     _parent_name = False
@@ -171,11 +176,35 @@ class OpStudent(models.Model):
                     % dict(self._fields['state'].selection)[student.state]
                 )
 
+    @api.model_create_multi
+    def create(self, vals_list):
+        students = super().create(vals_list)
+        students._sync_student_channels()
+        return students
+
     def write(self, vals):
         res = super().write(vals)
         if 'state' in vals:
             self._sync_user_active_with_state()
+        # Смена класса/предметов/пользователя меняет состав групп
+        # каналов Discuss (см. rost.channel.groups). Перевод в другой
+        # класс, смена зачисления, отчисление.
+        if {'course_detail_ids', 'user_id'} & set(vals.keys()):
+            self._sync_student_channels()
         return res
+
+    def _sync_student_channels(self):
+        """Подтянуть ученика в группы и каналы Discuss его класса.
+
+        Обёртка над sync_student_channels mixin: глотаем ошибки — вход в
+        карточку ученика не должен падать из-за канала, а следующий
+        прогон мастера досоставит состав.
+        """
+        self.ensure_one()
+        try:
+            self.sync_student_channels()
+        except Exception:  # noqa: BLE001 — доступ secondary, не блокируем учёбу
+            _logger.exception('Не удалось синхронизировать каналы ученика %s', self.id)
 
     def _sync_user_active_with_state(self):
         """Учётка ученика следует за статусом: pass_out/left -> active=False.

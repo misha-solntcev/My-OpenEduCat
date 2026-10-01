@@ -5,6 +5,11 @@ from odoo.exceptions import UserError
 
 class CreateChannelWizard(models.TransientModel):
     _name = 'create.channel.wizard'
+    # Логика имён и создания групп доступа живёт в rost.channel.groups
+    # (models/channel_groups.py) — оттуда же её берёт автосинхронизация
+    # при зачислении ученика. Дублировать нельзя: каналы завязаны на
+    # точные имена групп, и мастер с хуком обязаны считать одинаково.
+    _inherit = 'rost.channel.groups'
     _description = 'Create Chat Channels for Courses'
 
     academic_year_id = fields.Many2one(
@@ -194,46 +199,19 @@ class CreateChannelWizard(models.TransientModel):
 
         return class_group_cache, default_student_group, get_cached_class_group
 
-    def _get_or_create_channel_group(self, class_num):
-        """Группа доступа к каналам класса «Участники каналов N класса».
-
-        Отдельная от «Ученики N класс»: у каналов group_public_id указывает
-        именно на неё, а в ней состоят ВСЕ участники канала (ученики +
-        учителя). Импликаций у группы нет — добавление учителя не должно
-        тянуть Student (иначе rule 613 режет ему библиотечные карточки).
-        """
-        name = f'Участники каналов {class_num} класса'
-        group = self.env['res.groups'].search([('name', '=', name)], limit=1)
-        if not group:
-            group = self.env['res.groups'].create({
-                'name': name,
-            })
-        return group
-
     def _get_channel_group_for_batch(self, batch_name):
-        match = re.match(r'^(\d+)', batch_name or '')
-        if not match:
-            return self.env['res.groups']
-        num = int(match.group(1))
-        if not 1 <= num <= 11:
+        """Группа доступа к классному каналу (или пусто, если класс не 1..11)."""
+        num = self._class_num(batch_name)
+        if not num:
             return self.env['res.groups']
         return self._get_or_create_channel_group(num)
 
     def _get_or_create_subject_channel_group(self, batch, subject):
-        """Группа доступа к предметному каналу «Канал N класс — Предмет».
-
-        Отдельная группа на пару (класс, предмет): в неё попадают только
-        ученики, записанные на предмет (subject_ids зачисления), и
-        преподаватели этого предмета. Импликаций нет — по той же причине,
-        что и у классных групп каналов (rule 613).
-        """
-        class_num_match = re.match(r'^(\d+)', batch.name or '')
-        class_num = class_num_match.group(1) if class_num_match else batch.name
-        name = f'Канал {class_num} класс — {subject.display_name}'
-        group = self.env['res.groups'].search([('name', '=', name)], limit=1)
-        if not group:
-            group = self.env['res.groups'].create({'name': name})
-        return group
+        """Группа доступа к предметному каналу (delegated в mixin)."""
+        class_num = self._class_num(batch.name)
+        if not class_num:
+            return self.env['res.groups']
+        return self._get_or_create_subject_channel_group_mixin(class_num, subject)
 
     def _sync_subject_channel_group(self, group, students, faculty):
         """Полная синхронизация группы предметного канала.
