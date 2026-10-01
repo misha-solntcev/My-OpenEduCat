@@ -99,11 +99,22 @@ class CreateChannelWizard(models.TransientModel):
             if not line_subjects:
                 line_subjects = batch.course_id.subject_ids
 
+            # Призраки считаем ЗДЕСЬ, а не в compute на строках мастера.
+            # Строки собираются в onchange и ещё NewId: запись m2m по
+            # NewId отбрасывается, а stored-поле не пересчитывается само
+            # (получалась пустая колонка). Здесь оба набора известны
+            # точно, поэтому кладём готовый результат в vals.
+            batch_session_subjects = batch_sessions.mapped('subject_id')
+            ghosts = batch_session_subjects - line_subjects
+
             commands.append(fields.Command.create({
                 'academic_year_id': self.academic_year_id.id,
                 'course_id': batch.course_id.id,
                 'batch_id': batch.id,
                 'subject_ids': [fields.Command.set(line_subjects.ids)],
+                'ghost_subject_ids': [fields.Command.set(ghosts.ids)],
+                'ghost_subject_names': ', '.join(
+                    sorted(ghosts.mapped('display_name'))),
                 'student_ids': [fields.Command.set(students.ids)],
                 'faculty_ids': [fields.Command.set(faculty.ids)],
                 'admin_ids': [fields.Command.set(
@@ -583,13 +594,18 @@ class CreateChannelWizardCourse(models.TransientModel):
     #   ghost_subject_ids — собственно many2many (для бейджей в list);
     #   ghost_subject_names — плоская строка (для тултипа/логов);
     #   has_ghost_subjects — флаг подсветки строки.
+    #
+    # Заполняются НЕ через compute, а напрямую в _rebuild_course_lines:
+    # строки мастера собираются в onchange и ещё NewId, а запись m2m
+    # по NewId отбрасывается (была пустая колонка), а перезапуск
+    # compute из create() ловил момент, когда subject_ids ещё не
+    # записан ( призраками становились все 20 предметов).
     ghost_subject_ids = fields.Many2many(
         'op.subject',
         'create_channel_wizard_course_ghost_subject_rel',
         'wizard_id', 'op_subject_id',
-        string='Ведётся, но канала не будет',
-        compute='_compute_ghost_subjects', store=True, readonly=False)
-    ghost_subject_names = fields.Char(compute='_compute_ghost_subjects')
+        string='Ведётся, но канала не будет')
+    ghost_subject_names = fields.Char(string='Ведётся, но канала не будет')
     has_ghost_subjects = fields.Boolean(
         compute='_compute_has_ghost_subjects', string='Есть предметы без канала')
 
@@ -597,28 +613,6 @@ class CreateChannelWizardCourse(models.TransientModel):
     def _compute_has_ghost_subjects(self):
         for line in self:
             line.has_ghost_subjects = bool(line.ghost_subject_ids)
-
-    @api.depends('batch_id', 'subject_ids')
-    def _compute_ghost_subjects(self):
-        for line in self:
-            ghosts = self.env['op.subject']
-            if line.batch_id:
-                sessions = self.env['op.session'].sudo().search(
-                    [('batch_id', '=', line.batch_id.id)])
-                ghosts = sessions.mapped('subject_id') - line.subject_ids
-            line.ghost_subject_ids = [fields.Command.set(ghosts.ids)]
-            line.ghost_subject_names = ', '.join(ghosts.mapped('display_name'))
-
-    @api.model_create_multi
-    def create(self, vals_list):
-        # stored=True достаточно для строк, дошедших до БД, но строки,
-        # собранные в onchange мастера, ещё NewId — запись m2m по NewId
-        # отбрасывается, и колонка остаётся пустой. Пересчитываем после
-        # insert, когда записи настоящие.
-        lines = super().create(vals_list)
-        lines.invalidate_recordset(['ghost_subject_ids', 'ghost_subject_names'])
-        lines.modified(['batch_id', 'subject_ids'])
-        return lines
 
     @api.depends('student_ids', 'faculty_ids', 'subject_ids')
     def _compute_counts(self):
