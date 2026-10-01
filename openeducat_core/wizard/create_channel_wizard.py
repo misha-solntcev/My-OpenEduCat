@@ -211,7 +211,7 @@ class CreateChannelWizard(models.TransientModel):
         class_num = self._class_num(batch.name)
         if not class_num:
             return self.env['res.groups']
-        return self._get_or_create_subject_channel_group_mixin(class_num, subject)
+        return self._get_or_create_subject_group(class_num, subject)
 
     def _sync_subject_channel_group(self, group, students, faculty):
         """Полная синхронизация группы предметного канала.
