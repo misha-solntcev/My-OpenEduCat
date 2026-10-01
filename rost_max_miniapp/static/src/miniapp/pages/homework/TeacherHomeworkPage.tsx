@@ -91,6 +91,69 @@ const FilterChips: React.FC<{
   );
 };
 
+/** Загрузка файлов в скрепку поля «Текст задания». Отдельный хук от
+ *  useLessonMaterials в карточке урока: там endpoint /lesson/<id>/materials,
+ *  здесь /homework/<id>/materials — оба делают append и требуют прав
+ *  автора задания. Файлы уходят сразу, поэтому «Сохранить» их не ждёт. */
+const useAttachFiles = (assignmentId: number) => {
+  const addToast = useToast();
+  const [busy, setBusy] = React.useState(false);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+
+  const addFiles = async (list: FileList | null) => {
+    if (!list || list.length === 0) return;
+    const MAX_MB = 10;
+    const payload = [];
+    for (const f of Array.from(list)) {
+      const goodType = f.type.startsWith('image/') || f.type === 'application/pdf';
+      if (goodType && f.size <= MAX_MB * 1024 * 1024) {
+        try {
+          const bin = await f.arrayBuffer();
+          const b64 = btoa(String.fromCharCode(...new Uint8Array(bin)));
+          payload.push({ filename: f.name, mimetype: f.type, b64 });
+        } catch { /* пропускаем нечитаемый файл */ }
+      }
+    }
+    if (payload.length === 0) {
+      addToast('Только фото или PDF, до 10 МБ', 'error');
+      return;
+    }
+    setBusy(true);
+    try {
+      const res = await apiPost<{ success?: boolean; error?: string }>(
+        `/rost_max/api/homework/${assignmentId}/materials`, { files: payload });
+      if (res.error || !res.success) {
+        addToast(res.error || 'Не удалось прикрепить', 'error');
+      } else {
+        addToast('Прикреплено', 'success');
+      }
+    } catch {
+      addToast('Не удалось прикрепить', 'error');
+    }
+    setBusy(false);
+  };
+
+  return {
+    attachProps: {
+      loading: busy,
+      onClick: (e: React.MouseEvent) => {
+        e.stopPropagation();
+        fileInputRef.current?.click();
+      },
+    },
+    hiddenInput: (
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*,application/pdf"
+        multiple
+        hidden
+        onChange={e => { addFiles(e.target.files); e.target.value = ''; }}
+      />
+    ),
+  };
+};
+
 /** Экран правки задания (шторка-карточка в потоке страницы). */
 const EditHomeworkCard: React.FC<{
   h: TeacherHomeworkItem;
@@ -103,6 +166,7 @@ const EditHomeworkCard: React.FC<{
   const [dueDate, setDueDate] = React.useState((h.due || '').slice(0, 10));
   const [answerRequired, setAnswerRequired] = React.useState(h.answer_required);
   const [busy, setBusy] = React.useState(false);
+  const materials = useAttachFiles(h.id);
 
   const save = async () => {
     if (!task.trim()) {
@@ -140,20 +204,8 @@ const EditHomeworkCard: React.FC<{
   return (
     <VkCard mode="shadow" style={{ margin: '0 8px 8px', overflow: 'hidden' }}>
       <div style={{ padding: '12px 16px' }}>
-        <div style={{
-          display: 'flex', justifyContent: 'space-between',
-          alignItems: 'center', marginBottom: 8,
-        }}>
+        <div style={{ marginBottom: 8 }}>
           <Text weight="2">Редактирование</Text>
-          <span
-            style={{
-              color: 'var(--vkui--color_text_accent)', cursor: 'pointer',
-              fontSize: 13,
-            }}
-            onClick={onClose}
-          >
-            Отмена
-          </span>
         </div>
 
         {h.sheet_id == null && (
@@ -185,13 +237,43 @@ const EditHomeworkCard: React.FC<{
         }}>
           Текст задания
         </Caption>
-        <Textarea
-          value={task}
-          onChange={e => setTask(e.target.value)}
-          placeholder="Текст домашнего задания"
-          aria-label="Текст задания"
-          style={{ marginBottom: 8 }}
-        />
+        {/* Скрепка — ВНУТРИ поля справа, как в полях ДЗ у учителя и ответа
+            ученика. Здесь её не было: учитель правил текст, но прикрепить
+            фото мог только рядом, отдельным блоком. Тот же приём с
+            relative-контейнером: у Textarea отступ уходит на хост, поэтому
+            paddingRight задаём у самого <textarea> через slotProps.textArea
+            (слот называется textArea, не input — иначе tsc ругается). */}
+        <Box style={{ position: 'relative', marginBottom: 8 }}>
+          <Textarea
+            value={task}
+            onChange={e => setTask(e.target.value)}
+            placeholder="Текст домашнего задания"
+            aria-label="Текст задания"
+            slotProps={{ textArea: { style: { paddingRight: 40 } } }}
+          />
+          <Box
+            style={{
+              position: 'absolute', right: 0, top: 0, bottom: 0,
+              display: 'flex', alignItems: 'center',
+            }}
+          >
+            <Button
+              size="s"
+              mode="tertiary"
+              appearance="neutral"
+              aria-label="Прикрепить фото или файл"
+              style={{
+                height: 'var(--vkui--size_field_height--regular)',
+                width: 40, minWidth: 40, padding: 0,
+                borderRadius: 'var(--vkui--size_border_radius--regular)',
+              }}
+              {...materials.attachProps}
+            >
+              <Icon28AttachOutline width={20} height={20} />
+            </Button>
+          </Box>
+        </Box>
+        {materials.hiddenInput}
 
         <Caption style={{
           color: 'var(--vkui--color_text_secondary)', display: 'block',
@@ -214,12 +296,23 @@ const EditHomeworkCard: React.FC<{
           Требуется текстовый ответ
         </Checkbox>
 
-        <Button
-          size="l" stretched appearance="accent"
-          loading={busy} onClick={save} style={{ marginTop: 8 }}
-        >
-          Сохранить
-        </Button>
+        {/* Ряд кнопок: «Ок» и «Отмена» стоят вместе, а «Отмена» была
+            отдельной ссылкой в правом верхнем углу — отмена действия в
+            другом месте карточки читалась как второстепенный текст. */}
+        <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+          <Button
+            size="l" stretched appearance="accent"
+            loading={busy} onClick={save}
+          >
+            Ок
+          </Button>
+          <Button
+            size="l" mode="secondary" appearance="neutral"
+            disabled={busy} onClick={onClose}
+          >
+            Отмена
+          </Button>
+        </div>
       </div>
     </VkCard>
   );
@@ -376,17 +469,11 @@ const AssignmentDetail: React.FC<{
               </Caption>
             </div>
 
-            {meta.materials_count > 0 && (
-              <Caption style={{
-                color: 'var(--vkui--color_text_secondary)', display: 'flex',
-                alignItems: 'center', gap: 4, marginTop: 4,
-              }}>
-                <Icon28AttachOutline width={16} height={16} />
-                Материалов: {meta.materials_count}
-              </Caption>
-            )}
-
-            {/* Материалы: просмотр/добавление/удаление (общий редактор). */}
+            {/* Материалы задания. Раньше здесь стояли ДВЕ скрепки: строка
+                «Материалов: N» со значком и MaterialsEditor со своей кнопкой
+                «Прикрепить». Обе не нужны — превью и кнопка добавления уже
+                есть в MaterialsEditor, а счётчик рядом с ним только
+                дублировал то, что видно по миниатюрам. */}
             <MaterialsEditor assignmentId={meta.id} />
 
             {/* Кнопки: единый стиль (outline), равная ширина, текст по центру. */}
