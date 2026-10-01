@@ -587,7 +587,8 @@ class CreateChannelWizardCourse(models.TransientModel):
         'op.subject',
         'create_channel_wizard_course_ghost_subject_rel',
         'wizard_id', 'op_subject_id',
-        string='Ведётся, но канала не будет')
+        string='Ведётся, но канала не будет',
+        compute='_compute_ghost_subjects', store=True, readonly=False)
     ghost_subject_names = fields.Char(compute='_compute_ghost_subjects')
     has_ghost_subjects = fields.Boolean(
         compute='_compute_has_ghost_subjects', string='Есть предметы без канала')
@@ -607,6 +608,17 @@ class CreateChannelWizardCourse(models.TransientModel):
                 ghosts = sessions.mapped('subject_id') - line.subject_ids
             line.ghost_subject_ids = [fields.Command.set(ghosts.ids)]
             line.ghost_subject_names = ', '.join(ghosts.mapped('display_name'))
+
+    @api.model_create_multi
+    def create(self, vals_list):
+        # stored=True достаточно для строк, дошедших до БД, но строки,
+        # собранные в onchange мастера, ещё NewId — запись m2m по NewId
+        # отбрасывается, и колонка остаётся пустой. Пересчитываем после
+        # insert, когда записи настоящие.
+        lines = super().create(vals_list)
+        lines.invalidate_recordset(['ghost_subject_ids', 'ghost_subject_names'])
+        lines.modified(['batch_id', 'subject_ids'])
+        return lines
 
     @api.depends('student_ids', 'faculty_ids', 'subject_ids')
     def _compute_counts(self):
