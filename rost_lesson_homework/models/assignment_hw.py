@@ -131,6 +131,17 @@ class OpAssignment(models.Model):
         msg = self.hw_channel_message_id
         if not msg or not msg.exists():
             msg = sheet._hw_channel_find_legacy_message(self.hw_text())
+            # Пост уже привязан к другому заданию — не забираем его. Иначе
+            # при двух одинаковых текстах ДЗ в одном канале («Домашка» у
+            # учителя — самое частое) правка одного переписала бы пост
+            # другого. Тогда объявление считаем отсутствующим: ученик видит
+            # актуальное ДЗ в миниаппе, а учитель может обновить вручную.
+            if msg and msg.hw_assignment_ids and self not in msg.hw_assignment_ids:
+                _logger.info(
+                    'HW post %s already belongs to assignments %s, '
+                    'not linking it to %s',
+                    msg.id, msg.hw_assignment_ids.ids, self.id)
+                return self.env['mail.message']
             if not msg:
                 # Объявления не было — молча не создаём: ученик видит
                 # актуальное ДЗ в миниаппе. Кнопка «Обновить в канале»

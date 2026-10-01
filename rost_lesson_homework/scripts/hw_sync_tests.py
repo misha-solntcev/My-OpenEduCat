@@ -220,6 +220,81 @@ def hw_inverse_test_assignment_edit_syncs_back():
                'стало %r' % asg.hw_text()[:60])
 
 
+def hw_inverse_test_duplicate_text_guard():
+    """Два одинаковых ДЗ в одном канале не тянут один и тот же пост.
+
+    Реальный случай: учитель пишет «Домашка» (самое частое слово) в двух
+    уроках одного класса. Поиск объявления по тексту находит первый пост —
+    и без проверки правка второго задания переписала бы объявление первого.
+    """
+    sheets = env['op.attendance.sheet'].sudo().search([
+        ('state', 'in', ('start', 'confirm')),
+        ('homework_assignment_id', '=', False),
+        ('batch_id', '!=', False),
+    ], order='id desc', limit=2)
+    if len(sheets) < 2:
+        print('   НУЖНЫ 2 стенда с КАЖДЫМ СВОИМ каналом — пропуск')
+        return
+    sh1, sh2 = sheets[0], sheets[1]
+    ch1, ch2 = sh1._hw_channel(), sh2._hw_channel()
+    if not ch1 or not ch2:
+        print('   У одного из листов нет канала — пропуск')
+        return
+    if ch1.id == ch2.id:
+        print('   КАНАЛЫ ОДИНАКОВЫ (один предмет) — пропуск, нужен другой')
+        return
+    print('   каналы: %s / %s' % (ch1.name, ch2.name))
+
+    same = 'Домашка'
+    sh1.lesson_homework = same
+    sh2.lesson_homework = same
+    asg1, asg2 = sh1.homework_assignment_id, sh2.homework_assignment_id
+    if not (asg1 and asg2):
+        print('   задания не создались')
+        return
+    env.flush_all()
+
+    asg1.act_publish()
+    sh1._hw_channel_announce(asg1, 'created')
+    env.flush_all()
+    msg1 = asg1.hw_channel_message_id
+    check_true('первое объявление создано и привязано', bool(msg1),
+               'msg=%s' % (msg1.id if msg1 else '-'))
+
+    # Второе задание с тем же текстом: бэкфилл по тексту обязан найти пост
+    # первого — и обязан от него отказаться.
+    asg2.act_publish()
+    env.flush_all()
+    res = asg2.hw_update_channel_post(sh2)
+    check_true('второе задание НЕ привязалось к чужому посту',
+               not asg2.hw_channel_message_id,
+               'ref=%s' % asg2.hw_channel_message_id.id)
+    check_true('чужой пост не тронут', asg1.hw_channel_message_id.id == msg1.id,
+               'ref1=%s' % asg1.hw_channel_message_id.id)
+    n1 = env['mail.message'].sudo().search_count(
+        [('model', '=', 'discuss.channel'), ('res_id', '=', ch1.id)])
+    n2 = env['mail.message'].sudo().search_count(
+        [('model', '=', 'discuss.channel'), ('res_id', '=', ch2.id)])
+    check_true('в первом канале по-прежнему один пост', n1 == 1,
+               'сообщений=%d' % n1)
+
+    # А теперь объявить второе ДЗ честно — отдельным постом в его канале.
+    msg2 = asg2.hw_post_to_channel(sh2)
+    env.flush_all()
+    check_true('второе объявление создано отдельно', bool(msg2)
+               and asg2.hw_channel_message_id.id == msg2.id,
+               'msg=%s ref=%s' % (msg2.id if msg2 else '-',
+                                  asg2.hw_channel_message_id.id))
+    check_true('посты в разных каналах не смешались',
+               ch1.id != ch2.id and msg1.res_id == ch1.id
+               and msg2.res_id == ch2.id,
+               'msg1=%s msg2=%s' % (msg1.res_id, msg2.res_id if msg2 else '-'))
+    n1b = env['mail.message'].sudo().search_count(
+        [('model', '=', 'discuss.channel'), ('res_id', '=', ch1.id)])
+    check_true('первый канал не загрязнён', n1b == 1,
+               'сообщений=%d' % n1b)
+
+
 def scenario(fn, *args):
     """Выполняет сценарий в savepoint и всегда откатывает."""
     sp = env.cr.savepoint()
@@ -634,6 +709,7 @@ SCENARIOS = [
     hw_inverse_test_ref_not_search,
     hw_inverse_test_text_escaping,
     hw_inverse_test_assignment_edit_syncs_back,
+    hw_inverse_test_duplicate_text_guard,
     hw_sync_test_invariant,
 ]
 
