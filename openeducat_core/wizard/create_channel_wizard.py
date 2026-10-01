@@ -576,18 +576,36 @@ class CreateChannelWizardCourse(models.TransientModel):
     # subject_ids строки — канал по ним создан НЕ будет. Причина молчаливых
     # пропусков (География 9А/10А-2026): предмет добавили в курс ПОСЛЕ
     # одобрения регистраций, в зачисления он не попал, мастер не ругается.
-    has_ghost_subjects = fields.Boolean(compute='_compute_ghost_subjects')
+    # Призрачные предметы храним как Many2many, а не строку: в list
+    # длинная строка «История (элективный), Химия (элективный), …»
+    # растягивала колонку и выдавливала остальные. Бейджи переносятся
+    # сами, колонка остаётся узкой.
+    #   ghost_subject_ids — собственно many2many (для бейджей в list);
+    #   ghost_subject_names — плоская строка (для тултипа/логов);
+    #   has_ghost_subjects — флаг подсветки строки.
+    ghost_subject_ids = fields.Many2many(
+        'op.subject',
+        'create_channel_wizard_course_ghost_subject_rel',
+        'wizard_id', 'op_subject_id',
+        string='Ведётся, но канала не будет')
     ghost_subject_names = fields.Char(compute='_compute_ghost_subjects')
+    has_ghost_subjects = fields.Boolean(
+        compute='_compute_has_ghost_subjects', string='Есть предметы без канала')
+
+    @api.depends('ghost_subject_ids')
+    def _compute_has_ghost_subjects(self):
+        for line in self:
+            line.has_ghost_subjects = bool(line.ghost_subject_ids)
 
     @api.depends('batch_id', 'subject_ids')
     def _compute_ghost_subjects(self):
         for line in self:
             ghosts = self.env['op.subject']
             if line.batch_id:
-                sessions = self.env['op.session'].search(
+                sessions = self.env['op.session'].sudo().search(
                     [('batch_id', '=', line.batch_id.id)])
                 ghosts = sessions.mapped('subject_id') - line.subject_ids
-            line.has_ghost_subjects = bool(ghosts)
+            line.ghost_subject_ids = [fields.Command.set(ghosts.ids)]
             line.ghost_subject_names = ', '.join(ghosts.mapped('display_name'))
 
     @api.depends('student_ids', 'faculty_ids', 'subject_ids')
