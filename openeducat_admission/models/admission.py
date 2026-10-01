@@ -239,6 +239,11 @@ class OpAdmission(models.Model):
                 student_user = self.env['res.users'].sudo().create({
                     'name': student.name,
                     'login': student.email if student.email else student.application_number,  # noqa
+                    # email обязателен уже на create: приглашение
+                    # (action_reset_password ниже) шлётся на partner.email,
+                    # а он до сих пор пуст. Раньше письмо слалось ДО записи
+                    # details в партнёра -> «нет адреса электронной почты».
+                    'email': student.email or False,
                     'image_1920': self.image or False,
                     'is_student': True,
                     'company_id': self.company_id.id,
