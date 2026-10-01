@@ -24,6 +24,7 @@ import { apiGet, apiPost } from '@/shared/lib/api';
 import { useAppStore } from '@/shared/lib/store';
 import { useToast } from '@/shared/components/Toast';
 import { MaterialsEditor } from '@/shared/components/MaterialsEditor';
+import { AttachField, HW_MAX_HEIGHT } from '@/shared/components/AttachField';
 import { ReviewQueue } from '@/shared/components/ReviewQueue';
 import { BulkReviewSheet } from '@/shared/components/BulkReviewSheet';
 import { SubjectAvatar } from '@/shared/components/SubjectIcon';
@@ -135,7 +136,8 @@ const useAttachFiles = (assignmentId: number) => {
 
   return {
     attachProps: {
-      loading: busy,
+      /* IconButton не умеет loading — на время загрузки гасим скрепку. */
+      disabled: busy,
       onClick: (e: React.MouseEvent) => {
         e.stopPropagation();
         fileInputRef.current?.click();
@@ -237,44 +239,30 @@ const EditHomeworkCard: React.FC<{
         }}>
           Текст задания
         </Caption>
-        {/* Скрепка — ВНУТРИ поля справа, как в полях ДЗ у учителя и ответа
-            ученика. Здесь её не было: учитель правил текст, но прикрепить
-            фото мог только рядом, отдельным блоком. Тот же приём с
-            relative-контейнером: у Textarea отступ уходит на хост, поэтому
-            paddingRight задаём у самого <textarea> через slotProps.textArea
-            (слот называется textArea, не input — иначе tsc ругается). */}
-        <Box style={{ position: 'relative', marginBottom: 8 }}>
-          <Textarea
+        {/* Поле со скрепкой — общий AttachField, как в полях ДЗ учителя и
+            ответа ученика. Именно Input, а не Textarea: компонент один на
+            все три места, а отступ под скрепкой задаёт сам VKUI (слот
+            `after`). Раньше здесь был Textarea с ручным absolute — и
+            paddingRight приходилось указывать в слоте textArea, вручную, в
+            отличие от Input. Многострочность тут не нужна: длинный текст
+            задания всё равно уходит в поле ДЗ урока. */}
+        <div style={{ marginBottom: 8 }}>
+          <AttachField
             value={task}
-            onChange={e => setTask(e.target.value)}
+            onChange={setTask}
             placeholder="Текст домашнего задания"
-            aria-label="Текст задания"
-            slotProps={{ textArea: { style: { paddingRight: 40 } } }}
+            ariaLabel="Текст задания"
+            attachProps={materials.attachProps}
+            hiddenInput={materials.hiddenInput}
+            disabled={busy}
+            maxHeight={HW_MAX_HEIGHT}
           />
-          <Box
-            style={{
-              position: 'absolute', right: 0, top: 0, bottom: 0,
-              display: 'flex', alignItems: 'center',
-            }}
-          >
-            <Button
-              size="s"
-              mode="tertiary"
-              appearance="neutral"
-              aria-label="Прикрепить фото или файл"
-              style={{
-                height: 'var(--vkui--size_field_height--regular)',
-                width: 40, minWidth: 40, padding: 0,
-                borderRadius: 'var(--vkui--size_border_radius--regular)',
-              }}
-              {...materials.attachProps}
-            >
-              <Icon28AttachOutline width={20} height={20} />
-            </Button>
-          </Box>
-        </Box>
-        {materials.hiddenInput}
+        </div>
 
+        {/* Срок сдачи — подпись над полем, как «Тема урока» и «Текст задания»
+            выше. Пробовал в одну строку (подпись слева, поле справа) — но
+            подпись отдельной строкой стоит в этом списке везде, и
+            одинаковая структура полей важнее экономии одного ряда. */}
         <Caption style={{
           color: 'var(--vkui--color_text_secondary)', display: 'block',
           marginBottom: 4,
@@ -296,12 +284,16 @@ const EditHomeworkCard: React.FC<{
           Требуется текстовый ответ
         </Checkbox>
 
-        {/* Ряд кнопок: «Ок» и «Отмена» стоят вместе, а «Отмена» была
-            отдельной ссылкой в правом верхнем углу — отмена действия в
-            другом месте карточки читалась как второстепенный текст. */}
-        <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+        {/* Ряд кнопок: обе по центру и своей ширины, без stretched.
+            Растянутая «Ок» на всю карточку читалась как поле формы, а не
+            как действие — ровно то, чего договаривались избегать в действиях
+            карточек ДЗ. Отдельно стоящая в углу «Отмена» тем более
+            выпадала из логики: отмена действия — рядом с самим действием. */}
+        <div style={{
+          display: 'flex', gap: 8, marginTop: 8, justifyContent: 'center',
+        }}>
           <Button
-            size="l" stretched appearance="accent"
+            size="l" appearance="accent"
             loading={busy} onClick={save}
           >
             Ок

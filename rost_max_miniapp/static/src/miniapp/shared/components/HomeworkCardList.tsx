@@ -9,7 +9,8 @@ import React from 'react';
 import { Caption, Div, Input, Button, Card as VkCard, Text, Box, Flex } from '@vkontakte/vkui';
 import { Icon28AttachOutline, Icon28ClockOutline, Icon28DocumentOutline, Icon16Cancel } from '@vkontakte/icons';
 import { SubjectAvatar } from './SubjectIcon';
-import { MaterialsEditor } from './MaterialsEditor';
+import { MaterialsEditor } from '@/shared/components/MaterialsEditor';
+import { AttachField, HW_MAX_HEIGHT } from '@/shared/components/AttachField';
 import { fileToBase64 } from '@/shared/lib/api';
 import { gradeTone } from './JournalButton';
 import type { HomeworkItem } from '@/shared/lib/types';
@@ -369,46 +370,24 @@ export const HomeworkRowItem: React.FC<{
                   style={{ display: 'none' }}
                   onChange={e => { addFiles(e.target.files); e.target.value = ''; }}
                 />
-                {/* Скрепка — ВНУТРИ поля ответа, справа, ровно как в журнале
-                    учителя (TopicHomeworkCard). Отдельная кнопка «Прикрепить»
-                    под полем была дублем: слово «Прикрепить» не нужно, значок
-                    всё говорит, а поле оставалось на всю ширину карточки.
-                    В VKUI 8 у Input нет слота под иконку, поэтому кнопка
-                    absolute поверх контейнера, а отступ — у самого input. */}
-                <Box style={{ position: 'relative' }}>
-                  <Input
-                    value={answer}
-                    onChange={e => setAnswer(e.target.value)}
-                    placeholder={h.answer_required ? 'Ваш ответ' : 'Ответ или просто прикрепите фото'}
-                    aria-label="Ответ на задание"
-                    /* Отступ текста — у самого <input> (slotProps.input):
-                        style на Input уходит на хост, и текст лежал бы под
-                        скрепкой. */
-                    slotProps={{ input: { style: { paddingRight: 40 } } }}
-                  />
-                  <Box
-                    style={{
-                      position: 'absolute', right: 0, top: 0, bottom: 0,
-                      display: 'flex', alignItems: 'center',
-                    }}
-                  >
-                    <Button
-                      size="s"
-                      mode="tertiary"
-                      appearance="neutral"
-                      aria-label="Прикрепить фото или файл"
+                {/* Ответ со скрепкой: общий компонент AttachField, ровно
+                    как в журнале учителя. Отдельная кнопка «Прикрепить» под
+                    полем была дублем: слово «Прикрепить» не нужно, значок
+                    всё говорит, а поле оставалось на всю ширину карточки. */}
+                <AttachField
+                  value={answer}
+                  onChange={setAnswer}
+                  placeholder={h.answer_required ? 'Ваш ответ' : 'Ответ или просто прикрепите фото'}
+                  ariaLabel="Ответ на задание"
+                  attachProps={{
+                    onClick: (e: React.MouseEvent) => {
                       /* stopPropagation: карточка раскрывается по тапу. */
-                      onClick={e => { e.stopPropagation(); fileInputRef.current?.click(); }}
-                      style={{
-                        height: 'var(--vkui--size_field_height--regular)',
-                        width: 40, minWidth: 40, padding: 0,
-                        borderRadius: 'var(--vkui--size_border_radius--regular)',
-                      }}
-                    >
-                      <Icon28AttachOutline width={20} height={20} />
-                    </Button>
-                  </Box>
-                </Box>
+                      e.stopPropagation();
+                      fileInputRef.current?.click();
+                    },
+                    }}
+                    maxHeight={HW_MAX_HEIGHT}
+                    />
                 {/* Кнопка сдачи — по центру и своей ширины, не stretched:
                     растянутая на всю карточку она читалась как «поле формы»,
                     а действие здесь одно и очевидное. */}

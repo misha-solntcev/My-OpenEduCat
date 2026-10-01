@@ -7,7 +7,8 @@
 // Стили: VKUI токены + vkitokens (--vkui--*), никаких кастомных css-классов.
 import React from 'react';
 import { Box, Flex, Text, Caption, Input, Button, Checkbox, Counter } from '@vkontakte/vkui';
-import { Icon24ChevronDown, Icon24ChevronUp, Icon28AttachOutline } from '@vkontakte/icons';
+import { Icon24ChevronDown, Icon24ChevronUp } from '@vkontakte/icons';
+import { AttachField, HW_MAX_HEIGHT } from '@/shared/components/AttachField';
 import { MaterialsEditor } from '@/shared/components/MaterialsEditor';
 import { apiPost, fileToBase64 } from '@/shared/lib/api';
 import type { LessonInfo } from '@/shared/lib/types';
@@ -63,14 +64,17 @@ const useLessonMaterials = (
   };
 
   return {
-        attachProps: {
-        loading: busy,
-        onClick: (e: React.MouseEvent) => {
-          e.stopPropagation();
-          fileInputRef.current?.click();
-        },
-      } as React.ButtonHTMLAttributes<HTMLButtonElement> & { loading?: boolean },
-        onChanged,
+    /* Тип AttachProps — общий для скрепки: IconButton, у которого нет
+       loading, поэтому хук отдаёт onClick + disabled. */
+    attachProps: {
+      /* IconButton не умеет loading — на время загрузки гасим скрепку. */
+      disabled: busy,
+      onClick: (e: React.MouseEvent) => {
+        e.stopPropagation();
+        fileInputRef.current?.click();
+      },
+    },
+    onChanged,
         error,
         hiddenInput: (
       <input
@@ -310,56 +314,18 @@ export const TopicHomeworkCard: React.FC<TopicHomeworkCardProps> = ({
               )}
             </Flex>
             {showHwEditor ? (
-              /* Скрепка — ВНУТРИ поля, справа, как в мессенджерах (Telegram,
-                 WhatsApp): слово «Материалы» не нужно, значок всё говорит.
-                 В VKUI 8 у Input нет слота под иконку (slotProps только
-                 прокидывает пропы), поэтому поле и кнопку кладём в один
-                 контейнер: relative у контейнера, кнопка absolute поверх
-                 поля, а у самого input paddingRight — иначе текст ДЗ уезжал
-                 бы под скрепку. Размер кнопки совпадает с полем, иначе
-                 она «провисает» по краю рамки.
-                 onClick с stopPropagation — иначе тап по скрепке раскрыл бы
-                 карточку. Файл не обязателен: скрепка создаст черновик
-                 задания сама (POST /lesson/<id>/materials). */
-              <Box style={{ position: 'relative' }}>
-                <Input
-                  value={lesson.homework}
-                  onChange={e => onHomeworkChange(e.target.value)}
-                  placeholder="Например: §14, №412–418 или фото доски"
-                  aria-label="Домашнее задание"
-                  /* Отступ текста — именно у самого <input> (slotProps.input),
-                     а не у компонента: style на Input уходит на хост, и
-                     отступ там текст бы не сдвинул, текст лежал бы под
-                     скрепкой. */
-                  slotProps={hwAttachProps
-                    ? { input: { style: { paddingRight: 40 } } }
-                    : undefined}
-                />
-                {hwAttachProps && (
-                  <Box
-                    style={{
-                      position: 'absolute', right: 0, top: 0, bottom: 0,
-                      display: 'flex', alignItems: 'center',
-                    }}
-                  >
-                    <Button
-                      size="s"
-                      mode="tertiary"
-                      appearance="neutral"
-                      aria-label="Прикрепить фото или файл"
-                      onClick={e => e.stopPropagation()}
-                      style={{
-                        height: 'var(--vkui--size_field_height--regular)',
-                        width: 40, minWidth: 40, padding: 0,
-                        borderRadius: 'var(--vkui--size_border_radius--regular)',
-                      }}
-                      {...hwAttachProps}
-                    >
-                      <Icon28AttachOutline width={20} height={20} />
-                    </Button>
-                  </Box>
-                )}
-              </Box>
+              /* Поле ДЗ со скрепкой: общий компонент AttachField. Скрепка
+                 штатная, слотом `after` — VKUI сам сдвигает текст, поэтому
+                 relative/absolute и paddingRight больше не нужны. */
+              <AttachField
+                value={lesson.homework}
+                onChange={onHomeworkChange}
+                placeholder="Например: §14, №412–418 или фото доски"
+                ariaLabel="Домашнее задание"
+                attachProps={hwAttachProps ?? {}}
+                hiddenInput={hiddenInput}
+                maxHeight={HW_MAX_HEIGHT}
+              />
             ) : (
               /* Выданное ДЗ — только чтение. Случайная правка текста после
                  выдачи переписала бы пост в канале у всех учеников с
