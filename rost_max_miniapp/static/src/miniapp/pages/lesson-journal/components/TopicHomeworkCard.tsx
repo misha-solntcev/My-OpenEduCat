@@ -1,7 +1,9 @@
-// Прикрепление материалов ДЗ прямо из журнала урока. Кнопка видна ВСЕГДА,
-// пока учитель может редактировать урок: текст ДЗ не обязателен — фото
-// доски само создаёт задание (бэкенд: POST /lesson/<id>/materials).
-// Когда задание уже есть — работаем с ним напрямую через MaterialsEditor.
+// Карточка «Тема · ДЗ» в журнале урока. Три состояния ДЗ:
+//  1. черновик (state=draft) — можно писать, скрепка в поле, кнопка «Выдать»;
+//  2. выдано (state=publish) — только чтение + «Редактировать» и «Проверить N»;
+//  3. правка выданного — «Отмена» и «Сохранить».
+// Публикует учитель явно: автосинк создаёт задание в draft, ученики его не
+// видят, срок и пост в канал считаются в момент «Выдать».
 // Стили: VKUI токены + vkitokens (--vkui--*), никаких кастомных css-классов.
 import React from 'react';
 import { Box, Flex, Text, Caption, Input, Button, Checkbox, Counter } from '@vkontakte/vkui';
@@ -12,7 +14,7 @@ import type { LessonInfo } from '@/shared/lib/types';
 
 /**
  * Хук прикрепления материалов к ДЗ урока. Отдаёт пропы, которые надо
- * развести на кнопку-скрепку (она теперь живёт в поле ввода, а не отдельной
+ * развести на кнопку-скрепку (она живёт в поле ввода, а не отдельной
  * строкой). Саму кнопку этот компонент НЕ рисует — иначе в поле ввода
  * оказалось бы две скрепки.
  */
@@ -62,12 +64,12 @@ const useLessonMaterials = (
 
   return {
         attachProps: {
-          loading: busy,
-          onClick: (e: React.MouseEvent) => {
-            e.stopPropagation();
-            fileInputRef.current?.click();
-          },
-        } as React.ButtonHTMLAttributes<HTMLButtonElement> & { loading?: boolean },
+        loading: busy,
+        onClick: (e: React.MouseEvent) => {
+          e.stopPropagation();
+          fileInputRef.current?.click();
+        },
+      } as React.ButtonHTMLAttributes<HTMLButtonElement> & { loading?: boolean },
         onChanged,
         error,
         hiddenInput: (
@@ -84,6 +86,17 @@ const useLessonMaterials = (
   };
 };
 
+/** Дата ISO -> «29 сен» (или «29 сен 2026», если год другой). */
+const formatDue = (iso: string): string => {
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return '';
+  const months = ['янв', 'фев', 'мар', 'апр', 'мая', 'июн', 'июл', 'авг', 'сен', 'окт', 'ноя', 'дек'];
+  const base = `${d.getDate()} ${months[d.getMonth()]}`;
+  const now = new Date();
+  return d.getFullYear() === now.getFullYear() ? base : `${base} ${d.getFullYear()}`;
+};
+
 interface TopicHomeworkCardProps {
   lesson: LessonInfo;
   lessonId: number;
@@ -92,6 +105,13 @@ interface TopicHomeworkCardProps {
   onHomeworkChange: (homework: string) => void;
   onAnswerRequiredChange: (value: boolean) => void;
   onAssignmentCreated: (id: number) => void;
+  /** Сохранить несохранённые правки перед действием с ДЗ (выдать/отозвать).
+   *  Вызывается ДО запроса на сервер: без этого «Выдать» опубликовал бы
+   *  прежний серверный текст, а только что набранный остался бы в поле. */
+  onBeforeHwAction?: () => Promise<void> | void;
+  /** Перечитать журнал после выдачи/отзыва/удаления — вернёт новое
+   *  homework_state и срок с сервера. */
+  onReload?: () => void;
   /** Вход на экран «Заданий» с фильтром по этому уроку. Оценки за ДЗ в
    *  журнале не ставятся — они живут в задании, поэтому карточка ведёт туда.
    *  Счётчик — сколько заданий к проверке (0 тоже показываем явно). */
@@ -99,8 +119,9 @@ interface TopicHomeworkCardProps {
 }
 
 /**
- * Карточка «Тема · ДЗ» (вариант B, свёрнутая): превью одной строкой,
- * раскрытие по тапу. В развёрнутом виде — два поля ввода (canEdit) или текст.
+ * Карточка «Тема · ДЗ», свёрнутая: превью одной строкой, раскрытие по тапу.
+ * В раскрытом виде — тема и ДЗ полями ввода (черновик) либо текстом
+ * (выдано), плюс действия.
  */
 export const TopicHomeworkCard: React.FC<TopicHomeworkCardProps> = ({
   lesson,
@@ -110,42 +131,88 @@ export const TopicHomeworkCard: React.FC<TopicHomeworkCardProps> = ({
   onHomeworkChange,
   onAnswerRequiredChange,
   onAssignmentCreated,
+  onBeforeHwAction,
+  onReload,
   onCheckHomework,
 }) => {
   const [expanded, setExpanded] = React.useState(false);
-  // Скрепка в поле ввода ДЗ нужна ВСЕГДА, пока учитель может редактировать
-  // урок: и до создания задания (скрепка создаст его), и после (допишет
-  // файл в существующее). Раньше она пряталась при homework_assignment_id —
-  // ровно то, на что ты указал.
   const [materialsRev, setMaterialsRev] = React.useState(0);
+  const [publishing, setPublishing] = React.useState(false);
+  const [actionError, setActionError] = React.useState<string | null>(null);
+  // Правка выданного задания: явный режим, показывается по «Редактировать».
+  const [editing, setEditing] = React.useState(false);
   const { attachProps, hiddenInput, error: hwError } = useLessonMaterials(
     lessonId, onAssignmentCreated, () => setMaterialsRev(v => v + 1),
   );
-  const hwAttachProps = canEdit ? attachProps : null;
-  const toReview = lesson.hw_to_review ?? 0;
 
-  /* Проверка ДЗ: оценки за ДЗ в журнале не ставятся — они живут в задании,
-     поэтому отсюда один вход на готовый экран «Заданий», отфильтрованный
-     по этому уроку (предмет + класс). Показываем в обоих состояниях
-     карточки — свёрнутом и раскрытом, учителю не нужно ничего раскрывать.
-     Оформление как у всех кнопок миниаппа: ярко-синяя primary accent,
-     по ширине контента, не во весь экран, и прижата к ПРАВОМУ краю —
-     в одной строке с превью темы (шеврон раскрытия уходит перед ней).
-     Счётчик — ВНУТРИ кнопки, справа от слова: поэтому содержимое
-     обёрнуто в Flex. Без обёртки счётчик уезжает под текст —
-     vkuiCounter__host это display:flex, то есть блочный элемент, и
-     рядом с инлайновым текстом он роняет строку. Счётчик
-     mode="contrast" — белым по синему, иначе не читается.
-     Ноль показываем явно: «проверять нечего» — тоже ответ, без него
-     непонятно, кнопка сломана или работать не над чем. Число приезжает
-     в том же ответе /api/lesson/<id>/students (hw_to_review) и считает
-     ЗАДАНИЯ, а не работы. */
-  const checkButton = onCheckHomework ? (
+  const hwState = lesson.homework_state || '';
+  const isPublished = hwState === 'publish' || hwState === 'finish';
+  const isDraft = hwState === 'draft';
+  // Поле ввода показываем в черновике, когда задания ещё нет, и в режиме
+  // правки выданного. В выданном состоянии — только чтение.
+  const showHwEditor = canEdit && (!isPublished || editing);
+  const canCheck = Boolean(onCheckHomework) && isPublished;
+  const toReview = lesson.hw_to_review ?? 0;
+  const dueText = formatDue(lesson.homework_due || '');
+
+  const hwAttachProps = showHwEditor ? attachProps : null;
+
+  const runHwAction = async (path: string, okMessage?: string) => {
+    setPublishing(true);
+    setActionError(null);
+    try {
+      // Сначала сохраняем набранное: иначе «Выдать» опубликовало бы прежний
+      // серверный текст, а свежий остался бы только в поле.
+      if (onBeforeHwAction) await onBeforeHwAction();
+      const res = await apiPost<{ success?: boolean; error?: string }>(
+        `/rost_max/api/lesson/${lessonId}/hw/${path}`, {},
+      );
+      if (res.error || !res.success) {
+        setActionError(res.error || 'Не удалось выполнить действие');
+      } else {
+        setEditing(false);
+        if (okMessage) setActionError(null);
+        if (onReload) onReload();
+      }
+    } catch {
+      setActionError('Не удалось выполнить действие');
+    }
+    setPublishing(false);
+  };
+
+  /* «Выдать» — публикация черновика. Кнопка есть на каждом уроке (Миша:
+     «должна быть всегда»), но без текста и без фото нажимать нечего —
+     поэтому disabled, а не спрятана: место не прыгает, когда учитель
+     начинает вписывать ДЗ. Перед запросом onBeforeHwAction сохраняет
+     набранное — и заодно создаёт задание, если его ещё нет. */
+  const hasHwContent = Boolean(
+    (lesson.homework || '').trim() || lesson.homework_assignment_id);
+  const publishButton = !isPublished ? (
     <Button
       size="l"
       mode="primary"
       appearance="accent"
-      onClick={e => { e.stopPropagation(); onCheckHomework(); }}
+      disabled={!hasHwContent}
+      loading={publishing}
+      onClick={e => { e.stopPropagation(); runHwAction('publish'); }}
+    >
+      Выдать
+    </Button>
+  ) : null;
+
+  /* Проверка ДЗ: оценки за ДЗ в журнале не ставятся — они живут в задании,
+     поэтому отсюда один вход на готовый экран «Заданий», отфильтрованный по
+     этому уроку (предмет + класс). Показываем только у ВЫДАННОГО задания:
+     в черновике сдач быть не может, «Проверить 0» был бы шумом. Счётчик —
+     внутри кнопки, поэтому содержимое обёрнуто в Flex: vkuiCounter__host
+     это display:flex, и рядом с инлайновым текстом он роняет строку.
+     mode="contrast" — белым по синему, иначе не читается. */
+  const checkButton = canCheck ? (
+    <Button
+      size="l"
+      mode="primary"
+      appearance="accent"
+      onClick={e => { e.stopPropagation(); onCheckHomework!(); }}
     >
       <Flex align="center" gap={8}>
         <span>Проверить</span>
@@ -160,10 +227,9 @@ export const TopicHomeworkCard: React.FC<TopicHomeworkCardProps> = ({
     ? `ДЗ: ${lesson.homework}`
     : (lesson.homework_assignment_id ? 'ДЗ: фото/материалы' : 'ДЗ не задано');
 
-  // Пустая тема — пунктирная рамка без заливки (вариант 3 мокапа
-  // topic-card-variants.html), тень elevation3 — заметно плотнее карточек
-  // учеников (elevation2), чтобы зона выделялась; заполненная — белая
-  // карточка с той же elevation3 (независимо от заполненности).
+  // Пустая тема — пунктирная рамка без заливки, тень elevation3 — заметно
+  // плотнее карточек учеников (elevation2), чтобы зона выделялась;
+  // заполненная — белая карточка с той же elevation3.
   const cardStyle: React.CSSProperties = hasContent || expanded
     ? {
         backgroundColor: 'var(--vkui--color_background_content)',
@@ -186,10 +252,10 @@ export const TopicHomeworkCard: React.FC<TopicHomeworkCardProps> = ({
       style={cardStyle}
     >
       {!expanded ? (
-        /* Свёрнуто: превью темы и ДЗ, шеврон раскрытия и кнопка «Проверить»
-           в самом правом краю. Кнопка не растянута, поэтому текст превью
-           ужимается эллипсом, а не выталкивает её за экран (minWidth: 0
-           у колонки превью — иначе flex не даёт сжать текст). */
+        /* Свёрнуто: превью темы и ДЗ, шеврон раскрытия и кнопка у ПРАВОГО
+           края. Кнопка не растянута, поэтому текст превью ужимается эллипсом,
+           а не выталкивает её за экран (minWidth: 0 у колонки превью —
+           иначе flex не даёт сжать текст). */
         <Flex align="center" gap={10}>
           <Text weight="2" style={{ flexShrink: 0 }}>📘</Text>
           <Flex direction="column" style={{ flexGrow: 1, minWidth: 0 }}>
@@ -225,10 +291,25 @@ export const TopicHomeworkCard: React.FC<TopicHomeworkCardProps> = ({
           </Flex>
 
           <Flex direction="column" gap={4}>
-            <Caption level="1" weight="2" style={{ color: 'var(--vkui--color_text_secondary)' }}>
-              ДОМАШНЕЕ ЗАДАНИЕ
-            </Caption>
-            {canEdit ? (
+            <Flex align="center" justify="space-between">
+              <Caption level="1" weight="2" style={{ color: 'var(--vkui--color_text_secondary)' }}>
+                ДОМАШНЕЕ ЗАДАНИЕ
+              </Caption>
+              {/* Подпись состояния. Второй строкой ничего не пишем: учитель
+                  и так видит, что нажал не ту кнопку, а кнопка «Выдать»
+                  рядом уже всё объясняет. */}
+              {isDraft && (
+                <Caption level="1" weight="2" style={{ color: 'var(--vkui--color_text_accent_themed)' }}>
+                  Черновик
+                </Caption>
+              )}
+              {isPublished && (
+                <Caption level="1" weight="2" style={{ color: 'var(--vkui--color_text_positive)' }}>
+                  Выдано
+                </Caption>
+              )}
+            </Flex>
+            {showHwEditor ? (
               /* Скрепка — ВНУТРИ поля, справа, как в мессенджерах (Telegram,
                  WhatsApp): слово «Материалы» не нужно, значок всё говорит.
                  В VKUI 8 у Input нет слота под иконку (slotProps только
@@ -238,8 +319,8 @@ export const TopicHomeworkCard: React.FC<TopicHomeworkCardProps> = ({
                  бы под скрепку. Размер кнопки совпадает с полем, иначе
                  она «провисает» по краю рамки.
                  onClick с stopPropagation — иначе тап по скрепке раскрыл бы
-                 карточку. Файл не обязателен: скрепка создаст задание сама
-                 (POST /lesson/<id>/materials), даже если текст ДЗ пуст. */
+                 карточку. Файл не обязателен: скрепка создаст черновик
+                 задания сама (POST /lesson/<id>/materials). */
               <Box style={{ position: 'relative' }}>
                 <Input
                   value={lesson.homework}
@@ -280,16 +361,25 @@ export const TopicHomeworkCard: React.FC<TopicHomeworkCardProps> = ({
                 )}
               </Box>
             ) : (
+              /* Выданное ДЗ — только чтение. Случайная правка текста после
+                 выдачи переписала бы пост в канале у всех учеников с
+                 пометкой «(изменено)» — поэтому текст тут не полем. */
               <Text>{lesson.homework || '—'}</Text>
             )}
-            {canEdit && lesson.homework && !lesson.homework_assignment_id && (
-              <Caption level="1" style={{ color: 'var(--vkui--color_text_positive)' }}>
-                При сохранении будет создано задание со сроком на следующий урок
+            {showHwEditor && !isPublished && lesson.homework && !lesson.homework_assignment_id && (
+              <Caption level="1" style={{ color: 'var(--vkui--color_text_secondary)' }}>
+                При сохранении создастся черновик — ученики увидят задание после «Выдать»
+              </Caption>
+            )}
+            {/* Срок — считается при публикации, у черновика его нет. */}
+            {isPublished && dueText && (
+              <Caption level="1" style={{ color: 'var(--vkui--color_text_secondary)' }}>
+                Срок сдачи — {dueText}
               </Caption>
             )}
           </Flex>
 
-          {canEdit && lesson.homework && (
+          {showHwEditor && lesson.homework && (
             <Checkbox
               checked={lesson.homework_answer_required}
               onChange={e => onAnswerRequiredChange(e.target.checked)}
@@ -303,36 +393,71 @@ export const TopicHomeworkCard: React.FC<TopicHomeworkCardProps> = ({
           {/* Превью прикреплённого — сетка миниатюр, как в мессенджерах. Слова
               «Материалы» здесь нет: скрепка и так в поле ввода, а это
               результат. key с materialsRev — перечитывает список после
-              прикрепления через скрепку. */}
-          {canEdit && lesson.homework_assignment_id && (
+              прикрепления через скрепку. В выданном состоянии скрепки нет,
+              но превью и удаление (для учителя) остаются. */}
+          {lesson.homework_assignment_id && (showHwEditor || isPublished) && (
             <MaterialsEditor
               key={`${lesson.homework_assignment_id}:${materialsRev}`}
               assignmentId={lesson.homework_assignment_id}
               showAttachButton={false}
+              /* Удалили последний фото — задание снесено на сервере,
+                 перечитываем урок: вернётся пустой текст без задания. */
+              onAssignmentRemoved={onReload}
             />
           )}
-          {canEdit && hwError && (
+          {(showHwEditor && hwError) && (
             <Caption level="1" style={{ color: 'var(--vkui--color_text_negative)' }}>
               {hwError}
             </Caption>
           )}
+          {actionError && (
+            <Caption level="1" style={{ color: 'var(--vkui--color_text_negative)' }}>
+              {actionError}
+            </Caption>
+          )}
           {hiddenInput}
 
-          {/* В раскрытом виде кнопка тоже у правого края — тем же боком,
-              что и в свёрнутом, чтобы при раскрытии ничего не «прыгало». */}
-          {checkButton && (
-            <Flex justify="end">{checkButton}</Flex>
-          )}
+          {/* Действия. Раскрытие/сворачивание — шевроном в превью, отдельной
+              кнопки «Свернуть» нет: она дублировала шеврон и выглядела ещё
+              одним полем формы.
 
-          <Button
-            size="s"
-            mode="tertiary"
-            appearance="neutral"
-            before={<Icon24ChevronUp />}
-            onClick={() => setExpanded(false)}
+              Раскладка по режимам: пара «Редактировать» + «Проверить N» — по
+              центру рядом (Миша), это единственный режим с двумя кнопками
+              разного веса, и space-between раздвигал их по краям карточки.
+              Остальное — «Выдать» слева, «Отмена» рядом с ним: единственная
+              кнопка в ряду, центрировать её незачем. */}
+          <Flex
+            align="center"
+            gap={8}
+            justify={isPublished && !editing ? 'center' : 'start'}
           >
-            Свернуть
-          </Button>
+            {/* Черновик: единственное действие — «Выдать». */}
+            {publishButton}
+            {/* Правка выданного: «Отмена» возвращает в чтение. */}
+            {isPublished && editing && (
+              <Button
+                size="l"
+                mode="secondary"
+                appearance="neutral"
+                onClick={() => setEditing(false)}
+              >
+                Отмена
+              </Button>
+            )}
+            {/* Выданное в режиме чтения: «Редактировать» тише, «Проверить N»
+                главная. */}
+            {isPublished && !editing && (
+              <Button
+                size="l"
+                mode="secondary"
+                appearance="accent"
+                onClick={() => setEditing(true)}
+              >
+                Редактировать
+              </Button>
+            )}
+            {isPublished && !editing && checkButton}
+          </Flex>
         </Flex>
       )}
       {!hasContent && !expanded && (

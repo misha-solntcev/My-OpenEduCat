@@ -84,6 +84,13 @@ export interface LessonInfo {
   homework: string;
   /** id созданного op.assignment (задание по ДЗ). null — ДЗ не задано. */
   homework_assignment_id: number | null;
+  /** Состояние задания: 'draft' — черновик, учитель его ещё не выдал
+   *  (ученики не видят); 'publish'/'finish' — выдано, карточка только для
+   *  чтения; '' — задания нет. */
+  homework_state?: string;
+  /** Срок сдачи ISO-строка. Считается при публикации («Выдать»), поэтому
+   *  у черновика пусто. Показывается в режиме чтения. */
+  homework_due?: string;
   /** «Требуется ответ при сдаче» (с задания или sheet). */
   homework_answer_required: boolean;
   /** Сколько заданий к проверке у этого урока (счётчик у кнопки

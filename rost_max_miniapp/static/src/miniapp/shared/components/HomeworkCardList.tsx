@@ -6,14 +6,18 @@
  * Стили: VKUI токены, никаких кастомных css-классов.
  */
 import React from 'react';
-import { Caption, Div, Input, Button, Card as VkCard, Text } from '@vkontakte/vkui';
-import { Icon28AttachOutline, Icon28ClockOutline } from '@vkontakte/icons';
+import { Caption, Div, Input, Button, Card as VkCard, Text, Box, Flex } from '@vkontakte/vkui';
+import { Icon28AttachOutline, Icon28ClockOutline, Icon28DocumentOutline, Icon16Cancel } from '@vkontakte/icons';
 import { SubjectAvatar } from './SubjectIcon';
+import { MaterialsEditor } from './MaterialsEditor';
 import { fileToBase64 } from '@/shared/lib/api';
 import { gradeTone } from './JournalButton';
 import type { HomeworkItem } from '@/shared/lib/types';
 
 const MONTHS = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
+
+/** Фото или нет — тем же правилом, что принимает бэкенд (image/* + pdf). */
+const isImage = (f: File): boolean => (f.type || '').startsWith('image/');
 
 export const fmtDue = (due: string): string => {
   if (!due) return '';
@@ -87,6 +91,46 @@ const DueChip: React.FC<{ due: string; overdue?: boolean }> = ({ due, overdue })
   </span>
 );
 
+/** Превью ЛОКАЛЬНОГО файла ученика (ещё не отправлен на сервер), поэтому
+ *  через object URL. Фото рисуется миниатюрой, pdf — плиткой с иконкой, как
+ *  в MaterialsEditor. Ссылку живёт компонент, снимок — при размонтировании. */
+const LocalThumb: React.FC<{ file: File }> = ({ file }) => {
+  const isImg = isImage(file);
+  const [url, setUrl] = React.useState<string | null>(null);
+  React.useEffect(() => {
+    if (!isImg) return;
+    const u = URL.createObjectURL(file);
+    setUrl(u);
+    return () => URL.revokeObjectURL(u);
+  }, [file, isImg]);
+  if (!isImg) {
+    return (
+      <Flex
+        align="center"
+        gap={6}
+        style={{
+          padding: '6px 10px', borderRadius: 10, background: 'var(--vkui--color_background_secondary)',
+        }}
+      >
+        <Icon28DocumentOutline width={18} height={18} />
+        <Text style={{
+          fontSize: 13, maxWidth: 120, overflow: 'hidden',
+          textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+        }}>
+          {file.name}
+        </Text>
+      </Flex>
+    );
+  }
+  return (
+    <img
+      src={url || undefined}
+      alt={file.name}
+      style={{ width: 56, height: 56, objectFit: 'cover', display: 'block' }}
+    />
+  );
+};
+
 /** Одна карточка-задание с раскрытием и формой сдачи. */
 export const HomeworkRowItem: React.FC<{
   h: HomeworkItem;
@@ -98,7 +142,22 @@ export const HomeworkRowItem: React.FC<{
   const [answer, setAnswer] = React.useState('');
   const [files, setFiles] = React.useState<File[]>([]);
   const [busy, setBusy] = React.useState(false);
+  // Индекс выбранного для просмотра файла, null — просмотр закрыт.
+  const [viewerIndex, setViewerIndex] = React.useState<number | null>(null);
+  // Полноэкранный просмотр: URL создаётся ОДИН раз на файл и отзывается
+  // при смене/размонтировании — иначе object URL течёт на каждом рендере.
+  const [viewerUrl, setViewerUrl] = React.useState<string | null>(null);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
+
+  React.useEffect(() => {
+    if (viewerIndex === null || !files[viewerIndex]) {
+      setViewerUrl(null);
+      return;
+    }
+    const u = URL.createObjectURL(files[viewerIndex]);
+    setViewerUrl(u);
+    return () => URL.revokeObjectURL(u);
+  }, [viewerIndex, files]);
 
   const open = () => {
     setExpanded(prev => !prev);
@@ -286,28 +345,18 @@ export const HomeworkRowItem: React.FC<{
               </div>
             )}
 
+            {/* Материалы учителя — те же миниатюры с тап-просмотром, что в
+                его карточке (MaterialsEditor в режиме readOnly). Раньше были
+                ссылки-чипы с именем файла: имя не скажет ученику, что там на
+                фото, а открывать надо было в новой вкладке. */}
             {h.materials.length > 0 && (
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
-                {h.materials.map(a => (
-                  <a
-                    key={a.url}
-                    href={a.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    style={{
-                      display: 'inline-flex', alignItems: 'center', gap: 5,
-                      background: 'var(--vkui--color_background_secondary)',
-                      color: 'var(--vkui--color_text_secondary)',
-                      fontSize: 11, padding: '4px 8px', borderRadius: 8,
-                      textDecoration: 'none', whiteSpace: 'nowrap',
-                      maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis',
-                    }}
-                  >
-                    <Icon28AttachOutline width={14} height={14} style={{ color: 'var(--vkui--color_text_accent)', flexShrink: 0 }} />
-                    {a.name}
-                  </a>
-                ))}
-              </div>
+              <MaterialsEditor
+                key={`mats:${h.id}`}
+                assignmentId={h.id}
+                showAttachButton={false}
+                readOnly
+                initialMaterials={h.materials}
+              />
             )}
 
             {canSubmit && (h.state === 'none' || h.state === 'draft' || h.state === 'change' || h.state === 'reject') ? (
@@ -349,15 +398,59 @@ export const HomeworkRowItem: React.FC<{
                   </Button>
                 </div>
                 {files.length > 0 && (
-                  <div style={{ marginTop: 6 }}>
+                  /* Выбранные файлы — локальные (File), до отправки на сервере
+                     их нет, поэтому превью строим через object URL, а не
+                     берём из MaterialsEditor. Вид тот же, что у учителя:
+                     сетка миниатюр, тап — полноэкранный просмотр, крестик
+                     убирает файл. */
+                  <Flex style={{ flexWrap: 'wrap', gap: 8, marginTop: 6 }}>
                     {files.map((f, i) => (
-                      <Caption
+                      <Box
                         key={`${f.name}-${i}`}
-                        style={{ color: 'var(--vkui--color_text_secondary)', display: 'block' }}
+                        style={{ position: 'relative', borderRadius: 10, overflow: 'hidden' }}
                       >
-                        {f.name} ({Math.round(f.size / 1024)} КБ)
-                      </Caption>
+                        <Box
+                          onClick={() => {
+                            if (isImage(f)) setViewerIndex(i);
+                          }}
+                          style={{ display: 'block' }}
+                        >
+                          <LocalThumb file={f} />
+                        </Box>
+                        <button
+                          type="button"
+                          aria-label={`Убрать ${f.name}`}
+                          onClick={() => setFiles(prev => prev.filter((_, j) => j !== i))}
+                          style={{
+                            position: 'absolute', top: 2, right: 2,
+                            width: 22, height: 22, padding: 0,
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            borderRadius: '50%', border: 0, cursor: 'pointer',
+                            background: 'rgba(0,0,0,0.55)', color: '#fff',
+                          }}
+                        >
+                          <Icon16Cancel width={14} height={14} />
+                        </button>
+                      </Box>
                     ))}
+                  </Flex>
+                )}
+
+                {/* Полноэкранный просмотр выбранного фото, как у учителя. */}
+                {viewerIndex !== null && viewerUrl && isImage(files[viewerIndex]) && (
+                  <div
+                    onClick={() => setViewerIndex(null)}
+                    style={{
+                      position: 'fixed', inset: 0, zIndex: 1000,
+                      background: 'rgba(0,0,0,0.92)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    }}
+                  >
+                    <img
+                      src={viewerUrl}
+                      alt={files[viewerIndex].name}
+                      style={{ maxWidth: '100%', maxHeight: '82%', objectFit: 'contain' }}
+                    />
                   </div>
                 )}
               </div>

@@ -10,6 +10,13 @@ import logging
 
 _logger = logging.getLogger(__name__)
 
+# Текст-заглушка, когда ДЗ = только фото (учитель не писал описание).
+# Живёт в имени и описании задания, поэтому по нему же узнаём фоточное
+# ДЗ при удалении последнего материала. Такая же константа есть в
+# rost_max_miniapp/controllers/timetable.py: модули НЕ зависят друг от
+# друга, импортировать нельзя — при правке меняй оба места.
+PHOTO_HW_PLACEHOLDER = 'Домашнее задание (фото)'
+
 
 class OpAttendanceSheet(models.Model):
     _inherit = 'op.attendance.sheet'
@@ -60,7 +67,11 @@ class OpAttendanceSheet(models.Model):
                     body=body,
                     message_type='comment',
                     subtype_xmlid='mail.mt_comment',
-                    attachment_ids=[(4, a.id) for a in (attachments or [])],
+                    # Именно список id, а НЕ команды (4, id): mail_thread
+                    # проверяет тип и падает с ValueError «вложения должны
+                    # передаваться в виде списка ID». Этим молча гасилось
+                    # объявление в канал — ошибка ловилась только в логе.
+                    attachment_ids=[a.id for a in (attachments or [])],
                 )
         except Exception:
             _logger.warning(
@@ -105,6 +116,39 @@ class OpAttendanceSheet(models.Model):
             # Сообщения нет (создавали до включения дубля в канал) — молча
             # не восстанавливаем: ученик видит актуальное ДЗ в миниаппе.
 
+    def hw_drop_empty_photo_assignment(self):
+        """Удалён последний материал ФОТОЧНОГО ДЗ (текст = заглушка) —
+        задание стало пустым мусором. Сносим и задание, и заглушку на
+        уроке; выданное (publish/finish) ещё и отменяем с удалением поста
+        в канале.
+
+        Возвращает True, если задание было снесено. Собственный текст
+        учителя (не заглушка) НЕ трогаем: удаление фото не отменяет ДЗ,
+        у которого есть описание. Правило живёт в модели, а не в
+        контроллере, — иначе его нечем проверить без HTTP-сессии.
+        """
+        self.ensure_one()
+        asg = self.homework_assignment_id
+        if not asg or asg.material_ids:
+            return False
+        if (asg.name or '').strip() != PHOTO_HW_PLACEHOLDER:
+            return False
+        # description хранится как HTML («<p>…</p>»), сравнивать с голым
+        # текстом нельзя — снимаем разметку. Сверяем оба поля, чтобы не
+        # снести ДЗ, которому учитель потом написал описание.
+        desc = (html2plaintext(asg.description or '') or '').strip()
+        if desc != PHOTO_HW_PLACEHOLDER:
+            return False
+        # hw_skip_sync: синк отработает по пустому тексту сам, второй раз
+        # запускать незачем.
+        self.with_context(hw_skip_sync=True).write({'lesson_homework': False})
+        if asg.state in ('publish', 'finish'):
+            asg.act_cancel()
+            self._hw_channel_delete(asg)
+        self.homework_assignment_id = False
+        asg.unlink()
+        return True
+
     def _next_lesson_datetime(self):
         self.ensure_one()
         now = fields.Datetime.now()
@@ -131,13 +175,20 @@ class OpAttendanceSheet(models.Model):
             asg = sheet.homework_assignment_id
 
             if not hw:
-                # ДЗ убрали из журнала — отменяем задание. НО: если у задания
-                # есть материалы (фото доски как единственное содержимое ДЗ),
-                # задание оставляем — это полноценное ДЗ без текста.
+                # ДЗ убрали из журнала. Различаем два случая:
+                #  - задание было выдано (publish/finish) — это «отозвали»,
+                #    переводим в cancel и убираем пост из канала;
+                #  - задание было черновиком — публикации не было, отменять
+                #    нечего и нечего показывать в разборе данных, удаляем.
+                #    Иначе sync на следующем confirm воскресит его обратно.
                 if asg and asg.state not in ('cancel', 'finish') \
                         and not asg.material_ids:
-                    asg.act_cancel()
-                    sheet._hw_channel_delete(asg)
+                    if asg.state == 'draft':
+                        sheet.homework_assignment_id = False
+                        asg.unlink()
+                    else:
+                        asg.act_cancel()
+                        sheet._hw_channel_delete(asg)
                 continue
 
             if asg:
@@ -152,9 +203,15 @@ class OpAttendanceSheet(models.Model):
                 if text_changed:
                     asg.description = hw
                 if asg.state == 'cancel':
-                    # Задание заново ввели после очистки — перепубликуем
+                    # Задание заново ввели после отзыва. Возвращаем в
+                    # черновик, а не сразу в publish: текст учитель мог
+                    # начать править, выдача — явной кнопкой «Выдать».
                     asg.act_set_to_draft()
-                    asg.act_publish()
+                elif asg.state == 'draft':
+                    # Черновик ещё не выдан — поста в канале нет, правим
+                    # текст молча. Иначе каждое сохранение журнала плодило
+                    # бы «изменено» в канале у задания, которое никто не видел.
+                    pass
                 elif text_changed:
                     # Текст правлен — перезаписываем исходное сообщение в канале.
                     # Odoo сам пометит его «(изменено)». Новые посты не плодим.
@@ -165,7 +222,11 @@ class OpAttendanceSheet(models.Model):
                         find_needle=old_hw)
                 continue
 
-            # Создаём новое задание
+            # Создаём новое задание — в черновике.
+            # Публикует его учитель явной кнопкой «Выдать» (hw_publish),
+            # а не автосинк: пустой автосейв на confirm/done больше не
+            # роняет ученикам «Домашнее задание (фото)». Срок и пост в
+            # канал считаются в момент публикации, а не создания.
             atype = self.env['grading.assignment.type'].search([
                 ('name', 'ilike', 'Домашнее задание')], limit=1)
             if not atype:
@@ -180,19 +241,20 @@ class OpAttendanceSheet(models.Model):
                 'faculty_id': (sheet.faculty_id or sheet.session_id.faculty_id).id,
                 'assignment_type': atype.id,
                 'issued_date': fields.Datetime.now(),
+                # Срок у черновика не «окончательный», но submission_date
+                # NOT NULL в БД — без значения задание не создаётся.
+                # Поэтому ставим сразу, а в момент публикации («Выдать»)
+                # пересчитываем от момента выдачи.
                 'submission_date': sheet._next_lesson_datetime(),
                 'description': hw,
                 'batch_id': sheet.batch_id.id,
-                'state': 'publish',
+                'state': 'draft',
                 'allocation_ids': [
                     (6, 0, self.env['op.student'].search([
                         ('active_batch_id', '=', sheet.batch_id.id),
                         ('state', '=', 'studying'),
                     ]).ids)],
             })
-            sheet._hw_channel_announce(
-                sheet.homework_assignment_id, 'created',
-                attachments=sheet.homework_assignment_id.material_ids)
 
     def _hw_channel_find_message(self, needle_text):
         """Исходное сообщение о ДЗ в канале — тело содержит текст задания."""
@@ -239,6 +301,11 @@ class OpAttendanceSheet(models.Model):
 
     def write(self, vals):
         res = super().write(vals)
+        # hw_skip_sync: контроллер сам разберётся с заданием (удаление
+        # черновика). Без этой проверки sync на lesson_homework='' создал бы
+        # задание заново на том же write.
+        if self.env.context.get('hw_skip_sync'):
+            return res
         if 'lesson_homework' in vals or 'state' in vals:
             self._homework_sync()
         return res

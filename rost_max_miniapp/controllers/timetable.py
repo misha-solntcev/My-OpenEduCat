@@ -32,6 +32,12 @@ _logger = logging.getLogger(__name__)
 # формата Odoo, который ломался при разнице времени рендера и отправки).
 CSRF_SESSION_KEY = 'spa_csrf_token'
 
+# Текст-заглушка, когда ДЗ = только фото (учитель не писал описание).
+# Живёт в имени и описании задания. Такая же константа есть в
+# rost_lesson_homework/models/attendance_sheet.py: модули НЕ зависят друг
+# от друга, импортировать нельзя — при правке меняй оба места.
+PHOTO_HW_PLACEHOLDER = 'Домашнее задание (фото)'
+
 # Trusted device cookie name (совпадает с auth_totp)
 TRUSTED_DEVICE_COOKIE = 'td_id'
 TRUSTED_DEVICE_AGE = 90 * 86400  # 90 days
@@ -695,6 +701,19 @@ class RostMaxTimetableController(http.Controller):
             "homework_assignment_id": (
                 sheet.homework_assignment_id.id
                 if getattr(sheet, 'homework_assignment_id', False) else None),
+            # Состояние задания: draft (черновик, учитель ещё не выдал) или
+            # publish/finish. Фронт по нему решает: показывать ли поле ввода
+            # (черновик) или текст для чтения + кнопку «Редактировать»
+            # (выдано). getattr — rost_lesson_homework может не стоять.
+            "homework_state": (
+                sheet.homework_assignment_id.state
+                if getattr(sheet, 'homework_assignment_id', False) else ''),
+            # Срок сдачи — считается при публикации («Выдать»), а не при
+            # создании черновика. Фронт показывает его в режиме чтения.
+            "homework_due": (
+                fields.Datetime.to_string(sheet.homework_assignment_id.submission_date)
+                if getattr(sheet, 'homework_assignment_id', False)
+                and sheet.homework_assignment_id.submission_date else ''),
             # Флаг «Требуется ответ при сдаче» — с задания (источник
             # правды), фолбэк на sheet для несозданных заданий.
             "homework_answer_required": (
@@ -915,7 +934,7 @@ class RostMaxTimetableController(http.Controller):
             # с вложениями (фото доски = содержимое ДЗ).
             sheet.with_context(
                 hw_skip_channel_announce=True,
-            ).write({'lesson_homework': hw or 'Домашнее задание (фото)'})
+            ).write({'lesson_homework': hw or PHOTO_HW_PLACEHOLDER})
         asg = sheet.homework_assignment_id
         if not asg:
             # Не ожидаемо: синк на start/done/confirm создаёт задание.
@@ -923,19 +942,99 @@ class RostMaxTimetableController(http.Controller):
                 {"error": "Не удалось создать задание — обратитесь к администратору"},
                 status=409)
         asg._hw_store_attachments(clean_files, replace=False)
-        if created and hasattr(type(sheet), '_hw_channel_announce'):
-            # Задание создано контроллером (ДЗ = фото доски): синк уже запостил
-            # объявление, но без вложений — дополним сообщение материалами.
-            try:
-                sheet._hw_channel_announce(
-                    asg, 'created', attachments=asg.material_ids)
-            except Exception:
-                request.env.cr.savepoint()
+        # Объявление в канал не постим: задание в draft, учитель выдаёт
+        # его кнопкой «Выдать» (api_lesson_hw_publish) — там же считается
+        # срок и уходит пост с вложениями.
         return request.make_json_response({
             "success": True,
             "created": created,
             "assignment_id": asg.id,
+            "state": asg.state,
             "materials": asg._hw_material_payload(),
+        })
+
+    @http.route("/rost_max/api/lesson/<int:lesson_id>/hw/publish",
+                type="http", auth="public", methods=["POST"], cors="*",
+                csrf=False)
+    def api_lesson_hw_publish(self, lesson_id):
+        """API: «Выдать» — публикация черновика ДЗ из журнала урока.
+
+        Задание создаётся синком в state='draft' (ученики его не видят,
+        объявления в канале нет). Здесь оно выдаётся: считается срок
+        «до следующего урока», задание публикуется и один раз постится
+        в канал класса/предмета вместе с вложениями.
+
+        Права — те же, что у /save (_check_lesson_write_access).
+        Идемпотентно: повторный вызов на publish/finish — 200 без
+        действий (кнопка может оказаться нажатой дважды).
+        """
+        restore_session_if_needed()
+        csrf_err = _check_spa_csrf()
+        if csrf_err:
+            return csrf_err
+        if not request.session.uid:
+            return request.make_json_response(
+                {"error": "Unauthorized"}, status=401)
+
+        sheet = request.env['op.attendance.sheet'].sudo().browse(lesson_id)
+        if not sheet.exists():
+            return request.make_json_response(
+                {"error": "Урок не найден"}, status=404)
+
+        access_err = _check_lesson_write_access(sheet)
+        if access_err:
+            return access_err
+
+        asg = getattr(sheet, 'homework_assignment_id', False)
+        if not asg:
+            # Кнопка «Выдать» есть на каждом уроке, а задание создаёт
+            # сохранение текста. Случай «текст на сервере есть, задания
+            # нет» достижим (задание снесли, hw_skip_sync, правка из
+            # консоли) — создаём черновик здесь, чтобы кнопка работала
+            # всегда, а не требовала лишнего «Сохранить».
+            if not (getattr(sheet, 'lesson_homework', '') or '').strip():
+                return request.make_json_response(
+                    {"error": "Впишите домашнее задание или прикрепите фото"},
+                    status=409)
+            if sheet.state not in ('confirm', 'start', 'done'):
+                return request.make_json_response(
+                    {"error": "Урок ещё не утверждён"}, status=409)
+            sheet.write({'lesson_homework': sheet.lesson_homework})
+            asg = sheet.homework_assignment_id
+            if not asg:
+                return request.make_json_response(
+                    {"error": "Не удалось создать задание"}, status=409)
+        if asg.state in ('publish', 'finish'):
+            return request.make_json_response({
+                "success": True, "state": asg.state,
+                "submission_date": fields.Datetime.to_string(
+                    asg.submission_date) if asg.submission_date else None,
+            })
+        if asg.state == 'cancel':
+            return request.make_json_response(
+                {"error": "Задание отозвано — впишите текст заново"},
+                status=409)
+        if sheet.state not in ('confirm', 'start', 'done'):
+            return request.make_json_response(
+                {"error": "Урок ещё не утверждён"}, status=409)
+
+        # Срок пересчитываем ВСЕГДА, а не только при пустом: черновик мог
+        # провисеть несколько дней, и «следующий урок» от момента создания
+        # уже прошёл бы. issued_date при этом не трогаем — он остаётся
+        # датой создания черновика, иначе check_dates ругается на срок
+        # раньше даты выдачи у отложенных заданий.
+        asg.submission_date = sheet._next_lesson_datetime()
+        asg.act_publish()
+        # Объявление в канал — один раз, здесь, с вложениями (photo-only
+        # ДЗ без текста тоже сюда попадает).
+        if hasattr(type(sheet), '_hw_channel_announce'):
+            sheet._hw_channel_announce(
+                asg, 'created', attachments=asg.material_ids)
+        return request.make_json_response({
+            "success": True,
+            "state": asg.state,
+            "submission_date": fields.Datetime.to_string(
+                asg.submission_date) if asg.submission_date else None,
         })
 
     @http.route("/rost_max/api/journal/columns", type="http", auth="public", methods=["GET", "POST"], cors="*", csrf=False)
@@ -1666,9 +1765,28 @@ class RostMaxTimetableController(http.Controller):
         # Токены на удалённое вложение cascade-ятся (ondelete='cascade'),
         # так что «протухшие» ссылки на него перестают работать.
         att.sudo().unlink()
+
+        # Удалён ПОСЛЕДНИЙ материал фоточного ДЗ — задание становится
+        # пустым мусором, а на уроке остаётся заглушка «Домашнее задание
+        # (фото)», которую никто не писал. Правило сноса живёт в модели
+        # (hw_drop_empty_photo_assignment) — там его и проверяют. Собственный
+        # текст учителя не трогаем: удаление фото не отменяет ДЗ с описанием.
+        empty_assignment = False
+        if not asg.material_ids:
+            sheet = request.env['op.attendance.sheet'].sudo().search([
+                ('homework_assignment_id', '=', asg.id)], limit=1)
+            if sheet and hasattr(
+                    type(sheet), 'hw_drop_empty_photo_assignment'):
+                empty_assignment = sheet.hw_drop_empty_photo_assignment()
+            elif not sheet:
+                # Задание без журнала (создано вне урока) — просто сносим.
+                empty_assignment = True
+                asg.unlink()
+
         return request.make_json_response({
             "success": True,
-            "materials": asg._hw_material_payload(),
+            "materials": asg._hw_material_payload() if asg.exists() else [],
+            "assignment_removed": empty_assignment,
         })
 
     @http.route("/rost_max/api/homework/<int:assignment_id>/submissions",

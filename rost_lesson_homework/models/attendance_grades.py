@@ -63,10 +63,21 @@ class OpAttendanceLineHw(models.Model):
         Приём без сдачи (устно/в тетради): создаём sub.line сразу
         с итоговым состоянием state='accept' — как /review_student
         в миниаппе. Задания на уроке нет — писать некуда.
+
+        ВАЖНО: сдача создаётся ТОЛЬКО при положительной оценке. Обнуление
+        (ui_value пустой) у ученика без сдачи не должно ничего создавать:
+        контроллер /save шлёт hw_grade_* = null для каждой строки журнала
+        (фронт шлёт полный буфер), и без этой проверки СОХРАНЕНИЕ ЖУРНАЛА
+        создавало «принятую» сдачу каждому ученику. Задание после этого
+        уезжало во вкладке учителя в «Проверено», хотя никто его не
+        принимал (реальный случай, test4, задание 230, 2026-10-01).
         """
         self.ensure_one()
         asg = self.attendance_id.homework_assignment_id
         if not asg:
+            # Обнуление на уроке без задания — не ошибка, а сброс поля.
+            if not ui_value:
+                return
             raise ValidationError(_(
                 "Оценка за ДЗ: у урока нет задания — сначала заполните домашнее задание."))
         val = float(ui_value) if ui_value else 0.0
@@ -74,6 +85,9 @@ class OpAttendanceLineHw(models.Model):
             raise ValidationError(_("Оценка должна быть от 2 до 5!"))
         sub = self.hw_sub_line_id
         if not sub:
+            if not val:
+                # Сдачи нет и оценки нет — создавать нечего.
+                return
             self.env['op.assignment.sub.line'].create({
                 'assignment_id': asg.id,
                 'student_id': self.student_id.id,

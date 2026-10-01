@@ -154,6 +154,10 @@ export const LessonJournalPage: React.FC<LessonJournalPageProps> = ({ id, lesson
                 onHomeworkChange={setHomework}
                 onAnswerRequiredChange={setAnswerRequired}
                 onAssignmentCreated={setAssignmentId}
+                /* «Выдать» сначала сохраняет набранное (saveAll), потом уже
+                   публикует: иначе опубликовался бы прежний серверный текст. */
+                onBeforeHwAction={saveAll}
+                onReload={loadStudents}
                 onCheckHomework={canEdit ? openHomework : undefined}
               />
             </Box>

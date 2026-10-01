@@ -54,7 +54,18 @@ export const MaterialsEditor: React.FC<{
    *  урока выключаем: скрепка живёт внутри поля ввода ДЗ, вторая была бы
    *  дублем (и раньше выглядела как отдельная строка «Материалы»). */
   showAttachButton?: boolean;
-}> = ({ assignmentId, showAttachButton = true }) => {
+  /** Задание снесено целиком (удалили последний файл фоточного ДЗ) — пора
+   *  перечитать урок, иначе в карточке останутся прежние текст и превью. */
+  onAssignmentRemoved?: () => void;
+  /** Режим просмотра (карточка ДЗ у ученика/родителя): те же миниатюры и
+   *  тап-просмотр, но без крестиков, кнопки и запроса в API. */
+  readOnly?: boolean;
+  /** Готовые вложения (уже пришли в ленте) — не ходим в /materials. */
+  initialMaterials?: HomeworkAttachment[];
+}> = ({
+  assignmentId, showAttachButton = true, onAssignmentRemoved,
+  readOnly = false, initialMaterials,
+}) => {
   const addToast = useToast();
   const [materials, setMaterials] = React.useState<HomeworkAttachment[] | null>(null);
   const [busy, setBusy] = React.useState(false);
@@ -63,6 +74,11 @@ export const MaterialsEditor: React.FC<{
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   const load = React.useCallback(async () => {
+    // Готовые вложения передали с лентой — запрос не нужен.
+    if (initialMaterials) {
+      setMaterials(initialMaterials);
+      return;
+    }
     try {
       const res = await apiGet<{ materials?: HomeworkAttachment[]; error?: string }>(
         `/rost_max/api/homework/${assignmentId}/materials`);
@@ -75,7 +91,7 @@ export const MaterialsEditor: React.FC<{
       setMaterials([]);
       addToast('Не удалось загрузить материалы', 'error');
     }
-  }, [assignmentId, addToast]);
+  }, [assignmentId, addToast, initialMaterials]);
 
   React.useEffect(() => { load(); }, [load]);
 
@@ -138,6 +154,9 @@ export const MaterialsEditor: React.FC<{
     try {
       const res = await apiPost<{
         success?: boolean; materials?: HomeworkAttachment[]; error?: string;
+        // Задание снесено целиком (последний файл фоточного ДЗ) — вызывающий
+        // обязан перечитать урок, иначе превью и текст останутся прежними.
+        assignment_removed?: boolean;
       }>(`/rost_max/api/homework/${assignmentId}/materials/delete`, {
         attachment_id: a.id,
       });
@@ -147,6 +166,9 @@ export const MaterialsEditor: React.FC<{
         setMaterials(res.materials || []);
         // Просмотр открыт на удалённом файле — закрываем.
         setViewer(null);
+        if (res.assignment_removed && onAssignmentRemoved) {
+          onAssignmentRemoved();
+        }
       }
     } catch {
       addToast('Не удалось удалить файл', 'error');
@@ -195,23 +217,27 @@ export const MaterialsEditor: React.FC<{
               >
                 <Thumb url={absUrl(a.url)} alt={a.name} />
                 {/* Крестик поверх миниатюры — как в мессенджерах. Тап по
-                    крестику не открывает просмотр: stopPropagation. */}
-                <button
-                  type="button"
-                  aria-label={`Удалить ${a.name}`}
-                  onClick={e => { e.stopPropagation(); removeFile(a); }}
-                  style={{
-                    position: 'absolute', top: 2, right: 2,
-                    width: 22, height: 22, padding: 0,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    borderRadius: '50%',
-                    border: 0, cursor: 'pointer',
-                    background: 'rgba(0,0,0,0.55)',
-                    color: '#fff',
-                  }}
-                >
-                  <Icon16Cancel width={14} height={14} />
-                </button>
+                    крестику не открывает просмотр: stopPropagation.
+                    У ученика вложения только для просмотра — крестика
+                    нет, это чужой учительский файл. */}
+                {!readOnly && (
+                  <button
+                    type="button"
+                    aria-label={`Удалить ${a.name}`}
+                    onClick={e => { e.stopPropagation(); removeFile(a); }}
+                    style={{
+                      position: 'absolute', top: 2, right: 2,
+                      width: 22, height: 22, padding: 0,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      borderRadius: '50%',
+                      border: 0, cursor: 'pointer',
+                      background: 'rgba(0,0,0,0.55)',
+                      color: '#fff',
+                    }}
+                  >
+                    <Icon16Cancel width={14} height={14} />
+                  </button>
+                )}
               </Box>
             );
           })}
@@ -243,20 +269,22 @@ export const MaterialsEditor: React.FC<{
             >
               {a.name}
             </Text>
-            <button
-              type="button"
-              aria-label={`Удалить ${a.name}`}
-              onClick={e => { e.stopPropagation(); removeFile(a); }}
-              style={{
-                width: 24, height: 24, padding: 0, flexShrink: 0,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                borderRadius: '50%', border: 0, cursor: 'pointer',
-                background: 'transparent',
-                color: 'var(--vkui--color_icon_secondary)',
-              }}
-            >
-              <Icon16Cancel width={16} height={16} />
-            </button>
+            {!readOnly && (
+              <button
+                type="button"
+                aria-label={`Удалить ${a.name}`}
+                onClick={e => { e.stopPropagation(); removeFile(a); }}
+                style={{
+                  width: 24, height: 24, padding: 0, flexShrink: 0,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  borderRadius: '50%', border: 0, cursor: 'pointer',
+                  background: 'transparent',
+                  color: 'var(--vkui--color_icon_secondary)',
+                }}
+              >
+                <Icon16Cancel width={16} height={16} />
+              </button>
+            )}
           </Flex>
         </Box>
       ))}
