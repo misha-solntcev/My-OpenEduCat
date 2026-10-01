@@ -10,6 +10,7 @@ from odoo.http import request
 from odoo import fields, tools
 import logging
 from odoo.exceptions import AccessDenied
+from markupsafe import Markup
 from .session_middleware import restore_session_if_needed
 
 # Школа работает в Europe/Moscow (UTC+3): тайминги уроков и «сейчас»
@@ -2207,11 +2208,22 @@ class RostMaxTimetableController(http.Controller):
     def api_homework_edit(self, assignment_id, **kw):
         """API: правка задания учителем из вкладки «Задания».
 
-        Текст ДЗ пишется через журнал (sheet.lesson_homework) — синк
-        rost_lesson_homework обновит задание И перезапишет пост в канале
-        класса; прямой write на op.assignment канал бы не тронул.
-        Срок и answer_required — прямая запись на задание (синк их при
-        редактировании текста не трогает)."""
+        Есть задания из журнала урока и задания, созданные на ПК
+        (родной модуль OpenEduCat) — у них нет листа. Раньше правка текста
+        работала ТОЛЬКО через журнал (sheet.lesson_homework), потому что синк
+        заодно перезаписывает пост в канале. Из-за этого задание без
+        журнала было невозможно поправить из миниаппа.
+
+        Теперь: если лист есть — пишем в него (синк обновит задание и
+        пост в канале, как раньше); если листа нет — пишем прямо в
+        grading_assignment.name и op.assignment.description. Пост в канале
+        в этом случае не трогаем: задание из ПК обычно и не постилось, а
+        искать пост по тексту в теле сообщения — хрупко.
+
+        Тема урока осталась только через журнал: lesson_topic — это поле
+        листа, у задания без урока темы просто нет.
+        Срок и answer_required — прямая запись на задание в обоих случаях.
+        """
         restore_session_if_needed()
         csrf_err = _check_spa_csrf()
         if csrf_err:
@@ -2245,15 +2257,18 @@ class RostMaxTimetableController(http.Controller):
         # Сначала валидация всего запроса: ответ 400/409 не откатывает write.
         sheet_vals = {}
         assignment_vals = {}
+        # Лист ищем ОДИН раз на весь запрос — и тема, и текст относятся к
+        # журналу урока.
+        sheet = request.env['op.attendance.sheet'].sudo().search(
+            [('homework_assignment_id', '=', assignment_id)], limit=1)
+
         # --- Тема урока: только через журнал ----------------------------
         if 'topic' in body:
             topic = (body.get('topic') or '').strip()
-            sheet = request.env['op.attendance.sheet'].sudo().search([
-                ('homework_assignment_id', '=', assignment_id)], limit=1)
             if not sheet:
                 return request.make_json_response(
                     {"error": "Задание создано вне журнала урока — "
-                              "тема правится только в ПК-форме журнала"},
+                              "тема есть только у урока, правится в ПК-форме"},
                     status=409)
             if sheet.state not in ('confirm', 'start', 'done'):
                 return request.make_json_response(
@@ -2261,25 +2276,33 @@ class RostMaxTimetableController(http.Controller):
                     status=409)
             sheet_vals['lesson_topic'] = topic
 
-        # --- Текст: только через журнал (синк + канал) -----------------
+        # --- Текст: через журнал, а если его нет — прямо в задание -----
         if 'task' in body:
             task = (body.get('task') or '').strip()
             if not task:
                 return request.make_json_response(
                     {"error": "Текст задания не может быть пустым"},
                     status=400)
-            sheet = request.env['op.attendance.sheet'].sudo().search([
-                ('homework_assignment_id', '=', assignment_id)], limit=1)
-            if not sheet:
-                return request.make_json_response(
-                    {"error": "Задание создано вне журнала урока — "
-                              "текст правится только в ПК-форме задания"},
-                    status=409)
-            if sheet.state not in ('confirm', 'start', 'done'):
-                return request.make_json_response(
-                    {"error": "Журнал урока не активен — правка недоступна"},
-                    status=409)
-            sheet_vals['lesson_homework'] = task
+            if sheet:
+                # Задание из журнала — пишем в лист, дальше сработает синк:
+                # он обновит задание и перезапишет пост в канале класса.
+                if sheet.state not in ('confirm', 'start', 'done'):
+                    return request.make_json_response(
+                        {"error": "Журнал урока не активен — правка недоступна"},
+                        status=409)
+                sheet_vals['lesson_homework'] = task
+            else:
+                # Задание создано на ПК (родной модуль OpenEduCat), журнала
+                # урока нет — пишем прямо в задание. grading_assignment.name
+                # — заголовок (чистый текст), op.assignment.description — то,
+                # что видит ученик. description рендерится как HTML и в ПК-
+                # форме, и в канале, поэтому экранируем текст: иначе задание
+                # «Прочитать "Садко" & выучить» разъехалось бы на битые теги,
+                # а «стр. 5-10» и вовсе потерялось бы. Миниап читает
+                # description через html2plaintext, поэтому там кавычки,
+                # амперсанды и угловые скобки выглядят как обычный текст.
+                asg.grading_assignment_id.name = task
+                assignment_vals['description'] = Markup('<p>%s</p>') % task
 
         # --- Срок ------------------------------------------------------
         if 'due' in body:

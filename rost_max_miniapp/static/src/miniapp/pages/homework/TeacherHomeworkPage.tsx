@@ -178,7 +178,11 @@ const EditHomeworkCard: React.FC<{
     setBusy(true);
     try {
       const payload: Record<string, unknown> = { task: task.trim() };
-      if (topic.trim() !== (h.topic || '')) {
+      /* Тему шлём ТОЛЬКО у задания из журнала урока. У задания с ПК поля
+         lesson_topic нет, и сервер вернул бы 409 на весь запрос — то есть
+         из-за темы не сохранилось бы даже изменённое задание. Поле темы у
+         такого задания и на форме скрыто. */
+      if (h.sheet_id != null && topic.trim() !== (h.topic || '')) {
         payload.topic = topic.trim();
       }
       if (dueDate !== (h.due || '').slice(0, 10)) {
@@ -210,28 +214,29 @@ const EditHomeworkCard: React.FC<{
           <Text weight="2">Редактирование</Text>
         </div>
 
-        {h.sheet_id == null && (
-          <Caption style={{
-            color: 'var(--vkui--color_text_secondary)', display: 'block',
-            marginBottom: 8,
-          }}>
-            Задание создано вне журнала — текст правится только в ПК-форме.
-          </Caption>
+        {/* Задание без журнала урока (создано на ПК, родной модуль
+            OpenEduCat): текст, срок, ответ и материалы правятся прямо в
+            задании — сервер их принимает. Прячем только ТЕМУ УРОКА: у
+            задания нет урока, значит нет и поля lesson_topic. Раньше здесь
+            стояла заглушка «текст правится только в ПК-форме», которая
+            закрывала форму целиком, хотя править было что. */}
+        {h.sheet_id != null && (
+          <>
+            <Caption style={{
+              color: 'var(--vkui--color_text_secondary)', display: 'block',
+              marginBottom: 4,
+            }}>
+              Тема урока
+            </Caption>
+            <Input
+              value={topic}
+              onChange={e => setTopic(e.target.value)}
+              placeholder="Тема урока"
+              aria-label="Тема урока"
+              style={{ marginBottom: 8 }}
+            />
+          </>
         )}
-
-        <Caption style={{
-          color: 'var(--vkui--color_text_secondary)', display: 'block',
-          marginBottom: 4,
-        }}>
-          Тема урока
-        </Caption>
-        <Input
-          value={topic}
-          onChange={e => setTopic(e.target.value)}
-          placeholder="Тема урока"
-          aria-label="Тема урока"
-          style={{ marginBottom: 8 }}
-        />
 
         <Caption style={{
           color: 'var(--vkui--color_text_secondary)', display: 'block',
