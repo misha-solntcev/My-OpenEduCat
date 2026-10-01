@@ -224,6 +224,22 @@ class OpAdmission(models.Model):
         for record in self:
             record.state = 'confirm'
 
+    def _default_student_subjects(self, student):
+        """Базовый набор предметов для нового зачисления.
+
+        Берём предметы курса, которому соответствует батч поступающего.
+        Именно батч, а не course_id заявки: они могут не совпадать
+        (заявка оформлена на курс, ученик идёт в конкретный класс).
+        Профильные предметы в курс не входят и добавляются вручную.
+
+        Если предметы не нашлись (курс пустой) — пусто: лучше завуч
+        заполнит, чем ученику припишутся чужие предметы.
+        """
+        batch = student.batch_id or self.env['op.batch'].sudo().search(
+            [('name', '=like', (student.course_id.name or '') + '%')], limit=1)
+        course = batch.course_id or student.course_id
+        return course.subject_ids or self.env['op.subject']
+
     def get_student_vals(self):
         enable_create_student_user = self.env['ir.config_parameter'].get_param(
             'openeducat_admission.enable_create_student_user')
@@ -303,6 +319,16 @@ class OpAdmission(models.Model):
                     'fees_start_date': student.fees_start_date,
                     'product_id': student.register_id.product_id.id,
                     'state': 'running',
+                    # Базовый набор предметов курса — по умолчанию.
+                    # Без него зачисление остаётся с пустыми
+                    # subject_ids: ученик не попадает ни в один предметный
+                    # канал Discuss (мастер и автосинхронизация берут
+                    # предметы из зачисления), не видит журналы по
+                    # предметам и не получает ДЗ. Профильные предметы
+                    # (Алгебра/Геометрия (профиль)) в курс НЕ входят —
+                    # их завуч доназначает вручную.
+                    'subject_ids': [(6, 0, self._default_student_subjects(
+                        student).ids)],
                 }]],
                 'user_id': student_user.id if student_user else False,
                 'partner_id': student_user.partner_id.id if student_user else False,
