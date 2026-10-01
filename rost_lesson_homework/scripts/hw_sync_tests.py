@@ -69,6 +69,157 @@ def hw_message(sheet, needle):
     return sheet._hw_channel_find_message(needle)
 
 
+def hw_msg_by_ref(sheet, asg):
+    """Пост о ДЗ по ссылке из задания — новый адресный способ."""
+    return asg.hw_channel_message_id
+
+
+# ------------------------------------------------------------------ НОВОЕ
+# Проверки инверсии: задание — источник правды, пост адресуется ссылкой,
+# а не ищется по тексту внутри тела сообщения.
+
+
+def hw_inverse_test_ref_not_search():
+    """Пост хранится ссылкой в задании, а не ищется по тексту.
+
+    Ключевое отличие переделки: раньше сообщение о ДЗ находилось поиском
+    ilike по тексту в теле сообщения (отсюда дубли у Ермаковой 10.09).
+    Теперь в задании лежит hw_channel_message_id — адрес конкретного
+    сообщения.
+    """
+    sheet = _fresh_lesson()
+    if not sheet:
+        print('   НЕТ СТЕНДА')
+        return
+    ch = channel_for(sheet)
+    if not ch:
+        print('   У ЛИСТА НЕТ КАНАЛА — сценарий неприменим')
+        return
+    sheet.lesson_homework = 'ТЕСТ-ССЫЛКА: первая редакция'
+    asg = sheet.homework_assignment_id
+    if not asg:
+        print('   задание не создалось')
+        return
+
+    check_true('до выдачи ссылки нет',
+               not asg.hw_channel_message_id,
+               'ref=%s' % asg.hw_channel_message_id.id)
+
+    sheet._hw_channel_announce(asg, 'created')
+    env.flush_all()
+    ref = asg.hw_channel_message_id
+    check_true('после выдачи ссылка сохранена', bool(ref),
+               'ref=%s' % (ref.id if ref else '-'))
+    check_true('ссылка ведёт на сообщение в нужном канале',
+               bool(ref) and ref.model == 'discuss.channel'
+               and ref.res_id == ch.id,
+               'model=%s res_id=%s' % (ref.model if ref else '-',
+                                       ref.res_id if ref else '-'))
+
+    # Смена текста НЕ должна находить пост по тексту: адрес известен.
+    sheet.lesson_homework = 'ТЕСТ-ССЫЛКА: вторая редакция'
+    env.flush_all()
+    ref2 = asg.hw_channel_message_id
+    check_true('после правки ссылка та же (пост не пересоздан)',
+               ref2 and ref.id == ref2.id,
+               'был %s стал %s' % (ref.id, ref2.id if ref2 else '-'))
+    n = env['mail.message'].sudo().search_count(
+        [('model', '=', 'discuss.channel'), ('res_id', '=', ch.id)])
+    check_true('в канале ровно один пост', n == 1, 'сообщений=%d' % n)
+
+    # Отзыв чистит ссылку. Задание при этом может быть удалено целиком
+    # (черновик) — читать поле у удалённой записи нельзя, только exists.
+    asg_id = asg.id
+    sheet.lesson_homework = False
+    env.flush_all()
+    asg_now = env['op.assignment'].sudo().browse(asg_id)
+    if asg_now.exists():
+        check_true('после отзыва ссылка снята',
+                   not asg_now.hw_channel_message_id,
+                   'ref=%s' % asg_now.hw_channel_message_id.id)
+    else:
+        check_true('после отзыва задание снято (черновик), ссылка moot', True,
+                   'asg=%s удалён' % asg_id)
+    n_final = env['mail.message'].sudo().search_count(
+        [('model', '=', 'discuss.channel'), ('res_id', '=', ch.id)])
+    check_true('пост удалён, канал чист', n_final == 0,
+               'сообщений=%d' % n_final)
+
+
+def hw_inverse_test_text_escaping():
+    """Текст ДЗ со спецсимволами переживает запись в HTML-поле.
+
+    '&' и '<стр. 5-10>' — исторические грабли: без экранирования ломалась
+    разметка, а попытка вылечить striptags() съедала куски текста.
+    """
+    sheet = _fresh_lesson()
+    if not sheet:
+        print('   НЕТ СТЕНДА')
+        return
+    tricky = 'Прочитать "Садко" & выучить <стр. 5-10>, п. 13'
+    sheet.lesson_homework = tricky
+    asg = sheet.homework_assignment_id
+    if not asg:
+        print('   задание не создалось')
+        return
+    env.flush_all()
+
+    check_true('текст дошёл до задания целиком', tricky in asg.hw_text(),
+               'получено: %r' % asg.hw_text())
+    check_true('заголовок без разметки', asg.name.strip() == tricky,
+               'name=%r' % asg.name)
+    check_true('описание экранировано (нет сырых <>)',
+               '&amp;' in asg.description or '&lt;' in asg.description
+               or '<' not in (asg.description or '').replace('<p>', '')
+               .replace('<br/>', ''),
+               'description=%r' % (asg.description or '')[:120])
+    check('текст листа совпал', sheet_text(sheet), tricky)
+
+    # Многострочный текст должен сохранить переводы строк.
+    multi = 'Первая строка\nВторая строка\nТретья строка'
+    sheet.lesson_homework = multi
+    env.flush_all()
+    check_true('переводы строк сохранены',
+               asg.hw_text().count('\n') == 2,
+               'получено %r' % asg.hw_text())
+
+    # hw_set_text без изменения текста не должен ничего переписывать.
+    check_true('повторная запись того же текста — без изменений',
+               asg.hw_set_text(multi) is False)
+
+
+def hw_inverse_test_assignment_edit_syncs_back():
+    """Правка задания напрямую (как в ПК-форме) видна в листе журнала.
+
+    Ключевая цель инверсии: задание — источник правды. Если учитель поправил
+    задание не из журнала, синк не должен затереть правку листом.
+    """
+    sheet = _fresh_lesson()
+    if not sheet:
+        print('   НЕТ СТЕНДА')
+        return
+    sheet.lesson_homework = 'ТЕСТ-СИНХРОНИЗАЦИЯ: из журнала'
+    asg = sheet.homework_assignment_id
+    if not asg:
+        print('   задание не создалось')
+        return
+    env.flush_all()
+
+    # Правка задания напрямую — то, что делает ПК-форма OpenEduCat.
+    asg.hw_set_text('ТЕСТ-СИНХРОНИЗАЦИЯ: поправлено в задании')
+    env.flush_all()
+    check('текст в задании изменён', asg.hw_text(),
+          'ТЕСТ-СИНХРОНИЗАЦИЯ: поправлено в задании')
+
+    # Следующий автосейв журнала (смена состояния) не должен затереть
+    # правку задания листом — иначе ПК-правка исчезла бы бесшумно.
+    sheet.write({'state': sheet.state})
+    env.flush_all()
+    check_true('правка задания пережила автосейв журнала',
+               asg.hw_text() == 'ТЕСТ-СИНХРОНИЗАЦИЯ: поправлено в задании',
+               'стало %r' % asg.hw_text()[:60])
+
+
 def scenario(fn, *args):
     """Выполняет сценарий в savepoint и всегда откатывает."""
     sp = env.cr.savepoint()
@@ -480,6 +631,9 @@ SCENARIOS = [
     hw_sync_test_cancel,
     hw_sync_test_empty_draft,
     hw_sync_test_attach,
+    hw_inverse_test_ref_not_search,
+    hw_inverse_test_text_escaping,
+    hw_inverse_test_assignment_edit_syncs_back,
     hw_sync_test_invariant,
 ]
 

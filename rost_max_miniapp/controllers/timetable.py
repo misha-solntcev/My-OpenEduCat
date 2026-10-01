@@ -2257,6 +2257,10 @@ class RostMaxTimetableController(http.Controller):
         # Сначала валидация всего запроса: ответ 400/409 не откатывает write.
         sheet_vals = {}
         assignment_vals = {}
+        # Менялся ли текст ДЗ в этом запросе. По нему обновляем объявление
+        # в канале: переписывать пост ради правки срока или флага ответа
+        # смысла нет.
+        text_changed = False
         # Лист ищем ОДИН раз на весь запрос — и тема, и текст относятся к
         # журналу урока.
         sheet = request.env['op.attendance.sheet'].sudo().search(
@@ -2291,18 +2295,21 @@ class RostMaxTimetableController(http.Controller):
                         {"error": "Журнал урока не активен — правка недоступна"},
                         status=409)
                 sheet_vals['lesson_homework'] = task
+                text_changed = True
             else:
                 # Задание создано на ПК (родной модуль OpenEduCat), журнала
-                # урока нет — пишем прямо в задание. grading_assignment.name
-                # — заголовок (чистый текст), op.assignment.description — то,
-                # что видит ученик. description рендерится как HTML и в ПК-
-                # форме, и в канале, поэтому экранируем текст: иначе задание
-                # «Прочитать "Садко" & выучить» разъехалось бы на битые теги,
-                # а «стр. 5-10» и вовсе потерялось бы. Миниап читает
-                # description через html2plaintext, поэтому там кавычки,
-                # амперсанды и угловые скобки выглядят как обычный текст.
-                asg.grading_assignment_id.name = task
-                assignment_vals['description'] = Markup('<p>%s</p>') % task
+                # урока нет — пишем прямо в задание. Запись идёт через
+                # hw_set_text(): это единственная точка записи текста ДЗ,
+                # она сама экранирует текст под HTML-поле description.
+                # Раньше здесь был свой код с Markup, который со временем
+                # разошёлся бы с методом модели (уже разошёлся: striptags
+                # съедал куски вида «<стр. 5-10>»).
+                if hasattr(asg, 'hw_set_text'):
+                    text_changed = asg.hw_set_text(task)
+                else:
+                    # rost_lesson_homework не установлен — пишем как есть.
+                    asg.grading_assignment_id.name = task
+                    assignment_vals['description'] = Markup('<p>%s</p>') % task
 
         # --- Срок ------------------------------------------------------
         if 'due' in body:
@@ -2328,6 +2335,14 @@ class RostMaxTimetableController(http.Controller):
         # Все проверки завершены; ошибки ORM откатят транзакцию запроса.
         if assignment_vals:
             asg.write(assignment_vals)
+        if text_changed and asg.state in ('publish', 'finish') and sheet:
+            # Задание выдано — учитель поправил текст в карточке ДЗ.
+            # Объявление в канале теперь обновляется по ссылке из задания
+            # (hw_channel_message_id), а не ищется заново по тексту.
+            # Раньше здесь ничего не было: пост оставался со старым
+            # текстом, и это расходилось с тем, что видит ученик в миниаппе.
+            if hasattr(asg, 'hw_update_channel_post'):
+                asg.hw_update_channel_post(sheet)
         if sheet_vals:
             sheet.write(sheet_vals)
 

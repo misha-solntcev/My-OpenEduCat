@@ -18,6 +18,11 @@ _logger = logging.getLogger(__name__)
 PHOTO_HW_PLACEHOLDER = 'Домашнее задание (фото)'
 
 
+def sheet_text(sheet):
+    """Текст ДЗ в листе журнала — как черновик ввода, без разметки."""
+    return (sheet.lesson_homework or '').strip()
+
+
 class OpAttendanceSheet(models.Model):
     _inherit = 'op.attendance.sheet'
 
@@ -55,66 +60,54 @@ class OpAttendanceSheet(models.Model):
                 return ch
         return Channel.browse(())
 
-    def _hw_channel_post(self, asg, body, attachments=None):
-        """Пост в канал от текущего юзера. Безопасно: любая ошибка — только warning."""
-        self.ensure_one()
-        channel = self._hw_channel()
-        if not channel:
-            return
-        try:
-            with self.env.cr.savepoint():
-                channel.with_context(mail_create_nosubscribe=True).message_post(
-                    body=body,
-                    message_type='comment',
-                    subtype_xmlid='mail.mt_comment',
-                    # Именно список id, а НЕ команды (4, id): mail_thread
-                    # проверяет тип и падает с ValueError «вложения должны
-                    # передаваться в виде списка ID». Этим молча гасилось
-                    # объявление в канал — ошибка ловилась только в логе.
-                    attachment_ids=[a.id for a in (attachments or [])],
-                )
-        except Exception:
-            _logger.warning(
-                'Failed to post HW announcement to channel %s',
-                channel.id,
-                exc_info=True,
-            )
+    def _hw_channel_announce(self, asg, event, attachments=None,
+                             find_needle=None):
+        """Объявление о ДЗ в канале.
 
-    def _hw_channel_announce(self, asg, event, attachments=None, find_needle=None):
+        Тонкая обёртка над методами задания (models/assignment_hw.py):
+        текст берётся из задания, а сообщение адресуется по ссылке
+        hw_channel_message_id, а не ищется по тексту.
+
+        find_needle оставлен параметром только для совместимости вызовов и
+        НЕ используется: поиск по тексту в теле сообщения и был причиной
+        дублей объявлений. Если ссылка есть — пишем по ней.
+        """
         if self.env.context.get('hw_skip_channel_announce'):
             return
         self.ensure_one()
-        deadline = asg.submission_date
-        body = Markup(
-            '<b>Новое домашнее задание</b> (%(subject)s)<br/>%(hw)s<br/>'
-            'Срок сдачи: %(deadline)s'
-        ) % {
-            'subject': self.subject_id.name,
-            'hw': asg.name,
-            'deadline': deadline.strftime('%d.%m.%Y %H:%M') if deadline else '—',
-        }
+        if not hasattr(asg, 'hw_post_to_channel'):
+            return
         if event == 'created':
-            self._hw_channel_post(asg, body, attachments=attachments)
-        else:  # 'edited' — перезаписать исходное сообщение (Odoo сам пометит
-            # «(изменено)»), а не плодить новые посты. Ищем по find_needle
-            # (старый текст ДЗ): в теле сообщения текст ещё старый.
-            msg = self._hw_channel_find_message(find_needle or asg.name)
-            if msg:
-                try:
-                    with self.env.cr.savepoint():
-                        msg.write({
-                            'body': body,
-                            'attachment_ids': [(6, 0, [
-                                a.id for a in (attachments or [])])],
-                        })
-                except Exception:
-                    _logger.warning(
-                        'Failed to update HW message %s in channel',
-                        msg.id,
-                        exc_info=True,
-                    )
-            # Сообщения нет (создавали до включения дубля в канал) — молча
-            # не восстанавливаем: ученик видит актуальное ДЗ в миниаппе.
+            return asg.hw_post_to_channel(self)
+        # 'edited' — перезаписать исходное сообщение (Odoo сам пометит
+        # «(изменено)»), а не плодить новые посты.
+        return asg.hw_update_channel_post(self)
+
+    def _hw_channel_find_legacy_message(self, needle_text):
+        """Объявление о ДЗ, созданное ДО переделки — поиск по тексту.
+
+        Работает только для старых сообщений, у которых ещё нет ссылки
+        hw_channel_message_id. Найденное сразу сохраняется в задании, и
+        дальше поиск по тексту не повторяется.
+        """
+        self.ensure_one()
+        channel = self._hw_channel()
+        if not channel:
+            return self.env['mail.message'].browse(())
+        needle = (html2plaintext(needle_text or '') or '').strip()[:100]
+        if not needle:
+            return self.env['mail.message'].browse(())
+        msg = self.env['mail.message'].sudo().search([
+            ('model', '=', 'discuss.channel'),
+            ('res_id', '=', channel.id),
+            ('body', 'ilike', needle),
+            ('message_type', '=', 'comment'),
+        ], order='id asc', limit=1)
+        return msg
+
+    # Историческое имя. Оставлено, потому что на него ссылаются тесты и
+    # он читает понятнее в местах, где ищут именно «сообщение о ДЗ».
+    _hw_channel_find_message = _hw_channel_find_legacy_message
 
     def hw_drop_empty_photo_assignment(self):
         """Удалён последний материал ФОТОЧНОГО ДЗ (текст = заглушка) —
@@ -144,7 +137,7 @@ class OpAttendanceSheet(models.Model):
         self.with_context(hw_skip_sync=True).write({'lesson_homework': False})
         if asg.state in ('publish', 'finish'):
             asg.act_cancel()
-            self._hw_channel_delete(asg)
+            asg.hw_drop_channel_post(self)
         self.homework_assignment_id = False
         asg.unlink()
         return True
@@ -185,23 +178,39 @@ class OpAttendanceSheet(models.Model):
                         and not asg.material_ids:
                     if asg.state == 'draft':
                         sheet.homework_assignment_id = False
+                        # Объявление могло уже быть создано (например,
+                        # учитель залил фото и нажал «Выдать», потом вернул
+                        # задание в черновик). Без этой строки пост остался
+                        # бы в канале навсегда — снос задания не отменяет
+                        # уже сказанное ученикам.
+                        asg.hw_drop_channel_post(sheet)
                         asg.unlink()
                     else:
                         asg.act_cancel()
-                        sheet._hw_channel_delete(asg)
+                        asg.hw_drop_channel_post(sheet)
                 continue
 
             if asg:
-                # Обновляем текст существующего задания. Сравнение нормализованное:
-                # lesson_homework (Char) и description (Text) расходятся хвостовыми
-                # переводами строки -> иначе каждое сохранение журнала постит
-                # «изменён» в канал (пачки дублей у Ермаковой 10.09).
-                old_hw = (asg.description or '').strip()
-                text_changed = old_hw != hw
-                if (asg.grading_assignment_id.name or '').strip() != hw:
-                    asg.grading_assignment_id.name = hw
-                if text_changed:
-                    asg.description = hw
+                # Инверсия хранилища. Источник правды — задание.
+                #
+                # Что означает текущий write листа:
+                #   hw_hw_pulled=False — учитель ПРАВИТ текст в журнале,
+                #     его воля побеждает, пишем в задание;
+                #   hw_hw_pulled=True — текст в листе не трогали, это
+                #     автосейв по смене состояния урока. Тогда источник
+                #     правды — задание, и лист подтягивает его текст
+                #     (учитель мог поправить ДЗ из ПК-формы OpenEduCat
+                #     или из карточки ДЗ в миниаппе — тирать это листом
+                #     было бы тихой потерей правки).
+                pulled = self.env.context.get('hw_hw_pulled')
+                if pulled:
+                    # Лист НЕ диктует текст. Обновляем его из задания.
+                    asg_text = asg.hw_text()
+                    if sheet_text(sheet) != asg_text:
+                        sheet.with_context(hw_skip_sync=True).write(
+                            {'lesson_homework': asg_text or False})
+                    continue
+                text_changed = asg.hw_set_text(hw)
                 if asg.state == 'cancel':
                     # Задание заново ввели после отзыва. Возвращаем в
                     # черновик, а не сразу в publish: текст учитель мог
@@ -213,13 +222,9 @@ class OpAttendanceSheet(models.Model):
                     # бы «изменено» в канале у задания, которое никто не видел.
                     pass
                 elif text_changed:
-                    # Текст правлен — перезаписываем исходное сообщение в канале.
-                    # Odoo сам пометит его «(изменено)». Новые посты не плодим.
-                    # Ищем по СТАРОМУ тексту: в теле сообщения он ещё старый.
-                    sheet._hw_channel_announce(
-                        asg, 'edited',
-                        attachments=asg.material_ids,
-                        find_needle=old_hw)
+                    # Текст правлен — перезаписываем исходное сообщение в
+                    # канале по ссылке из задания (адресно, не по тексту).
+                    sheet._hw_channel_announce(asg, 'edited')
                 continue
 
             # Создаём новое задание — в черновике.
@@ -233,7 +238,7 @@ class OpAttendanceSheet(models.Model):
                 raise UserError(
                     'Не найден тип задания «Домашнее задание». '
                     'Создайте его в модуле Задания.')
-            sheet.homework_assignment_id = self.env['op.assignment'].create({
+            asg = self.env['op.assignment'].create({
                 'name': hw,
                 'answer_required': sheet.homework_answer_required,
                 'course_id': sheet.course_id.id,
@@ -246,7 +251,10 @@ class OpAttendanceSheet(models.Model):
                 # Поэтому ставим сразу, а в момент публикации («Выдать»)
                 # пересчитываем от момента выдачи.
                 'submission_date': sheet._next_lesson_datetime(),
-                'description': hw,
+                # description — HTML-поле и required: заполняем сразу
+                # экранированным текстом, иначе создание упадёт на '&'.
+                'description': (Markup('<p>%s</p>')
+                                % hw.replace('\n', Markup('<br/>'))),
                 'batch_id': sheet.batch_id.id,
                 'state': 'draft',
                 'allocation_ids': [
@@ -255,49 +263,10 @@ class OpAttendanceSheet(models.Model):
                         ('state', '=', 'studying'),
                     ]).ids)],
             })
-
-    def _hw_channel_find_message(self, needle_text):
-        """Исходное сообщение о ДЗ в канале — тело содержит текст задания."""
-        self.ensure_one()
-        channel = self._hw_channel()
-        if not channel:
-            return self.env['mail.message'].browse(())
-        needle = (html2plaintext(needle_text or '') or '').strip()[:100]
-        if not needle:
-            return self.env['mail.message'].browse(())
-        msg = self.env['mail.message'].sudo().search([
-            ('model', '=', 'discuss.channel'),
-            ('res_id', '=', channel.id),
-            ('body', 'ilike', needle),
-            ('message_type', '=', 'comment'),
-        ], order='id asc', limit=1)
-        return msg
-
-    def _hw_channel_delete(self, asg):
-        """ДЗ очистили — удалить сообщение в канале (отменённое ДЗ не постим)."""
-        self.ensure_one()
-        channel = self._hw_channel()
-        if not channel:
-            return
-        needle = (html2plaintext(asg.name or '') or '').strip()[:100]
-        if not needle:
-            return
-        msg = self.env['mail.message'].sudo().search([
-            ('model', '=', 'discuss.channel'),
-            ('res_id', '=', channel.id),
-            ('body', 'ilike', needle),
-            ('message_type', '=', 'comment'),
-        ], order='id desc', limit=1)
-        if msg:
-            try:
-                with self.env.cr.savepoint():
-                    self.env['mail.message'].sudo().browse(msg.id).unlink()
-            except Exception:
-                _logger.warning(
-                    'Failed to delete HW message %s from channel',
-                    msg.id,
-                    exc_info=True,
-                )
+            # Создание — тоже через единственную точку записи текста:
+            # name и description обязаны совпадать с первого момента.
+            asg.hw_set_text(hw)
+            sheet.homework_assignment_id = asg
 
     def write(self, vals):
         res = super().write(vals)
@@ -306,8 +275,16 @@ class OpAttendanceSheet(models.Model):
         # задание заново на том же write.
         if self.env.context.get('hw_skip_sync'):
             return res
-        if 'lesson_homework' in vals or 'state' in vals:
+        if 'lesson_homework' in vals:
+            # Учитель правит текст ДЗ в журнале — это его воля, задание
+            # получает этот текст (hw_hw_pulled не выставлен).
             self._homework_sync()
+        elif 'state' in vals:
+            # Автосейв по смене состояния урока (начали/завершили).
+            # Текст в листе тут ни при чём: ДЗ могли поправить в ПК-форме
+            # или в карточке ДЗ миниаппа. Поэтому источник правды —
+            # задание, и лист подтягивает его текст, а не наоборот.
+            self.with_context(hw_hw_pulled=True)._homework_sync()
         return res
 
     @api.model_create_multi
