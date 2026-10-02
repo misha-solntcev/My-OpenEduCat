@@ -17,6 +17,9 @@
         # После attendance_hw_grades — модель op.assignment.sub.line уже
         # расширена в models/answer_required.py к моменту загрузки view.
         'views/assignment_sub_line_hw_view.xml',
+        # ПК-форма задания: выдача с объявлением и счётом срока, русские
+        # кнопки состояния, вкладка «Сдачи», счётчик «К проверке».
+        'views/assignment_hw_view.xml',
     ],
     'installable': True,
     'auto_install': False,

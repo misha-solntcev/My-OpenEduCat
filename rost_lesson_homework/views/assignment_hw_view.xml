@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!--
+      ПК-форма задания: приводим к поведению миниаппа (вариант П1).
+
+      Главное, что было сломано: кнопка Publish звала act_publish из
+      openeducat_assignment, который меняет ТОЛЬКО state. Учитель, нажавший
+      Publish в браузере, получал задание без объявления в канале и без
+      пересчитанного срока — ученики ничего не видели. Теперь там наша
+      action_hw_publish: срок посчитан по урокам, объявление создано один раз.
+      Миниапп вызывает тот же серверный метод.
+
+      Остальное — перевод подписей и экраны, которых в ПК не было:
+      счётчик «сдали», вкладка «Сдачи» прямо в задании (вместо отдельного
+      окна) и ссылка на урок.
+    -->
+
+    <record id="view_op_assignment_form_hw" model="ir.ui.view">
+        <field name="name">op.assignment.form.homework</field>
+        <field name="model">op.assignment</field>
+        <field name="inherit_id" ref="openeducat_assignment.view_op_assignment_form"/>
+        <field name="arch" type="xml">
+
+            <!-- Заголовок окна -->
+            <xpath expr="//form" position="attributes">
+                <attribute name="string">Домашнее задание</attribute>
+            </xpath>
+
+            <!-- Кнопки состояния: русские и правильные по смыслу -->
+            <xpath expr="//button[@name='act_publish']" position="replace">
+                <button name="action_hw_publish" type="object"
+                        string="Выдать" class="oe_highlight"
+                        invisible="state != 'draft'"
+                        groups="openeducat_assignment.group_op_assignment_user,openeducat_core.group_op_faculty"/>
+            </xpath>
+            <xpath expr="//button[@name='act_set_to_draft']" position="attributes">
+                <attribute name="string">Вернуть в черновик</attribute>
+            </xpath>
+            <xpath expr="//button[@name='act_finish']" position="replace">
+                <button name="act_finish" type="object"
+                        string="Завершить проверку" class="oe_highlight"
+                        invisible="state != 'publish'"
+                        groups="openeducat_assignment.group_op_assignment_user,openeducat_core.group_op_faculty"/>
+            </xpath>
+            <xpath expr="//button[@name='act_cancel']" position="attributes">
+                <attribute name="string">Отозвать задание</attribute>
+            </xpath>
+
+            <!-- Кнопку «Ответы на задания» (get_assignment_submissions) НЕ трогаем:
+                 она открывает все сдачи задания и работала. Своих
+                 счётчиков не добавляем — две кнопки на одно и то же
+                 означают, что учитель не знает, куда нажать. -->
+
+            <!-- Название -->
+            <xpath expr="//h1/field[@name='name']" position="attributes">
+                <attribute name="placeholder">Например: §14, вопросы 1–4</attribute>
+            </xpath>
+
+            <!-- Вкладки -->
+            <xpath expr="//page[@name='basic_information']" position="attributes">
+                <attribute name="string">Задание</attribute>
+            </xpath>
+            <xpath expr="//page[@name='allocation_infomation']" position="attributes">
+                <attribute name="string">Кому задано</attribute>
+            </xpath>
+            <xpath expr="//label[@for='description']" position="attributes">
+                <attribute name="string">Текст задания</attribute>
+            </xpath>
+
+            <!-- Срок: подпись и пояснение, откуда он взялся -->
+            <xpath expr="//field[@name='submission_date']" position="before">
+                <field name="hw_sheet_id" readonly="1"/>
+            </xpath>
+
+            <!--
+              Вкладка «Сдачи» прямо в задании. Раньше сдачи открывались
+              отдельным окном (get_assignment_submissions), и чтобы принять
+              одну работу учителю надо было уйти из задания и вернуться.
+              Здесь он остаётся в задании и видит весь класс списком.
+
+              state и marks редактируются прямо в строке — это основная
+              работа учителя при проверке. marks доступен только в accept,
+              как в миниаппе.
+            -->
+            <xpath expr="//notebook" position="inside">
+                <page name="hw_submissions" string="Сдачи">
+                    <field name="assignment_sub_line" nolabel="1"
+                           context="{'default_assignment_id': id}">
+                        <list string="Сдачи" editable="bottom"
+                              decoration-muted="state == 'draft'"
+                              decoration-success="state == 'accept'"
+                              decoration-warning="state == 'change'">
+                            <field name="student_id" readonly="1"/>
+                            <field name="state" widget="badge"
+                                   decoration-success="state == 'accept'"
+                                   decoration-warning="state == 'change'"
+                                   decoration-danger="state == 'reject'"/>
+                            <field name="submission_date" readonly="1"
+                                   optional="hide"/>
+                            <field name="note" string="Ответ ученика"
+                                   optional="show"/>
+                            <field name="attachment_ids" widget="many2many_binary"
+                                   string="Вложения" optional="hide"
+                                   options="{'accepted_file_extensions': '.png,.jpg,.jpeg,.webp,.gif,.pdf'}"/>
+                            <field name="teacher_note"
+                                   string="Комментарий учителя"
+                                   optional="show"/>
+                            <field name="marks" string="Оценка"
+                                   invisible="state != 'accept'"
+                                   optional="show"/>
+                            <field name="marks_2" string="Оценка 2"
+                                   invisible="state != 'accept'"
+                                   optional="hide"/>
+                        </list>
+                    </field>
+                    <div class="text-muted small" invisible="assignment_sub_line">
+                        <i class="fa fa-info-circle me-1"/>
+                        Сдач пока нет. Они появятся, когда ученики сдадут
+                        задание в миниаппе, либо когда список «Кому задано»
+                        будет заполнен и задание выдано.
+                    </div>
+                </page>
+            </xpath>
+
+        </field>
+    </record>
+
+</odoo>

@@ -24,6 +24,7 @@ rost_lesson_homework держит три копии согласованными
 import traceback
 
 from odoo.tools import html2plaintext
+from odoo.exceptions import AccessError
 
 # Заглушка фоточного ДЗ продублирована в двух модулях — берём из
 # rost_lesson_homework, где живёт и метод hw_drop_empty_photo_assignment.
@@ -347,31 +348,138 @@ def hw_due_rule_test_second_lesson_end():
 
 
 def hw_due_rule_test_publish_recalc():
-    """«Выдать» пересчитывает срок по новому правилу."""
+    """«Выдать» пересчитывает срок по новому правилу.
+
+    Раньше здесь стояла эмуляция: asg.act_publish() менял только state.
+    Теперь вызывается настоящий hw_publish — тот самый, который теперь
+    вызывает и кнопка в ПК-форме. Иначе тест проверял бы не тот код.
+    """
     sheet = _fresh_lesson()
     if not sheet:
         print('   НЕТ СТЕНДА')
         return
-    sheet.lesson_homework = 'ТЕСТ-СРОКА: пересчёт при выдаче'
+    sheet.lesson_homework = 'ТЕСТ-ВЫДАЧИ: срок, объявление, идемпотентность'
     asg = sheet.homework_assignment_id
     if not asg:
         print('   задание не создалось')
         return
     env.flush_all()
-    due_before = asg.submission_date
-    expected = sheet._next_lesson_datetime()
-    check('черновик уже посчитан по правилу', due_before, expected)
 
-    # Эмитируем hw_publish: он пересчитывает срок при выдаче.
-    asg.submission_date = sheet._next_lesson_datetime()
-    asg.act_publish()
-    env.flush_all()
-    check('при выдаче срок тот же (расписание не изменилось)',
+    expected = sheet._next_lesson_datetime()
+    check('черновик посчитан по правилу «начало следующего урока»',
           asg.submission_date, expected)
-    check_true('срок заполнен и не пустой', bool(asg.submission_date))
-    check_true('срок в будущем относительно урока',
-               asg.submission_date > sheet.start_datetime,
-               '%s > %s' % (asg.submission_date, sheet.start_datetime))
+
+    # Настоящая выдача.
+    res = asg.hw_publish()
+    env.flush_all()
+    check('hw_publish: состояние', asg.state, 'publish')
+    check_true('hw_publish: срок остался по правилу',
+               asg.submission_date == expected,
+               '%s vs %s' % (asg.submission_date, expected))
+    check_true('hw_publish: объявление создано',
+               bool(asg.hw_channel_message_id))
+    check('hw_publish: reported posted', res.get('posted'), True)
+
+    # Идемпотентность: кнопку могли нажать дважды — второй раз не должен
+    # ни пересчитывать срок, ни плодить второе объявление.
+    msg_id = asg.hw_channel_message_id.id
+    res2 = asg.hw_publish()
+    env.flush_all()
+    check('повторный вызов: состояние то же', asg.state, 'publish')
+    check('повторный вызов: объявление то же сообщение',
+          asg.hw_channel_message_id.id, msg_id)
+    check_true('повторный вызов: не пересчитывал срок заново',
+               res2.get('recomputed') is False,
+               'recomputed=%s' % res2.get('recomputed'))
+    check_true('повторный вызов: пост не создан второй раз',
+               res2.get('posted') is False,
+               'posted=%s' % res2.get('posted'))
+
+
+def hw_pc_test_assignment_counters():
+    """Обратная ссылка на урок + счётчик сдач в ПК-форме.
+
+    Счётчика «К проверке» здесь нет намеренно: кнопка «Ответы на задания»
+    уже есть в ПК и работает, вторая кнопка на то же самое только путает.
+    Тест фиксирует, что мы не сломали существующую кнопку.
+    """
+    sheet = _fresh_lesson()
+    if not sheet:
+        print('   НЕТ СТЕНДА')
+        return
+    sheet.lesson_homework = 'ТЕСТ-СЧЁТЧИКОВ'
+    asg = sheet.homework_assignment_id
+    if not asg:
+        print('   задание не создалось')
+        return
+    asg.hw_publish()
+    env.flush_all()
+
+    # Обратная ссылка на урок: в ПК её не было, из задания нельзя было
+    # вернуться в урок.
+    check('hw_sheet_id указывает на лист', asg.hw_sheet_id.id, sheet.id)
+
+    # Родной счётчик сдач (питает кнопку «Ответы на задания») не тронут.
+    subs = asg.assignment_sub_line
+    check('счётчик «Ответы на задания» = число сдач',
+          asg.assignment_sub_line_count, len(subs))
+
+    # Кнопка «Ответы на задания» на месте и открывает сдачи этого задания.
+    act = asg.get_assignment_submissions()
+    check('«Ответы на задания» открывает сдачи задания',
+          act.get('domain'), [('id', 'in', subs.ids)])
+
+
+def hw_pc_test_reset_requires_flag():
+    """Очистка задания невозможна без выставленного параметра.
+
+    Кнопка нужна Мише для тестов, учителю не показывается — значит и
+    вызвать с сервера без флага нельзя.
+    """
+    sheet = _fresh_lesson()
+    if not sheet:
+        print('   НЕТ СТЕНДА')
+        return
+    sheet.lesson_homework = 'ТЕСТ-ОЧИСТКИ'
+    asg = sheet.homework_assignment_id
+    if not asg:
+        print('   задание не создалось')
+        return
+    asg.hw_publish()
+    env.flush_all()
+
+    # Флаг выключен — должен быть отказ.
+    asg.hw_reset_disable()
+    try:
+        asg.hw_reset_clear()
+        check_true('без флага очистка запрещена', False,
+                   'вызов прошёл, а должен был бросить')
+    except AccessError:
+        check_true('без флага очистка запрещена (AccessError)', True)
+
+    # Включаем, смотрим превью, чистим, проверяем результат.
+    asg.hw_reset_enable()
+    before = asg.hw_reset_preview()
+    check_true('превью ничего не меняет: state', asg.state, 'publish')
+    check_true('превью считает сдачи', before['submissions'] >= 0)
+    check_true('превью показывает наличие поста в канале',
+               before['in_channel'] is True)
+
+    res = asg.hw_reset_clear()
+    env.flush_all()
+    check('очистка: состояние', asg.state, 'draft')
+    check_true('очистка: сдач не осталось', not asg.assignment_sub_line)
+    check_true('очистка: пост снят', not asg.hw_channel_message_id)
+    check('очистка: снято столько сдач, сколько было',
+          res['removed_submissions'], before['submissions'])
+
+    # Идемпотентность: повторный вызов не должен падать.
+    res2 = asg.hw_reset_clear()
+    env.flush_all()
+    check('повторная очистка безопасна: снято 0',
+          res2['removed_submissions'], 0)
+
+    asg.hw_reset_disable()
 
 
 def scenario(fn, *args):
@@ -791,6 +899,8 @@ SCENARIOS = [
     hw_inverse_test_duplicate_text_guard,
     hw_due_rule_test_second_lesson_end,
     hw_due_rule_test_publish_recalc,
+    hw_pc_test_assignment_counters,
+    hw_pc_test_reset_requires_flag,
     hw_sync_test_invariant,
 ]
 
