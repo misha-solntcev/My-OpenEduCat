@@ -306,14 +306,27 @@ export const HomeworkRowItem: React.FC<{
 
         {expanded && (
           <div style={{ marginTop: 8 }}>
-            {h.state === 'change' && h.teacher_note && (
+            {/* Комментарий учителя виден ученику при ЛЮБОМ состоянии сдачи,
+                а не только при отправке на доработку. Раньше условие стояло
+                h.state === 'change', и при обычном приёме сдачи учительский
+                комментарий молча пропадал: Сунайт принял работу Макарова,
+                написал «Хорошая работа» — ученик ничего не увидел.
+
+                Цвет зависит от сути: «на доработку» — предупреждающий,
+                принято — обычный информационный. */}
+            {h.teacher_note && (
               <div style={{
                 display: 'flex', gap: 8, alignItems: 'flex-start',
-                background: 'var(--vkui--color_background_warning)',
+                background: h.state === 'change'
+                  ? 'var(--vkui--color_background_warning)'
+                  : 'var(--vkui--color_background_secondary)',
                 borderRadius: 10, padding: '8px 10px', marginBottom: 8,
               }}>
                 <Icon28AttachOutline width={16} height={16} style={{
-                  color: 'var(--vkui--color_icon_warning)', flexShrink: 0, marginTop: 2,
+                  color: h.state === 'change'
+                    ? 'var(--vkui--color_icon_warning)'
+                    : 'var(--vkui--color_icon_secondary)',
+                  flexShrink: 0, marginTop: 2,
                 }} />
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <Caption weight="2" style={{
