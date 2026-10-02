@@ -13,6 +13,10 @@
     'data': [
         'views/attendance_sheet_homework_view.xml',
         'views/attendance_hw_grades.xml',
+        # ПК-форма сдачи: комментарий учителя, вложения, русские кнопки.
+        # После attendance_hw_grades — модель op.assignment.sub.line уже
+        # расширена в models/answer_required.py к моменту загрузки view.
+        'views/assignment_sub_line_hw_view.xml',
     ],
     'installable': True,
     'auto_install': False,

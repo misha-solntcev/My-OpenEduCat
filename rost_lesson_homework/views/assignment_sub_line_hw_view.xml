@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!--
+      ПК-форма сдачи ДЗ: восполняем то, чего не хватало для работы в браузере.
+
+      Разбор (2026-10-02, вариант П1). Пока ДЗ жило только в миниаппе, эти поля
+      были не нужны: учитель проверял в MAX. Но раздел «Задания» становится
+      основным рабочим местом, и пробелы бьют по каждой проверке:
+
+      1) teacher_note — комментарий учителя. В ПК его не было вообще: учитель
+         не мог написать ученику то, что пишет в миниаппе. Поле добавлено в
+         rost_lesson_homework/models/answer_required.py.
+
+      2) attachment_ids — фото/файлы, которые ученик приложил при сдаче.
+         Без них учитель в браузере видит пустую работу. В миниапп сдача идёт
+         через токены, здесь — штатный ir.attachment с res_field.
+
+      3) Перевод кнопок и подписей на русский, как в миниаппе: Accept →
+         «Принять», Change Require → «На доработку», Reject → «Отклонить»,
+         Note → «Ответ ученика». English-подписи в русской школе — из
+         наследия OpenEduCat.
+
+      ВАЖНО: states не трогаем — draft/submit/change/accept/reject совпадают
+      с миниаппом, это общий словарь.
+    -->
+
+    <record id="view_op_assignment_sub_line_form_hw" model="ir.ui.view">
+        <field name="name">op.assignment.sub.line.form.homework</field>
+        <field name="model">op.assignment.sub.line</field>
+        <field name="inherit_id" ref="openeducat_assignment.view_op_assignment_sub_line_form"/>
+        <field name="arch" type="xml">
+
+            <!-- Кнопки проверки: русские подписи, те же вызовы -->
+            <xpath expr="//button[@name='act_submit']" position="attributes">
+                <attribute name="string">Сдать</attribute>
+            </xpath>
+            <xpath expr="//button[@name='act_accept']" position="attributes">
+                <attribute name="string">Принять</attribute>
+            </xpath>
+            <xpath expr="//button[@name='act_change_req']" position="attributes">
+                <attribute name="string">На доработку</attribute>
+            </xpath>
+            <xpath expr="//button[@name='act_reject']" position="attributes">
+                <attribute name="string">Отклонить</attribute>
+            </xpath>
+            <xpath expr="//button[@name='act_draft']" position="attributes">
+                <attribute name="string">Вернуть на доработку и сдать заново</attribute>
+            </xpath>
+
+            <!-- Ответ ученика: подпись, и перенос блока «Note» ниже -->
+            <xpath expr="//label[@for='note']" position="attributes">
+                <attribute name="string">Ответ ученика</attribute>
+            </xpath>
+
+            <!--
+              Комментарий учителя + вложения сдачи. Ставим блоком после
+              ответа ученика: порядок чтения — что ученик написал, потом что
+              учитель на это ответил.
+            -->
+            <xpath expr="//field[@name='note']" position="after">
+                <div class="mt32">
+                    <label for="teacher_note" string="Комментарий учителя"/>
+                    <field name="teacher_note" nolabel="1"
+                           placeholder="Виден ученику в миниаппе"/>
+                </div>
+                <div class="mt16">
+                    <label for="attachment_ids" string="Вложения сдачи"/>
+                    <field name="attachment_ids" nolabel="1" widget="many2many_binary"
+                           options="{'accepted_file_extensions': '.png,.jpg,.jpeg,.webp,.gif,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip,.rar,.7z'}"/>
+                </div>
+            </xpath>
+
+        </field>
+    </record>
+
+</odoo>
