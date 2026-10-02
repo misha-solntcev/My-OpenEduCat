@@ -162,16 +162,22 @@ class OpAssignment(models.Model):
                             msg.id, exc_info=True)
         return msg
 
-    def hw_drop_channel_post(self, sheet):
-        """Убрать объявление: задание отозвали или снесли.
+    def hw_drop_channel_post(self, sheet=None):
+        """Убрать объявление: задание отозвали, снесли или очистили.
 
         По ссылке, если она есть; иначе — по тексту (объявление до
         переделки). После успеха ссылка чистится, чтобы повторный отзыв
         не искал заново.
+
+        sheet необязателен: он нужен только для легаси-поиска, когда ссылки
+        ещё нет. Сброс задания (hw_reset_clear) сносит пост по ссылке и
+        листа под рукой может не быть.
         """
         self.ensure_one()
         msg = self.hw_channel_message_id
         if not msg or not msg.exists():
+            if not sheet:
+                return False
             msg = sheet._hw_channel_find_legacy_message(self.hw_text())
         if not msg:
             return False
