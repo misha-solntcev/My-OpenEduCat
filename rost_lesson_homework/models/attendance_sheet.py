@@ -143,17 +143,42 @@ class OpAttendanceSheet(models.Model):
         return True
 
     def _next_lesson_datetime(self):
+        """Срок сдачи ДЗ: конец урока, СЛЕДУЮЩЕГО за ближайшим.
+
+        Правило (согласовано 2026-10-02): ДЗ выдаётся на ближайшем уроке, но
+        сдавать его нужно к следующему. Пример: урок истории у 7А 06.10 в
+        11:10 МСК — на нём задание выдают; следующий урок истории 08.10 в
+        14:10 МСК, срок сдачи — его конец, 14:50 МСК.
+
+        Поэтому берём ВТОРУЮ подходящую сессию (limit=2, берём последнюю) и
+        отдаём её end_datetime, а не start_datetime.
+
+        Раньше бралась ПЕРВАЯ сессия и её start_datetime, то есть срок
+        совпадал с началом урока, на котором ДЗ ещё только выдают, а ученик
+        физически не мог сдать его к этому моменту.
+
+        Крайние случаи:
+        - сессий нет или осталась одна — берём конец единственной
+          (лучше, чем +7 дней: учитель всё равно увидит «нет следующего урока»
+          и поправит руками);
+        - сессий нет вообще — плюс неделя, как раньше.
+        """
         self.ensure_one()
         now = fields.Datetime.now()
-        nxt = self.env['op.session'].sudo().search([
+        sessions = self.env['op.session'].sudo().search([
             ('faculty_id', '=', self.session_id.faculty_id.id),
             ('subject_id', '=', self.subject_id.id),
             ('batch_id', '=', self.batch_id.id),
             ('start_datetime', '>', max(self.start_datetime, now)),
             ('state', '!=', 'cancel'),
-        ], order='start_datetime asc', limit=1)
-        return nxt.start_datetime if nxt else (
-            now + timedelta(days=7))
+        ], order='start_datetime asc', limit=2)
+        # Один урок впереди — сдавать к нему, а не через два.
+        target = sessions[-1] if sessions else None
+        if not target:
+            return now + timedelta(days=7)
+        # end_datetime пустой у кривых сессий — не отдаём пустой срок,
+        # submission_date NOT NULL.
+        return target.end_datetime or target.start_datetime
 
     # ------------------------------------------------------------------
     # Авто-создание op.assignment при завершении урока

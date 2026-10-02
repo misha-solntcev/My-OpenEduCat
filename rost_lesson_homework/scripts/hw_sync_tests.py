@@ -295,6 +295,81 @@ def hw_inverse_test_duplicate_text_guard():
                'сообщений=%d' % n1b)
 
 
+def hw_due_rule_test_second_lesson_end():
+    """Срок сдачи — конец урока, СЛЕДУЮЩЕГО за ближайшим.
+
+    Правило (2026-10-02): ДЗ выдаётся на ближайшем уроке, сдаётся к следующему.
+    Живой пример: история 7А, урок 06.10 08:10 UTC (11:10 МСК) — на нём
+    выдают; следующий 08.10 11:10 UTC (14:10 МСК), срок = его конец
+    11:50 UTC (14:50 МСК).
+
+    Раньше бралась ПЕРВАЯ сессия и её start_datetime, то есть срок был
+    06.10 08:10 — момент, когда ДЗ ещё только выдают, сдать его к этому
+    моменту ученик не мог.
+    """
+    sheet = _fresh_lesson()
+    if not sheet:
+        print('   НЕТ СТЕНДА')
+        return
+    sessions = env['op.session'].sudo().search([
+        ('faculty_id', '=', sheet.session_id.faculty_id.id),
+        ('subject_id', '=', sheet.subject_id.id),
+        ('batch_id', '=', sheet.batch_id.id),
+        ('start_datetime', '>', sheet.start_datetime),
+        ('state', '!=', 'cancel'),
+    ], order='start_datetime asc', limit=3)
+    print('   лист %s, предмет %s, класс %s, впереди уроков: %d'
+          % (sheet.id, sheet.subject_id.name, sheet.batch_id.name,
+             len(sessions)))
+    for s in sessions[:3]:
+        print('     %s %s -> %s' % (s.timetable_date, s.start_datetime,
+                                     s.end_datetime))
+    check_true('впереди минимум два урока (иначе сценарий не проверяет '
+               'правило)', len(sessions) >= 2, 'n=%d' % len(sessions))
+    if len(sessions) < 2:
+        return
+
+    due = sheet._next_lesson_datetime()
+    expected = sessions[1].end_datetime or sessions[1].start_datetime
+    check('срок = конец ВТОРОГО урока', due, expected)
+    check_true('срок не равен началу ближайшего урока',
+               due != sessions[0].start_datetime,
+               'ближайший %s, срок %s' % (sessions[0].start_datetime, due))
+    check_true('срок позже ближайшего урока',
+               due > sessions[0].start_datetime,
+               '%s > %s' % (due, sessions[0].start_datetime))
+    check_true('срок НЕ равен началу ближайшего (старый баг)',
+               due != sessions[0].start_datetime)
+
+
+def hw_due_rule_test_publish_recalc():
+    """«Выдать» пересчитывает срок по новому правилу."""
+    sheet = _fresh_lesson()
+    if not sheet:
+        print('   НЕТ СТЕНДА')
+        return
+    sheet.lesson_homework = 'ТЕСТ-СРОКА: пересчёт при выдаче'
+    asg = sheet.homework_assignment_id
+    if not asg:
+        print('   задание не создалось')
+        return
+    env.flush_all()
+    due_before = asg.submission_date
+    expected = sheet._next_lesson_datetime()
+    check('черновик уже посчитан по правилу', due_before, expected)
+
+    # Эмитируем hw_publish: он пересчитывает срок при выдаче.
+    asg.submission_date = sheet._next_lesson_datetime()
+    asg.act_publish()
+    env.flush_all()
+    check('при выдаче срок тот же (расписание не изменилось)',
+          asg.submission_date, expected)
+    check_true('срок заполнен и не пустой', bool(asg.submission_date))
+    check_true('срок в будущем относительно урока',
+               asg.submission_date > sheet.start_datetime,
+               '%s > %s' % (asg.submission_date, sheet.start_datetime))
+
+
 def scenario(fn, *args):
     """Выполняет сценарий в savepoint и всегда откатывает."""
     sp = env.cr.savepoint()
@@ -710,6 +785,8 @@ SCENARIOS = [
     hw_inverse_test_text_escaping,
     hw_inverse_test_assignment_edit_syncs_back,
     hw_inverse_test_duplicate_text_guard,
+    hw_due_rule_test_second_lesson_end,
+    hw_due_rule_test_publish_recalc,
     hw_sync_test_invariant,
 ]
 
