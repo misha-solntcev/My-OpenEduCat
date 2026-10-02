@@ -296,12 +296,12 @@ def hw_inverse_test_duplicate_text_guard():
 
 
 def hw_due_rule_test_second_lesson_end():
-    """Срок сдачи — конец урока, СЛЕДУЮЩЕГО за ближайшим.
+    """Срок сдачи — НАЧАЛО урока, следующего за ближайшим.
 
-    Правило (2026-10-02): ДЗ выдаётся на ближайшем уроке, сдаётся к следующему.
-    Живой пример: история 7А, урок 06.10 08:10 UTC (11:10 МСК) — на нём
-    выдают; следующий 08.10 11:10 UTC (14:10 МСК), срок = его конец
-    11:50 UTC (14:50 МСК).
+    Правило (2026-10-02): ДЗ выдаётся на ближайшем уроке, проверяется в
+    начале следующего. Живой пример: история 7А, урок 06.10 08:10 UTC
+    (11:10 МСК) — на нём выдают; следующий 08.10 11:10 UTC (14:10 МСК),
+    срок сдачи = его начало.
 
     Раньше бралась ПЕРВАЯ сессия и её start_datetime, то есть срок был
     06.10 08:10 — момент, когда ДЗ ещё только выдают, сдать его к этому
@@ -330,8 +330,12 @@ def hw_due_rule_test_second_lesson_end():
         return
 
     due = sheet._next_lesson_datetime()
-    expected = sessions[1].end_datetime or sessions[1].start_datetime
-    check('срок = конец ВТОРОГО урока', due, expected)
+    expected = sessions[1].start_datetime
+    check('срок = начало ВТОРОГО урока', due, expected)
+    check_true('срок НЕ позже конца второго урока (начало, не конец)',
+               due <= (sessions[1].end_datetime or sessions[1].start_datetime),
+               'срок %s, конец урока %s'
+               % (due, sessions[1].end_datetime))
     check_true('срок не равен началу ближайшего урока',
                due != sessions[0].start_datetime,
                'ближайший %s, срок %s' % (sessions[0].start_datetime, due))
