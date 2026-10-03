@@ -2,18 +2,28 @@
 <odoo>
 
     <!--
-      ПК-форма задания: приводим к поведению миниаппа (вариант П1).
+      ПК-форма задания (вариант П1) — по макету design/homework-pc-teacher-form-v2.html.
 
-      Главное, что было сломано: кнопка Publish звала act_publish из
-      openeducat_assignment, который меняет ТОЛЬКО state. Учитель, нажавший
-      Publish в браузере, получал задание без объявления в канале и без
-      пересчитанного срока — ученики ничего не видели. Теперь там наша
-      action_hw_publish: срок посчитан по урокам, объявление создано один раз.
-      Миниапп вызывает тот же серверный метод.
+      Разделение по ролям сделано НЕ двумя view с groups_id, а элементами
+      одной формы. Причина: 17 преподавателей test4 состоят и в
+      group_student_assignment, две версии view показали бы им обе разом.
 
-      Остальное — перевод подписей и экраны, которых в ПК не было:
-      счётчик «сдали», вкладка «Работы» прямо в задании (вместо отдельного
-      окна) и ссылка на урок.
+      Что убрано:
+        * вкладка «Кому задано» — список одноклассников дублировал работы,
+          а ученику показывал весь класс. Поле allocation_ids само скрыто
+          (invisible="1"): его заполняет журнал урока при создании задания
+          (attendance_sheet.py), учителю редактировать нечего;
+        * служебные поля из шапки (assignment_type, reviewer, point) —
+          в «Ещё ▾» они и были, отдельного смысла в виду не имеют.
+
+      Что добавлено:
+        * фильтры списка работ — штатные кнопки Odoo (type="object",
+          возвращают act_window с context hw_filter). Своего JS нет;
+        * вкладка «Моя работа» для ученика — вместо чужого списка класса.
+
+      Название — «Работы», а не «Сдачи»: «сдачи» калька с submissions.
+      В миниаппе того же слова в интерфейсе нет, там сегменты
+      «Проверить / На доработке / Проверено».
     -->
 
     <record id="view_op_assignment_form_hw" model="ir.ui.view">
@@ -47,22 +57,54 @@
                 <attribute name="string">Отозвать задание</attribute>
             </xpath>
 
-            <!-- Кнопку «Ответы на задания» (get_assignment_submissions) НЕ трогаем:
-                 она открывает все сдачи задания и работала. Своих
-                 счётчиков не добавляем — две кнопки на одно и то же
-                 означают, что учитель не знает, куда нажать. -->
+            <!-- Кнопку «Ответы на задания» (get_assignment_submissions) учителю
+                 оставляем: это единственный способ посмотреть сдачи задания
+                 целиком. Ученику она не нужна и небезопасна (открывает все
+                 работы по заданию), поэтому прячем по группам. -->
+            <xpath expr="//button[@name='get_assignment_submissions']"
+                   position="attributes">
+                <attribute name="groups">openeducat_assignment.group_op_assignment_user,openeducat_core.group_op_faculty</attribute>
+            </xpath>
+
+            <!-- Служебные поля шапки: учителю не нужны, ученику тем более.
+                 Само значение хранится, поле просто не показываем. -->
+            <xpath expr="//field[@name='assignment_type']" position="attributes">
+                <attribute name="invisible">1</attribute>
+            </xpath>
+            <xpath expr="//field[@name='reviewer']" position="attributes">
+                <attribute name="invisible">1</attribute>
+            </xpath>
+            <xpath expr="//field[@name='point']" position="attributes">
+                <attribute name="invisible">1</attribute>
+            </xpath>
+            <xpath expr="//field[@name='issued_date']" position="attributes">
+                <attribute name="invisible">1</attribute>
+            </xpath>
+            <!-- marks в базовой форме required="1": убрать из формы нельзя,
+                 сломается создание задания. Переименовываем и прячем в
+                 «Ещё ▾» нельзя — оставляем, но подпись человеческая. -->
+            <xpath expr="//field[@name='marks']" position="attributes">
+                <attribute name="string">Максимальный балл</attribute>
+                <attribute name="invisible">1</attribute>
+            </xpath>
 
             <!-- Название -->
             <xpath expr="//h1/field[@name='name']" position="attributes">
                 <attribute name="placeholder">Например: §14, вопросы 1–4</attribute>
             </xpath>
 
-            <!-- Вкладки -->
+            <!--
+              Вкладка «Кому задано» убирается целиком. Остаётся скрытое
+              поле allocation_ids: его заполняет журнал урока при создании
+              задания (OpAttendanceSheet._hw_create_assignment), и на этом
+              строится рассылка в миниапп. Удалять поле нельзя.
+            -->
+            <xpath expr="//page[@name='allocation_infomation']" position="replace">
+                <field name="allocation_ids" invisible="1"/>
+            </xpath>
+
             <xpath expr="//page[@name='basic_information']" position="attributes">
                 <attribute name="string">Задание</attribute>
-            </xpath>
-            <xpath expr="//page[@name='allocation_infomation']" position="attributes">
-                <attribute name="string">Кому задано</attribute>
             </xpath>
             <xpath expr="//label[@for='description']" position="attributes">
                 <attribute name="string">Текст задания</attribute>
@@ -70,24 +112,52 @@
 
             <!-- Срок: подпись и пояснение, откуда он взялся -->
             <xpath expr="//field[@name='submission_date']" position="before">
-                <field name="hw_sheet_id" readonly="1"/>
+                <field name="hw_sheet_id" readonly="1"
+                       groups="openeducat_assignment.group_op_assignment_user,openeducat_core.group_op_faculty"/>
             </xpath>
 
             <!--
-              Вкладка «Работы» прямо в задании. Раньше работы открывались
-              отдельным окном (get_assignment_submissions), и чтобы принять
-              одну работу учителю надо было уйти из задания и вернуться.
-              Здесь он остаётся в задании и видит весь класс списком.
+              Вкладка «Работы». Учитель — весь класс списком и может
+              проверять пачкой. Ученик — только своя строка: домен приходит
+              с сервера (hw_sub_line_domain), чужие работы не приезжают
+              вообще, а не прячутся на клиенте.
 
-              Название — «Работы», а не «Сдачи»: «сдачи» калька с submissions.
-              В миниаппе того же слова в интерфейсе нет, там сегменты
-              «Проверить / На доработке / Проверено» и «На проверке».
+              Фильтры — штатные кнопки Odoo. Каждая возвращает act_window
+              с context hw_filter, сервер подставляет домен по полю state.
             -->
             <xpath expr="//notebook" position="inside">
-                <page name="hw_submissions" string="Работы">
+                <page name="hw_submissions" string="Работы"
+                      groups="openeducat_assignment.group_op_assignment_user,openeducat_core.group_op_faculty">
+                    <!--
+                      Фильтры — штатные кнопки Odoo. Каждая возвращает
+                      act_window с context hw_filter; активная подсвечена.
+                      Своего JS нет.
+                    -->
+                    <div class="mb-2" invisible="state == 'draft'">
+                        <button name="action_hw_filter_all" type="object"
+                                string="Все" class="btn btn-link p-0 me-3"
+                                invisible="hw_filter and hw_filter != 'all'"/>
+                        <button name="action_hw_filter_nosub" type="object"
+                                string="Не сдали" class="btn btn-link p-0 me-3"
+                                invisible="hw_filter and hw_filter != 'nosub'"/>
+                        <button name="action_hw_filter_wait" type="object"
+                                string="Ждут проверки" class="btn btn-link p-0 me-3"
+                                invisible="hw_filter and hw_filter != 'wait'"/>
+                        <button name="action_hw_filter_ok" type="object"
+                                string="Принято" class="btn btn-link p-0 me-3"
+                                invisible="hw_filter and hw_filter != 'ok'"/>
+                        <button name="action_hw_filter_back" type="object"
+                                string="На доработке" class="btn btn-link p-0"
+                                invisible="hw_filter and hw_filter != 'back'"/>
+                    </div>
+
+                    <field name="hw_sub_line_domain" invisible="1"/>
+
                     <field name="assignment_sub_line" nolabel="1"
+                           domain="hw_sub_line_domain"
                            context="{'default_assignment_id': id}">
                         <list string="Работы" editable="bottom"
+                              create="0"
                               decoration-muted="state == 'draft'"
                               decoration-success="state == 'accept'"
                               decoration-warning="state == 'change'">
@@ -97,7 +167,7 @@
                                    decoration-warning="state == 'change'"
                                    decoration-danger="state == 'reject'"/>
                             <field name="submission_date" readonly="1"
-                                   optional="hide"/>
+                                   string="Сдал" optional="hide"/>
                             <field name="note" string="Ответ ученика"
                                    optional="show"/>
                             <field name="attachment_ids" widget="many2many_binary"
@@ -117,9 +187,43 @@
                     <div class="text-muted small" invisible="assignment_sub_line">
                         <i class="fa fa-info-circle me-1"/>
                         Работ пока нет. Они появятся, когда ученики сдадут
-                        задание в миниаппе, либо когда список «Кому задано»
-                        будет заполнен и задание выдано.
+                        задание в миниаппе, либо когда задание будет выдано
+                        и список класса заполнен журналом урока.
                     </div>
+                </page>
+
+                <!-- Ученику вместо списка класса — его одна работа -->
+                <page name="hw_my_work" string="Моя работа"
+                      groups="openeducat_assignment.group_student_assignment"
+                      invisible="assignment_sub_line">
+                    <div class="text-muted small">
+                        <i class="fa fa-info-circle me-1"/>
+                        Это задание ещё не сдано. Работы можно сдать
+                        в миниаппе — до конца урока.
+                    </div>
+                </page>
+                <page name="hw_my_work_done" string="Моя работа"
+                      groups="openeducat_assignment.group_student_assignment"
+                      invisible="not assignment_sub_line">
+                    <field name="assignment_sub_line" nolabel="1"
+                           domain="hw_sub_line_domain"
+                           readonly="1">
+                        <list string="Моя работа" create="0" delete="0">
+                            <field name="state" widget="badge"
+                                   decoration-success="state == 'accept'"
+                                   decoration-warning="state == 'change'"
+                                   decoration-danger="state == 'reject'"/>
+                            <field name="submission_date" readonly="1"
+                                   string="Сдал"/>
+                            <field name="marks" string="Оценка"/>
+                            <field name="teacher_note"
+                                   string="Комментарий учителя"/>
+                            <field name="note" string="Мой ответ"/>
+                            <field name="attachment_ids" widget="many2many_binary"
+                                   string="Мои вложения" readonly="1"
+                                   options="{'accepted_file_extensions': '.png,.jpg,.jpeg,.webp,.gif,.pdf'}"/>
+                        </list>
+                    </field>
                 </page>
             </xpath>
 
