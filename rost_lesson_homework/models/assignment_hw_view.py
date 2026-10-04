@@ -21,8 +21,8 @@ def _hw_notify(record, message):
     return {
         'type': 'ir.actions.client',
         'tag': 'display_notification',
-        'params': {
-            'title': _('Готово'),
+                'params': {
+            'title': 'Готово',
             'message': message,
             'type': 'success',
             'sticky': False,
@@ -194,76 +194,41 @@ class OpAssignment(models.Model):
         return self._hw_filter_action('back')
 
     # ---------------------------------------------------------
-    # Массовые действия — штатный эквивалент панели из макета.
-    #
-    # В макете design/homework-pc-teacher-form-v2.html панель выглядит
-    # как «Выбрано N ▸ Принять / На доработку / Отклонить ▸ Оценка ▸
-    # Комментарий ▸ Применить» — с галочками и своим JS.
-    #
-    # Галочек выбрать строки в Odoo в списке ВНУТРИ формы нет: выбор
-    # работает только в отдельном list view (action), где есть панель
-    # «N выбрано». Поэтому здесь кнопка применяется ко ВСЕМ строкам
-    # под текущим фильтром, а не к отмеченным. Сузить выбор можно
-    # фильтром — это то же самое по смыслу.
-    #
-    # Оценка и комментарий берутся из полей ниже; пустые не применяются.
+    # Полоса-сводка из макета: «Работы — 15 · 11 сдали · 8 принято ·
+    # 2 ждут проверки · 1 на доработке». Считается на сервере, без JS.
     # ---------------------------------------------------------
-    hw_bulk_marks = fields.Float(string='Оценка пачкой')
-    hw_bulk_note = fields.Char(string='Комментарий пачкой')
+    hw_count_total = fields.Integer(
+        string='Работ всего', compute='_compute_hw_counts')
+    hw_count_submitted = fields.Integer(
+        string='Сдали', compute='_compute_hw_counts')
+    hw_count_accept = fields.Integer(
+        string='Принято', compute='_compute_hw_counts')
+    hw_count_wait = fields.Integer(
+        string='Ждут проверки', compute='_compute_hw_counts')
+    hw_count_change = fields.Integer(
+        string='На доработке', compute='_compute_hw_counts')
+    hw_count_draft = fields.Integer(
+        string='Не сдали', compute='_compute_hw_counts')
 
-    def _hw_bulk_targets(self):
-        """Строки работ под текущим фильтром — их и меняем."""
-        self.ensure_one()
-        domain = [('assignment_id', '=', self.id)]
-        filt = list(self._hw_filter_states())
-        if filt:
-            domain += [('state', 'in', filt)]
-        return self.env['op.assignment.sub.line'].search(domain)
+    def _compute_hw_counts(self):
+        """Пересчёт сводки. Считаем по всем работам задания, а не по
+        фильтру: полоса показывает картину целиком, иначе при переключении
+        фильтра цифры прыгали бы и путались."""
+        for asg in self:
+            grouped = self.env['op.assignment.sub.line']._read_group(
+                [('assignment_id', '=', asg.id)],
+                groupby=['state'],
+                aggregates=['__count'])
+            by_state = {g[0]: g[1] for g in grouped}
+            asg.hw_count_total = sum(by_state.values())
+            asg.hw_count_accept = by_state.get('accept', 0)
+            asg.hw_count_wait = by_state.get('submit', 0)
+            asg.hw_count_change = by_state.get('change', 0)
+            asg.hw_count_draft = by_state.get('draft', 0)
+            # «Сдали» — все, кто не в draft: сдал, даже если на доработке.
+            asg.hw_count_submitted = (
+                asg.hw_count_total - by_state.get('draft', 0))
 
-    def _hw_filter_states(self):
-        """Состояния текущего фильтра; пустой список — все."""
-        return self.HW_FILTER_STATES.get(self.hw_filter or 'all') or []
-
-    def _hw_bulk_write(self, state):
-        """Массовое действие ПОД ТЕКУЩИМ ФИЛЬТРОМ.
-
-        sudo() здесь НЕ используется намеренно. Раньше стоял — и это была
-        дыра: sudo снимает record rules, поэтому ученик вызовом этого
-        метода мог принять чужие работы, а учитель — поправить чужое
-        задание. Проверено: оба вызова проходили без отказа.
-
-        Без sudo домен ищется под текущим пользователем, поэтому
-        применяются ровно те строки, что видны в списке.
-
-        Проверка роли — обязательна и на сервере: группы на панели в
-        разметке скрывают кнопки от клиента, но RPC можно вызвать
-        напрямую, минуя форму.
-        """
-        self.ensure_one()
-        if not self._hw_is_teacher() and not self.env.user.has_group(
-                'openeducat_core.group_op_back_office_admin'):
-            raise AccessError(
-                _('Массовые действия по работам доступны учителю и админу'))
-        lines = self._hw_bulk_targets()
-        if not lines:
-            return _hw_notify(self, _('Нет строк под текущим фильтром'))
-        vals = {'state': state}
-        if self.hw_bulk_marks:
-            vals['marks'] = self.hw_bulk_marks
-        if self.hw_bulk_note:
-            vals['teacher_note'] = self.hw_bulk_note
-        lines.write(vals)
-        return _hw_notify(
-            self, _('Изменено строк: %d') % len(lines))
-
-    def action_hw_bulk_accept(self):
-        return self._hw_bulk_write('accept')
-
-    def action_hw_bulk_change(self):
-        return self._hw_bulk_write('change')
-
-    def action_hw_bulk_reject(self):
-        return self._hw_bulk_write('reject')
 
     # ---------------------------------------------------------
     # Активный фильтр: та же кнопка, но серверной подсветкой.

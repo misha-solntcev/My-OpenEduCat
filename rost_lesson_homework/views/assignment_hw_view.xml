@@ -128,6 +128,46 @@
                 <field name="hw_sub_line_domain" invisible="1"/>
 
                 <!--
+                  Четыре блока как в макете (homework-pc-teacher-form-v2.html):
+                  Класс · Предмет · Срок сдачи · Урок. Класс и Предмет в
+                  базовой форме не показаны, пришлось вывести явно — иначе
+                  учитель не видит, кому и по какому предмету задано.
+                -->
+                <group name="hw_head">
+                    <group name="hw_head_left">
+                        <field name="batch_id" readonly="1"/>
+                        <field name="subject_id" readonly="1"/>
+                    </group>
+                    <group name="hw_head_right">
+                        <field name="submission_date"
+                               readonly="state != 'draft'"/>
+                        <field name="hw_sheet_id" readonly="1"
+                               groups="openeducat_assignment.group_op_assignment_user,openeducat_core.group_op_faculty"/>
+                    </group>
+                </group>
+
+                <label for="description" string="Текст задания"/>
+                <field name="description" readonly="state !='draft'"
+                       colspan="4"/>
+
+                <!--
+                  Полоса-сводка из макета: «Работы — 15 · 11 сдали ·
+                  8 принято · 2 ждут проверки · 1 на доработке».
+                  Считается на сервере по всем работам задания, не по
+                  фильтру, иначе цифры прыгали бы при переключении.
+                -->
+                <div class="d-flex flex-wrap align-items-center gap-3 mb-2 mt-2 pb-2"
+                     style="border-bottom: 1px solid #e6e6e6;"
+                     groups="openeducat_assignment.group_op_assignment_user,openeducat_assignment.group_teacher_assignment,openeducat_core.group_op_faculty,openeducat_core.group_op_back_office_admin">
+                    <strong>Работы — <field name="hw_count_total" nolabel="1" class="d-inline"/></strong>
+                    <span><field name="hw_count_submitted" nolabel="1" class="d-inline"/> сдали</span>
+                    <span><field name="hw_count_accept" nolabel="1" class="d-inline"/> принято</span>
+                    <span><field name="hw_count_wait" nolabel="1" class="d-inline"/> ждут проверки</span>
+                    <span><field name="hw_count_change" nolabel="1" class="d-inline"/> на доработке</span>
+                    <span class="text-muted"><field name="hw_count_draft" nolabel="1" class="d-inline"/> не сдали</span>
+                </div>
+
+                <!--
                   Фильтры видны ВСЕ сразу (как в макете
                   design/homework-pc-teacher-form-v2.html), активный лишь
                   выделен. Поэтому НЕ пишем invisible="hw_filter != ...":
@@ -172,29 +212,35 @@
                 </div>
 
                 <!--
-                  Панель массовых действий. В макете она с галочками
-                  («Выбрано N») и своим JS, но выбрать строки в списке
-                  внутри формы штатно нельзя: выбор работает только в
-                  отдельном list view. Поэтому здесь кнопки применяются ко
-                  ВСЕМ строкам под текущим фильтром — сузить выбор можно
-                  фильтром, это то же по смыслу. Своего JS нет.
-                -->
-                <div class="d-flex flex-wrap align-items-center gap-2 mb-2 mt-2 p-2"
-                     style="background-color: #f5f7f9; border-radius: 4px;"
-                     invisible="state == 'draft'"
-                     groups="openeducat_assignment.group_op_assignment_user,openeducat_assignment.group_teacher_assignment,openeducat_core.group_op_faculty,openeducat_core.group_op_back_office_admin">
-                    <button name="action_hw_bulk_accept" type="object"
-                            string="Принять" class="btn btn-success btn-sm"/>
-                    <button name="action_hw_bulk_change" type="object"
-                            string="На доработку" class="btn btn-warning btn-sm"/>
-                    <button name="action_hw_bulk_reject" type="object"
-                            string="Отклонить" class="btn btn-danger btn-sm"/>
-                    <field name="hw_bulk_marks" class="form-control input-sm"
-                           style="width: 90px;" placeholder="Оценка"
-                           nolabel="1"/>
-                    <field name="hw_bulk_note" class="form-control input-sm"
+                                  Панель массовых действий по макету: видна только когда
+                                  отмечены строки, показывает «Выбрано N», кнопки НАПРАВЛЯЮТ
+                                  (Принять / На доработку / Отклонить), а применяет их одна
+                                  кнопка «Применить» вместе с оценкой и комментарием.
+
+                                  Отметка — колонка hw_marked в самой строке, то есть штатное
+                                  поле Odoo, а не JS. Панель включается сервером через
+                                  hw_bulk_count: он считает отмеченные строки, поэтому при
+                                  пустом выборе панель не показывается вообще.
+                                -->
+                                <div class="d-flex flex-wrap align-items-center gap-2 mb-2 mt-2 p-2"
+                                     style="background-color: #f5f7f9; border-radius: 4px;"
+                                     invisible="hw_bulk_count == 0 or state == 'draft'"
+                                     groups="openeducat_assignment.group_op_assignment_user,openeducat_assignment.group_teacher_assignment,openeducat_core.group_op_faculty,openeducat_core.group_op_back_office_admin">
+                                    <span>Выбрано: <field name="hw_bulk_count" nolabel="1" class="d-inline"/></span>
+                                    <button name="action_hw_bulk_mark_accept" type="object"
+                                            string="Принять" class="btn btn-link p-0 me-3"/>
+                                    <button name="action_hw_bulk_mark_change" type="object"
+                                            string="На доработку" class="btn btn-link p-0 me-3"/>
+                                    <button name="action_hw_bulk_mark_reject" type="object"
+                                            string="Отклонить" class="btn btn-link p-0 me-3"/>
+                                    <field name="hw_bulk_marks" class="form-control input-sm"
+                                           style="width: 90px;" placeholder="Оценка"
+                                           nolabel="1"/>
+                                    <field name="hw_bulk_note" class="form-control input-sm"
                            style="flex: 1; min-width: 220px;"
                            placeholder="Комментарий учителя" nolabel="1"/>
+                    <button name="action_hw_bulk_apply" type="object"
+                            string="Применить" class="btn btn-primary btn-sm"/>
                 </div>
 
                 <field name="assignment_sub_line" nolabel="1"
@@ -206,6 +252,8 @@
                           decoration-muted="state == 'draft'"
                           decoration-success="state == 'accept'"
                           decoration-warning="state == 'change'">
+                        <field name="hw_marked" string=""
+                               groups="openeducat_assignment.group_op_assignment_user,openeducat_assignment.group_teacher_assignment,openeducat_core.group_op_faculty,openeducat_core.group_op_back_office_admin"/>
                         <field name="student_id" readonly="1"/>
                         <field name="state" widget="badge"
                                decoration-success="state == 'accept'"
