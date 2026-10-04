@@ -145,6 +145,27 @@ class OpAssignment(models.Model):
     def action_hw_filter_back(self):
         return self._hw_filter_action('back')
 
+    # ---------------------------------------------------------
+    # Активный фильтр: та же кнопка, но серверной подсветкой.
+    # Нужна вторая кнопка потому, что Odoo не умеет менять class
+    # поляны по значению: показывать все кнопки и выделять активную
+    # можно только двумя наборами с взаимоисключающим invisible.
+    # ---------------------------------------------------------
+    def action_hw_filter_all_active(self):
+        return self._hw_filter_action('all')
+
+    def action_hw_filter_nosub_active(self):
+        return self._hw_filter_action('nosub')
+
+    def action_hw_filter_wait_active(self):
+        return self._hw_filter_action('wait')
+
+    def action_hw_filter_ok_active(self):
+        return self._hw_filter_action('ok')
+
+    def action_hw_filter_back_active(self):
+        return self._hw_filter_action('back')
+
     # ---------------------------------------------------------------
     # Ученик: заменить список работ на свою единственную работу
     # ---------------------------------------------------------------

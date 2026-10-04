@@ -127,23 +127,48 @@
                 -->
                 <field name="hw_sub_line_domain" invisible="1"/>
 
-                <div class="mb-2 mt-3" invisible="state == 'draft'"
+                <!--
+                  Фильтры видны ВСЕ сразу (как в макете
+                  design/homework-pc-teacher-form-v2.html), активный лишь
+                  выделен. Поэтому НЕ пишем invisible="hw_filter != ...":
+                  такая логика скрывает все кнопки кроме активной — именно
+                  так фильтры и «пропали». Активность показываем class,
+                  который переключается сервером: неактивные — btn-link,
+                  активная — btn-secondary.
+                -->
+                <div class="mb-2 mt-3 d-flex flex-wrap align-items-center"
+                     invisible="state == 'draft'"
                      groups="openeducat_assignment.group_op_assignment_user,openeducat_assignment.group_teacher_assignment,openeducat_core.group_op_faculty,openeducat_core.group_op_back_office_admin">
                     <button name="action_hw_filter_all" type="object"
                             string="Все" class="btn btn-link p-0 me-3"
-                            invisible="hw_filter and hw_filter != 'all'"/>
+                            invisible="hw_filter == 'all'"/>
+                    <button name="action_hw_filter_all_active" type="object"
+                            string="Все" class="btn btn-secondary p-0 me-3"
+                            invisible="hw_filter != 'all'"/>
                     <button name="action_hw_filter_nosub" type="object"
                             string="Не сдали" class="btn btn-link p-0 me-3"
-                            invisible="hw_filter and hw_filter != 'nosub'"/>
+                            invisible="hw_filter == 'nosub'"/>
+                    <button name="action_hw_filter_nosub_active" type="object"
+                            string="Не сдали" class="btn btn-secondary p-0 me-3"
+                            invisible="hw_filter != 'nosub'"/>
                     <button name="action_hw_filter_wait" type="object"
                             string="Ждут проверки" class="btn btn-link p-0 me-3"
-                            invisible="hw_filter and hw_filter != 'wait'"/>
+                            invisible="hw_filter == 'wait'"/>
+                    <button name="action_hw_filter_wait_active" type="object"
+                            string="Ждут проверки" class="btn btn-secondary p-0 me-3"
+                            invisible="hw_filter != 'wait'"/>
                     <button name="action_hw_filter_ok" type="object"
                             string="Принято" class="btn btn-link p-0 me-3"
-                            invisible="hw_filter and hw_filter != 'ok'"/>
+                            invisible="hw_filter == 'ok'"/>
+                    <button name="action_hw_filter_ok_active" type="object"
+                            string="Принято" class="btn btn-secondary p-0 me-3"
+                            invisible="hw_filter != 'ok'"/>
                     <button name="action_hw_filter_back" type="object"
                             string="На доработке" class="btn btn-link p-0"
-                            invisible="hw_filter and hw_filter != 'back'"/>
+                            invisible="hw_filter == 'back'"/>
+                    <button name="action_hw_filter_back_active" type="object"
+                            string="На доработке" class="btn btn-secondary p-0"
+                            invisible="hw_filter != 'back'"/>
                 </div>
 
                 <field name="assignment_sub_line" nolabel="1"
