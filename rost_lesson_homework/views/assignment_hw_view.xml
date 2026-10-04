@@ -171,6 +171,32 @@
                             invisible="hw_filter != 'back'"/>
                 </div>
 
+                <!--
+                  Панель массовых действий. В макете она с галочками
+                  («Выбрано N») и своим JS, но выбрать строки в списке
+                  внутри формы штатно нельзя: выбор работает только в
+                  отдельном list view. Поэтому здесь кнопки применяются ко
+                  ВСЕМ строкам под текущим фильтром — сузить выбор можно
+                  фильтром, это то же по смыслу. Своего JS нет.
+                -->
+                <div class="d-flex flex-wrap align-items-center gap-2 mb-2 mt-2 p-2"
+                     style="background-color: #f5f7f9; border-radius: 4px;"
+                     invisible="state == 'draft'"
+                     groups="openeducat_assignment.group_op_assignment_user,openeducat_assignment.group_teacher_assignment,openeducat_core.group_op_faculty,openeducat_core.group_op_back_office_admin">
+                    <button name="action_hw_bulk_accept" type="object"
+                            string="Принять" class="btn btn-success btn-sm"/>
+                    <button name="action_hw_bulk_change" type="object"
+                            string="На доработку" class="btn btn-warning btn-sm"/>
+                    <button name="action_hw_bulk_reject" type="object"
+                            string="Отклонить" class="btn btn-danger btn-sm"/>
+                    <field name="hw_bulk_marks" class="form-control input-sm"
+                           style="width: 90px;" placeholder="Оценка"
+                           nolabel="1"/>
+                    <field name="hw_bulk_note" class="form-control input-sm"
+                           style="flex: 1; min-width: 220px;"
+                           placeholder="Комментарий учителя" nolabel="1"/>
+                </div>
+
                 <field name="assignment_sub_line" nolabel="1"
                        domain="hw_sub_line_domain"
                        context="{'default_assignment_id': id}"

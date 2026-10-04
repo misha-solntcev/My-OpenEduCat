@@ -1,4 +1,5 @@
 from odoo import _, api, fields, models
+from odoo.exceptions import AccessError
 
 import logging
 
@@ -13,6 +14,20 @@ TEACHER_GROUPS = (
     'openeducat_assignment.group_teacher_assignment',
     'openeducat_core.group_op_faculty',
 )
+
+
+def _hw_notify(record, message):
+    """Штатное уведомление Odoo о результате действия."""
+    return {
+        'type': 'ir.actions.client',
+        'tag': 'display_notification',
+        'params': {
+            'title': _('Готово'),
+            'message': message,
+            'type': 'success',
+            'sticky': False,
+        },
+    }
 
 
 class OpAssignment(models.Model):
@@ -59,6 +74,15 @@ class OpAssignment(models.Model):
         help='Выбранный фильтр списка работ. Меняется штатными кнопками '
              'в форме.')
 
+    # Состояния для каждого значения фильтра. Один источник правды для
+    # домена (_compute_hw_sub_line_domain) и для массовых действий.
+    HW_FILTER_STATES = {
+        'nosub': ['draft'],
+        'wait': ['submit'],
+        'ok': ['accept'],
+        'back': ['change'],
+    }
+
     # ---------------------------------------------------------------
     # Домен по роли
     # ---------------------------------------------------------------
@@ -86,13 +110,7 @@ class OpAssignment(models.Model):
           change — на доработке
           reject — отклонено
         """
-        KEYS = {
-            'all': None,
-            'nosub': ['draft'],
-            'wait': ['submit'],
-            'ok': ['accept'],
-            'back': ['change'],
-        }
+        KEYS = dict(self.HW_FILTER_STATES, all=None)
         for asg in self:
             if not asg._hw_is_teacher():
                 # Ученик видит только свою строку — по student_id, а не по
@@ -144,6 +162,79 @@ class OpAssignment(models.Model):
 
     def action_hw_filter_back(self):
         return self._hw_filter_action('back')
+
+    # ---------------------------------------------------------
+    # Массовые действия — штатный эквивалент панели из макета.
+    #
+    # В макете design/homework-pc-teacher-form-v2.html панель выглядит
+    # как «Выбрано N ▸ Принять / На доработку / Отклонить ▸ Оценка ▸
+    # Комментарий ▸ Применить» — с галочками и своим JS.
+    #
+    # Галочек выбрать строки в Odoo в списке ВНУТРИ формы нет: выбор
+    # работает только в отдельном list view (action), где есть панель
+    # «N выбрано». Поэтому здесь кнопка применяется ко ВСЕМ строкам
+    # под текущим фильтром, а не к отмеченным. Сузить выбор можно
+    # фильтром — это то же самое по смыслу.
+    #
+    # Оценка и комментарий берутся из полей ниже; пустые не применяются.
+    # ---------------------------------------------------------
+    hw_bulk_marks = fields.Float(string='Оценка пачкой')
+    hw_bulk_note = fields.Char(string='Комментарий пачкой')
+
+    def _hw_bulk_targets(self):
+        """Строки работ под текущим фильтром — их и меняем."""
+        self.ensure_one()
+        domain = [('assignment_id', '=', self.id)]
+        filt = list(self._hw_filter_states())
+        if filt:
+            domain += [('state', 'in', filt)]
+        return self.env['op.assignment.sub.line'].search(domain)
+
+    def _hw_filter_states(self):
+        """Состояния текущего фильтра; пустой список — все."""
+        return self.HW_FILTER_STATES.get(
+            self.env.context.get('hw_filter') or 'all') or []
+
+    def _hw_bulk_write(self, state):
+        """Массовое действие ПОД ТЕКУЩИМ ФИЛЬТРОМ.
+
+        sudo() здесь НЕ используется намеренно. Раньше стоял — и это была
+        дыра: sudo снимает record rules, поэтому ученик вызовом этого
+        метода мог принять чужие работы, а учитель — поправить чужое
+        задание. Проверено: оба вызова проходили без отказа.
+
+        Без sudo домен ищется под текущим пользователем, поэтому
+        применяются ровно те строки, что видны в списке.
+
+        Проверка роли — обязательна и на сервере: группы на панели в
+        разметке скрывают кнопки от клиента, но RPC можно вызвать
+        напрямую, минуя форму.
+        """
+        self.ensure_one()
+        if not self._hw_is_teacher() and not self.env.user.has_group(
+                'openeducat_core.group_op_back_office_admin'):
+            raise AccessError(
+                _('Массовые действия по работам доступны учителю и админу'))
+        lines = self._hw_bulk_targets()
+        if not lines:
+            return _hw_notify(self, _('Нет строк под текущим фильтром'))
+        vals = {'state': state}
+        if self.hw_bulk_marks:
+            vals['marks'] = self.hw_bulk_marks
+        if self.hw_bulk_note:
+            vals['teacher_note'] = self.hw_bulk_note
+        lines.write(vals)
+        return _hw_notify(
+            self, _('Изменено строк: %d') % len(lines))
+
+    def action_hw_bulk_accept(self):
+        return self._hw_bulk_write('accept')
+
+    def action_hw_bulk_change(self):
+        return self._hw_bulk_write('change')
+
+    def action_hw_bulk_reject(self):
+        return self._hw_bulk_write('reject')
 
     # ---------------------------------------------------------
     # Активный фильтр: та же кнопка, но серверной подсветкой.
