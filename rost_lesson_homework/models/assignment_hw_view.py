@@ -71,8 +71,29 @@ class OpAssignment(models.Model):
         ],
         string='Фильтр',
         default='all',
+        groups='openeducat_assignment.group_op_assignment_user,'
+               'openeducat_assignment.group_teacher_assignment,'
+               'openeducat_core.group_op_faculty,'
+               'openeducat_core.group_op_back_office_admin',
         help='Выбранный фильтр списка работ. Меняется штатными кнопками '
              'в форме.')
+
+    # Фильтр — ИМЕННО запись, а не только контекст.
+    #
+    # Сначала фильтр жил в context: кнопка возвращала act_window с
+    # context hw_filter, а домен считался через depends_context. Так он
+    # не работал: клиент не перечитывает запись при смене контекста,
+    # значение hw_sub_line_domain оставалось прежним, и список не
+    # менялся (Миша: «фильтры не работают»).
+    #
+    # Теперь кнопка пишет поле и просит клиента перечитать форму
+    # (tag: reload) — тогда сервер отдаёт и фильтр, и новый домен.
+    HW_FILTER_BTN_GROUPS = (
+        'openeducat_assignment.group_op_assignment_user',
+        'openeducat_assignment.group_teacher_assignment',
+        'openeducat_core.group_op_faculty',
+        'openeducat_core.group_op_back_office_admin',
+    )
 
     # Состояния для каждого значения фильтра. Один источник правды для
     # домена (_compute_hw_sub_line_domain) и для массовых действий.
@@ -95,8 +116,7 @@ class OpAssignment(models.Model):
                 'openeducat_assignment.group_teacher_assignment')
             or self.env.user.has_group('openeducat_core.group_op_faculty'))
 
-    @api.depends('batch_id')
-    @api.depends_context('hw_filter', 'uid')
+    @api.depends('hw_filter', 'batch_id')
     def _compute_hw_sub_line_domain(self):
         """Домен для one2many работ.
 
@@ -119,7 +139,7 @@ class OpAssignment(models.Model):
                     ('student_id.user_id', '=', self.env.user.id)
                 ]
                 continue
-            states = KEYS.get(self.env.context.get('hw_filter') or 'all')
+            states = KEYS.get(asg.hw_filter or 'all')
             dom = []
             if states:
                 dom = [('state', 'in', states)]
@@ -131,21 +151,31 @@ class OpAssignment(models.Model):
     # Штатные кнопки фильтра
     # ---------------------------------------------------------------
     def _hw_filter_action(self, key):
-        """Открыть эту же форму с другим фильтром.
+        """Выбрать фильтр и обновить список.
 
         Кнопки в форме объявлены type="action" не могут, поэтому они
         type="object" и возвращают act_window. Это штатный механизм Odoo:
         сервер отдаёт действие, клиент его исполняет. Своего JS нет.
+
+        ВАЖНО: фильтр пишется в запись (hw_filter), а не только в
+        context. Через context не работало: клиент при смене контекста
+        не перечитывает запись, значение hw_sub_line_domain оставалось
+        прежним, и список не менялся. Поэтому пишем поле и просим
+        клиента перечитать форму — тогда сервер отдаёт новый домен.
         """
         self.ensure_one()
+        if not any(self.env.user.has_group(g)
+                   for g in self.HW_FILTER_BTN_GROUPS):
+            raise AccessError(
+                _('Фильтр по работам доступен учителю и админу'))
+        if self.hw_filter != key:
+            # sudo здесь не нужен и не нужен НИКОГДА: поле hw_filter
+            # открыто учителю в его задании. Но писать его может только
+            # тот, кому запись разрешена правилами — заодно проверяем.
+            self.write({'hw_filter': key})
         return {
-            'type': 'ir.actions.act_window',
-            'name': _('Домашнее задание'),
-            'res_model': self._name,
-            'res_id': self.id,
-            'view_mode': 'form',
-            'target': 'current',
-            'context': dict(self.env.context, hw_filter=key),
+            'type': 'ir.actions.client',
+            'tag': 'reload',
         }
 
     def action_hw_filter_all(self):
@@ -192,8 +222,7 @@ class OpAssignment(models.Model):
 
     def _hw_filter_states(self):
         """Состояния текущего фильтра; пустой список — все."""
-        return self.HW_FILTER_STATES.get(
-            self.env.context.get('hw_filter') or 'all') or []
+        return self.HW_FILTER_STATES.get(self.hw_filter or 'all') or []
 
     def _hw_bulk_write(self, state):
         """Массовое действие ПОД ТЕКУЩИМ ФИЛЬТРОМ.
