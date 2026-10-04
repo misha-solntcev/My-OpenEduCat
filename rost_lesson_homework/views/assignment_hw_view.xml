@@ -125,6 +125,17 @@
               Фильтры — штатные кнопки Odoo. Каждая возвращает act_window
               с context hw_filter, сервер подставляет домен по полю state.
             -->
+            <!--
+              Домен списка работ должен быть ОБЪЯВЛЕН ВНЕ вкладки учителя.
+              Иначе у ученика (которому вкладка «Работы» не рендерится) поля
+              нет в архитектуре, домен не резолвится — и он видит ВСЕ работы
+              по заданию, включая чужие. Проверено: так и вышло, ученик видел
+              работу одноклассника.
+            -->
+            <xpath expr="//notebook" position="before">
+                <field name="hw_sub_line_domain" invisible="1"/>
+            </xpath>
+
             <xpath expr="//notebook" position="inside">
                 <page name="hw_submissions" string="Работы"
                       groups="openeducat_assignment.group_op_assignment_user,openeducat_core.group_op_faculty">
@@ -150,8 +161,6 @@
                                 string="На доработке" class="btn btn-link p-0"
                                 invisible="hw_filter and hw_filter != 'back'"/>
                     </div>
-
-                    <field name="hw_sub_line_domain" invisible="1"/>
 
                     <field name="assignment_sub_line" nolabel="1"
                            domain="hw_sub_line_domain"

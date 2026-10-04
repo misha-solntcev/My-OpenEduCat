@@ -61,6 +61,16 @@
             <field name="groups"
                    eval="[(4, ref('openeducat_assignment.group_op_assignment_manager'))]"/>
             <field name="domain_force">[(1,'=',1)]</field>
+            <!--
+              ТОЛЬКО ЧТЕНИЕ. Группа 46 выдана 17 преподавателям из 21
+              (измерено на test4). При perm_write=True домен [(1,'=',1)]
+              разрешал учителю править задания ВСЕЙ школы; при perm_write=False
+              запись ограничивается правилами группы 45 — свои уроки.
+              Требование Миши: учитель видит всю школу, правит только свои.
+            -->
+            <field name="perm_write" eval="False"/>
+            <field name="perm_create" eval="False"/>
+            <field name="perm_unlink" eval="False"/>
         </record>
 
         <record model="ir.rule" id="manager_assignment_sub_line_rule">
@@ -68,6 +78,32 @@
             <field name="model_id" ref="model_op_assignment_sub_line"/>
             <field name="groups"
                    eval="[(4, ref('openeducat_assignment.group_op_assignment_manager'))]"/>
+            <field name="domain_force">[(1,'=',1)]</field>
+            <!-- Только чтение, см. комментарий выше. -->
+            <field name="perm_write" eval="False"/>
+            <field name="perm_create" eval="False"/>
+            <field name="perm_unlink" eval="False"/>
+        </record>
+
+        <!--
+          Завуч (back_office_admin): читает и правит всю школу.
+          Правила группы 46 теперь только на чтение, поэтому запись по всей
+          школе даём отдельными правилами — иначе завуч стал бы как учитель.
+          ACL на эти модели для back_office добавлены в ir.model.access.csv.
+        -->
+        <record model="ir.rule" id="back_office_assignment_rule">
+            <field name="name">Back office: write all assignments</field>
+            <field name="model_id" ref="model_op_assignment"/>
+            <field name="groups"
+                   eval="[(4, ref('openeducat_core.group_op_back_office_admin'))]"/>
+            <field name="domain_force">[(1,'=',1)]</field>
+        </record>
+
+        <record model="ir.rule" id="back_office_assignment_sub_line_rule">
+            <field name="name">Back office: write all submissions</field>
+            <field name="model_id" ref="model_op_assignment_sub_line"/>
+            <field name="groups"
+                   eval="[(4, ref('openeducat_core.group_op_back_office_admin'))]"/>
             <field name="domain_force">[(1,'=',1)]</field>
         </record>
 
@@ -84,4 +120,52 @@
         <field name="category_id" ref="module_category_openeducat_assignment"/>
         <field name="comment">Ученик: задания и сдача работ</field>
     </record>
-</odoo>
+
+    <!--
+      ==================== Ограничения для УЧЕНИКА (2026-10-03) ====================
+
+      Проверено на test4: ученик (uid 162) читал ВСЕ работы по заданию, включая
+      чужие — поиск без домена давал [124, 125] из двух строк, где 125 была
+      работой одноклассника.
+
+      Почему существующие правила не спасали: student_assignment_sub_line_rule
+      висит на group_op_assignment_manager, а не на группе ученика. Правил,
+      ограничивающих именно ученика, у модели не было вовсе.
+
+      Обратите внимание: правило выше остаётся на менеджере — иначе админ
+      перестанет видеть сдачи (manager_assignment_sub_line_rule даёт [(1,'=',1)]
+      только для manager, а student-правило станет применяться к тем же людям
+      и отрежет).
+
+      Родитель видит работы своего ребёнка — второй член ИЛИ.
+    -->
+    <record id="student_assignment_rule_rost" model="ir.rule">
+        <field name="name">Ученик: только выданные ему задания</field>
+        <field name="model_id" ref="model_op_assignment"/>
+        <field name="groups"
+               eval="[(4, ref('openeducat_assignment.group_student_assignment'))]"/>
+        <field name="domain_force">['|', ('allocation_ids.user_id', '=', user.id),
+            ('allocation_ids.user_id', 'in', user.child_ids.ids)]</field>
+    </record>
+
+    <!--
+          ОДНО правило на ученика, а не два. Групповые record rules в Odoo
+          объединяются через ИЛИ (см. ir_rule.py, докстрока _get_failing:
+          "local rules are OR-ed together"), поэтому второе правило вида
+          "работа только по своему заданию" НЕ сужает доступ, а расширяет:
+          первое правило оставляет только свою работу, второе пропускает любую
+          работу по заданию, где ученик есть в allocation_ids — то есть
+          ровно все работы одноклассников.
+
+          Проверено на test4: с двумя правилами ученик (uid 162) читал 13 работ,
+          включая чужую (id 125, ученик uid 188), с одним — только свои 6.
+        -->
+        <record id="student_assignment_sub_line_rule_rost" model="ir.rule">
+            <field name="name">Ученик: только своя работа</field>
+            <field name="model_id" ref="model_op_assignment_sub_line"/>
+            <field name="groups"
+                   eval="[(4, ref('openeducat_assignment.group_student_assignment'))]"/>
+            <field name="domain_force">['|', ('student_id.user_id', '=', user.id),
+                ('student_id.user_id', 'in', user.child_ids.ids)]</field>
+        </record>
+    </odoo>
