@@ -94,169 +94,128 @@
             </xpath>
 
             <!--
-              Вкладка «Кому задано» убирается целиком. Остаётся скрытое
-              поле allocation_ids: его заполняет журнал урока при создании
-              задания (OpAttendanceSheet._hw_create_assignment), и на этом
-              строится рассылка в миниапп. Удалять поле нельзя.
+              Ноутбук базовой формы разворачиваем ЦЕЛИКОМ (вариант 2, на
+              котором остановились): вкладок нет вообще. Задание и список
+              работ идут одним листом: сначала что задали, ниже кому и с
+              каким статусом.
 
-              АДМИНУ список детей НУЖЕН: он не входит ни в одну группу
-              учителя (проверено — has_group пуст для uid 1), поэтому вкладка
-              с группами учителя у него не рендерилась вообще. Отдельная
-              вкладка ему — с теми же данными, но одна колонка ФИО вместо
-              дублей Название/Имя/Отчество/Фамилия.
+              Страница allocation_infomation не переносится: её содержимое
+              (allocation_ids) уходит в скрытое поле, а детей теперь
+              показывает список работ — те же дети, но со статусом сдачи.
+              Само поле не удаляем: его заполняет журнал урока при создании
+              задания (attendance_sheet.py), и на нём стоит рассылка в
+              миниапп.
             -->
-            <xpath expr="//page[@name='allocation_infomation']" position="replace">
+            <xpath expr="//notebook" position="replace">
                 <field name="allocation_ids" invisible="1"/>
-            </xpath>
 
-            <xpath expr="//notebook" position="inside">
-                <page name="hw_allocation_admin" string="Кому задано"
-                      groups="openeducat_core.group_op_back_office_admin">
-                    <field name="allocation_ids" nolabel="1"
-                           context="{'active_test': False}">
-                        <list string="Кому задано" create="0" delete="0"
-                              edit="0">
-                            <field name="name" string="Ученик"/>
-                            <field name="active" string="Учится"/>
-                        </list>
-                    </field>
-                    <div class="text-muted small" invisible="allocation_ids">
-                        Список заполняется журналом урока при выдаче задания.
-                    </div>
-                </page>
-            </xpath>
+                <!--
+                  ОДИН список работ — без вкладок. Учитель, завуч и админ
+                  видят весь класс и могут проверять пачкой; ученик — только
+                  свою строку, домен приходит с сервера (hw_sub_line_domain),
+                  чужие работы не приезжают вообще, а не прячутся на клиенте.
 
-            <xpath expr="//page[@name='basic_information']" position="attributes">
-                <attribute name="string">Задание</attribute>
-            </xpath>
-            <xpath expr="//label[@for='description']" position="attributes">
-                <attribute name="string">Текст задания</attribute>
-            </xpath>
+                  Фильтры — штатные кнопки Odoo: каждая открывает эту же
+                  форму с другим hw_filter в контексте, домен подставляет
+                  сервер. Своего JS нет.
 
-            <!-- Срок: подпись и пояснение, откуда он взялся -->
-            <xpath expr="//field[@name='submission_date']" position="before">
-                <field name="hw_sheet_id" readonly="1"
-                       groups="openeducat_assignment.group_op_assignment_user,openeducat_core.group_op_faculty"/>
-            </xpath>
-
-            <!--
-              Вкладка «Работы». Учитель — весь класс списком и может
-              проверять пачкой. Ученик — только своя строка: домен приходит
-              с сервера (hw_sub_line_domain), чужие работы не приезжают
-              вообще, а не прячутся на клиенте.
-
-              Фильтры — штатные кнопки Odoo. Каждая возвращает act_window
-              с context hw_filter, сервер подставляет домен по полю state.
-            -->
-            <!--
-              Домен списка работ должен быть ОБЪЯВЛЕН ВНЕ вкладки учителя.
-              Иначе у ученика (которому вкладка «Работы» не рендерится) поля
-              нет в архитектуре, домен не резолвится — и он видит ВСЕ работы
-              по заданию, включая чужие. Проверено: так и вышло, ученик видел
-              работу одноклассника.
-            -->
-            <xpath expr="//notebook" position="before">
+                  Домен объявлен ОТДЕЛЬНО и вне групп: иначе у ученика (кто
+                  список учителя не видит) поля нет в архитектуре, домен не
+                  резолвится — и он получает все работы по заданию, включая
+                  чужие. Проверено: так и вышло, ученик видел работу
+                  одноклассника.
+                -->
                 <field name="hw_sub_line_domain" invisible="1"/>
-            </xpath>
 
-            <xpath expr="//notebook" position="inside">
-                <page name="hw_submissions" string="Работы"
-                      groups="openeducat_assignment.group_op_assignment_user,openeducat_core.group_op_faculty,openeducat_core.group_op_back_office_admin">
-                    <!--
-                      Фильтры — штатные кнопки Odoo. Каждая возвращает
-                      act_window с context hw_filter; активная подсвечена.
-                      Своего JS нет.
-                    -->
-                    <div class="mb-2" invisible="state == 'draft'">
-                        <button name="action_hw_filter_all" type="object"
-                                string="Все" class="btn btn-link p-0 me-3"
-                                invisible="hw_filter and hw_filter != 'all'"/>
-                        <button name="action_hw_filter_nosub" type="object"
-                                string="Не сдали" class="btn btn-link p-0 me-3"
-                                invisible="hw_filter and hw_filter != 'nosub'"/>
-                        <button name="action_hw_filter_wait" type="object"
-                                string="Ждут проверки" class="btn btn-link p-0 me-3"
-                                invisible="hw_filter and hw_filter != 'wait'"/>
-                        <button name="action_hw_filter_ok" type="object"
-                                string="Принято" class="btn btn-link p-0 me-3"
-                                invisible="hw_filter and hw_filter != 'ok'"/>
-                        <button name="action_hw_filter_back" type="object"
-                                string="На доработке" class="btn btn-link p-0"
-                                invisible="hw_filter and hw_filter != 'back'"/>
-                    </div>
+                <div class="mb-2 mt-3" invisible="state == 'draft'"
+                     groups="openeducat_assignment.group_op_assignment_user,openeducat_assignment.group_teacher_assignment,openeducat_core.group_op_faculty,openeducat_core.group_op_back_office_admin">
+                    <button name="action_hw_filter_all" type="object"
+                            string="Все" class="btn btn-link p-0 me-3"
+                            invisible="hw_filter and hw_filter != 'all'"/>
+                    <button name="action_hw_filter_nosub" type="object"
+                            string="Не сдали" class="btn btn-link p-0 me-3"
+                            invisible="hw_filter and hw_filter != 'nosub'"/>
+                    <button name="action_hw_filter_wait" type="object"
+                            string="Ждут проверки" class="btn btn-link p-0 me-3"
+                            invisible="hw_filter and hw_filter != 'wait'"/>
+                    <button name="action_hw_filter_ok" type="object"
+                            string="Принято" class="btn btn-link p-0 me-3"
+                            invisible="hw_filter and hw_filter != 'ok'"/>
+                    <button name="action_hw_filter_back" type="object"
+                            string="На доработке" class="btn btn-link p-0"
+                            invisible="hw_filter and hw_filter != 'back'"/>
+                </div>
 
-                    <field name="assignment_sub_line" nolabel="1"
-                           domain="hw_sub_line_domain"
-                           context="{'default_assignment_id': id}">
-                        <list string="Работы" editable="bottom"
-                              create="0"
-                              decoration-muted="state == 'draft'"
-                              decoration-success="state == 'accept'"
-                              decoration-warning="state == 'change'">
-                            <field name="student_id" readonly="1"/>
-                            <field name="state" widget="badge"
-                                   decoration-success="state == 'accept'"
-                                   decoration-warning="state == 'change'"
-                                   decoration-danger="state == 'reject'"/>
-                            <field name="submission_date" readonly="1"
-                                   string="Сдал" optional="hide"/>
-                            <field name="note" string="Ответ ученика"
-                                   optional="show"/>
-                            <field name="attachment_ids" widget="many2many_binary"
-                                   string="Вложения" optional="hide"
-                                   options="{'accepted_file_extensions': '.png,.jpg,.jpeg,.webp,.gif,.pdf'}"/>
-                            <field name="teacher_note"
-                                   string="Комментарий учителя"
-                                   optional="show"/>
-                            <field name="marks" string="Оценка"
-                                   invisible="state != 'accept'"
-                                   optional="show"/>
-                            <field name="marks_2" string="Оценка 2"
-                                   invisible="state != 'accept'"
-                                   optional="hide"/>
-                        </list>
-                    </field>
-                    <div class="text-muted small" invisible="assignment_sub_line">
+                <field name="assignment_sub_line" nolabel="1"
+                       domain="hw_sub_line_domain"
+                       context="{'default_assignment_id': id}"
+                       groups="openeducat_assignment.group_op_assignment_user,openeducat_assignment.group_teacher_assignment,openeducat_core.group_op_faculty,openeducat_core.group_op_back_office_admin">
+                    <list string="Работы" editable="bottom"
+                          create="0"
+                          decoration-muted="state == 'draft'"
+                          decoration-success="state == 'accept'"
+                          decoration-warning="state == 'change'">
+                        <field name="student_id" readonly="1"/>
+                        <field name="state" widget="badge"
+                               decoration-success="state == 'accept'"
+                               decoration-warning="state == 'change'"
+                               decoration-danger="state == 'reject'"/>
+                        <field name="submission_date" readonly="1"
+                               string="Сдал" optional="hide"/>
+                        <field name="note" string="Ответ ученика"
+                               optional="show"/>
+                        <field name="attachment_ids" widget="many2many_binary"
+                               string="Вложения" optional="hide"
+                               options="{'accepted_file_extensions': '.png,.jpg,.jpeg,.webp,.gif,.pdf'}"/>
+                        <field name="teacher_note"
+                               string="Комментарий учителя"
+                               optional="show"/>
+                        <field name="marks" string="Оценка"
+                               invisible="state != 'accept'"
+                               optional="show"/>
+                        <field name="marks_2" string="Оценка 2"
+                               invisible="state != 'accept'"
+                               optional="hide"/>
+                    </list>
+                </field>
+                <div class="text-muted small"
+                     invisible="assignment_sub_line"
+                     groups="openeducat_assignment.group_op_assignment_user,openeducat_assignment.group_teacher_assignment,openeducat_core.group_op_faculty,openeducat_core.group_op_back_office_admin">
+                    <i class="fa fa-info-circle me-1"/>
+                    Работ пока нет. Список класса заполняется при выдаче
+                    задания журналом урока; ученики сдают работу в миниаппе.
+                </div>
+
+                <!-- Ученику — только своя работа, без списка класса -->
+                <div invisible="assignment_sub_line"
+                     groups="openeducat_assignment.group_student_assignment">
+                    <p class="text-muted">
                         <i class="fa fa-info-circle me-1"/>
-                        Работ пока нет. Они появятся, когда ученики сдадут
-                        задание в миниаппе, либо когда задание будет выдано
-                        и список класса заполнен журналом урока.
-                    </div>
-                </page>
-
-                <!-- Ученику вместо списка класса — его одна работа -->
-                <page name="hw_my_work" string="Моя работа"
-                      groups="openeducat_assignment.group_student_assignment"
-                      invisible="assignment_sub_line">
-                    <div class="text-muted small">
-                        <i class="fa fa-info-circle me-1"/>
-                        Это задание ещё не сдано. Работы можно сдать
+                        Это задание ещё не сдано. Работу можно сдать
                         в миниаппе — до конца урока.
-                    </div>
-                </page>
-                <page name="hw_my_work_done" string="Моя работа"
-                      groups="openeducat_assignment.group_student_assignment"
-                      invisible="not assignment_sub_line">
-                    <field name="assignment_sub_line" nolabel="1"
-                           domain="hw_sub_line_domain"
-                           readonly="1">
-                        <list string="Моя работа" create="0" delete="0">
-                            <field name="state" widget="badge"
-                                   decoration-success="state == 'accept'"
-                                   decoration-warning="state == 'change'"
-                                   decoration-danger="state == 'reject'"/>
-                            <field name="submission_date" readonly="1"
-                                   string="Сдал"/>
-                            <field name="marks" string="Оценка"/>
-                            <field name="teacher_note"
-                                   string="Комментарий учителя"/>
-                            <field name="note" string="Мой ответ"/>
-                            <field name="attachment_ids" widget="many2many_binary"
-                                   string="Мои вложения" readonly="1"
-                                   options="{'accepted_file_extensions': '.png,.jpg,.jpeg,.webp,.gif,.pdf'}"/>
-                        </list>
-                    </field>
-                </page>
+                    </p>
+                </div>
+                <field name="assignment_sub_line" nolabel="1"
+                       domain="hw_sub_line_domain"
+                       readonly="1"
+                       invisible="not assignment_sub_line"
+                       groups="openeducat_assignment.group_student_assignment">
+                    <list string="Моя работа" create="0" delete="0">
+                        <field name="state" widget="badge"
+                               decoration-success="state == 'accept'"
+                               decoration-warning="state == 'change'"
+                               decoration-danger="state == 'reject'"/>
+                        <field name="submission_date" readonly="1"
+                               string="Сдал"/>
+                        <field name="marks" string="Оценка"/>
+                        <field name="teacher_note"
+                               string="Комментарий учителя"/>
+                        <field name="note" string="Мой ответ"/>
+                        <field name="attachment_ids" widget="many2many_binary"
+                               string="Мои вложения" readonly="1"
+                               options="{'accepted_file_extensions': '.png,.jpg,.jpeg,.webp,.gif,.pdf'}"/>
+                    </list>
+                </field>
             </xpath>
 
         </field>
