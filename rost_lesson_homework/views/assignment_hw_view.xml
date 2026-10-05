@@ -180,28 +180,19 @@
                        colspan="4"/>
 
                 <!--
-                  Полоса-сводка из макета: «Работы — 15 · 11 сдали ·
-                  5 принято · 3 ждут проверки · 2 на доработке».
-                  Считается на сервере по всем работам задания, не по
-                  фильтру, иначе цифры прыгали бы при переключении.
+                  Полосы-сводки по состояниям в форме нет, по решению Миши.
+                  Поначалу убрали только счётчик «не сдали», а
+                  полосу оставили — это было неверное прочтение просьбы.
 
-                  «Не сдали» из сводки убрали (Миша: «она тоже лишняя,
-                  убери её»): это обратная величина к «сдали», своих
-                  строк в списке у неё нет, а сбивает с толку — счётчик
-                  ждут проверки 3 против не сдавших 4 выглядит как ошибка.
-                  Поле hw_count_draft в модели оставлено: оно считает
-                  строки со статусом draft и ещё понадобится, но в
-                  интерфейсе не показывается.
+                  Числа всё равно показывают штатные фильтры окна работ,
+                  но там их можно отфильтровать и получить ровно то же
+                  число строк, а здесь цифры висят без возможности
+                  посмотреть, откуда они взялись.
+
+                  Поля-счётчики в модели оставлены: они считаются на
+                  сервере и ещё понадобятся, но в интерфейсе не
+                  показываются.
                 -->
-                <div class="d-flex flex-wrap align-items-center gap-3 mb-2 mt-2 pb-2"
-                     style="border-bottom: 1px solid #e6e6e6;"
-                     groups="openeducat_assignment.group_op_assignment_user,openeducat_assignment.group_teacher_assignment,openeducat_core.group_op_faculty,openeducat_core.group_op_back_office_admin">
-                    <strong>Работы — <field name="hw_count_total" nolabel="1" class="d-inline"/></strong>
-                    <span><field name="hw_count_submitted" nolabel="1" class="d-inline"/> сдали</span>
-                    <span><field name="hw_count_accept" nolabel="1" class="d-inline"/> принято</span>
-                    <span><field name="hw_count_wait" nolabel="1" class="d-inline"/> ждут проверки</span>
-                    <span><field name="hw_count_change" nolabel="1" class="d-inline"/> на доработке</span>
-                </div>
 
                 <!--
                   Работы открывает ОДНА кнопка — штатная смарт-кнопка
