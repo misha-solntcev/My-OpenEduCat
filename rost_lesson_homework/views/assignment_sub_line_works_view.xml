@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!--
+        Окно проверки работ по одному заданию (вариант 1).
+
+        Здесь работают ШТАТНЫЕ фильтры по состояниям и ШТАТНЫЙ выбор строк
+        (галочки в заголовке таблицы). Обе механики в Odoo существуют
+        только в отдельном list view с search view над ним — во вложенном
+        one2many внутри формы задания их нет, поэтому там пришлось бы
+        конструировать и то и другое руками (проверено: домен не
+        применялся к загруженным строкам, выбор был полем hw_marked).
+
+        Окно одно на задание: домен задаётся кнопкой «Работы» на форме
+        (action_hw_open_works), вкладок нет.
+    -->
+
+    <!-- ==================== Фильтры по состояниям ==================== -->
+    <record id="view_op_assignment_sub_line_search" model="ir.ui.view">
+        <field name="name">op.assignment.sub.line.search.hw</field>
+        <field name="model">op.assignment.sub.line</field>
+        <field name="arch" type="xml">
+            <search string="Работы">
+                <!-- Активный по умолчанию фильтр: ждут проверки.
+                     Действующие работы — то, с чем учитель работает сейчас;
+                     принятые и отклонённые тоже доступны, но явной кнопкой. -->
+                <filter name="hw_wait"
+                        string="Ждут проверки"
+                        domain="[('state', '=', 'submit')]"/>
+                <filter name="hw_nosub"
+                        string="Не сдали"
+                        domain="[('state', '=', 'draft')]"/>
+                <filter name="hw_change"
+                        string="На доработке"
+                        domain="[('state', '=', 'change')]"/>
+                <filter name="hw_accept"
+                        string="Принято"
+                        domain="[('state', '=', 'accept')]"/>
+                <filter name="hw_reject"
+                        string="Отклонено"
+                        domain="[('state', '=', 'reject')]"/>
+                <separator/>
+                <!-- Разбивка как в макете: сначала ученик. -->
+                <filter name="group_student"
+                        string="По ученикам"
+                        context="{'group_by': 'student_id'}"/>
+                <filter name="group_state"
+                        string="По состояниям"
+                        context="{'group_by': 'state'}"/>
+                <field name="student_id"/>
+                <field name="state"/>
+            </search>
+        </field>
+    </record>
+
+    <!-- ==================== Список работ ==================== -->
+    <record id="view_op_assignment_sub_line_list_hw" model="ir.ui.view">
+        <field name="name">op.assignment.sub.line.list.hw</field>
+        <field name="model">op.assignment.sub.line</field>
+        <field name="arch" type="xml">
+            <!-- multi_edit="1" — штатная правка нескольких выбранных
+                 строк одновременно: учитель может проставить оценки и
+                 комментарии сразу десятку работ без кнопок. -->
+            <list string="Работы"
+                  editable="bottom"
+                  create="0"
+                  delete="0"
+                  multi_edit="1"
+                  decoration-muted="state == 'draft'"
+                  decoration-success="state == 'accept'"
+                  decoration-warning="state == 'change'"
+                  decoration-danger="state == 'reject'">
+                <field name="hw_marked" string=""/>
+                <field name="student_id" readonly="1"/>
+                <field name="state" widget="badge"
+                       decoration-success="state == 'accept'"
+                       decoration-warning="state == 'change'"
+                       decoration-danger="state == 'reject'"/>
+                <field name="submission_date" readonly="1"
+                       string="Сдал" optional="hide"/>
+                <field name="note" string="Ответ ученика"
+                       optional="show"/>
+                <field name="attachment_ids" widget="many2many_binary"
+                       string="Вложения" optional="hide"
+                       options="{'accepted_file_extensions': '.png,.jpg,.jpeg,.webp,.gif,.pdf'}"/>
+                <field name="teacher_note"
+                       string="Комментарий учителя"
+                       optional="show"/>
+                <field name="marks" string="Оценка"
+                       optional="show"/>
+                <field name="marks_2" string="Оценка 2"
+                       optional="hide"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- ==================== Окно ==================== -->
+    <record id="action_op_assignment_works" model="ir.actions.act_window">
+        <field name="name">Работы</field>
+        <field name="res_model">op.assignment.sub.line</field>
+        <field name="view_mode">list</field>
+        <!-- view_id, а не views: запись ir.actions.act_window в XML
+             описывается через view_mode + view_id, вложенный views тут
+             не поддерживается схемой (import_xml.rng), а eval подставил
+             строку 'list' вместо ссылки на view. -->
+        <field name="view_id"
+               ref="rost_lesson_homework.view_op_assignment_sub_line_list_hw"/>
+        <field name="search_view_id"
+               ref="rost_lesson_homework.view_op_assignment_sub_line_search"/>
+        <field name="context">{'search_default_hw_wait': 1}</field>
+        <field name="domain">[]</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Работ по заданию нет</p>
+            <p>Список заполняется, когда ученики сдают работу.</p>
+        </field>
+    </record>
+
+</odoo>

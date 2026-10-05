@@ -61,52 +61,7 @@ class OpAssignment(models.Model):
         help='Домен списка работ. Учитель видит весь класс, ученик — '
              'только свою работу.')
 
-    hw_filter = fields.Selection(
-        selection=[
-            ('all', 'Все'),
-            ('nosub', 'Не сдали'),
-            ('wait', 'Ждут проверки'),
-            ('ok', 'Принято'),
-            ('back', 'На доработке'),
-        ],
-        string='Фильтр',
-        default='all',
-        groups='openeducat_assignment.group_op_assignment_user,'
-               'openeducat_assignment.group_teacher_assignment,'
-               'openeducat_core.group_op_faculty,'
-               'openeducat_core.group_op_back_office_admin',
-        help='Выбранный фильтр списка работ. Меняется штатными кнопками '
-             'в форме.')
 
-    # Фильтр — ИМЕННО запись, а не только контекст.
-    #
-    # Сначала фильтр жил в context: кнопка возвращала act_window с
-    # context hw_filter, а домен считался через depends_context. Так он
-    # не работал: клиент не перечитывает запись при смене контекста,
-    # значение hw_sub_line_domain оставалось прежним, и список не
-    # менялся (Миша: «фильтры не работают»).
-    #
-    # Теперь кнопка пишет поле и просит клиента перечитать форму
-    # (tag: reload) — тогда сервер отдаёт и фильтр, и новый домен.
-    HW_FILTER_BTN_GROUPS = (
-        'openeducat_assignment.group_op_assignment_user',
-        'openeducat_assignment.group_teacher_assignment',
-        'openeducat_core.group_op_faculty',
-        'openeducat_core.group_op_back_office_admin',
-    )
-
-    # Состояния для каждого значения фильтра. Один источник правды для
-    # домена (_compute_hw_sub_line_domain) и для массовых действий.
-    HW_FILTER_STATES = {
-        'nosub': ['draft'],
-        'wait': ['submit'],
-        'ok': ['accept'],
-        'back': ['change'],
-    }
-
-    # ---------------------------------------------------------------
-    # Домен по роли
-    # ---------------------------------------------------------------
     def _hw_is_teacher(self):
         """Считаем ли мы текущего пользователя тем, кто проверяет работы."""
         self.ensure_one()
@@ -116,12 +71,17 @@ class OpAssignment(models.Model):
                 'openeducat_assignment.group_teacher_assignment')
             or self.env.user.has_group('openeducat_core.group_op_faculty'))
 
-    @api.depends('hw_filter', 'batch_id')
+    @api.depends('batch_id')
     def _compute_hw_sub_line_domain(self):
-        """Домен для one2many работ.
+        """Домен для вложенного one2many работ — по роли, не по фильтру.
 
-        Ключ фильтра берём из контекста: кнопки в форме подставляют
-        hw_filter, а мы превращаем его в домен по полю state.
+        Фильтра по состояниям здесь нет и быть не может: фильтры в Odoo
+        живут только в search view над отдельным action, а у вложенного
+        one2many своего action нет. Домен из этого поля клиент к уже
+        загруженным строкам не применяет — проверено вживую на test4.
+        Поэтому фильтры вынесены в отдельное окно работ
+        (assignment_sub_line_works_view.xml), а здесь остаётся только
+        разграничение по роли.
 
         Состояния в op.assignment.sub.line.state:
           draft  — не сдавал
@@ -130,7 +90,6 @@ class OpAssignment(models.Model):
           change — на доработке
           reject — отклонено
         """
-        KEYS = dict(self.HW_FILTER_STATES, all=None)
         for asg in self:
             if not asg._hw_is_teacher():
                 # Ученик видит только свою строку — по student_id, а не по
@@ -138,61 +97,9 @@ class OpAssignment(models.Model):
                 asg.hw_sub_line_domain = [
                     ('student_id.user_id', '=', self.env.user.id)
                 ]
-                continue
-            states = KEYS.get(asg.hw_filter or 'all')
-            dom = []
-            if states:
-                dom = [('state', 'in', states)]
-            # Незавершённые работы показываем, принятые — подсвечивает
-            # сама list через decoration-success.
-            asg.hw_sub_line_domain = dom or [('id', '!=', 0)]
-
-    # ---------------------------------------------------------------
-    # Штатные кнопки фильтра
-    # ---------------------------------------------------------------
-    def _hw_filter_action(self, key):
-        """Выбрать фильтр и обновить список.
-
-        Кнопки в форме объявлены type="action" не могут, поэтому они
-        type="object" и возвращают act_window. Это штатный механизм Odoo:
-        сервер отдаёт действие, клиент его исполняет. Своего JS нет.
-
-        ВАЖНО: фильтр пишется в запись (hw_filter), а не только в
-        context. Через context не работало: клиент при смене контекста
-        не перечитывает запись, значение hw_sub_line_domain оставалось
-        прежним, и список не менялся. Поэтому пишем поле и просим
-        клиента перечитать форму — тогда сервер отдаёт новый домен.
-        """
-        self.ensure_one()
-        if not any(self.env.user.has_group(g)
-                   for g in self.HW_FILTER_BTN_GROUPS):
-            raise AccessError(
-                _('Фильтр по работам доступен учителю и админу'))
-        if self.hw_filter != key:
-            # sudo здесь не нужен и не нужен НИКОГДА: поле hw_filter
-            # открыто учителю в его задании. Но писать его может только
-            # тот, кому запись разрешена правилами — заодно проверяем.
-            self.write({'hw_filter': key})
-        return {
-            'type': 'ir.actions.client',
-            'tag': 'reload',
-        }
-
-    def action_hw_filter_all(self):
-        return self._hw_filter_action('all')
-
-    def action_hw_filter_nosub(self):
-        return self._hw_filter_action('nosub')
-
-    def action_hw_filter_wait(self):
-        return self._hw_filter_action('wait')
-
-    def action_hw_filter_ok(self):
-        return self._hw_filter_action('ok')
-
-    def action_hw_filter_back(self):
-        return self._hw_filter_action('back')
-
+            else:
+                # Учителю, завучу и админу — все работы задания.
+                asg.hw_sub_line_domain = [('id', '!=', 0)]
     # ---------------------------------------------------------
     # Полоса-сводка из макета: «Работы — 15 · 11 сдали · 8 принято ·
     # 2 ждут проверки · 1 на доработке». Считается на сервере, без JS.
@@ -228,28 +135,6 @@ class OpAssignment(models.Model):
             # «Сдали» — все, кто не в draft: сдал, даже если на доработке.
             asg.hw_count_submitted = (
                 asg.hw_count_total - by_state.get('draft', 0))
-
-
-    # ---------------------------------------------------------
-    # Активный фильтр: та же кнопка, но серверной подсветкой.
-    # Нужна вторая кнопка потому, что Odoo не умеет менять class
-    # поляны по значению: показывать все кнопки и выделять активную
-    # можно только двумя наборами с взаимоисключающим invisible.
-    # ---------------------------------------------------------
-    def action_hw_filter_all_active(self):
-        return self._hw_filter_action('all')
-
-    def action_hw_filter_nosub_active(self):
-        return self._hw_filter_action('nosub')
-
-    def action_hw_filter_wait_active(self):
-        return self._hw_filter_action('wait')
-
-    def action_hw_filter_ok_active(self):
-        return self._hw_filter_action('ok')
-
-    def action_hw_filter_back_active(self):
-        return self._hw_filter_action('back')
 
     # ---------------------------------------------------------------
     # Ученик: заменить список работ на свою единственную работу

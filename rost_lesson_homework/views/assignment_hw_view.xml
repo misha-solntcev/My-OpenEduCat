@@ -17,9 +17,11 @@
           в «Ещё ▾» они и были, отдельного смысла в виду не имеют.
 
       Что добавлено:
-        * фильтры списка работ — штатные кнопки Odoo (type="object",
-          возвращают act_window с context hw_filter). Своего JS нет;
-        * вкладка «Моя работа» для ученика — вместо чужого списка класса.
+        * кнопка «Ответы на задание» перекрашена в btn-primary и
+          подписана «Работы»; метод переопределён, она открывает окно
+          с фильтрами по состояниям и штатным выбором строк;
+        * сводка «Работы — N · сдали · принято · ждут · доработке»;
+        * список своей работы для ученика — вместо чужого списка класса.
 
       Название — «Работы», а не «Сдачи»: «сдачи» калька с submissions.
       В миниаппе того же слова в интерфейсе нет, там сегменты
@@ -57,13 +59,27 @@
                 <attribute name="string">Отозвать задание</attribute>
             </xpath>
 
-            <!-- Кнопку «Ответы на задания» (get_assignment_submissions) учителю
-                 оставляем: это единственный способ посмотреть сдачи задания
-                 целиком. Ученику она не нужна и небезопасна (открывает все
-                 работы по заданию), поэтому прячем по группам. -->
+            <!-- Кнопка «Ответы на задание» (get_assignment_submissions) —
+                 единственная точка входа в работы задания. Вторую
+                 кнопку «Работы» убрали: два источника правды на одно и
+                 то же (Миша: «надо оставить один — это родная Ответы»).
+
+                 Перекрашена под главную кнопку макета (btn-primary) и
+                 подписана «Работы», чтобы учитель видел привычное
+                 слово из интерфейса, а не кальку «Submissions».
+                 Ученику не нужна и небезопасна (открывает все работы
+                 по заданию), поэтому прячем по группам.
+
+                 Метод переопределён в models/assignment_hw_works.py:
+                 открывает окно с фильтрами по состояниям и штатным
+                 выбором строк, а не голый список без панели. -->
             <xpath expr="//button[@name='get_assignment_submissions']"
                    position="attributes">
                 <attribute name="groups">openeducat_assignment.group_op_assignment_user,openeducat_core.group_op_faculty</attribute>
+                <attribute name="string">Работы</attribute>
+                <attribute name="icon">fa-list-alt</attribute>
+                <attribute name="class">btn btn-primary</attribute>
+                <attribute name="type">object</attribute>
             </xpath>
 
             <!-- Служебные поля шапки: учителю не нужны, ученику тем более.
@@ -115,9 +131,14 @@
                   свою строку, домен приходит с сервера (hw_sub_line_domain),
                   чужие работы не приезжают вообще, а не прячутся на клиенте.
 
-                  Фильтры — штатные кнопки Odoo: каждая открывает эту же
-                  форму с другим hw_filter в контексте, домен подставляет
-                  сервер. Своего JS нет.
+                  Фильтров по состояниям в форме НЕТ и быть не может: фильтры в
+                  Odoo живут только в search view над отдельным action,
+                  а у вложенного one2many своего action нет. Домен из
+                  `domain="hw_sub_line_domain"` клиент к уже загруженным
+                  строкам не применяет — проверено вживую (кнопка меняла
+                  подсветку, список оставался прежним). Поэтому работы
+                  учителю открывает отдельное окно из кнопки «Ответы на
+                  задание» (views/assignment_sub_line_works_view.xml).
 
                   Домен объявлен ОТДЕЛЬНО и вне групп: иначе у ученика (кто
                   список учителя не видит) поля нет в архитектуре, домен не
@@ -152,9 +173,17 @@
 
                 <!--
                   Полоса-сводка из макета: «Работы — 15 · 11 сдали ·
-                  8 принято · 2 ждут проверки · 1 на доработке».
+                  5 принято · 3 ждут проверки · 2 на доработке».
                   Считается на сервере по всем работам задания, не по
                   фильтру, иначе цифры прыгали бы при переключении.
+
+                  «Не сдали» из сводки убрали (Миша: «она тоже лишняя,
+                  убери её»): это обратная величина к «сдали», своих
+                  строк в списке у неё нет, а сбивает с толку — счётчик
+                  ждут проверки 3 против не сдавших 4 выглядит как ошибка.
+                  Поле hw_count_draft в модели оставлено: оно считает
+                  строки со статусом draft и ещё понадобится, но в
+                  интерфейсе не показывается.
                 -->
                 <div class="d-flex flex-wrap align-items-center gap-3 mb-2 mt-2 pb-2"
                      style="border-bottom: 1px solid #e6e6e6;"
@@ -164,119 +193,25 @@
                     <span><field name="hw_count_accept" nolabel="1" class="d-inline"/> принято</span>
                     <span><field name="hw_count_wait" nolabel="1" class="d-inline"/> ждут проверки</span>
                     <span><field name="hw_count_change" nolabel="1" class="d-inline"/> на доработке</span>
-                    <span class="text-muted"><field name="hw_count_draft" nolabel="1" class="d-inline"/> не сдали</span>
                 </div>
 
                 <!--
-                  Фильтры видны ВСЕ сразу (как в макете
-                  design/homework-pc-teacher-form-v2.html), активный лишь
-                  выделен. Поэтому НЕ пишем invisible="hw_filter != ...":
-                  такая логика скрывает все кнопки кроме активной — именно
-                  так фильтры и «пропали». Активность показываем class,
-                  который переключается сервером: неактивные — btn-link,
-                  активная — btn-secondary.
+                  Работы открывает ОДНА кнопка — штатная смарт-кнопка
+                  «Ответы на задание» (get_assignment_submissions) в
+                  button_box выше. Вторую кнопку «Работы» убрали: два
+                  источника правды на одно и то же — учитель не должен
+                  гадать, куда нажать (Миша: «надо оставить один»).
+
+                  Метод get_assignment_submissions переопределён в
+                  models/assignment_hw_works.py: он открывает окно
+                  assignment_sub_line_works_view.xml, где есть штатные
+                  фильтры по состояниям, штатные галочки выбора строк и
+                  multi_edit. Раньше он отдавал action без search view,
+                  поэтому фильтров там не было вовсе.
+
+                  Своего JS нет.
                 -->
-                <div class="mb-2 mt-3 d-flex flex-wrap align-items-center"
-                     invisible="state == 'draft'"
-                     groups="openeducat_assignment.group_op_assignment_user,openeducat_assignment.group_teacher_assignment,openeducat_core.group_op_faculty,openeducat_core.group_op_back_office_admin">
-                    <button name="action_hw_filter_all" type="object"
-                            string="Все" class="btn btn-link p-0 me-3"
-                            invisible="hw_filter == 'all'"/>
-                    <button name="action_hw_filter_all_active" type="object"
-                            string="Все" class="btn btn-secondary p-0 me-3"
-                            invisible="hw_filter != 'all'"/>
-                    <button name="action_hw_filter_nosub" type="object"
-                            string="Не сдали" class="btn btn-link p-0 me-3"
-                            invisible="hw_filter == 'nosub'"/>
-                    <button name="action_hw_filter_nosub_active" type="object"
-                            string="Не сдали" class="btn btn-secondary p-0 me-3"
-                            invisible="hw_filter != 'nosub'"/>
-                    <button name="action_hw_filter_wait" type="object"
-                            string="Ждут проверки" class="btn btn-link p-0 me-3"
-                            invisible="hw_filter == 'wait'"/>
-                    <button name="action_hw_filter_wait_active" type="object"
-                            string="Ждут проверки" class="btn btn-secondary p-0 me-3"
-                            invisible="hw_filter != 'wait'"/>
-                    <button name="action_hw_filter_ok" type="object"
-                            string="Принято" class="btn btn-link p-0 me-3"
-                            invisible="hw_filter == 'ok'"/>
-                    <button name="action_hw_filter_ok_active" type="object"
-                            string="Принято" class="btn btn-secondary p-0 me-3"
-                            invisible="hw_filter != 'ok'"/>
-                    <button name="action_hw_filter_back" type="object"
-                            string="На доработке" class="btn btn-link p-0"
-                            invisible="hw_filter == 'back'"/>
-                    <button name="action_hw_filter_back_active" type="object"
-                            string="На доработке" class="btn btn-secondary p-0"
-                            invisible="hw_filter != 'back'"/>
-                </div>
 
-                <!--
-                                  Панель массовых действий по макету: видна только когда
-                                  отмечены строки, показывает «Выбрано N», кнопки НАПРАВЛЯЮТ
-                                  (Принять / На доработку / Отклонить), а применяет их одна
-                                  кнопка «Применить» вместе с оценкой и комментарием.
-
-                                  Отметка — колонка hw_marked в самой строке, то есть штатное
-                                  поле Odoo, а не JS. Панель включается сервером через
-                                  hw_bulk_count: он считает отмеченные строки, поэтому при
-                                  пустом выборе панель не показывается вообще.
-                                -->
-                                <div class="d-flex flex-wrap align-items-center gap-2 mb-2 mt-2 p-2"
-                                     style="background-color: #f5f7f9; border-radius: 4px;"
-                                     invisible="hw_bulk_count == 0 or state == 'draft'"
-                                     groups="openeducat_assignment.group_op_assignment_user,openeducat_assignment.group_teacher_assignment,openeducat_core.group_op_faculty,openeducat_core.group_op_back_office_admin">
-                                    <span>Выбрано: <field name="hw_bulk_count" nolabel="1" class="d-inline"/></span>
-                                    <button name="action_hw_bulk_mark_accept" type="object"
-                                            string="Принять" class="btn btn-link p-0 me-3"/>
-                                    <button name="action_hw_bulk_mark_change" type="object"
-                                            string="На доработку" class="btn btn-link p-0 me-3"/>
-                                    <button name="action_hw_bulk_mark_reject" type="object"
-                                            string="Отклонить" class="btn btn-link p-0 me-3"/>
-                                    <field name="hw_bulk_marks" class="form-control input-sm"
-                                           style="width: 90px;" placeholder="Оценка"
-                                           nolabel="1"/>
-                                    <field name="hw_bulk_note" class="form-control input-sm"
-                           style="flex: 1; min-width: 220px;"
-                           placeholder="Комментарий учителя" nolabel="1"/>
-                    <button name="action_hw_bulk_apply" type="object"
-                            string="Применить" class="btn btn-primary btn-sm"/>
-                </div>
-
-                <field name="assignment_sub_line" nolabel="1"
-                       domain="hw_sub_line_domain"
-                       context="{'default_assignment_id': id}"
-                       groups="openeducat_assignment.group_op_assignment_user,openeducat_assignment.group_teacher_assignment,openeducat_core.group_op_faculty,openeducat_core.group_op_back_office_admin">
-                    <list string="Работы" editable="bottom"
-                          create="0"
-                          decoration-muted="state == 'draft'"
-                          decoration-success="state == 'accept'"
-                          decoration-warning="state == 'change'">
-                        <field name="hw_marked" string=""
-                               groups="openeducat_assignment.group_op_assignment_user,openeducat_assignment.group_teacher_assignment,openeducat_core.group_op_faculty,openeducat_core.group_op_back_office_admin"/>
-                        <field name="student_id" readonly="1"/>
-                        <field name="state" widget="badge"
-                               decoration-success="state == 'accept'"
-                               decoration-warning="state == 'change'"
-                               decoration-danger="state == 'reject'"/>
-                        <field name="submission_date" readonly="1"
-                               string="Сдал" optional="hide"/>
-                        <field name="note" string="Ответ ученика"
-                               optional="show"/>
-                        <field name="attachment_ids" widget="many2many_binary"
-                               string="Вложения" optional="hide"
-                               options="{'accepted_file_extensions': '.png,.jpg,.jpeg,.webp,.gif,.pdf'}"/>
-                        <field name="teacher_note"
-                               string="Комментарий учителя"
-                               optional="show"/>
-                        <field name="marks" string="Оценка"
-                               invisible="state != 'accept'"
-                               optional="show"/>
-                        <field name="marks_2" string="Оценка 2"
-                               invisible="state != 'accept'"
-                               optional="hide"/>
-                    </list>
-                </field>
                 <div class="text-muted small"
                      invisible="assignment_sub_line"
                      groups="openeducat_assignment.group_op_assignment_user,openeducat_assignment.group_teacher_assignment,openeducat_core.group_op_faculty,openeducat_core.group_op_back_office_admin">

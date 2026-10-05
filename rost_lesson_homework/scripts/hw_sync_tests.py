@@ -24,7 +24,7 @@ rost_lesson_homework держит три копии согласованными
 import traceback
 
 from odoo.tools import html2plaintext
-from odoo.exceptions import AccessError
+from odoo.exceptions import AccessError, UserError
 
 # Заглушка фоточного ДЗ продублирована в двух модулях — берём из
 # rost_lesson_homework, где живёт и метод hw_drop_empty_photo_assignment.
@@ -424,10 +424,31 @@ def hw_pc_test_assignment_counters():
     check('счётчик «Ответы на задания» = число сдач',
           asg.assignment_sub_line_count, len(subs))
 
-    # Кнопка «Ответы на задания» на месте и открывает сдачи этого задания.
+    # Кнопка «Ответы на задание» — единственная точка входа в работы.
+    # Метод переопределён (models/assignment_hw_works.py) и открывает
+    # наше окно с фильтрами по состояниям, а не голый список без панели.
+    # На задании без работ — понятный отказ, а не пустое окно.
+    if not subs:
+        try:
+            asg.get_assignment_submissions()
+            check_true('без работ — отказ, а не пустое окно', False,
+                       'окно открылось')
+        except UserError:
+            check_true('без работ — отказ, а не пустое окно', True)
+        return
+
     act = asg.get_assignment_submissions()
-    check('«Ответы на задания» открывает сдачи задания',
-          act.get('domain'), [('id', 'in', subs.ids)])
+    check('«Ответы на задание» открывает работы этого задания',
+          act.get('domain'), [('assignment_id', '=', asg.id)])
+    # Окно с фильтрами: без search view фильтров не будет.
+    sv = act.get('search_view_id')
+    check_true('у окна работ есть search view с фильтрами', bool(sv),
+               'search_view_id=%s' % (sv,))
+    # Штатный выбор строк и multi_edit живут в list view окна.
+    lv = act.get('view_id')
+    arch = env['ir.ui.view'].browse(lv[0]).arch if lv else ''
+    check_true('в окне есть multi_edit (правка выбранных строк)',
+               'multi_edit' in arch)
 
 
 def hw_pc_test_reset_requires_flag():
