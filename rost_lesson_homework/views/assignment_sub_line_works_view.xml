@@ -71,15 +71,21 @@
                   decoration-warning="state == 'change'"
                   decoration-danger="state == 'reject'">
                 <!--
-                  Кнопки над списком применяют действие к ОТМЕЧЕННЫМ
-                  строкам. В штатном list view отметка — это галочка
-                  выбора строки, поэтому клиент передаёт методу ровно те
-                  записи, которые выбраны: подменять их поиском по полю
-                  не нужно, «зацепить» чужое невозможно.
+                  Кнопки применяют действие к ОТМЕЧЕННЫМ строкам.
+                  Обязательно обёрнуты в <header>: кнопка, объявленная
+                  прямо в <list>, отрисовывается В КАЖДОЙ СТРОКЕ — Миша
+                  увидел четыре кнопки × 15 строк. В <header> они
+                  попадают в шапку списка один раз.
+
+                  Отметка в штатном list view — это галочка выбора строки,
+                  поэтому клиент передаёт методу ровно выбранные записи:
+                  подменять их поиском по полю не нужно, «зацепить» чужое
+                  невозможно.
 
                   Заполнить оценку и комментарий пачкой можно прямо в
                   колонках — это и есть штатный multi_edit="1" выше.
                 -->
+                <header>
                 <button name="action_hw_accept_selected" type="object"
                         string="Принять" class="btn btn-link p-0 me-3"
                         groups="openeducat_assignment.group_op_assignment_user,openeducat_assignment.group_teacher_assignment,openeducat_core.group_op_faculty,openeducat_core.group_op_back_office_admin"/>
@@ -92,6 +98,7 @@
                 <button name="action_hw_clear_marks" type="object"
                         string="Снять отметки" class="btn btn-link p-0"
                         groups="openeducat_assignment.group_op_assignment_user,openeducat_assignment.group_teacher_assignment,openeducat_core.group_op_faculty,openeducat_core.group_op_back_office_admin"/>
+                </header>
                 <field name="hw_marked" string=""/>
                 <field name="student_id" readonly="1"/>
                 <field name="state" widget="badge"
