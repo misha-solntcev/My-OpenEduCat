@@ -64,11 +64,19 @@
                  кнопку «Работы» убрали: два источника правды на одно и
                  то же (Миша: «надо оставить один — это родная Ответы»).
 
-                 Перекрашена под главную кнопку макета (btn-primary) и
-                 подписана «Работы», чтобы учитель видел привычное
-                 слово из интерфейса, а не кальку «Submissions».
+                 Перекрашена под главную кнопку макета и подписана «Работы», чтобы
+                 учитель видел привычное слово из интерфейса, а не кальку
+                 «Submissions».
+
+                 Класс оставлен oe_stat_button + btn-primary, а не просто
+                 btn-primary: внутри кнопки живёт счётчик
+                 assignment_sub_line_count с widget="statinfo". Убрав
+                 oe_stat_button, мы бы сломали отрисовку счётчика —
+                 проверено в итоговой разметке, class остаётся один.
+
                  Ученику не нужна и небезопасна (открывает все работы
-                 по заданию), поэтому прячем по группам.
+                 по заданию), поэтому прячем по группам: проверено,
+                 в архитектуре ученика кнопки нет вовсе.
 
                  Метод переопределён в models/assignment_hw_works.py:
                  открывает окно с фильтрами по состояниям и штатным
@@ -78,7 +86,7 @@
                 <attribute name="groups">openeducat_assignment.group_op_assignment_user,openeducat_core.group_op_faculty</attribute>
                 <attribute name="string">Работы</attribute>
                 <attribute name="icon">fa-list-alt</attribute>
-                <attribute name="class">btn btn-primary</attribute>
+                <attribute name="class">oe_stat_button btn btn-primary</attribute>
                 <attribute name="type">object</attribute>
             </xpath>
 
