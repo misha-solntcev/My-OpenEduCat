@@ -89,7 +89,7 @@ class OpAssignmentSubLine(models.Model):
 
     hw_marked = fields.Boolean(
         string='Отмечено',
-        help='Отметьте работы и примените действие кнопкой над списком.')
+        help='Отметьте работы и примените действие из меню «Действия».')
 
     def _hw_bulk_allowed(self):
         return any(self.env.user.has_group(g) for g in BULK_GROUPS)
@@ -131,10 +131,3 @@ class OpAssignmentSubLine(models.Model):
             'tag': 'reload',
         }
 
-    def action_hw_clear_marks(self):
-        """Снять отметки с выбранных строк."""
-        if not self._hw_bulk_allowed():
-            raise AccessError(
-                _('Массовые действия доступны учителю и администрации'))
-        self.write({'hw_marked': False})
-        return {'type': 'ir.actions.client', 'tag': 'reload'}

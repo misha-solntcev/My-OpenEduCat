@@ -71,34 +71,23 @@
                   decoration-warning="state == 'change'"
                   decoration-danger="state == 'reject'">
                 <!--
-                  Кнопки применяют действие к ОТМЕЧЕННЫМ строкам.
-                  Обязательно обёрнуты в <header>: кнопка, объявленная
-                  прямо в <list>, отрисовывается В КАЖДОЙ СТРОКЕ — Миша
-                  увидел четыре кнопки × 15 строк. В <header> они
-                  попадают в шапку списка один раз.
-
-                  Отметка в штатном list view — это галочка выбора строки,
-                  поэтому клиент передаёт методу ровно выбранные записи:
-                  подменять их поиском по полю не нужно, «зацепить» чужое
-                  невозможно.
-
                   Заполнить оценку и комментарий пачкой можно прямо в
-                  колонках — это и есть штатный multi_edit="1" выше.
+                  колонках — это штатный multi_edit="1" выше.
                 -->
-                <header>
-                <button name="action_hw_accept_selected" type="object"
-                        string="Принять" class="btn btn-link p-0 me-3"
-                        groups="openeducat_assignment.group_op_assignment_user,openeducat_assignment.group_teacher_assignment,openeducat_core.group_op_faculty,openeducat_core.group_op_back_office_admin"/>
-                <button name="action_hw_change_selected" type="object"
-                        string="На доработку" class="btn btn-link p-0 me-3"
-                        groups="openeducat_assignment.group_op_assignment_user,openeducat_assignment.group_teacher_assignment,openeducat_core.group_op_faculty,openeducat_core.group_op_back_office_admin"/>
-                <button name="action_hw_reject_selected" type="object"
-                        string="Отклонить" class="btn btn-link p-0 me-3"
-                        groups="openeducat_assignment.group_op_assignment_user,openeducat_assignment.group_teacher_assignment,openeducat_core.group_op_faculty,openeducat_core.group_op_back_office_admin"/>
-                <button name="action_hw_clear_marks" type="object"
-                        string="Снять отметки" class="btn btn-link p-0"
-                        groups="openeducat_assignment.group_op_assignment_user,openeducat_assignment.group_teacher_assignment,openeducat_core.group_op_faculty,openeducat_core.group_op_back_office_admin"/>
-                </header>
+                <!--
+                  Массовые действия живут в меню «Действия» (ir.actions.server
+                  с binding_model_id), а не кнопками над списком:
+                  * пункты появляются в меню ТОЛЬКО при групповом выборе
+                    строк — ровно то поведение, о котором Миша и просил;
+                  * пункты видны сразу, без прокрутки к шапке;
+                  * «Снять отметки» не нужен: галочки снимаются штатным
+                    переключением, отдельный пункт лишь путает.
+
+                  Пункты вызывают те же методы на строках, что и кнопки
+                  раньше, — records в ir.actions.server это РОВНО
+                  выбранные записи, поэтому подменять их поиском по полю
+                  не нужно и «зацепить» чужое невозможно.
+                -->
                 <field name="hw_marked" string=""/>
                 <field name="student_id" readonly="1"/>
                 <field name="state" widget="badge"
@@ -121,6 +110,66 @@
                        optional="hide"/>
             </list>
         </field>
+    </record>
+
+    <!-- ==================== Пункты меню «Действия» ==================== -->
+    <!--
+        binding_model_id привязывает пункт к модели op.assignment.sub.line,
+        binding_view_types="list" — только к списку. Меню «Действия» в
+        клиенте появляется при групповом выборе строк, поэтому пункты
+        видны именно тогда, когда есть что применять.
+
+        code вызывает метод на строках. records — это ровно те записи,
+        которые выбраны галочками, поэтому действие не может задеть
+        чужое: подменять выбор поиском по полю здесь не нужно.
+
+        Права и sudo — как в методах models/assignment_hw_works.py:
+        sudo() не используется намеренно (он снял бы record rules), роль
+        проверяется на сервере.
+    -->
+    <record id="action_hw_accept_selected" model="ir.actions.server">
+        <field name="name">Принять работы</field>
+        <field name="model_id" ref="model_op_assignment_sub_line"/>
+        <field name="binding_model_id" ref="model_op_assignment_sub_line"/>
+        <field name="binding_view_types">list</field>
+        <field name="groups_id" eval="[
+            (4, ref('openeducat_assignment.group_op_assignment_user')),
+            (4, ref('openeducat_assignment.group_teacher_assignment')),
+            (4, ref('openeducat_core.group_op_faculty')),
+            (4, ref('openeducat_core.group_op_back_office_admin')),
+        ]"/>
+        <field name="state">code</field>
+        <field name="code">records.action_hw_accept_selected()</field>
+    </record>
+
+    <record id="action_hw_change_selected" model="ir.actions.server">
+        <field name="name">Отправить на доработку</field>
+        <field name="model_id" ref="model_op_assignment_sub_line"/>
+        <field name="binding_model_id" ref="model_op_assignment_sub_line"/>
+        <field name="binding_view_types">list</field>
+        <field name="groups_id" eval="[
+            (4, ref('openeducat_assignment.group_op_assignment_user')),
+            (4, ref('openeducat_assignment.group_teacher_assignment')),
+            (4, ref('openeducat_core.group_op_faculty')),
+            (4, ref('openeducat_core.group_op_back_office_admin')),
+        ]"/>
+        <field name="state">code</field>
+        <field name="code">records.action_hw_change_selected()</field>
+    </record>
+
+    <record id="action_hw_reject_selected" model="ir.actions.server">
+        <field name="name">Отклонить работы</field>
+        <field name="model_id" ref="model_op_assignment_sub_line"/>
+        <field name="binding_model_id" ref="model_op_assignment_sub_line"/>
+        <field name="binding_view_types">list</field>
+        <field name="groups_id" eval="[
+            (4, ref('openeducat_assignment.group_op_assignment_user')),
+            (4, ref('openeducat_assignment.group_teacher_assignment')),
+            (4, ref('openeducat_core.group_op_faculty')),
+            (4, ref('openeducat_core.group_op_back_office_admin')),
+        ]"/>
+        <field name="state">code</field>
+        <field name="code">records.action_hw_reject_selected()</field>
     </record>
 
     <!-- ==================== Окно ==================== -->
