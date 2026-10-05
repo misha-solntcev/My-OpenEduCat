@@ -97,23 +97,22 @@
                 <field name="submission_date" readonly="1"
                        string="Сдал" optional="hide"/>
                 <!--
-                      Превью вложения — картинка с тапом, как у ученика
-                      в форме сдачи. В списке many2many_binary превью не
-                      рисует, поэтому показываем ПЕРВОЕ вложение через
-                      штатный виджет attachment_image (/web/image/...),
-                      а полный список файлов остаётся рядом.
-                      attachment_ids убран в optional="hide", чтобы не
-                      дублировать то же самое ссылкой с download.
+                      Вложения ответа — те же файлы и тот же виджет, что у
+                      ученика в форме сдачи, поэтому превью показывается
+                      одинаково везде: у ученика, у учителя в списке, у
+                      завуча и админа.
+
+                      Ничего не скрываем и не дублируем: виджет сам рисует
+                      превью для КАЖДОГО файла, а не только для первого,
+                      и по тапу открывает его. Колонка видима (optional
+                      по умолчанию show) — раньше она была спрятана в
+                      optional="hide", и учитель видел ссылку вместо
+                      картинки, хотя виджет умеет иначе.
                     -->
-                <field name="hw_attachment_preview_id"
-                       widget="attachment_image"
-                       string="Фото"
-                       optional="show"
-                       width="40px"/>
                 <field name="note" string="Ответ ученика"
                        optional="show"/>
                 <field name="attachment_ids" widget="many2many_binary"
-                       string="Все вложения" optional="hide"
+                       string="Вложения"
                        options="{'accepted_file_extensions': '.png,.jpg,.jpeg,.webp,.gif,.pdf'}"/>
                 <field name="teacher_note"
                        string="Комментарий учителя"
