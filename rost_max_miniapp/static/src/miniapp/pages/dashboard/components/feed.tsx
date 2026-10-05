@@ -1,11 +1,11 @@
 // Лента дня (вариант A) — общие компоненты главной страницы.
 // Стили: VKUI токены + vkitokens (--vkui--*), никаких кастомных css-классов.
 import React from 'react';
+import { SubAttachments } from '@/shared/components/SubAttachments';
 import { Accordion, SimpleCell, Text, Caption, Div, Counter, Placeholder, Card as VkCard, Avatar, Input, Button } from '@vkontakte/vkui';
 import {
   Icon28ClockOutline,
   Icon56EventOutline,
-  Icon28AttachOutline,
 } from '@vkontakte/icons';
 import { TimedGroups } from '@/shared/components/TimedGroups';
 import { JournalButton } from '@/shared/components/JournalButton';
@@ -505,24 +505,7 @@ export const SubmissionReviewCard: React.FC<{
                 </Text>
               )}
               {s.attachments.length > 0 && (
-                <div style={{ marginTop: 6 }}>
-                  {s.attachments.map(a => (
-                    <a
-                      key={a.url}
-                      href={a.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      style={{
-                        display: 'flex', alignItems: 'center', gap: 6,
-                        color: 'var(--vkui--color_text_accent)',
-                        textDecoration: 'none', paddingBlock: 3,
-                      }}
-                    >
-                      <Icon28AttachOutline width={16} height={16} />
-                      <Caption>{a.name}</Caption>
-                    </a>
-                  ))}
-                </div>
+                <SubAttachments attachments={s.attachments} />
               )}
               {!canReview && (s.mark || s.mark_2) && (
                 <Caption style={{

@@ -12,9 +12,10 @@ import { Avatar, Button, Caption, Input, Text } from '@vkontakte/vkui';
 import { initialsOf } from '@/shared/lib/initials';
 import { AccentSegmentedControl } from '@/shared/components/AccentSegmentedControl';
 import {
-  Icon24ListCheckOutline, Icon24ChevronRight, Icon28AttachOutline,
+  Icon24ListCheckOutline, Icon24ChevronRight,
 } from '@vkontakte/icons';
 import { JournalButton } from '@/shared/components/JournalButton';
+import { SubAttachments } from '@/shared/components/SubAttachments';
 import type { HomeworkSubmissionsResponse, HomeworkSubmissionStudent } from '@/shared/lib/types';
 
 /* янтарная плашка «На доработке» (AmberChip: warning-тинта текста нет в VKUI 8) */
@@ -287,24 +288,7 @@ export const ReviewQueue: React.FC<{
                     </div>
                   )}
                   {s.attachments.length > 0 && (
-                    <div style={{ marginTop: 6 }}>
-                      {s.attachments.map(a => (
-                        <a
-                          key={a.url}
-                          href={a.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          style={{
-                            display: 'flex', alignItems: 'center', gap: 6,
-                            color: 'var(--vkui--color_text_accent)',
-                            textDecoration: 'none', paddingBlock: 3,
-                          }}
-                        >
-                          <Icon28AttachOutline width={16} height={16} />
-                          <Caption>{a.name}</Caption>
-                        </a>
-                      ))}
-                    </div>
+                    <SubAttachments attachments={s.attachments} />
                   )}
                   <Input
                     value={notes[subId] || ''}
