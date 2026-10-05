@@ -6,14 +6,15 @@
  * Стили: VKUI токены, никаких кастомных css-классов.
  */
 import React from 'react';
-import { Caption, Div, Input, Button, Card as VkCard, Text, Box, Flex } from '@vkontakte/vkui';
-import { Icon28AttachOutline, Icon28ClockOutline, Icon28DocumentOutline, Icon16Cancel } from '@vkontakte/icons';
+import { Caption, Div, Button, Card as VkCard, Text, Box, Flex } from '@vkontakte/vkui';
+import { Icon28AttachOutline, Icon28ClockOutline, Icon16Cancel } from '@vkontakte/icons';
 import { SubjectAvatar } from './SubjectIcon';
 import { MaterialsEditor } from '@/shared/components/MaterialsEditor';
 import { AttachField, HW_MAX_HEIGHT } from '@/shared/components/AttachField';
 import { fileToBase64 } from '@/shared/lib/api';
 import { gradeTone } from './JournalButton';
 import type { HomeworkItem } from '@/shared/lib/types';
+import { AttachmentThumb, AttachmentViewer } from '@/shared/components/AttachmentGrid';
 
 const MONTHS = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
 
@@ -93,8 +94,9 @@ const DueChip: React.FC<{ due: string; overdue?: boolean }> = ({ due, overdue })
 );
 
 /** Превью ЛОКАЛЬНОГО файла ученика (ещё не отправлен на сервер), поэтому
- *  через object URL. Фото рисуется миниатюрой, pdf — плиткой с иконкой, как
- *  в MaterialsEditor. Ссылку живёт компонент, снимок — при размонтировании. */
+ *  через object URL. Плитка и просмотрщик — общие, размер и скругление
+ *  те же, что у загруженных файлов. Ссылку живёт компонент, снимок — при
+ *  размонтировании. */
 const LocalThumb: React.FC<{ file: File }> = ({ file }) => {
   const isImg = isImage(file);
   const [url, setUrl] = React.useState<string | null>(null);
@@ -104,30 +106,11 @@ const LocalThumb: React.FC<{ file: File }> = ({ file }) => {
     setUrl(u);
     return () => URL.revokeObjectURL(u);
   }, [file, isImg]);
-  if (!isImg) {
-    return (
-      <Flex
-        align="center"
-        gap={6}
-        style={{
-          padding: '6px 10px', borderRadius: 10, background: 'var(--vkui--color_background_secondary)',
-        }}
-      >
-        <Icon28DocumentOutline width={18} height={18} />
-        <Text style={{
-          fontSize: 13, maxWidth: 120, overflow: 'hidden',
-          textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-        }}>
-          {file.name}
-        </Text>
-      </Flex>
-    );
-  }
   return (
-    <img
-      src={url || undefined}
+    <AttachmentThumb
+      url={url || ''}
       alt={file.name}
-      style={{ width: 56, height: 56, objectFit: 'cover', display: 'block' }}
+      isImage={isImg}
     />
   );
 };
@@ -454,22 +437,13 @@ export const HomeworkRowItem: React.FC<{
                   </Flex>
                 )}
 
-                {/* Полноэкранный просмотр выбранного фото, как у учителя. */}
+                {/* Полноэкранный просмотр выбранного фото — общий компонент. */}
                 {viewerIndex !== null && viewerUrl && isImage(files[viewerIndex]) && (
-                  <div
-                    onClick={() => setViewerIndex(null)}
-                    style={{
-                      position: 'fixed', inset: 0, zIndex: 1000,
-                      background: 'rgba(0,0,0,0.92)',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    }}
-                  >
-                    <img
-                      src={viewerUrl}
-                      alt={files[viewerIndex].name}
-                      style={{ maxWidth: '100%', maxHeight: '82%', objectFit: 'contain' }}
-                    />
-                  </div>
+                  <AttachmentViewer
+                    url={viewerUrl}
+                    alt={files[viewerIndex].name}
+                    onClose={() => setViewerIndex(null)}
+                  />
                 )}
               </div>
             ) : (

@@ -9,43 +9,13 @@
 // результат — что прикреплено.
 // Стили: VKUI токены + vkitokens (--vkui--*), никаких кастомных css-классов.
 import React from 'react';
-import { Box, Flex, Text, Image } from '@vkontakte/vkui';
+import { Box, Flex, Text } from '@vkontakte/vkui';
 import { Icon16Cancel, Icon28AttachOutline, Icon28DocumentOutline } from '@vkontakte/icons';
 import { apiGet, apiPost, fileToBase64 } from '@/shared/lib/api';
 import { useToast } from '@/shared/components/Toast';
+import { AttachmentThumb, AttachmentViewer } from '@/shared/components/AttachmentGrid';
 import type { HomeworkAttachment } from '@/shared/lib/types';
 
-/** Картинка грузится по одноразовой ссылке (24 ч) — если не загрузилась
- *  (токен истёк, файл удалён, нет сети), показываем плитку-заглушку. */
-const Thumb: React.FC<{ url: string; alt: string }> = ({ url, alt }) => {
-  const [broken, setBroken] = React.useState(false);
-  if (broken) {
-    return (
-      <Box
-        style={{
-          width: 56, height: 56, borderRadius: 10,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          background: 'var(--vkui--color_background_secondary)',
-          color: 'var(--vkui--color_icon_secondary)',
-          flexShrink: 0,
-        }}
-      >
-        <Icon28DocumentOutline width={24} height={24} />
-      </Box>
-    );
-  }
-  return (
-    <Image
-      src={url}
-      alt={alt}
-      onError={() => setBroken(true)}
-      style={{
-        width: 56, height: 56, borderRadius: 10, objectFit: 'cover',
-        flexShrink: 0, background: 'var(--vkui--color_background_secondary)',
-      }}
-    />
-  );
-};
 
 export const MaterialsEditor: React.FC<{
   assignmentId: number;
@@ -215,7 +185,7 @@ export const MaterialsEditor: React.FC<{
                 onClick={() => setViewer(idx)}
                 style={{ position: 'relative', borderRadius: 10, overflow: 'hidden' }}
               >
-                <Thumb url={absUrl(a.url)} alt={a.name} />
+                <AttachmentThumb url={absUrl(a.url)} alt={a.name} />
                 {/* Крестик поверх миниатюры — как в мессенджерах. Тап по
                     крестику не открывает просмотр: stopPropagation.
                     У ученика вложения только для просмотра — крестика
@@ -292,31 +262,18 @@ export const MaterialsEditor: React.FC<{
       {/* Полноэкранный просмотр: счётчик «N из M», тап — закрыть. Только
           картинки: pdf проще открыть во внешней вкладке (см. docs выше). */}
       {viewerItem && (viewerItem.mimetype || '').startsWith('image/') && (
-        <div
-          onClick={() => setViewer(null)}
-          style={{
-            position: 'fixed', inset: 0, zIndex: 1000,
-            background: 'rgba(0,0,0,0.92)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            flexDirection: 'column',
-          }}
-        >
-          <img
-            src={absUrl(viewerItem.url)}
-            alt={viewerItem.name}
-            style={{ maxWidth: '100%', maxHeight: '82%', objectFit: 'contain' }}
-          />
-          {images.length > 1 && (
-            <Text style={{ color: '#fff', marginTop: 12, fontSize: 13 }}>
-              {(materials || []).filter(m => (m.mimetype || '').startsWith('image/'))
-                .findIndex(m => m.url === viewerItem.url) + 1}{' '}
-              из {images.length}
-            </Text>
-          )}
-          <Text style={{ color: 'rgba(255,255,255,0.7)', marginTop: 6, fontSize: 12 }}>
-            Тап — закрыть
-          </Text>
-        </div>
+        <AttachmentViewer
+          url={absUrl(viewerItem.url)}
+          alt={viewerItem.name}
+          caption={[
+            images.length > 1
+              ? `${(materials || []).filter(m => (m.mimetype || '').startsWith('image/'))
+                  .findIndex(m => m.url === viewerItem.url) + 1} из ${images.length}`
+              : null,
+            'Тап — закрыть',
+          ].filter(Boolean).join(' · ')}
+          onClose={() => setViewer(null)}
+        />
       )}
     </div>
   );
