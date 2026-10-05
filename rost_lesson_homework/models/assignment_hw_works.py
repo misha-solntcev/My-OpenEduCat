@@ -87,11 +87,6 @@ class OpAssignmentSubLine(models.Model):
 
     _inherit = 'op.assignment.sub.line'
 
-    hw_marked = fields.Boolean(
-        string='Отмечено',
-        help='Отметьте работы и примените действие из меню «Действия».')
-
-
     def _hw_bulk_allowed(self):
         return any(self.env.user.has_group(g) for g in BULK_GROUPS)
 
