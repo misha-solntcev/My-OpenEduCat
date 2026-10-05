@@ -91,6 +91,39 @@ class OpAssignmentSubLine(models.Model):
         string='Отмечено',
         help='Отметьте работы и примените действие из меню «Действия».')
 
+    # Превью вложения для показа в списке работ.
+    #
+    # ЗАЧЕМ ЭТО ПОЛЕ. Ученик смотрит свои вложения в ФОРМЕ сдачи, где
+    # attachment_ids отрисован виджетом many2many_binary — он рисует
+    # превью с тапом. Учитель смотрит те же файлы в КОЛОНКЕ списка, а
+    # many2many_binary в list view не рисует превью, а даёт ссылку с
+    # download=true: картинку надо сначала скачать (Миша: «у него также
+    # превью с тапом, но когда учитель получает ответ, то изображение
+    # отображается ссылкой, которую необходимо сперва скачать»).
+    #
+    # attachment_image — штатный виджет Odoo для many2one: рисует
+    # /web/image/<id>/300x300 и открывается по клику. Берём ПЕРВОЕ
+    # вложение: если в ответе несколько файлов, в колонке показывается
+    # первое, а полный список остаётся рядом (attachment_ids).
+    hw_attachment_preview_id = fields.Many2one(
+        'ir.attachment',
+        string='Превью вложения',
+        compute='_compute_hw_attachment_preview_id',
+        help='Первое вложение работы — для превью в списке.')
+
+    @api.depends('attachment_ids')
+    def _compute_hw_attachment_preview_id(self):
+        """Первое вложение работы — им заполняется превью в списке.
+
+        Берём первое, а не «самое большое»: выбор должен быть
+        предсказуемым, порядок attachment_ids задаёт сам ответ ученика.
+        Файл берём из attachment_ids, а не поиском по ir.attachment:
+        поле уже отфильтровано по res_model, значит чужие вложения с
+        тем же res_id сюда не попадут.
+        """
+        for line in self:
+            line.hw_attachment_preview_id = line.attachment_ids[:1].id or False
+
     def _hw_bulk_allowed(self):
         return any(self.env.user.has_group(g) for g in BULK_GROUPS)
 
