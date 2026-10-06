@@ -262,14 +262,23 @@ export const HwChat: React.FC<{
                   {(item.attachments || []).map((a, j) => {
                     const url = absAttachmentUrl(a.url);
                     const img = isImageAttachment(a);
+                    // Фото — полноэкранный просмотр; PDF — новой вкладкой
+                    // (AttachmentViewer рендерит <img>, pdf в нём битый).
+                    const open = () => {
+                      if (img) {
+                        setViewer({ url, name: a.name });
+                      } else {
+                        window.open(url, '_blank', 'noopener');
+                      }
+                    };
                     return (
                       <div
                         key={`${a.url}-${j}`}
                         role="button"
                         tabIndex={0}
-                        onClick={e => { e.stopPropagation(); setViewer({ url, name: a.name }); }}
+                        onClick={e => { e.stopPropagation(); open(); }}
                         onKeyDown={e => {
-                          if (e.key === 'Enter') { e.stopPropagation(); setViewer({ url, name: a.name }); }
+                          if (e.key === 'Enter') { e.stopPropagation(); open(); }
                         }}
                         style={{
                           display: 'flex', alignItems: 'center', gap: 8,
