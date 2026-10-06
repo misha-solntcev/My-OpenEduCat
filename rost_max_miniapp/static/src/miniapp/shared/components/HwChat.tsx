@@ -4,7 +4,8 @@
  * Лента одной сдачи: пузыри сообщений (ученик/учитель), системные записи
  * («Отправлено на проверку») по центру, вложения внутри пузыря строками
  * с именем и размером, тап — полноэкранный просмотр с кнопкой «Скачать».
- * Композитор снизу — текст + скрепка (те же лимиты, что у сдач).
+ * Композитор снизу — мессенджерская строка: скрепка слева, отправка
+ * справа в той же строке (AttachField onSend; те же лимиты, что у сдач).
  *
  * Данные: GET/POST /rost_max/api/homework/submission/<id>/messages.
  * Хранилище — штатный mail.thread строки сдачи (см. контроллер).
@@ -13,8 +14,8 @@
  * сообщений одного автора), день — разделителем «Сегодня, 18:42».
  */
 import React from 'react';
-import { Box, Caption, Flex, IconButton, Text } from '@vkontakte/vkui';
-import { Icon24Send, Icon28AttachOutline, Icon28DocumentOutline } from '@vkontakte/icons';
+import { Box, Caption, Flex, Text } from '@vkontakte/vkui';
+import { Icon28AttachOutline, Icon28DocumentOutline } from '@vkontakte/icons';
 import { apiGet, apiPost, fileToBase64 } from '@/shared/lib/api';
 import {
   fmtDayName, fmtTime, isSameDay, parseServerDate,
@@ -350,6 +351,10 @@ export const HwChat: React.FC<{
             ariaLabel={ariaLabel}
             attachProps={attachProps}
             maxHeight={HW_MAX_HEIGHT}
+            /* Отправка в строке справа, скрепка слева — мессенджерский
+               вид. Отдельная строка с кнопкой под полем убрана. */
+            onSend={send}
+            sendDisabled={busy || (!text.trim() && files.length === 0)}
           />
           {files.length > 0 && (
             /* Выбранные файлы — превью, как у сдач в HomeworkCardList:
@@ -365,17 +370,6 @@ export const HwChat: React.FC<{
               ))}
             </Flex>
           )}
-        </div>
-      )}
-      {canPostS && (
-        <div style={{ display: 'flex', justifyContent: 'flex-end' }} onClick={e => e.stopPropagation()}>
-          <IconButton
-            label="Отправить сообщение"
-            disabled={busy || (!text.trim() && files.length === 0)}
-            onClick={send}
-          >
-            <Icon24Send />
-          </IconButton>
         </div>
       )}
       {!canPostS && (

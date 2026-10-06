@@ -1,6 +1,7 @@
 /**
- * Поле ввода со скрепкой справа — общий компонент для трёх мест: ДЗ в
- * карточке урока, ответ ученика и «Текст задания» при правке.
+ * Поле ввода: скрепка слева (слот before), опциональная кнопка отправки
+ * справа (слот after) — общий компонент для трёх мест: ДЗ в карточке урока,
+ * ответ ученика, «Текст задания» при правке и чат сдачи.
  *
  * Раньше в этих местах повторялась одна и та же ручная конструкция:
  * контейнер с `position: relative`, кнопка `absolute` поверх поля и
@@ -17,13 +18,20 @@
  * обрезает. Заодно у Textarea включён `grow` — поле само растёт под контент
  * до maxHeight, то есть короткий текст не занимает место зря.
  *
+ * Форма строки — мессенджерская (2026-10, Миша): скрепка СЛЕВА (слот
+ * before), опциональная кнопка отправки СПРАВА (слот after) — как в
+ * современных чатах. VKUI FormField даёт оба слота, CSS не нужен.
+ * Кнопка отправки рендерится только там, где передан onSend (сейчас —
+ * чат сдачи HwChat); остальные места (ДЗ, ответ, задание) остались
+ * «текст + скрепка».
+ *
  * attachProps приходит из хука загрузки файлов (useLessonMaterials в карточке
  * урока и useAttachFiles на странице задания) — у них разные эндпоинты и
  * права, поэтому сам хук остаётся у вызова.
  */
 import React from 'react';
 import { Textarea, IconButton } from '@vkontakte/vkui';
-import { Icon28AttachOutline } from '@vkontakte/icons';
+import { Icon28AttachOutline, Icon24Send } from '@vkontakte/icons';
 
 /** Потолок роста поля в px. Textarea с grow растёт под текст сам, но без
  *  ограничения длинное задание занимало бы весь экран и выталкивало бы
@@ -53,11 +61,15 @@ export interface AttachFieldProps {
   /** Потолок роста поля. grow подстраивает высоту под текст, но не даёт
    *  полю съесть весь экран на длинном задании. */
   maxHeight?: number;
+  /** Кнопка отправки справа (чат сдачи). Не передана — строки без неё. */
+  onSend?: () => void;
+  /** Неактивная отправка: пустой текст/файлы, идёт отправка. */
+  sendDisabled?: boolean;
 }
 
 export const AttachField: React.FC<AttachFieldProps> = ({
   value, onChange, placeholder, ariaLabel, attachProps, hiddenInput,
-  disabled, maxHeight,
+  disabled, maxHeight, onSend, sendDisabled,
 }) => (
   <>
     <Textarea
@@ -67,7 +79,7 @@ export const AttachField: React.FC<AttachFieldProps> = ({
       aria-label={ariaLabel}
       disabled={disabled}
       maxHeight={maxHeight}
-      after={(
+      before={(
         /* У IconButton в VKUI 8 нет ни пропа icon, ни mode/size: иконка
            передаётся как children, а текст для скринридера — через label
            (не aria-label). Поэтому именно такая форма. */
@@ -79,6 +91,15 @@ export const AttachField: React.FC<AttachFieldProps> = ({
           <Icon28AttachOutline width={20} height={20} />
         </IconButton>
       )}
+      after={onSend ? (
+        <IconButton
+          onClick={onSend}
+          disabled={Boolean(disabled) || Boolean(sendDisabled)}
+          label="Отправить сообщение"
+        >
+          <Icon24Send />
+        </IconButton>
+      ) : undefined}
     />
     {hiddenInput}
   </>
