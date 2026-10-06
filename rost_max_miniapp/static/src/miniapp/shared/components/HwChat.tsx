@@ -13,11 +13,11 @@
  * сообщений одного автора), день — разделителем «Сегодня, 18:42».
  */
 import React from 'react';
-import { Caption, IconButton, Text } from '@vkontakte/vkui';
+import { Box, Caption, Flex, IconButton, Text } from '@vkontakte/vkui';
 import { Icon24Send, Icon28AttachOutline, Icon28DocumentOutline } from '@vkontakte/icons';
 import { apiGet, apiPost, fileToBase64 } from '@/shared/lib/api';
 import { AttachField, HW_MAX_HEIGHT, type AttachProps } from '@/shared/components/AttachField';
-import { absAttachmentUrl, AttachmentViewer, isImageAttachment } from '@/shared/components/AttachmentGrid';
+import { absAttachmentUrl, AttachmentThumb, AttachmentViewer, isImageAttachment } from '@/shared/components/AttachmentGrid';
 import type { HomeworkFeedItem } from '@/shared/lib/types';
 
 /** 1234567 -> «1,2 МБ» / «345 КБ». */
@@ -44,6 +44,40 @@ const fmtDayLabel = (d: Date): string => {
   if (sameDay(d, yest)) return 'Вчера';
   const months = ['янв', 'фев', 'мар', 'апр', 'мая', 'июн', 'июл', 'авг', 'сен', 'окт', 'ноя', 'дек'];
   return `${d.getDate()} ${months[d.getMonth()]}`;
+};
+
+/** Плитка ЛОКАЛЬНОГО файла (ещё не отправлен): фото — object URL миниатюрой,
+ *  pdf — плиткой с именем. Крестик сверху убирает файл из набора. Тот же
+ * AttachmentThumb, что у загруженных вложений — размер/скругление общие. */
+const HwPickThumb: React.FC<{ file: File; onRemove: () => void }> = ({ file, onRemove }) => {
+  const isImg = (file.type || '').startsWith('image/');
+  const [url, setUrl] = React.useState<string | null>(null);
+  React.useEffect(() => {
+    if (!isImg) return;
+    const u = URL.createObjectURL(file);
+    setUrl(u);
+    return () => URL.revokeObjectURL(u);
+  }, [file, isImg]);
+  return (
+    <Box style={{ position: 'relative', borderRadius: 10, overflow: 'hidden' }}>
+      <AttachmentThumb url={url || ''} alt={file.name} isImage={isImg} />
+      <span
+        role="button"
+        tabIndex={0}
+        aria-label={`Убрать ${file.name}`}
+        onClick={onRemove}
+        onKeyDown={e => { if (e.key === 'Enter') onRemove(); }}
+        style={{
+          position: 'absolute', top: 2, right: 2, width: 20, height: 20,
+          borderRadius: '50%', background: 'rgba(0,0,0,0.55)', color: '#fff',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontSize: 13, lineHeight: '20px', cursor: 'pointer',
+        }}
+      >
+        ✕
+      </span>
+    </Box>
+  );
 };
 
 type FeedMsg = {
@@ -110,10 +144,13 @@ export const HwChat: React.FC<{
     if (busy || (!t && files.length === 0)) return;
     setBusy(true);
     try {
-      const payload = await Promise.all(files.map(f => ({
+      // await ВНУТРИ map: Promise.all по объектам с Promise-полем не ждёт
+      // fileToBase64 — в JSON уходил Promise без b64 и файл молча терялся
+      // (сервер пропускает записи без b64).
+      const payload = await Promise.all(files.map(async f => ({
         filename: f.name,
         mimetype: f.type,
-        b64: fileToBase64(f),
+        b64: await fileToBase64(f),
       })));
       const res = await apiPost<{ success?: boolean; feed?: HomeworkFeedItem[]; error?: string }>(
         `/rost_max/api/homework/submission/${subId}/messages`,
@@ -325,26 +362,18 @@ export const HwChat: React.FC<{
             maxHeight={HW_MAX_HEIGHT}
           />
           {files.length > 0 && (
-            <Caption style={{
-              display: 'flex', gap: 6, flexWrap: 'wrap',
-              color: 'var(--vkui--color_text_secondary)', marginTop: 4,
-            }}>
+            /* Выбранные файлы — превью, как у сдач в HomeworkCardList:
+               фото миниатюрой (object URL), pdf — плиткой с иконкой и
+               именем. Тап по крестику убирает файл из набора. */
+            <Flex style={{ flexWrap: 'wrap', gap: 8, marginTop: 6 }}>
               {files.map((f, i) => (
-                <span
+                <HwPickThumb
                   key={`${f.name}-${i}`}
-                  style={{
-                    background: 'var(--vkui--color_background_secondary)',
-                    borderRadius: 8, padding: '3px 8px',
-                    display: 'inline-flex', gap: 4, alignItems: 'center',
-                  }}
-                  role="button"
-                  tabIndex={0}
-                  onClick={() => setFiles(prev => prev.filter((_, j) => j !== i))}
-                >
-                  {f.name.length > 24 ? `${f.name.slice(0, 24)}…` : f.name} ✕
-                </span>
+                  file={f}
+                  onRemove={() => setFiles(prev => prev.filter((_, j) => j !== i))}
+                />
               ))}
-            </Caption>
+            </Flex>
           )}
         </div>
       )}

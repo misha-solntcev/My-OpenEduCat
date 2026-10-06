@@ -2166,10 +2166,16 @@ class RostMaxTimetableController(http.Controller):
             return request.make_json_response(
                 {"error": "Invalid JSON"}, status=400)
         text = (body.get('text') or '').strip()
-        clean_files, ferr = _clean_hw_files(body.get('files') or [])
+        raw_files = body.get('files') or []
+        clean_files, ferr = _clean_hw_files(raw_files)
         if ferr:
             return ferr
         if not text and not clean_files:
+            # files был, но после валидации пуст (нет b64 / битые записи) —
+            # сообщаем об ошибке явно, а не молча отправляя только текст.
+            if raw_files:
+                return request.make_json_response(
+                    {"error": "Не удалось прочитать вложение"}, status=400)
             return request.make_json_response(
                 {"error": "Пустое сообщение"}, status=400)
         _hw_post_chat(sub, text, clean_files)
