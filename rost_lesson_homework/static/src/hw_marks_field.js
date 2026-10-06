@@ -53,6 +53,15 @@ export class HwMarksField extends Component {
         return v ? Math.round(v) : null;
     }
 
+    /** Шаблону нужны методы компонента, не функции модуля (OWL-контекст). */
+    filledClass(n) {
+        return filledClass(n);
+    }
+
+    outlineClass(n) {
+        return outlineClass(n);
+    }
+
     /** Тап по кружку N: то же значение — обнулить, другое — записать. */
     pick(n) {
         if (this.props.readonly) return;
