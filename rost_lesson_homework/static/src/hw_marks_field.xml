@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+
+    <!-- Кружки оценки: 5/4/3/2. Выбранная — залитый цвет, остальные —
+         outline того же цвета; клик по выбранной сбрасывает («—»). -->
+    <t t-name="rost_lesson_homework.HwMarksField">
+        <span class="d-inline-flex align-items-center gap-1" role="group">
+            <t t-foreach="[5, 4, 3, 2]" t-as="n" t-key="n">
+                <button type="button"
+                        t-att-class="'btn btn-sm ' + (value === n ? filledClass(n) : outlineClass(n))"
+                        t-att-aria-pressed="value === n ? 'true' : 'false'"
+                        t-att-disabled="props.readonly ? 'disabled' : undefined"
+                        t-on-click="() => pick(n)">
+                    <t t-esc="n"/>
+                </button>
+            </t>
+        </span>
+    </t>
+
+</templates>

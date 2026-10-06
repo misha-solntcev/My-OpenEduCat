@@ -22,6 +22,13 @@
         # кнопки состояния, вкладка «Работы», ссылка на урок.
         'views/assignment_hw_view.xml',
     ],
+    'assets': {
+        # Виджет кружков оценки (marks/marks_2), тап как в миниаппе.
+        'web.assets_backend': [
+            'rost_lesson_homework/static/src/hw_marks_field.js',
+            'rost_lesson_homework/static/src/hw_marks_field.xml',
+        ],
+    },
     'installable': True,
     'auto_install': False,
     'application': False,

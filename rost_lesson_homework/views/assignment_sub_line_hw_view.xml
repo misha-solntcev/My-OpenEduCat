@@ -82,14 +82,20 @@
                  view_assignment_sub_line_marks_readonly, удалена 2026-10:
                  её groups="...students" вырезал поле у учителей и админа
                  вовсе — groups это фильтр видимости, а не readonly).
-                 user_boolean=False у учеников/родителей, True у персонала. -->
+                 user_boolean=False у учеников/родителей, True у персонала.
+                 Ввод — кружками 5/4/3/2 (виджет hw_marks), как в миниаппе;
+                 повторный тап по выбранной обнуляет. -->
             <xpath expr="//field[@name='marks']" position="attributes">
                 <attribute name="invisible">user_boolean == False</attribute>
                 <attribute name="readonly">state == 'accept' or user_boolean == False</attribute>
+                <attribute name="widget">hw_marks</attribute>
+                <attribute name="string">Оценка</attribute>
             </xpath>
             <xpath expr="//field[@name='marks_2']" position="attributes">
                 <attribute name="invisible">user_boolean == False</attribute>
                 <attribute name="readonly">state == 'accept' or user_boolean == False</attribute>
+                <attribute name="widget">hw_marks</attribute>
+                <attribute name="string">Оценка 2</attribute>
             </xpath>
 
             <!-- Кнопки возврата в черновик (ученик досдаёт работу): группы

@@ -108,9 +108,11 @@
                        decoration-warning="state == 'change'"
                        decoration-danger="state == 'reject'"/>
                 <!-- Обе оценки в строке: видны и у закрытой строки, как в
-                     миниаппе (Ревью переработано 2026-10). -->
-                <field name="marks" string="Оценка"/>
-                <field name="marks_2" string="Оценка 2"/>
+                     миниаппе (Ревью переработано 2026-10). Виджет hw_marks:
+                     кружки с цветом оценки; в списке только показ, ввод —
+                     в форме (клик по строке). -->
+                <field name="marks" string="Оценка" widget="hw_marks"/>
+                <field name="marks_2" string="Оценка 2" widget="hw_marks"/>
                 <field name="submission_date" readonly="1"
                        string="Сдал" optional="hide"/>
                 <!-- Ответ и вложения в списке НЕ показываем: их место — в
