@@ -77,13 +77,30 @@
                 <attribute name="invisible">1</attribute>
             </xpath>
 
-            <!-- Оценки видимы учителю сразу, не только после accept
-                 (как в строке списка и в миниаппе). -->
+            <!-- Оценки видимы учителю сразу, не только после accept,
+                 у учеников — readonly (перенесено из rost_school_access
+                 view_assignment_sub_line_marks_readonly, удалена 2026-10:
+                 её groups="...students" вырезал поле у учителей и админа
+                 вовсе — groups это фильтр видимости, а не readonly).
+                 user_boolean=False у учеников/родителей, True у персонала. -->
             <xpath expr="//field[@name='marks']" position="attributes">
                 <attribute name="invisible">user_boolean == False</attribute>
+                <attribute name="readonly">state == 'accept' or user_boolean == False</attribute>
             </xpath>
             <xpath expr="//field[@name='marks_2']" position="attributes">
                 <attribute name="invisible">user_boolean == False</attribute>
+                <attribute name="readonly">state == 'accept' or user_boolean == False</attribute>
+            </xpath>
+
+            <!-- Кнопки возврата в черновик (ученик досдаёт работу): группы
+                 сняты нарочно — видны и ученикам (перенесено из удалённой
+                 вьюхи 4928; без этого ученик в state change/reject не мог
+                 пересдать в ПК). -->
+            <xpath expr="//header/button[@name='act_draft' and @invisible=&quot;state != 'change'&quot;]" position="attributes">
+                <attribute name="groups"/>
+            </xpath>
+            <xpath expr="//header/button[@name='act_draft' and @invisible=&quot;state != 'reject'&quot;]" position="attributes">
+                <attribute name="groups"/>
             </xpath>
 
             <!--

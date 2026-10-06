@@ -334,34 +334,5 @@
         </field>
     </record>
 
-    <!-- ===== op.assignment.sub.line: оценка/примечание у учеников readonly ===== -->
-    <record id="view_assignment_sub_line_marks_readonly" model="ir.ui.view">
-        <field name="name">Только для чтения студентов поля оценка и примечание</field>
-        <field name="model">op.assignment.sub.line</field>
-        <field name="inherit_id" ref="openeducat_assignment.view_op_assignment_sub_line_form"/>
-        <field name="arch" type="xml">
-            <data>
-                <!-- Поле Оценка для студентов - только для чтения -->
-                <xpath expr="//field[@name='marks']" position="attributes">
-                    <attribute name="readonly">state == 'accept' or True</attribute>
-                    <attribute name="groups">openeducat_core.group_op_students</attribute>
-                </xpath>
-
-                <!-- 2026-10: копии marks/marks_2 с groups=!students убраны —
-                     оценки видны учителю через базовое поле (hw-вьюха сняла
-                     invisible по accept). Дублирисовали поле дважды. -->
-
-                <!-- ДЗ 2 — только для чтения у студентов (как и ДЗ 1) -->
-                <xpath expr="//field[@name='marks_2']" position="attributes">
-                    <attribute name="groups">openeducat_core.group_op_students</attribute>
-                </xpath>
-
-                <!-- Поле Примечание для студентов - только для чтения -->
-                <xpath expr="//field[@name='note']" position="attributes">
-                    <attribute name="readonly">True</attribute>
-                    <attribute name="groups">openeducat_core.group_op_students</attribute>
-                </xpath>
-            </data>
-        </field>
-    </record>
+    
 </odoo>
