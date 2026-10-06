@@ -43,6 +43,20 @@ class OpAssignmentHwReset(models.Model):
     _inherit = 'op.assignment'
 
     # ------------------------------------------------------------------
+    # роль: параметр сам по себе НЕ защита — его мог выставить любой.
+    # Методы публичные модели, их зовут через call_kw; без этой проверки
+    # любой аутентифицированный юзер (включая ученика) включил бы
+    # параметр и снёс задание со всеми сдачами (ревью 2026-10-06, п.2).
+    # ------------------------------------------------------------------
+    def _hw_reset_admin_required(self):
+        if not self.env.user.has_group('base.group_system'):
+            _logger.warning(
+                'HW reset: отклонено для юзера %s (id %s) — не администратор',
+                self.env.user.login, self.env.uid)
+            raise AccessError(
+                _('Служебная очистка ДЗ доступна только администратору.'))
+
+    # ------------------------------------------------------------------
     # видимость
     # ------------------------------------------------------------------
     @property
@@ -83,6 +97,7 @@ class OpAssignmentHwReset(models.Model):
             raise AccessError(
                 _('Очистка задания отключена. Нужно выставить параметр %s.')
                 % RESET_PARAM)
+        self._hw_reset_admin_required()
         self.ensure_one()
 
         before = self.hw_reset_preview()
@@ -124,10 +139,12 @@ class OpAssignmentHwReset(models.Model):
     # ------------------------------------------------------------------
     def hw_reset_enable(self):
         self.ensure_one()
+        self._hw_reset_admin_required()
         self.env['ir.config_parameter'].sudo().set_param(RESET_PARAM, '1')
         return True
 
     def hw_reset_disable(self):
         self.ensure_one()
+        self._hw_reset_admin_required()
         self.env['ir.config_parameter'].sudo().set_param(RESET_PARAM, '0')
         return True
