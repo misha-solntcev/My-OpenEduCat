@@ -14,46 +14,12 @@ import { HwChat } from '@/shared/components/HwChat';
 import { AttachField, HW_MAX_HEIGHT } from '@/shared/components/AttachField';
 import { fileToBase64 } from '@/shared/lib/api';
 import { gradeTone } from './JournalButton';
+import { fmtDue, fmtIssued, fmtSubmitted } from '@/shared/lib/datetime';
 import type { HomeworkItem } from '@/shared/lib/types';
 import { AttachmentThumb, AttachmentViewer } from '@/shared/components/AttachmentGrid';
 
-const MONTHS = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
-
 /** Фото или нет — тем же правилом, что принимает бэкенд (image/* + pdf). */
 const isImage = (f: File): boolean => (f.type || '').startsWith('image/');
-
-export const fmtDue = (due: string): string => {
-  if (!due) return '';
-  const d = new Date(due);
-  if (isNaN(d.getTime())) return due;
-  const hh = d.getHours();
-  const mm = d.getMinutes();
-  const time = (hh || mm) ? ` к ${hh}:${String(mm).padStart(2, '0')}` : '';
-  return `до ${d.getDate()} ${MONTHS[d.getMonth()].slice(0, 3)}${time}`;
-};
-
-/** Дата выдачи «12 сен» (issued_at из grading_assignment.issued_date). */
-export const fmtIssued = (iso: string): string => {
-  if (!iso) return '';
-  const d = new Date(iso);
-  if (isNaN(d.getTime())) return iso;
-  return `${d.getDate()} ${MONTHS[d.getMonth()].slice(0, 3)}`;
-};
-
-/** Дата сдачи «вчера/сегодня в 19:40» либо «12 сен». */
-const fmtSubmitted = (iso: string): string => {
-  if (!iso) return '';
-  const d = new Date(iso);
-  if (isNaN(d.getTime())) return iso;
-  const now = new Date();
-  const sameDay = (a: Date, b: Date) =>
-    a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
-  const yest = new Date(now); yest.setDate(now.getDate() - 1);
-  const day = sameDay(d, now) ? 'сегодня'
-    : sameDay(d, yest) ? 'вчера'
-      : `${d.getDate()} ${MONTHS[d.getMonth()].slice(0, 3)}`;
-  return `${day} в ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
-};
 
 const HW_STATE_LABEL: Record<string, string> = {
   submit: 'На проверке',
@@ -275,7 +241,7 @@ export const HomeworkRowItem: React.FC<{
             overflow: 'hidden', textOverflow: 'ellipsis',
           }}>
             {h.state === 'submit' || h.state === 'accept'
-              ? `Отправлено ${h.submitted_at ? fmtSubmitted(h.submitted_at) : ''}${h.late ? ' · с опозданием' : ''}`
+              ? `Отправлено ${h.submitted_at ? fmtSubmitted(h.submitted_at, false) : ''}${h.late ? ' · с опозданием' : ''}`
               : (h.issued_at ? `Выдано ${fmtIssued(h.issued_at)}` : '')}
           </Caption>
         </div>

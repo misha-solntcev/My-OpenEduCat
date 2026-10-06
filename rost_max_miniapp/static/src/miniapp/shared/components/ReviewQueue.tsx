@@ -15,6 +15,7 @@ import {
 } from '@vkontakte/icons';
 import { JournalButton } from '@/shared/components/JournalButton';
 import { HwChat } from '@/shared/components/HwChat';
+import { fmtSubmitted } from '@/shared/lib/datetime';
 import type { HomeworkSubmissionsResponse, HomeworkSubmissionStudent } from '@/shared/lib/types';
 
 /* янтарная плашка «На доработке» (AmberChip: warning-тинта текста нет в VKUI 8) */
@@ -38,21 +39,6 @@ const SEG_TITLES: Record<SegKey, string> = {
   submit: 'Проверить',
   change: 'На доработке',
   checked: 'Проверено',
-};
-
-/** Дата сдачи «сегодня/вчера в 15:32» либо «12 сен». */
-const fmtSubmittedAt = (iso: string): string => {
-  if (!iso) return '';
-  const d = new Date(iso);
-  if (isNaN(d.getTime())) return iso;
-  const now = new Date();
-  const sameDay = (a: Date, b: Date) =>
-    a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
-  const yest = new Date(now); yest.setDate(now.getDate() - 1);
-  const day = sameDay(d, now) ? 'сегодня'
-    : sameDay(d, yest) ? 'вчера'
-      : `${d.getDate()} сен`;
-  return `сдал ${day} в ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
 };
 
 export const ReviewQueue: React.FC<{
@@ -213,10 +199,10 @@ export const ReviewQueue: React.FC<{
                     display: 'block', fontSize: 12, color: 'var(--vkui--color_text_secondary)',
                     whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
                   }}>
-                    {s.state === 'submit' && fmtSubmittedAt(s.submitted_at)}
+                    {s.state === 'submit' && fmtSubmitted(s.submitted_at)}
                     {s.state === 'change' && (s.teacher_note
                       ? `ваш комментарий: «${s.teacher_note}»` : 'отправлен на доработку')}
-                    {s.state === 'accept' && (s.mark || s.mark_2 ? `принято${s.submitted_at ? ` · ${fmtSubmittedAt(s.submitted_at).replace('сдал ', '')}` : ''}` : 'принято')}
+                    {s.state === 'accept' && (s.mark || s.mark_2 ? `принято${s.submitted_at ? ` · ${fmtSubmitted(s.submitted_at, false)}` : ''}` : 'принято')}
                     {s.state === 'reject' && 'отклонено'}
                     {(s.state === 'none' || s.state === 'draft') && 'Не сдано'}
                   </Caption>

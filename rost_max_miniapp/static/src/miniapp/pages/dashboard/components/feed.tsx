@@ -13,6 +13,7 @@ import { JournalButton } from '@/shared/components/JournalButton';
 import { TodayTimeline } from './TodayTimeline';
 import { MaterialsEditor } from '@/shared/components/MaterialsEditor';
 import { initialsOf } from '@/shared/lib/initials';
+import { fmtDue } from '@/shared/lib/datetime';
 import type {
   FeedLesson,
   HomeworkSubmissionsResponse,
@@ -29,13 +30,6 @@ export const formatDateLong = (iso: string): string => {
 };
 
 const startTimeOf = (timing: string): string => (timing || '').split(' - ')[0] || timing;
-
-const fmtDue = (due: string): string => {
-  if (!due) return '';
-  const d = new Date(due);
-  if (isNaN(d.getTime())) return due;
-  return `до ${d.getDate()} ${MONTHS[d.getMonth()].slice(0, 3)}`;
-};
 
 // --- Карточка-заголовок (приветствие) -----------------------------------
 
@@ -234,7 +228,7 @@ export const GradesToday: React.FC<{
 // переиспользует вкладка «Задания» (редизайн, этап 1).
 
 export type { HomeworkItem } from '@/shared/lib/types';
-export { fmtDue } from '@/shared/components/HomeworkCardList';
+export { fmtDue } from '@/shared/lib/datetime';
 
 // --- Журналы к заполнению (учитель) ---------------------------------------
 

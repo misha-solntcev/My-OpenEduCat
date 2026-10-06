@@ -16,6 +16,9 @@ import React from 'react';
 import { Box, Caption, Flex, IconButton, Text } from '@vkontakte/vkui';
 import { Icon24Send, Icon28AttachOutline, Icon28DocumentOutline } from '@vkontakte/icons';
 import { apiGet, apiPost, fileToBase64 } from '@/shared/lib/api';
+import {
+  fmtDayName, fmtTime, isSameDay, parseServerDate,
+} from '@/shared/lib/datetime';
 import { AttachField, HW_MAX_HEIGHT, type AttachProps } from '@/shared/components/AttachField';
 import { absAttachmentUrl, AttachmentThumb, AttachmentViewer, isImageAttachment } from '@/shared/components/AttachmentGrid';
 import type { HomeworkFeedItem } from '@/shared/lib/types';
@@ -29,22 +32,8 @@ const fmtSize = (bytes?: number): string => {
   return `${Math.max(1, Math.round(bytes / 1024))} КБ`;
 };
 
-const fmtTime = (d: Date): string =>
-  `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
-
-const sameDay = (a: Date, b: Date): boolean =>
-  a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
-
-/** «Сегодня, 18:42» / «Вчера, 09:10» / «12 окт, 19:00». */
-const fmtDayLabel = (d: Date): string => {
-  const now = new Date();
-  if (sameDay(d, now)) return 'Сегодня';
-  const yest = new Date(now);
-  yest.setDate(now.getDate() - 1);
-  if (sameDay(d, yest)) return 'Вчера';
-  const months = ['янв', 'фев', 'мар', 'апр', 'мая', 'июн', 'июл', 'авг', 'сен', 'окт', 'ноя', 'дек'];
-  return `${d.getDate()} ${months[d.getMonth()]}`;
-};
+/** Серверная строка -> Date (UTC), либо null. Парсер общий — lib/datetime. */
+const parseDate = (iso: string): Date | null => parseServerDate(iso);
 
 /** Плитка ЛОКАЛЬНОГО файла (ещё не отправлен): фото — object URL миниатюрой,
  *  pdf — плиткой с именем. Крестик сверху убирает файл из набора. Тот же
@@ -83,14 +72,6 @@ const HwPickThumb: React.FC<{ file: File; onRemove: () => void }> = ({ file, onR
 type FeedMsg = {
   item: HomeworkFeedItem;
   time: Date | null;
-};
-
-/** Числовая дата из 'YYYY-MM-DD HH:MM:SS' (сервер шлёт UTC-наивную строку;
- *  для группировки по дням достаточно локального парса). */
-const parseDate = (iso: string): Date | null => {
-  if (!iso) return null;
-  const d = new Date(iso.includes('T') ? iso : iso.replace(' ', 'T') + 'Z');
-  return isNaN(d.getTime()) ? null : d;
 };
 
 export const HwChat: React.FC<{
@@ -229,7 +210,7 @@ export const HwChat: React.FC<{
           const prev = rows[i - 1]?.item;
           const d = time || parseDate(item.date);
           const prevD = parseDate(prev?.date || '');
-          const newDay = item.kind === 'msg' && d && (!prev || !prevD || !sameDay(d, prevD));
+          const newDay = item.kind === 'msg' && d && (!prev || !prevD || !isSameDay(d, prevD));
           return (
             <React.Fragment key={`${item.kind}-${item.date}-${i}`}>
               {item.kind === 'msg' && newDay && d && (
@@ -237,7 +218,7 @@ export const HwChat: React.FC<{
                   alignSelf: 'center', color: 'var(--vkui--color_text_secondary)',
                   fontSize: 11, padding: '2px 0',
                 }}>
-                  {fmtDayLabel(d)}
+                  {fmtDayName(d)}
                 </Caption>
               )}
               {item.kind === 'event' ? (
