@@ -10,7 +10,7 @@
                         t-att-class="'btn btn-sm ' + (value === n ? filledClass(n) : outlineClass(n))"
                         t-att-aria-pressed="value === n ? 'true' : 'false'"
                         t-att-disabled="props.readonly ? 'disabled' : undefined"
-                        t-on-click="() => pick(n)">
+                        t-on-click="() => this.pick(n)">
                     <t t-esc="n"/>
                 </button>
             </t>
