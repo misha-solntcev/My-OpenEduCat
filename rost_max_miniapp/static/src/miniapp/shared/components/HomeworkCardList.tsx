@@ -7,9 +7,10 @@
  */
 import React from 'react';
 import { Caption, Div, Button, Card as VkCard, Text, Box, Flex } from '@vkontakte/vkui';
-import { Icon28AttachOutline, Icon28ClockOutline, Icon16Cancel } from '@vkontakte/icons';
+import { Icon28ClockOutline, Icon16Cancel } from '@vkontakte/icons';
 import { SubjectAvatar } from './SubjectIcon';
 import { MaterialsEditor } from '@/shared/components/MaterialsEditor';
+import { HwChat } from '@/shared/components/HwChat';
 import { AttachField, HW_MAX_HEIGHT } from '@/shared/components/AttachField';
 import { fileToBase64 } from '@/shared/lib/api';
 import { gradeTone } from './JournalButton';
@@ -289,56 +290,15 @@ export const HomeworkRowItem: React.FC<{
 
         {expanded && (
           <div style={{ marginTop: 8 }}>
-            {/* Комментарий учителя виден ученику при ЛЮБОМ состоянии сдачи,
-                а не только при отправке на доработку. Раньше условие стояло
-                h.state === 'change', и при обычном приёме сдачи учительский
-                комментарий молча пропадал: Сунайт принял работу Макарова,
-                написал «Хорошая работа» — ученик ничего не увидел.
-
-                Цвет зависит от сути: «на доработку» — предупреждающий,
-                принято — обычный информационный. */}
-            {h.teacher_note && (
-              <div style={{
-                display: 'flex', gap: 8, alignItems: 'flex-start',
-                background: h.state === 'change'
-                  ? 'var(--vkui--color_background_warning)'
-                  : 'var(--vkui--color_background_secondary)',
-                borderRadius: 10, padding: '8px 10px', marginBottom: 8,
-              }}>
-                <Icon28AttachOutline width={16} height={16} style={{
-                  color: h.state === 'change'
-                    ? 'var(--vkui--color_icon_warning)'
-                    : 'var(--vkui--color_icon_secondary)',
-                  flexShrink: 0, marginTop: 2,
-                }} />
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <Caption weight="2" style={{
-                    color: 'var(--vkui--color_text_primary)',
-                    display: 'block', fontSize: 11, marginBottom: 2,
-                  }}>
-                    Комментарий учителя
-                  </Caption>
-                  <Text style={{
-                    color: 'var(--vkui--color_text_primary)',
-                    display: 'block', whiteSpace: 'pre-wrap',
-                  }}>
-                    {h.teacher_note}
-                  </Text>
-                </div>
-              </div>
-            )}
-
-            {h.answer_required && h.answer && h.state !== 'change' && (
-              <div style={{ marginBottom: 8 }}>
-                <Caption style={{
-                  color: 'var(--vkui--color_text_secondary)',
-                  display: 'block', marginBottom: 2,
-                }}>
-                  Ваш ответ:
-                </Caption>
-                <Text style={{ color: 'var(--vkui--color_text_primary)', display: 'block', whiteSpace: 'pre-wrap' }}>
-                  {h.answer}
-                </Text>
+            {/* Переписка по сдаче — как в мессенджере (мокап C): ответ
+                ученика, комментарии учителя, вложения и статусы («Отправлено
+                на проверку») — одна лента вместо прежних блоков «Комментарий
+                учителя» и «Ваш ответ». Блоки убраны: то же содержимое живёт
+                в чате; учительский комментарий при любом состоянии сдачи
+                попадает в чат бэкендом. */}
+            {h.sub_id !== null && (
+              <div style={{ marginTop: 8 }}>
+                <HwChat subId={h.sub_id} canPost />
               </div>
             )}
 

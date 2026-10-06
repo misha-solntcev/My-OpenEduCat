@@ -222,6 +222,8 @@ export interface HomeworkItem {
   /** Вторая оценка за сдачу (2–5). Не задана — null. */
   mark_2: number | null;
   teacher_note: string;
+  /** id строки сдачи — эндпоинт чата переписки (/submission/<id>/messages). */
+  sub_id: number | null;
   submitted_at: string;
   late: boolean;
   /** Материалы задания (вложения учителя), одноразовые ссылки. */
@@ -260,6 +262,24 @@ export interface HomeworkAttachment {
   mimetype: string;
   /** Одноразовая ссылка /rost_max/hw_att/<token> (живёт 24 ч). */
   url: string;
+  /** Размер файла в байтах (только вложения чата). */
+  size?: number;
+}
+
+/** Элемент ленты чата сдачи (GET /submission/<id>/messages). */
+export interface HomeworkFeedItem {
+  /** msg = пузырь чата; event = системная запись («Отправлено на проверку»). */
+  kind: 'msg' | 'event';
+  /** Относительно смотрящего: свои сообщения справа. */
+  side?: 'in' | 'out';
+  /** Автор сообщения. */
+  author?: 'student' | 'teacher';
+  text: string;
+  /** UTC-дата сервера 'YYYY-MM-DD HH:MM:SS'. */
+  date: string;
+  attachments?: HomeworkAttachment[];
+  /** true — синтезировано из полей note/teacher_note (легаси, не в чате). */
+  synthetic?: boolean;
 }
 
 export interface HomeworkSubmissionStudent {

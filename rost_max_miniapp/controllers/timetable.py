@@ -250,6 +250,202 @@ def _hw_parse_mark(body, key):
     return mark, None
 
 
+# ---------------------------------------------------------------------------
+# Чат по сдаче ДЗ
+#
+# Переписка живёт в штатном mail.thread строки сдачи: message_post() как
+# у любого chatter в Odoo, статус-события («Отправлено на проверку») даёт
+# сам трекинг state (tracking=True в core-модели). Никакой отдельной
+# модели чата — то же решение, что в апстриме OpenEduCat (Chatter на
+# op.assignment.sub.line), только с мессенджер-оформлением на фронте.
+# ---------------------------------------------------------------------------
+
+_HW_EVENT_TEXT = {
+    'draft': 'Сдача создана',
+    'submit': 'Отправлено на проверку',
+    'change': 'Отправлено на доработку',
+    'accept': 'Принято',
+    'reject': 'Отклонено',
+}
+
+
+def _hw_post_chat(sub, text, clean_files=None):
+    """Сообщение в чат сдачи от текущего пользователя (author_id ставит
+    message_post сам, по request.env.user — sudo() его не подменяет).
+
+    clean_files — выход _clean_hw_files; вложения создаются как обычные
+    ir.attachment на строке сдачи (без res_field, поэтому в домен
+    hw_attachment сдач они не попадают) и вешаются на сообщение.
+    """
+    body = False
+    text = (text or '').strip()
+    if text:
+        # Body у mail.message — html: экранируем и сохраняем переводы строк.
+        safe = tools.html_escape(text).replace('\n', Markup('<br/>'))
+        body = Markup('<p>%s</p>') % safe
+    att_ids = []
+    for f in (clean_files or []):
+        att_ids.append(request.env['ir.attachment'].sudo().create({
+            'name': f['filename'],
+            'res_model': sub._name,
+            'res_id': sub.id,
+            'mimetype': f['mimetype'],
+            'datas': f['b64'],
+        }).id)
+    if not body and not att_ids:
+        return
+    sub.sudo().with_context(mail_create_nosubscribe=True).message_post(
+        body=body,
+        message_type='comment',
+        subtype_xmlid='mail.mt_comment',
+        attachment_ids=att_ids,
+    )
+
+
+def _hw_sub_feed(sub, viewer_student_id):
+    """Лента чата сдачи для фронтов.
+
+    viewer_student_id: id op.student текущего юзера-ученика (или None у
+    учителя/админа/родителя). side считается относительно смотрящего:
+    'out' — свои сообщения, 'in' — собеседник. Так один формат кормит и
+    ученика (свои справа), и учителя (ученик слева).
+
+    Коммент-сообщения — чат; notification-сообщения трекинга state —
+    системные события. Пока в чате нет ни одного комментария (старые
+    сдачи до фичи), ответ ученика и комментарий учителя показываем
+    синтезированными сообщениями из полей note/teacher_note — хранить их
+    заново не нужно, они уже в строке сдачи.
+    """
+    env = request.env
+    msgs = env['mail.message'].sudo().search_read(
+        [('model', '=', sub._name), ('res_id', '=', sub.id)],
+        fields=['id', 'date', 'author_id', 'body', 'message_type',
+                'attachment_ids'],
+        order='date asc, id asc')
+    chat = [m for m in msgs if m['message_type'] == 'comment']
+
+    items = []
+    if not chat and (sub.note or sub.teacher_note):
+        # Легаси-сдачи: отвечаем полем note (ответ ученика при сдаче) и
+        # teacher_note. Как только в чате появится настоящее сообщение,
+        # ветка выключится сама — синтез только при пустом чате.
+        if sub.note:
+            items.append({
+                'kind': 'msg',
+                'side': 'out' if viewer_student_id == sub.student_id.id else 'in',
+                'author': 'student',
+                'text': sub.note,
+                'date': str(sub.submission_date),
+                'attachments': [],
+                'synthetic': True,
+            })
+        if sub.teacher_note:
+            items.append({
+                'kind': 'msg',
+                'side': 'in' if viewer_student_id == sub.student_id.id else 'out',
+                'author': 'teacher',
+                'text': sub.teacher_note,
+                'date': str(sub.write_date),
+                'attachments': [],
+                'synthetic': True,
+            })
+
+    for m in chat:
+        atts = []
+        for att in env['ir.attachment'].sudo().browse(m['attachment_ids']):
+            token = env['hw.attachment.token'].sudo().create({
+                'attachment_id': att.id})
+            atts.append({
+                'name': att.name or 'attachment',
+                'mimetype': att.mimetype or '',
+                'size': att.file_size,
+                'url': '/rost_max/hw_att/%s' % token.token,
+            })
+        author = 'student' if m['author_id'] and \
+            m['author_id'][0] == sub.student_id.partner_id.id else 'teacher'
+        items.append({
+            'kind': 'msg',
+            'side': 'out' if author == 'student' and
+            viewer_student_id == sub.student_id.id else
+            ('in' if author == 'student' else
+             ('out' if viewer_student_id != sub.student_id.id else 'in')),
+            'author': author,
+            'text': tools.html2plaintext(m['body']) if m['body'] else '',
+            'date': str(m['date']),
+            'attachments': atts,
+            'synthetic': False,
+        })
+
+    # Системные события — из трекинга state (mail.tracking.value).
+    events_by_msg = {}
+    if msgs:
+        tracking = env['mail.tracking.value'].sudo().search_read(
+            [('mail_message_id', 'in', [m['id'] for m in msgs])],
+            fields=['mail_message_id', 'field_id', 'new_value_char'])
+        field_ids = list({t['field_id'][0] for t in tracking if t['field_id']})
+        field_names = {
+            f['id']: f['name']
+            for f in env['ir.model.fields'].sudo().browse(field_ids)
+        } if field_ids else {}
+        for t in tracking:
+            fname = field_names.get(t['field_id'][0]) if t['field_id'] else None
+            if fname == 'state':
+                events_by_msg.setdefault(
+                    t['mail_message_id'][0], []).append(t['new_value_char'])
+    # Лейбл состояния из трекинга — переведённый label selection'а;
+    # мапим на ключ и берём свой текст (не зависит от языка БД).
+    state_labels = dict(
+        env['op.assignment.sub.line']._fields['state'].selection
+    ) if 'state' in env['op.assignment.sub.line']._fields else {}
+    label_to_key = {label: key for key, label in state_labels.items()}
+    seen_events = []
+    for m in msgs:
+        if m['message_type'] == 'comment':
+            continue
+        for label in events_by_msg.get(m['id'], []):
+            key = label_to_key.get(label)
+            text = _HW_EVENT_TEXT.get(key)
+            if not text:
+                continue
+            if seen_events and seen_events[-1][0] == key:
+                # Повтор одного события подряд — схлопываем (почти всегда
+                # это перезапись одной даты), оставляем последнее время.
+                seen_events[-1] = (key, text, str(m['date']))
+                continue
+            seen_events.append((key, text, str(m['date'])))
+    event_items = [{
+        'kind': 'event', 'text': text, 'date': date,
+    } for _key, text, date in seen_events]
+
+    # Мержим msg+event по дате, сохраняя хронологию.
+    feed = sorted(items + event_items, key=lambda i: i['date'] or '')
+    return feed
+
+
+def _hw_sub_access(sub, want_post):
+    """Доступ к чату сдачи. Возвращает (Response-ошибка | None, side_view).
+
+    Читают: ученик-владелец, его родитель, автор задания, админ.
+    Пишут: ученик-владелец (не родитель), автор задания, админ.
+    """
+    user = request.env.user
+    is_admin = user.has_group('base.group_system')
+    role, own_students = _get_user_students(user)
+    is_owner = sub.student_id in own_students if role in ('student', 'parent') \
+        else False
+    faculty = request.env['op.faculty'].sudo().search([
+        ('partner_id', '=', user.partner_id.id)], limit=1)
+    is_author = bool(faculty) and \
+        sub.assignment_id.faculty_id.id == faculty.id
+    if not (is_admin or is_owner or is_author):
+        return request.make_json_response(
+            {"error": "Нет доступа к сдаче"}, status=403), None
+    if want_post and role == 'parent':
+        return request.make_json_response(
+            {"error": "Писать в чат может только ученик"}, status=403), None
+    return None, 'student' if is_owner else 'teacher'
+
+
 class RostMaxTimetableController(http.Controller):
     """Мини-приложение для MAX: расписание занятий"""
 
@@ -1515,6 +1711,8 @@ class RostMaxTimetableController(http.Controller):
                 "mark": (int(sub.marks) if sub and sub.marks else None),
                 "mark_2": (int(sub.marks_2) if sub and sub.marks_2 else None),
                 "teacher_note": (sub.teacher_note or '') if sub else '',
+                # id строки сдачи — эндпоинт чата переписки по сдаче.
+                "sub_id": sub.id if sub else None,
                 "submitted_at": str(sub.submission_date) if sub else '',
                 "late": bool(sub and a.submission_date
                              and sub.submission_date > a.submission_date),
@@ -1627,6 +1825,10 @@ class RostMaxTimetableController(http.Controller):
                 vals, assignment_id=asg.id, student_id=student.id))
         if clean_files:
             sub._hw_store_attachments(clean_files)
+        # Ответ — сообщение ученика в чате сдачи (в мокапе C это первый
+        # пузырь справа). note остаётся в поле для журналов/отчётов.
+        if answer:
+            _hw_post_chat(sub, answer)
 
         return request.make_json_response({"success": True})
 
@@ -1915,6 +2117,69 @@ class RostMaxTimetableController(http.Controller):
             "students": students,
         })
 
+    @http.route("/rost_max/api/homework/submission/<int:sub_id>/messages",
+                type="http", auth="public", methods=["GET"])
+    def api_hw_sub_messages(self, sub_id, **kw):
+        """API: лента чата сдачи (сообщения + статус-события)."""
+        restore_session_if_needed()
+        if not request.session.uid:
+            return request.make_json_response(
+                {"error": "Unauthorized"}, status=401)
+        sub = request.env['op.assignment.sub.line'].sudo().browse(sub_id)
+        if not sub.exists():
+            return request.make_json_response(
+                {"error": "Сдача не найдена"}, status=404)
+        err, _side = _hw_sub_access(sub, want_post=False)
+        if err:
+            return err
+        role, own_students = _get_user_students(request.env.user)
+        viewer = own_students[:1].id or None
+        return request.make_json_response({
+            "sub_id": sub.id,
+            "can_post": role in ('student', 'admin', 'teacher'),
+            "feed": _hw_sub_feed(sub, viewer),
+        })
+
+    @http.route("/rost_max/api/homework/submission/<int:sub_id>/messages",
+                type="http", auth="public", methods=["POST"], cors="*",
+                csrf=False)
+    def api_hw_sub_message_post(self, sub_id, **kw):
+        """API: сообщение в чат сдачи (текст и/или вложения base64,
+        те же лимиты, что у сдач: ≤5 файлов, ≤10 МБ, фото/PDF)."""
+        restore_session_if_needed()
+        csrf_err = _check_spa_csrf()
+        if csrf_err:
+            return csrf_err
+        if not request.session.uid:
+            return request.make_json_response(
+                {"error": "Unauthorized"}, status=401)
+        sub = request.env['op.assignment.sub.line'].sudo().browse(sub_id)
+        if not sub.exists():
+            return request.make_json_response(
+                {"error": "Сдача не найдена"}, status=404)
+        err, _side = _hw_sub_access(sub, want_post=True)
+        if err:
+            return err
+        try:
+            body = request.get_json_data()
+        except Exception:
+            return request.make_json_response(
+                {"error": "Invalid JSON"}, status=400)
+        text = (body.get('text') or '').strip()
+        clean_files, ferr = _clean_hw_files(body.get('files') or [])
+        if ferr:
+            return ferr
+        if not text and not clean_files:
+            return request.make_json_response(
+                {"error": "Пустое сообщение"}, status=400)
+        _hw_post_chat(sub, text, clean_files)
+        role, own_students = _get_user_students(request.env.user)
+        viewer = own_students[:1].id or None
+        return request.make_json_response({
+            "success": True,
+            "feed": _hw_sub_feed(sub, viewer),
+        })
+
     @http.route("/rost_max/api/homework/submission/<int:sub_id>/review",
                 type="http", auth="public", methods=["POST"], cors="*",
                 csrf=False)
@@ -1963,6 +2228,11 @@ class RostMaxTimetableController(http.Controller):
             if val is not None:
                 vals[field] = val
         sub.write(vals)
+        # Комментарий учителя дублируем в чат сдачи: в мокапе C он живёт
+        # пузырём учителя, а не отдельной строкой под лентой.
+        note = vals.get('teacher_note')
+        if note:
+            _hw_post_chat(sub, note)
         return request.make_json_response({"success": True})
 
     @http.route("/rost_max/api/homework/<int:assignment_id>/review_student",
@@ -2031,6 +2301,12 @@ class RostMaxTimetableController(http.Controller):
             request.env['op.assignment.sub.line'].sudo().create(dict(
                 vals, assignment_id=asg.id, student_id=student.id,
                 submission_date=fields.Datetime.now()))
+            sub = request.env['op.assignment.sub.line'].sudo().search([
+                ('assignment_id', '=', asg.id),
+                ('student_id', '=', student.id)], limit=1)
+        note = vals.get('teacher_note')
+        if note and sub:
+            _hw_post_chat(sub, note)
         return request.make_json_response({"success": True})
 
     @http.route("/rost_max/api/homework/<int:assignment_id>/review_bulk",

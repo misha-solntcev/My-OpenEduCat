@@ -30,7 +30,7 @@
 // Стили: VKUI токены (--vkui--*), никаких кастомных css-классов.
 import React from 'react';
 import { Box, Caption, Flex, Image } from '@vkontakte/vkui';
-import { Icon28AttachOutline, Icon28DocumentOutline } from '@vkontakte/icons';
+import { Icon28AttachOutline, Icon28DocumentOutline, Icon28DownloadOutline } from '@vkontakte/icons';
 import type { HomeworkAttachment } from '@/shared/lib/types';
 
 /** Сторона плитки-превью, px. Единственное место, где размер задаётся. */
@@ -116,9 +116,32 @@ export const AttachmentViewer: React.FC<{
       alt={alt}
       style={{ maxWidth: '100%', maxHeight: '82%', objectFit: 'contain' }}
     />
-    {caption && (
-      <Caption style={{ color: '#fff', marginTop: 12, fontSize: 13 }}>{caption}</Caption>
-    )}
+    <div
+      style={{
+        marginTop: 12, display: 'flex', alignItems: 'center', gap: 12,
+      }}
+      onClick={e => e.stopPropagation()}
+    >
+      {caption && (
+        <Caption style={{ color: '#fff', fontSize: 13 }}>{caption}</Caption>
+      )}
+      {/* Скачать: именно здесь, а не в плитке — в просмотре файл уже
+          рассмотрен и решение «сохранить» осмысленно. download-атрибут
+          сохраняет под именем файла, не переходом в новую вкладку. */}
+      <a
+        href={url}
+        download={alt || true}
+        style={{
+          display: 'inline-flex', alignItems: 'center', gap: 6,
+          color: '#fff', textDecoration: 'none', padding: '6px 12px',
+          background: 'rgba(255,255,255,0.14)',
+          borderRadius: 8, fontSize: 13, fontWeight: 600,
+        }}
+      >
+        <Icon28DownloadOutline width={18} height={18} />
+        Скачать
+      </a>
+    </div>
   </Box>
 );
 

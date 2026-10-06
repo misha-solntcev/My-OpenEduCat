@@ -5,24 +5,20 @@
         Перенесены в код 2026-08-26, группы __custom__.* заменены на актуальные.
 
         Смысл правок:
-        - Чаттер скрыт от учеников (роль openeducat_core.group_op_students)
+        - Чаттер сдачи ДЗ ПОКАЗАН ВСЕМ: переписка ученик↔учитель живёт в
+          штатном mail.thread строки сдачи (2026-10). Прежняя вьюха
+          view_assignment_sub_line_hide_chatter скрыла чаттер от учеников —
+          удалена. Права всё равно режутся ACL/record rules (mail.message
+          «User: All Chatter», ученики internal с 2026-09).
         - Кнопки расписания: учителя через per-module роль Учитель (timetable)
         - Кнопки выдачи книг в библиотеке: пермодульная роль Учитель (assignment)
         - Канбан преподавателей: ученикам отдельный шаблон без клика-открытия
         - Оценка/примечание в сдаче задания: у учеников readonly
     -->
 
-    <!-- ===== op.assignment.sub.line: чаттер скрыт от учеников ===== -->
-    <record id="view_assignment_sub_line_hide_chatter" model="ir.ui.view">
-        <field name="name">Делаем Чаттер невидимым для студентов</field>
-        <field name="model">op.assignment.sub.line</field>
-        <field name="inherit_id" ref="openeducat_assignment.view_op_assignment_sub_line_form"/>
-        <field name="arch" type="xml">
-            <xpath expr="//chatter" position="attributes">
-                <attribute name="groups">!openeducat_core.group_op_students</attribute>
-            </xpath>
-        </field>
-    </record>
+    <!-- Само скрытие удалено; запись вьюхи из БД убираем явно: -u не
+         удаляет записи, исчезнувшие из data-файлов. -->
+    <delete model="ir.ui.view" id="view_assignment_sub_line_hide_chatter"/>
 
     <!-- ===== op.session: кнопки формы видны и учителям =====
 

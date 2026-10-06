@@ -4,14 +4,14 @@
         <html>
             <head>
                 <meta charset="utf-8"/>
-                <!-- Зум НЕ запрещён: maximum-scale=1.0 + user-scalable=no
-                     выключали pinch-zoom, из-за чего в полноэкранном
-                     просмотре фотографии работы нельзя было рассмотреть
-                     детали (Миша: «не работает zoom»). Убрали оба
-                     ограничения; интерфейс свёрстан на ширину и
-                     выглядит так же при initial-scale=1.
-                     viewport-fit=cover оставлен — нужен под вырез. -->
-                <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+                <!-- Зум интерфейса ЗАПРЕЩЁН намеренно: без этого пинч
+                     масштабировал всю страницу, а не фотографию (Миша:
+                     «уменьшается/увеличивается интерфейс приложения, а
+                     фото не меняется. Мне нужно наоборот»).
+                     Масштаб фотографии в полноэкранном просмотре
+                     сделан собственным жестом (AttachmentViewer):
+                     пинч, перетаскивание, двойной тап. -->
+                <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"/>
                 <title>Школа РОСТ</title>
 
                 <!-- Content Security Policy for MAX WebView + VKUI -->

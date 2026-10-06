@@ -1,21 +1,20 @@
 /**
- * Очередь проверки сдач — вариант D (design/hw-review-redesign-variants.html).
+ * Очередь проверки сдач — вариант C (design/hw-chat-variants.html).
  * Сегмент «Проверить / На доработке / Проверено» — рабочие фильтры: каждый
- * показывает свой список; сдача из «Проверить» раскрыта (ответ, вложения,
- * комментарий, Принять/На доработку/оценка), тап по строке переключает
- * раскрытие. «На доработке» и «Проверено» — компактные строки (у «На
- * доработке» в подстроке последний комментарий учителя, у «Проверено» —
- * бейдж оценки как в журнале).
+ * показывает свой список; сдача из «Проверить» раскрыта (чат переписки +
+ * Принять/На доработку), тап по строке переключает раскрытие. Оценки
+ * (ДЗ 1 и ДЗ 2, тап по кругу) стоят в самой строке ученика — видны и у
+ * закрытой строки. «На доработке» и «Проверено» — компактные строки.
  */
 import React from 'react';
-import { Avatar, Button, Caption, Input, Text } from '@vkontakte/vkui';
+import { Avatar, Button, Caption, Text } from '@vkontakte/vkui';
 import { initialsOf } from '@/shared/lib/initials';
 import { AccentSegmentedControl } from '@/shared/components/AccentSegmentedControl';
 import {
-  Icon24ListCheckOutline, Icon24ChevronRight,
+  Icon24ChevronRight,
 } from '@vkontakte/icons';
 import { JournalButton } from '@/shared/components/JournalButton';
-import { SubAttachments } from '@/shared/components/SubAttachments';
+import { HwChat } from '@/shared/components/HwChat';
 import type { HomeworkSubmissionsResponse, HomeworkSubmissionStudent } from '@/shared/lib/types';
 
 /* янтарная плашка «На доработке» (AmberChip: warning-тинта текста нет в VKUI 8) */
@@ -65,13 +64,11 @@ export const ReviewQueue: React.FC<{
   const { students } = submission;
   const [seg, setSeg] = React.useState<SegKey>('submit');
   const [busyId, setBusyId] = React.useState<number | null>(null);
-  const [notes, setNotes] = React.useState<Record<number, string>>({});
   const [marks, setMarks] = React.useState<Record<number, number | null>>({});
   const [marks2, setMarks2] = React.useState<Record<number, number | null>>({});
   React.useEffect(() => {
     setMarks(Object.fromEntries(students.map(s => [s.student_id, s.mark])));
     setMarks2(Object.fromEntries(students.map(s => [s.student_id, s.mark_2])));
-    setNotes(Object.fromEntries(students.map(s => [s.student_id, s.teacher_note || ''])));
   }, [students]);
 
   // undefined = юзер ещё не тапал (авто-раскрыта первая строка),
@@ -101,7 +98,7 @@ export const ReviewQueue: React.FC<{
     const mark = action === 'accept' ? (marks[s.student_id] ?? null) : null;
     const mark2 = action === 'accept' ? (marks2[s.student_id] ?? null) : null;
     const err = await onReview(s.sub_id ?? null, action,
-      (notes[s.student_id] || '').trim(), mark, s.student_id, mark2);
+      undefined, mark, s.student_id, mark2);
     setBusyId(null);
     return err;
   };
@@ -224,27 +221,38 @@ export const ReviewQueue: React.FC<{
                     {(s.state === 'none' || s.state === 'draft') && 'Не сдано'}
                   </Caption>
                 </div>
-                {s.state === 'accept' && (
-                  <span
-                    style={{ display: 'inline-flex', gap: 4, flexShrink: 0 }}
-                    onClick={e => e.stopPropagation()}
-                  >
-                    <JournalButton
-                      kind="grade"
-                      size="l"
-                      value={marks[subId] ?? null}
-                      onCycle={busyId === null ? next => changeAcceptedMark(s, 1, next) : undefined}
-                      title="Оценка 1 за домашнее задание"
-                    />
-                    <JournalButton
-                      kind="grade"
-                      size="l"
-                      value={marks2[subId] ?? null}
-                      onCycle={busyId === null ? next => changeAcceptedMark(s, 2, next) : undefined}
-                      title="Оценка 2 за домашнее задание"
-                    />
-                  </span>
-                )}
+                {/* Оценки в строке ученика — видны и у закрытой строки
+                    (Миша: «чтобы её было видно, когда строка закрыта»).
+                    У принятой работы тап сразу сохраняет оценку; у ещё не
+                    принятой — только выбирает её, сохранение происходит
+                    по кнопке «Принять». */}
+                <span
+                  style={{ display: 'inline-flex', gap: 4, flexShrink: 0 }}
+                  onClick={e => e.stopPropagation()}
+                >
+                  <JournalButton
+                    kind="grade"
+                    size="l"
+                    value={marks[subId] ?? null}
+                    onCycle={busyId === null ? next => (
+                      s.state === 'accept'
+                        ? changeAcceptedMark(s, 1, next)
+                        : setMarks(prev => ({ ...prev, [subId]: next }))
+                    ) : undefined}
+                    title="Оценка 1 за домашнее задание"
+                  />
+                  <JournalButton
+                    kind="grade"
+                    size="l"
+                    value={marks2[subId] ?? null}
+                    onCycle={busyId === null ? next => (
+                      s.state === 'accept'
+                        ? changeAcceptedMark(s, 2, next)
+                        : setMarks2(prev => ({ ...prev, [subId]: next }))
+                    ) : undefined}
+                    title="Оценка 2 за домашнее задание"
+                  />
+                </span>
                 {s.state === 'submit' && <span style={grayPill}>На проверке</span>}
                 {s.state === 'change' && <span style={amberPill}>На доработке</span>}
                 {s.state === 'reject' && (
@@ -257,46 +265,16 @@ export const ReviewQueue: React.FC<{
                 {chevron}
               </div>
 
-              {/* раскрытая проверка (мокап: .chk) */}
-              {open && (
+              {/* раскрытая проверка (мокап C): лента переписки одной
+                  сдачи + кнопки решения. Блок «Ответ», плитки вложений и
+                  поле комментария больше не нужны — всё это живёт в чате. */}
+              {open && s.sub_id !== null && (
                 <div style={{
                   borderTop: '1px solid var(--vkui--color_separator_primary)',
                   padding: '10px 12px',
                   background: 'var(--vkui--color_background_secondary)',
                 }}>
-                  {s.answer && (
-                    <div style={{
-                      background: 'var(--vkui--color_background_content)',
-                      border: '1px solid var(--vkui--color_separator_primary)',
-                      borderRadius: 10, padding: '10px 12px',
-                    }}>
-                      <Caption style={{
-                        display: 'flex', alignItems: 'center', gap: 5,
-                        fontSize: 11, fontWeight: 600, letterSpacing: '.4px',
-                        textTransform: 'uppercase', color: 'var(--vkui--color_text_secondary)',
-                      }}>
-                        <Icon24ListCheckOutline width={16} height={16} />
-                        Ответ
-                      </Caption>
-                      <Text style={{
-                        display: 'block', marginTop: 3, fontSize: 14,
-                        lineHeight: '20px', whiteSpace: 'pre-wrap',
-                        overflowWrap: 'anywhere',
-                      }}>
-                        {s.answer}
-                      </Text>
-                    </div>
-                  )}
-                  {s.attachments.length > 0 && (
-                    <SubAttachments attachments={s.attachments} />
-                  )}
-                  <Input
-                    value={notes[subId] || ''}
-                    onChange={e => setNotes(prev => ({ ...prev, [subId]: e.target.value }))}
-                    placeholder="Например: хорошая работа"
-                    aria-label="Комментарий учителя"
-                    style={{ marginTop: 8 }}
-                  />
+                  <HwChat subId={s.sub_id} canPost />
                   <div style={{ display: 'flex', gap: 8, marginTop: 8, alignItems: 'center' }}>
                     <Button
                       size="s" stretched
@@ -320,22 +298,6 @@ export const ReviewQueue: React.FC<{
                       >
                         На доработку
                       </Button>
-                    )}
-                    {s.state !== 'accept' && (
-                      <JournalButton
-                        kind="grade"
-                        value={marks[subId] ?? null}
-                        onCycle={next => setMarks(prev => ({ ...prev, [subId]: next }))}
-                        title="Оценка 1 за домашнее задание"
-                      />
-                    )}
-                    {s.state !== 'accept' && (
-                      <JournalButton
-                        kind="grade"
-                        value={marks2[subId] ?? null}
-                        onCycle={next => setMarks2(prev => ({ ...prev, [subId]: next }))}
-                        title="Оценка 2 за домашнее задание"
-                      />
                     )}
                   </div>
                 </div>

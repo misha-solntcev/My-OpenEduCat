@@ -7,7 +7,7 @@
 // Стили: VKUI токены + vkitokens (--vkui--*), никаких кастомных css-классов.
 import React from 'react';
 import { Box, Flex, Text, Caption, Input, Button, Checkbox, Counter } from '@vkontakte/vkui';
-import { Icon24ChevronDown, Icon24ChevronUp } from '@vkontakte/icons';
+import { Icon24ChevronDown } from '@vkontakte/icons';
 import { AttachField, HW_MAX_HEIGHT } from '@/shared/components/AttachField';
 import { MaterialsEditor } from '@/shared/components/MaterialsEditor';
 import { apiPost, fileToBase64 } from '@/shared/lib/api';

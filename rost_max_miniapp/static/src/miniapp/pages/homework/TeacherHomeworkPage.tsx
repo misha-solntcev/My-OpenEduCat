@@ -14,10 +14,10 @@ import React from 'react';
 import {
   Panel, PanelHeader, PanelHeaderBack, PanelHeaderContent, Div, Spinner, Button,
   Caption, Text, Card as VkCard, Input, Checkbox, Box,
-  Textarea, IconButton, Chip,
+  IconButton, Chip,
 } from '@vkontakte/vkui';
 import {
-  Icon28EditOutline, Icon28AttachOutline, Icon28FlashOutline,
+  Icon28EditOutline, Icon28FlashOutline,
   Icon24Filter, Icon24ListCheckOutline,
 } from '@vkontakte/icons';
 import { apiGet, apiPost } from '@/shared/lib/api';
