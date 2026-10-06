@@ -103,32 +103,19 @@
                        decoration-success="state == 'accept'"
                        decoration-warning="state == 'change'"
                        decoration-danger="state == 'reject'"/>
+                <!-- Обе оценки в строке: видны и у закрытой строки, как в
+                     миниаппе (Ревью переработано 2026-10). -->
+                <field name="marks" string="Оценка"/>
+                <field name="marks_2" string="Оценка 2"/>
                 <field name="submission_date" readonly="1"
                        string="Сдал" optional="hide"/>
-                <!--
-                      Вложения ответа — те же файлы и тот же виджет, что у
-                      ученика в форме сдачи, поэтому превью показывается
-                      одинаково везде: у ученика, у учителя в списке, у
-                      завуча и админа.
-
-                      Ничего не скрываем и не дублируем: виджет сам рисует
-                      превью для КАЖДОГО файла, а не только для первого,
-                      и по тапу открывает его. Колонка видима (optional
-                      по умолчанию show) — раньше она была спрятана в
-                      optional="hide", и учитель видел ссылку вместо
-                      картинки, хотя виджет умеет иначе.
-                    -->
-                <field name="note" string="Ответ ученика"
-                       optional="show"/>
-                <field name="attachment_ids" widget="many2many_binary"
-                       string="Вложения"
-                       options="{'accepted_file_extensions': '.png,.jpg,.jpeg,.webp,.gif,.pdf'}"/>
+                <!-- Ответ и вложения в списке НЕ показываем: их место — в
+                     форме (чат + плитки превью). many2many_binary в
+                     list-колонке превью не умеет, проверено. -->
+                <!-- Счётчик сообщений чата: видно, где идёт переписка. -->
+                <field name="hw_chat_count" string="Сообщений"/>
                 <field name="teacher_note"
                        string="Комментарий учителя"
-                       optional="show"/>
-                <field name="marks" string="Оценка"
-                       optional="show"/>
-                <field name="marks_2" string="Оценка 2"
                        optional="hide"/>
             </list>
         </field>
@@ -198,7 +185,9 @@
     <record id="action_op_assignment_works" model="ir.actions.act_window">
         <field name="name">Работы</field>
         <field name="res_model">op.assignment.sub.line</field>
-        <field name="view_mode">list</field>
+        <!-- list,form: строка кликабельна — проверка и чат в форме
+             (сводка + Chatter сдачи), список остаётся сводкой по классу. -->
+        <field name="view_mode">list,form</field>
         <!-- view_id, а не views: запись ir.actions.act_window в XML
              описывается через view_mode + view_id, вложенный views тут
              не поддерживается схемой (import_xml.rng), а eval подставил

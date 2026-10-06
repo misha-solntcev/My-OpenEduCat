@@ -1,5 +1,6 @@
 from odoo import _, api, fields, models
 from odoo.exceptions import AccessError, UserError
+from markupsafe import Markup
 
 import logging
 
@@ -87,6 +88,23 @@ class OpAssignmentSubLine(models.Model):
 
     _inherit = 'op.assignment.sub.line'
 
+    # Счётчик сообщений чата сдачи (mail.message comment) — колонка в
+    # списке работ. 0 = переписки нет. Чат живёт в штатном mail.thread
+    # (та же лента, что в миниаппе), считаем только комментарии —
+    # notification-сообщения трекинга state в счёт не идут.
+    hw_chat_count = fields.Integer(
+        'Сообщений чата',
+        compute='_compute_hw_chat_count')
+
+    @api.depends_context('id')
+    def _compute_hw_chat_count(self):
+        for rec in self:
+            rec.hw_chat_count = self.env['mail.message'].search_count([
+                ('model', '=', rec._name),
+                ('res_id', '=', rec.id),
+                ('message_type', '=', 'comment'),
+            ])
+
     def _hw_bulk_allowed(self):
         return any(self.env.user.has_group(g) for g in BULK_GROUPS)
 
@@ -122,6 +140,15 @@ class OpAssignmentSubLine(models.Model):
         if marks:
             vals['marks'] = marks
         self.write(vals)
+        # Комментарий — пузырь учителя в чате сдачи (та же лента, что в
+        # миниаппе). sub_id -> state не пишет: только note дублируем.
+        if note:
+            for rec in self:
+                rec.sudo().with_context(
+                    mail_create_nosubscribe=True).message_post(
+                        body=Markup('<p>%s</p>') % note,
+                        message_type='comment',
+                        subtype_xmlid='mail.mt_comment')
         return {
             'type': 'ir.actions.client',
             'tag': 'reload',

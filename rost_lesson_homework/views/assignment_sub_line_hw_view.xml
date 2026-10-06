@@ -21,6 +21,10 @@
          Note → «Ответ ученика». English-подписи в русской школе — из
          наследия OpenEduCat.
 
+      2026-10, чат: переписка живёт в Chatter (mail.thread строки сдачи),
+      тот же store, что миниапп. teacher_note readonly (пишется из чата),
+      вложения — many2many_binary плитками в форме.
+
       ВАЖНО: states не трогаем — draft/submit/change/accept/reject совпадают
       с миниаппом, это общий словарь.
     -->
@@ -54,20 +58,28 @@
             </xpath>
 
             <!--
-              Комментарий учителя + вложения сдачи. Ставим блоком после
-              ответа ученика: порядок чтения — что ученик написал, потом что
-              учитель на это ответил.
+              Комментарий учителя в форме НЕ редактируется: переписка — в
+              Chatter ниже, сообщение из формы падает в ту же ленту, что в
+              миниаппе. Поле оставлено readonly — на доработку/в отчётах
+              видно последний комментарий, писать надо в чат.
             -->
             <xpath expr="//field[@name='note']" position="after">
                 <div class="mt32">
-                    <label for="teacher_note" string="Комментарий учителя"/>
-                    <field name="teacher_note" nolabel="1"
-                           placeholder="Виден ученику в миниаппе"/>
+                    <label for="teacher_note" string="Последний комментарий"/>
+                    <field name="teacher_note" nolabel="1" readonly="1"
+                           placeholder="Пишется из чата ниже"/>
+                    <div class="text-muted small">
+                        Чтобы написать ученику — сообщение в Chatter ниже:
+                        оно попадёт в переписку миниаппа.
+                    </div>
                 </div>
                 <div class="mt16">
                     <label for="attachment_ids" string="Вложения сдачи"/>
+                    <!-- В ФОРМЕ many2many_binary рисует плитки с превью и
+                         тапом (в list-колонке этого не умеет — проверено).
+                         Учитель видит работу ученика, как в миниаппе. -->
                     <field name="attachment_ids" nolabel="1" widget="many2many_binary"
-                           options="{'accepted_file_extensions': '.png,.jpg,.jpeg,.webp,.gif,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip,.rar,.7z'}"/>
+                           options="{'accepted_file_extensions': '.png,.jpg,.jpeg,.webp,.gif,.pdf'}"/>
                 </div>
             </xpath>
 
