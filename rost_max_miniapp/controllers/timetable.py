@@ -269,13 +269,16 @@ _HW_EVENT_TEXT = {
 }
 
 
-def _hw_post_chat(sub, text, clean_files=None):
+def _hw_post_chat(sub, text, clean_files=None, attachment_ids=None):
     """Сообщение в чат сдачи от текущего пользователя (author_id ставит
     message_post сам, по request.env.user — sudo() его не подменяет).
 
     clean_files — выход _clean_hw_files; вложения создаются как обычные
     ir.attachment на строке сдачи (без res_field, поэтому в домен
     hw_attachment сдач они не попадают) и вешаются на сообщение.
+    attachment_ids — готовые вложения, которые линкуем к сообщению
+    (например файлы сдачи при /submit: Chatter на ПК и лента миниаппа
+    показывают их превьюшками).
     """
     body = False
     text = (text or '').strip()
@@ -283,7 +286,7 @@ def _hw_post_chat(sub, text, clean_files=None):
         # Body у mail.message — html: экранируем и сохраняем переводы строк.
         safe = tools.html_escape(text).replace('\n', Markup('<br/>'))
         body = Markup('<p>%s</p>') % safe
-    att_ids = []
+    att_ids = list(attachment_ids or [])
     for f in (clean_files or []):
         att_ids.append(request.env['ir.attachment'].sudo().create({
             'name': f['filename'],
@@ -1827,8 +1830,17 @@ class RostMaxTimetableController(http.Controller):
             sub._hw_store_attachments(clean_files)
         # Ответ — сообщение ученика в чате сдачи (в мокапе C это первый
         # пузырь справа). note остаётся в поле для журналов/отчётов.
-        if answer:
-            _hw_post_chat(sub, answer)
+        # Файлы сдачи линкуем к сообщению: Chatter на ПК и лента миниаппа
+        # показывают их настоящими превью (many2many_binary умеет только
+        # иконку mime-типа).
+        if answer or clean_files:
+            hw_atts = request.env['ir.attachment'].sudo().search([
+                ('res_model', '=', sub._name),
+                ('res_id', '=', sub.id),
+                ('res_field', '=', 'hw_attachment'),
+            ], order='id asc')
+            _hw_post_chat(sub, answer,
+                          attachment_ids=hw_atts.ids)
 
         return request.make_json_response({"success": True})
 

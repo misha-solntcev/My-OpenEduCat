@@ -347,11 +347,9 @@
                     <attribute name="groups">openeducat_core.group_op_students</attribute>
                 </xpath>
 
-                <!-- Для остальных пользователей - редактируемое -->
-                <xpath expr="//field[@name='marks']" position="after">
-                    <field name="marks" readonly="state == 'accept'" groups="!openeducat_core.group_op_students"/>
-                    <field name="marks_2" readonly="state == 'accept'" groups="!openeducat_core.group_op_students"/>
-                </xpath>
+                <!-- 2026-10: копии marks/marks_2 с groups=!students убраны —
+                     оценки видны учителю через базовое поле (hw-вьюха сняла
+                     invisible по accept). Дублирисовали поле дважды. -->
 
                 <!-- ДЗ 2 — только для чтения у студентов (как и ДЗ 1) -->
                 <xpath expr="//field[@name='marks_2']" position="attributes">

@@ -57,6 +57,35 @@
                 <attribute name="string">Ответ ученика</attribute>
             </xpath>
 
+            <!-- Чистка полей ядра (2026-10, чат-форма):
+                 assignment_id не нужен (окно уже открыто ИЗ задания),
+                 submission_date = «Сдал» (не «Сдать до» — это дата сдачи
+                 учеником, не дедлайн), блок description пустой в ДЗ
+                 (текст задания живёт в op.assignment), note = ответ. -->
+            <xpath expr="//field[@name='assignment_id']" position="attributes">
+                <attribute name="invisible">1</attribute>
+            </xpath>
+            <xpath expr="//field[@name='submission_date']" position="attributes">
+                <attribute name="string">Сдал</attribute>
+            </xpath>
+
+            <!-- Блок Description ядра скрыт: в ДЗ он всегда пустой. -->
+            <xpath expr="//label[@for='description']" position="attributes">
+                <attribute name="invisible">1</attribute>
+            </xpath>
+            <xpath expr="//field[@name='description']" position="attributes">
+                <attribute name="invisible">1</attribute>
+            </xpath>
+
+            <!-- Оценки видимы учителю сразу, не только после accept
+                 (как в строке списка и в миниаппе). -->
+            <xpath expr="//field[@name='marks']" position="attributes">
+                <attribute name="invisible">user_boolean == False</attribute>
+            </xpath>
+            <xpath expr="//field[@name='marks_2']" position="attributes">
+                <attribute name="invisible">user_boolean == False</attribute>
+            </xpath>
+
             <!--
               Комментарий учителя в форме НЕ редактируется: переписка — в
               Chatter ниже, сообщение из формы падает в ту же ленту, что в
@@ -74,12 +103,16 @@
                     </div>
                 </div>
                 <div class="mt16">
-                    <label for="attachment_ids" string="Вложения сдачи"/>
-                    <!-- В ФОРМЕ many2many_binary рисует плитки с превью и
-                         тапом (в list-колонке этого не умеет — проверено).
-                         Учитель видит работу ученика, как в миниаппе. -->
-                    <field name="attachment_ids" nolabel="1" widget="many2many_binary"
-                           options="{'accepted_file_extensions': '.png,.jpg,.jpeg,.webp,.gif,.pdf'}"/>
+                    <!-- Виджета «Вложения сдачи» больше нет: файлы сдачи
+                         линкуются к сообщению чата (/submit) и видны в
+                         Chatter ниже настоящими превью (иконки mime у
+                         many2many_binary превью не давали). Домен по
+                         res_field здесь невозможен: res_field защищённое
+                         поле, клиент падает 500. -->
+                    <div class="text-muted small">
+                        Фото и файлы работы — в Chatter ниже, в сообщении
+                        ученика от момента сдачи.
+                    </div>
                 </div>
             </xpath>
 
