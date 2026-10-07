@@ -6,6 +6,12 @@
         <field name="inherit_id" ref="openeducat_attendance.view_op_attendance_sheet_form"/>
         <field name="arch" type="xml">
 
+            <!-- js_class: контроллер sheet_form_guard (static/src/sheet_form_guard.js)
+                 предупреждает при выходе из журнала, пока ДЗ — черновик. -->
+            <xpath expr="//form" position="attributes">
+                <attribute name="js_class">sheet_form_guard</attribute>
+            </xpath>
+
             <!-- Заменяем одиночный блок «Тема занятия» на сетку из двух блоков:
                  Тема (слева) | Домашнее задание (справа) -->
             <xpath expr="//div[hasclass('position-relative') and .//label[@for='lesson_topic']]" position="replace">
@@ -63,6 +69,20 @@
                             readonly="not homework_assignment_id or state in ('done', 'cancel')"
                             nolabel="1"
                             options="{'accepted_file_extensions': '.png,.jpg,.jpeg,.webp,.gif,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip,.rar,.7z'}"/>
+                        <field name="homework_state" invisible="1"/>
+                        <!-- Баннер + кнопка: ДЗ сохранено, но не выдано —
+                             ученики его не видят. Исчезает, как только
+                             задание выдано (homework_state != draft).
+                             Кнопка — тот же hw_publish, что в форме
+                             задания (см. hw_publish_sheet в модели). -->
+                        <div class="alert alert-warning d-flex align-items-center gap-3 mt-3 mb-0"
+                            invisible="not homework_assignment_id or homework_state != 'draft'">
+                            <i class="fa fa-exclamation-triangle" title="ДЗ не выдано"/>
+                            <span>ДЗ пока не выдано — ученики его не видят.</span>
+                            <button name="hw_publish_sheet" type="object"
+                                string="Выдать" class="btn-primary btn-sm ms-auto"
+                                groups="openeducat_core.group_op_faculty,openeducat_assignment.group_op_assignment_user"/>
+                        </div>
                         <div class="text-muted small"
                             invisible="homework_assignment_id or state in ('done', 'cancel')">
                             <i class="fa fa-info-circle me-1"/>Сохраните домашнее

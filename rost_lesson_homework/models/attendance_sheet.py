@@ -35,12 +35,50 @@ class OpAttendanceSheet(models.Model):
     material_ids = fields.Many2many(
         'ir.attachment', string='Материалы задания',
         related='homework_assignment_id.material_ids', readonly=False)
+    # Статус ДЗ текущего урока: по нему баннер «не выдано» и кнопка
+    # «Выдать» решают, показываться ли (см. views/attendance_sheet_homework_view.xml).
+    homework_state = fields.Selection(
+        related='homework_assignment_id.state', readonly=True)
+
+    def hw_publish_sheet(self):
+        """Выдать ДЗ текущего урока прямо из журнала.
+
+        Тот же hw_publish, что кнопка «Выдать» в форме задания
+        (models/assignment_hw_publish.py): срок пересчитан, задание
+        опубликовано, объявление ушло в канал. Разница только в месте
+        вызова: учитель не должен уходить из журнала, чтобы выдать ДЗ.
+        Пустое ДЗ — ошибка: случайный клик не публикует мусор.
+        """
+        self.ensure_one()
+        asg = self.homework_assignment_id
+        if not asg:
+            raise UserError(
+                'Сначала впишите домашнее задание и сохраните журнал.')
+        res = asg.hw_publish()
+        if res.get('posted'):
+            message = 'ДЗ выдано, объявление отправлено в канал класса'
+            ntype = 'success'
+        else:
+            message = ('Задание выдано, но канал класса не найден — '
+                       'объявление не отправлено')
+            ntype = 'warning'
+        return {
+            'type': 'ir.actions.client',
+            'tag': 'display_notification',
+            'params': {
+                'type': ntype,
+                'message': message,
+                'details': 'Срок сдачи: %s' % (
+                    self.homework_assignment_id.submission_date.strftime(
+                        '%d.%m.%Y %H:%M')
+                    if self.homework_assignment_id.submission_date else '—'),
+                'sticky': False,
+                'next': {'type': 'reload'},
+            },
+        }
 
     # ------------------------------------------------------------------
     # Срок сдачи: следующий урок того же предмета у того же batch
-    # ------------------------------------------------------------------
-    # ------------------------------------------------------------------
-    # Дублирование ДЗ в канал класса/предмета (Discuss)
     # ------------------------------------------------------------------
     def _hw_channel(self):
         """Канал предмета «<batch> — <subject>», фолбэк — канал класса «<batch>»."""

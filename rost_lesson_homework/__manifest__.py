@@ -27,6 +27,8 @@
         'web.assets_backend': [
             'rost_lesson_homework/static/src/hw_marks_field.js',
             'rost_lesson_homework/static/src/hw_marks_field.xml',
+            # Охрана выхода из журнала: подтверждение, пока ДЗ — черновик.
+            'rost_lesson_homework/static/src/sheet_form_guard.js',
         ],
     },
     'installable': True,
