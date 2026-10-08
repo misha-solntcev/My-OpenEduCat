@@ -21,7 +21,7 @@
 /** @odoo-module **/
 
 import { ConfirmationDialog } from "@web/core/confirmation_dialog/confirmation_dialog";
-import { registry } from "@web/views/registry";
+import { registry } from "@web/core/registry";
 import { FormController } from "@web/views/form/form_controller";
 import { FormView } from "@web/views/form/form_view";
 
