@@ -6,6 +6,7 @@
     'summary': 'Права доступа и меню для школы РОСТ: ученики, родители, учителя',
     'author': 'ROST School',
     'depends': [
+        'mail',
         'openeducat_core',
         'openeducat_activity',
         'openeducat_attendance',
