@@ -73,7 +73,6 @@ class OpAttendanceSheet(models.Model):
                         '%d.%m.%Y %H:%M')
                     if self.homework_assignment_id.submission_date else '—'),
                 'sticky': False,
-                'next': {'type': 'reload'},
             },
         }
 
@@ -81,7 +80,13 @@ class OpAttendanceSheet(models.Model):
     # Срок сдачи: следующий урок того же предмета у того же batch
     # ------------------------------------------------------------------
     def _hw_channel(self):
-        """Канал предмета «<batch> — <subject>», фолбэк — канал класса «<batch>»."""
+        """Канал ДЗ: предметный «<N> класс <subject>», фолбэк — канал класса.
+
+        Именование каналов даёт мастер каналов (openeducat_core):
+        «7 класс Литература» (параллель без буквы, subject без ковычек).
+        Старые форматы («<batch> — <subject>», «<batch>») оставлены как
+        первый шаг на случай каналов, созданных руками.
+        """
         self.ensure_one()
         Channel = self.env['discuss.channel'].sudo()
         names = []
@@ -89,9 +94,21 @@ class OpAttendanceSheet(models.Model):
             names.append(f"{self.batch_id.name} — {self.subject_id.name}")
         if self.batch_id:
             names.append(self.batch_id.name)
+        # Основной формат мастера каналов: «<N> класс <subject>».
+        parallel = (self.batch_id.name or '').split()[0] if self.batch_id else ''
+        if parallel and self.subject_id:
+            names.insert(0, f"{parallel} класс {self.subject_id.name}")
         for name in names:
             ch = Channel.search([
                 ('name', '=', name),
+                ('channel_type', '=', 'channel'),
+            ], limit=1)
+            if ch:
+                return ch
+        # Предметный канал с другим регистром/пробелами («7 класс биология»).
+        if parallel and self.subject_id:
+            ch = Channel.search([
+                ('name', '=ilike', f"{parallel} класс {self.subject_id.name}"),
                 ('channel_type', '=', 'channel'),
             ], limit=1)
             if ch:

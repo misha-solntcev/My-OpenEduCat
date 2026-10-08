@@ -124,6 +124,5 @@ class OpAssignmentPublish(models.Model):
                     self.submission_date.strftime('%d.%m.%Y %H:%M')
                     if self.submission_date else '—'),
                 'sticky': False,
-                'next': {'type': 'reload'},
             },
         }
