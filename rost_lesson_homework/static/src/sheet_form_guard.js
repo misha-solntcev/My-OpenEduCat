@@ -23,7 +23,7 @@
 import { ConfirmationDialog } from "@web/core/confirmation_dialog/confirmation_dialog";
 import { registry } from "@web/core/registry";
 import { FormController } from "@web/views/form/form_controller";
-import { FormView } from "@web/views/form/form_view";
+import { formView } from "@web/views/form/form_view";
 
 export class SheetFormController extends FormController {
     async beforeLeave() {
@@ -55,4 +55,4 @@ export class SheetFormController extends FormController {
 
 registry
     .category("views")
-    .add("sheet_form_guard", { ...FormView, Controller: SheetFormController });
+    .add("sheet_form_guard", { ...formView, Controller: SheetFormController });
