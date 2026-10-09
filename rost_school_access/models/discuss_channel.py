@@ -12,21 +12,18 @@ class DiscussChannel(models.Model):
 
     @api.model_create_multi
     def create(self, vals_list):
-        if not self.env.su and not self._skip_student_gate():
+        if not self.env.su:
             for vals in vals_list:
-                # дефолт типа канала — 'channel' (публичный)
+                # дефолт типа канала — 'channel' (публичный).
+                # Создавать публичные каналы может только администрация:
+                # рабочие каналы создаёт мастер каналов под админом.
                 if vals.get('channel_type', 'channel') == 'channel':
-                    raise AccessError(_(
-                        'Создание каналов доступно только учителям и администрации.'
-                    ))
+                    groups = self.env.user.groups_id
+                    admins = self.env.ref(
+                        'openeducat_core.group_op_back_office_admin',
+                        raise_if_not_found=False)
+                    if not (admins and groups & admins):
+                        raise AccessError(_(
+                            'Создание каналов доступно только администрации.'
+                        ))
         return super().create(vals_list)
-
-    def _skip_student_gate(self):
-        user = self.env.user
-        groups = user.groups_id
-        if groups & self.env.ref('openeducat_core.group_op_faculty', raise_if_not_found=False):
-            return True
-        if groups & self.env.ref(
-                'openeducat_core.group_op_back_office_admin', raise_if_not_found=False):
-            return True
-        return False
