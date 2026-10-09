@@ -320,9 +320,13 @@
                                         options="{'horizontal': true}" />
 
 
-                                    <!-- 5. Примечание (можно скрыть) -->
-                                    <field name="remark" placeholder="Примечание..." optional="show" 
-                                        class="d-none d-md-table-cell"/>
+                                    <!-- 5. Примечание. Класс d-none d-md-table-cell
+                                         убран (Миша 2026-10-09, вариант 1):
+                                         колонка снова видна на телефоне,
+                                         таблица уходит в горизонтальный
+                                         скролл (commit 97244c7 прятал её
+                                         на <768px сознательно). -->
+                                    <field name="remark" placeholder="Примечание..." optional="show"/>
 
 
                                     <!-- КНОПКА ОЧИСТКИ СТРОКИ -->
