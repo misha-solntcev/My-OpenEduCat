@@ -80,7 +80,20 @@
     justify-content: center !important;
 }
 
-/* --- 4. КОММЕНТАРИЙ REMARK: колонка снова видна на мобильных (2026-10-09,
-   вариант 1). Раньше здесь был @media <768px с display:none для
-   th/td remark — из-за него «Примечание» пропадало в PWA, хотя вьюха
-   была правильной. Блок удалён. */
+/* --- 4. КОММЕНТАРИЙ REMARK НА МОБИЛЬНЫХ (2026-10-09) ---
+   Таблица журнала шире экрана (~1069px при 390): «Примечание» стояло
+   за «Статусом» (350px) на x≈859 и попадало на второй-третий экран
+   горизонтального скролла. Фикс: на <768px колонка прибивается
+   position: sticky к правому краю скролл-контейнера — всегда видна,
+   остальное листается под ней. На ПК медиазапрос не действует. */
+@media (max-width: 767.98px) {
+    .o_list_table th[data-name="remark"],
+    .o_list_table td[name="remark"] {
+        position: sticky !important;
+        right: 0 !important;
+        background: white !important;
+        z-index: 1;
+        box-shadow: -2px 0 4px rgba(0, 0, 0, 0.08);
+        border-left: 1px solid #e2e2e2 !important;
+    }
+}
