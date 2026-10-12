@@ -19,11 +19,20 @@ class DiscussChannel(models.Model):
                 # рабочие каналы создаёт мастер каналов под админом.
                 if vals.get('channel_type', 'channel') == 'channel':
                     groups = self.env.user.groups_id
-                    admins = self.env.ref(
-                        'openeducat_core.group_op_back_office_admin',
-                        raise_if_not_found=False)
-                    if not (admins and groups & admins):
+                    # 2026-10-09: учителям разрешили создавать каналы —
+                    # они сами ведут классы и хотят свои предметные/классные
+                    # каналы. Запрет остаётся только для учеников.
+                    allowed = [
+                        self.env.ref('openeducat_core.group_op_faculty',
+                                     raise_if_not_found=False),
+                        self.env.ref(
+                            'openeducat_core.group_op_back_office_admin',
+                            raise_if_not_found=False),
+                    ]
+                    allowed = [g for g in allowed if g]
+                    if not (set(groups) & set(allowed)):
                         raise AccessError(_(
-                            'Создание каналов доступно только администрации.'
+                            'Создание каналов доступно только учителям и '
+                            'администрации.'
                         ))
         return super().create(vals_list)
