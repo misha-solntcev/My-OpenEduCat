@@ -96,12 +96,7 @@
         box-shadow: -2px 0 4px rgba(0, 0, 0, 0.08);
         border-left: 1px solid #e2e2e2 !important;
     }
-    /* Ячейка ввода на всю рабочую ширину: чуть уже экрана (390px),
-       иначе на узких устройствах липкий край залезает под скроллбар. */
-    .o_list_table td[name="remark"],
-    .o_list_table th[data-name="remark"] {
-        width: 340px !important;
-        min-width: 340px !important;
-        max-width: 340px !important;
-    }
+    /* 2026-10-09: расширение до 340px ОТКАЧЕНО — широкая sticky-колонка
+       перекрывала соседние ячейки при скролле. Ширина остаётся авто
+       (≈89px, как у Odoo). */
 }
