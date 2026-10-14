@@ -9,12 +9,16 @@ import { Panel, Div, Spinner, Button, Placeholder, Caption } from '@vkontakte/vk
 import { Icon56DocumentOutline } from '@vkontakte/icons';
 import { apiGet, apiPost } from '@/shared/lib/api';
 import { useToast } from '@/shared/components/Toast';
+import { useAppStore, childQuery } from '@/shared/lib/store';
 import { HomeworkCardList } from '@/shared/components/HomeworkCardList';
 import { AccentSegmentedControl } from '@/shared/components/AccentSegmentedControl';
 import type { HomeworkItem, HomeworkListResponse } from '@/shared/lib/types';
 
 interface HomeworkPageProps {
   id: string;
+  /** Сдавать может только ученик (правило бэка): родитель и учитель
+   *  в режиме ребёнка получают false — кнопка «Сдать» не рисуется. */
+  canSubmit?: boolean;
 }
 
 type StatusKey = 'fresh' | 'submitted' | 'checked';
@@ -48,8 +52,9 @@ const groupHomework = (items: HomeworkItem[]): {
   return { fresh, submitted, checked };
 };
 
-export const HomeworkPage: React.FC<HomeworkPageProps> = ({ id }) => {
+export const HomeworkPage: React.FC<HomeworkPageProps> = ({ id, canSubmit = true }) => {
   const addToast = useToast();
+  const selectedChildId = useAppStore(s => s.selectedChildId);
   const [items, setItems] = React.useState<HomeworkItem[] | null>(null);
   const [loading, setLoading] = React.useState(false);
   // Активный сегмент статуса (сегмент-контрол как у учителя/ReviewQueue).
@@ -58,14 +63,16 @@ export const HomeworkPage: React.FC<HomeworkPageProps> = ({ id }) => {
   const load = React.useCallback(async () => {
     setLoading(true);
     try {
-      const res = await apiGet<HomeworkListResponse>('/rost_max/api/homework');
+      const cq = childQuery();
+      const res = await apiGet<HomeworkListResponse>(
+        `/rost_max/api/homework${cq ? '?' + cq.slice(1) : ''}`);
       setItems(res.homework || []);
     } catch {
       addToast('Не удалось загрузить задания', 'error');
     } finally {
       setLoading(false);
     }
-  }, [addToast]);
+  }, [addToast, selectedChildId]);
 
   React.useEffect(() => { load(); }, [load]);
 
@@ -134,7 +141,7 @@ export const HomeworkPage: React.FC<HomeworkPageProps> = ({ id }) => {
           {groups[status].length > 0 ? (
             <HomeworkCardList
               items={groups[status]}
-              canSubmit={status === 'fresh'}
+              canSubmit={canSubmit && status === 'fresh'}
               onSubmit={submit}
               onUpdated={load}
             />

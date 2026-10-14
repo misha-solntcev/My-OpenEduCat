@@ -264,6 +264,8 @@ export const TimetablePage: React.FC<TimetablePageProps> = ({ id, onOpenLesson }
   const [selectedFaculty, setSelectedFaculty] = React.useState<number | null>(null);
   const [selectedBatch, setSelectedBatch] = React.useState<number | null>(null);
   const userInfo = useAppStore(s => s.userInfo);
+  const selectedChildId = useAppStore(s => s.selectedChildId);
+  const schoolMode = useAppStore(s => s.schoolMode);
   const isTeacher = Boolean(userInfo?.is_teacher);
   const addToast = useToast();
 
@@ -299,8 +301,19 @@ export const TimetablePage: React.FC<TimetablePageProps> = ({ id, onOpenLesson }
     setLoading(true);
     try {
       let url = `/rost_max/api/timetable?date=${globalDate}`;
-      if (selectedFaculty) url += `&faculty_id=${selectedFaculty}`;
-      if (selectedBatch) url += `&batch_id=${selectedBatch}`;
+      // staff без ребёнка шлёт scope: 'mine' — свои уроки (у админа-родителя
+      // свитч), 'school'/'Школа' — админский обзор с фильтрами.
+      const isStaff = Boolean(userInfo?.is_teacher || userInfo?.is_admin);
+      if (selectedChildId != null) {
+        // Режим «ребёнок»: расписание класса ребёнка, админские фильтры
+        // (учитель/класс) игнорируются и бэком, и фронтом.
+        url += `&child_id=${selectedChildId}`;
+      } else if (isStaff && !schoolMode) {
+        url += '&scope=mine';
+      } else {
+        if (selectedFaculty) url += `&faculty_id=${selectedFaculty}`;
+        if (selectedBatch) url += `&batch_id=${selectedBatch}`;
+      }
       const data = await apiGet<TimetableResponse>(url);
       setLessons(data.lessons || []);
     } catch {
@@ -309,7 +322,8 @@ export const TimetablePage: React.FC<TimetablePageProps> = ({ id, onOpenLesson }
     } finally {
       setLoading(false);
     }
-  }, [globalDate, selectedFaculty, selectedBatch, addToast]);
+  }, [globalDate, selectedFaculty, selectedBatch, selectedChildId,
+      schoolMode, userInfo, addToast]);
 
   React.useEffect(() => { loadLessons(); }, [loadLessons]);
 
@@ -389,12 +403,9 @@ export const TimetablePage: React.FC<TimetablePageProps> = ({ id, onOpenLesson }
         <DayStrip selected={globalDate} onSelect={setGlobalDate} />
 
         {/* Фильтры — только админ, показываются всегда (без кнопки-тумблера).
-            ВАЖНО: у VKUI Flex по умолчанию flex-wrap — без noWrap селекты
-            уходят друг под друга. flexBasis:0 + flexGrow:1 делят строку
-            поровну. Дропдаун раскрывается на всю ширину своего поля
-            (floating-ui sameWidth, dropdownAutoWidth=false по умолчанию).
-            Белый фон + рамка, чтобы не сливались с серым фоном панели. */}
-        {isAdmin && (
+            В режиме «Мои уроки» (свитч админа) фильтры смысла не имеют —
+            запрос и так срезан на свои уроки. */}
+        {isAdmin && schoolMode && (
           <Flex
             gap={8}
             noWrap
@@ -455,9 +466,11 @@ export const TimetablePage: React.FC<TimetablePageProps> = ({ id, onOpenLesson }
               // снизу 10px, чтобы тень последней карточки не резалась.
               padding: '5px 0 10px',
             }}>
-              {isAdmin && !selectedFaculty && !selectedBatch ? (
-                // Админ без фильтров: вся школа — слоты-аккордеоны
-                // (раскрыт текущий), как раньше.
+              {isAdmin && schoolMode && !selectedChildId
+               && !selectedFaculty && !selectedBatch ? (
+                // Админ в «Школе» без фильтров: вся школа — слоты-аккордеоны
+                // (раскрыт текущий), как раньше. В «Моих уроках» и режиме
+                // ребёнка — обычный таймлайн.
                 <TimedGroups
                   lessons={lessons}
                   isToday={isToday}

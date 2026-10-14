@@ -31,6 +31,7 @@ import type { TabId } from '@/shared/lib/navTypes';
 export default function App() {
   const authSuccess = useAppStore(s => s.authSuccess);
   const userInfo = useAppStore(s => s.userInfo);
+  const selectedChildId = useAppStore(s => s.selectedChildId);
   // Синхронный флаг: true уже при создании стора, если есть сохранённый sid
   const authChecking = useAppStore(s => s.authChecking);
   const setAuthChecking = useAppStore(s => s.setAuthChecking);
@@ -126,6 +127,10 @@ export default function App() {
   );
   // Учитель/админ: свои вкладки «Задания» и «Оценки» (заглушка).
   const isStaff = Boolean(userInfo && (userInfo.is_teacher || userInfo.is_admin));
+  // Режим «ребёнок» (переключатель на главной): учитель-родитель смотрит
+  // данные ребёнка — вкладки «Задания»/«Оценки» показывают УЧЕНИЧЕСКИЕ
+  // экраны по child_id, журналы/свои ДЗ остаются в «Моих уроках».
+  const childMode = Boolean(userInfo && selectedChildId != null);
 
   const handleOpenSubject = (subjectId: number, subjectName: string) => {
     setSelectedSubject({ id: subjectId, name: subjectName });
@@ -236,8 +241,8 @@ export default function App() {
           <Epic
             id="main"
             activeStory={
-              activeTab === 'homework' && isStaff ? 'teacher-homework'
-                : activeTab === 'subjects' && isStaff ? 'teacher-subjects'
+              activeTab === 'homework' && isStaff && !childMode ? 'teacher-homework'
+                : activeTab === 'subjects' && isStaff && !childMode ? 'teacher-subjects'
                   : activeTab
             }
             tabbar={
@@ -303,7 +308,7 @@ export default function App() {
                 учитель/админ — сегменты К проверке/Активные/Завершённые.
                 Epic рендерит все View, условен только TabbarItem. */}
             <View id="homework" activePanel="homework-panel">
-              <HomeworkPage id="homework-panel" />
+              <HomeworkPage id="homework-panel" canSubmit={Boolean(userInfo?.is_student)} />
             </View>
             <View id="teacher-homework" activePanel="teacher-homework-panel">
               <TeacherHomeworkPage

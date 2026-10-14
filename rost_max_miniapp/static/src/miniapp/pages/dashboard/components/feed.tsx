@@ -131,9 +131,12 @@ export const TodayLessons: React.FC<{
   showBatch?: boolean;
   /** Админ: слоты-аккордеоны по таймингу (в расписании вся школа). */
   grouped?: boolean;
-}> = ({ lessons, onOpenJournal, onOpenTimetable, showBatch, grouped }) => (
+  /** Режим «ребёнок»: имя в заголовке — «Расписание Михаила · 6А»
+   *  вместо «Расписание на сегодня». */
+  childLabel?: string;
+}> = ({ lessons, onOpenJournal, onOpenTimetable, showBatch, grouped, childLabel }) => (
   <CardBlock
-    title={<BlockTitle>Расписание на сегодня <Text weight="1" style={{ color: 'var(--vkui--color_text_secondary)' }}>· {lessons.length} {plural(lessons.length, 'урок', 'урока', 'уроков')}</Text></BlockTitle>}
+    title={<BlockTitle>{childLabel ? `Расписание: ${childLabel}` : 'Расписание на сегодня'} <Text weight="1" style={{ color: 'var(--vkui--color_text_secondary)' }}>· {lessons.length} {plural(lessons.length, 'урок', 'урока', 'уроков')}</Text></BlockTitle>}
     after={onOpenTimetable ? <BlockLink onClick={onOpenTimetable}>Вся неделя →</BlockLink> : undefined}
   >
     {grouped ? (

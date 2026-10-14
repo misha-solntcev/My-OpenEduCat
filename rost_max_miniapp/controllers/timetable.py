@@ -165,6 +165,50 @@ def _get_user_students(user):
     return 'guest', request.env['op.student'].browse()
 
 
+def _get_user_children(user):
+    """Дети юзера (op.student) — для родителя И для учителя-родителя.
+
+    Источник тот же, что в правиле «свои дети» rost_school_access
+    (op_security.xml: «свои дети» = student.user_id in user.child_ids):
+    op.parent(name=user.partner_id).student_ids, fallback — юзеры детей
+    в user.child_ids (родительскую связь заводит openeducat_parent).
+    Роль не важна: учитель-родитель получает своих детей тем же путём.
+    """
+    parent = request.env['op.parent'].sudo().search([
+        ('name', '=', user.partner_id.id)
+    ], limit=1)
+    children = parent.student_ids if parent \
+        else request.env['op.student'].browse()
+    if not children:
+        children = request.env['op.student'].sudo().search([
+            ('user_id', 'in', user.child_ids.ids), ('active', '=', True)])
+    return children.filtered('active')
+
+
+def _resolve_child(user, child_id):
+    """Режим «ребёнок» (переключатель детей): валидация child_id.
+
+    Возвращает (child, err): child — op.student выбранного ребёнка
+    (None без параметра), err — готовый Response 403/404. Ребёнок
+    обязан быть в детях ЮЗЕРА — иначе чужой ученик получил бы его
+    оценки/ДЗ. IDOR-защита по построению.
+    """
+    if not child_id:
+        return None, None
+    try:
+        child = request.env['op.student'].sudo().browse(
+            int(child_id)).exists()
+    except (TypeError, ValueError):
+        child = request.env['op.student'].browse()
+    if not child or child not in _get_user_children(user):
+        _logger.warning(
+            "Child-mode access violation: user %s (ID %s) requested child_id %s",
+            user.login, user.id, child_id)
+        return None, request.make_json_response(
+            {"error": "Доступно только своим детям"}, status=403)
+    return child, None
+
+
 def _check_lesson_write_access(sheet):
     """Защита от фальсификации оценок: писать может только админ либо
     преподаватель, назначенный вести этот урок. Гость/студент/чужой
@@ -663,7 +707,8 @@ class RostMaxTimetableController(http.Controller):
         return _spa_response('rost_max_miniapp.spa_page',
                              csrf_token=_get_spa_csrf_token())
 
-    def _get_user_timetable(self, user, date, faculty_id=None, batch_id=None):
+    def _get_user_timetable(self, user, date, faculty_id=None, batch_id=None,
+                            child=None, scope=None):
         """Расписание пользователя на дату — из op.session (уроки расписания),
         как в веб-интерфейсе OpenEduCat. НЕ op.attendance.sheet: листы
         заводятся только у утверждённых уроков, а правило 629
@@ -672,7 +717,12 @@ class RostMaxTimetableController(http.Controller):
         расписание всегда пустое.
 
         Возвращает recordset op.session:
+          - child передан (режим «ребёнок»): сессии классов ребёнка.
+            Свои faculty-уроки учителя и админские фильтры игнорируются —
+            валидность child_id проверена в _resolve_child;
           - admin: все сессии на дату (+ фильтр faculty_id из query);
+            scope='mine' уводит админа-учителя из этой ветки в его
+            собственные уроки (свитч «Мои уроки / Школа»);
           - teacher: свои сессии (faculty_id.user_id == user.id);
           - student/parent: сессии своего класса — rule 173 «Student
             Session rule» (user_ids in user.id) сама срезает до batch'а;
@@ -682,7 +732,12 @@ class RostMaxTimetableController(http.Controller):
 
         domain = [('timetable_date', '=', date)]
 
-        if is_admin:
+        if child is not None:
+            # Весь тайминг классов ребёнка (course_detail + active_batch —
+            # как в rule 173, включая случай нескольких зачислений).
+            batches = child.course_detail_ids.batch_id | child.active_batch_id
+            domain.append(('batch_id', 'in', batches.ids))
+        elif is_admin and scope != 'mine':
             if faculty_id:
                 domain.append(('faculty_id', '=', int(faculty_id)))
             if batch_id:
@@ -729,10 +784,30 @@ class RostMaxTimetableController(http.Controller):
         return avatar_map
 
     @http.route("/rost_max/api/timetable", type="http", auth="public", methods=["GET"])
-    def api_timetable(self, date=None, faculty_id=None, batch_id=None):
-        """API: список занятий на дате"""
+    def api_timetable(self, date=None, faculty_id=None, batch_id=None,
+                      child_id=None, scope=None):
+        """API: список занятий на дате.
+
+        child_id (режим «ребёнок», учитель-родитель/родитель): расписание
+        класса ребёнка вместо своих уроков. Журналы (sheet_id) в этом
+        режиме не отдаём: кнопки журнала — только в «Моих уроках».
+        scope='mine' — режим «Мои уроки» свитча админа-родителя: его
+        собственные уроки вместо всей школы (штатный учитель и так
+        получает свои уроки, параметр для него избыточен).
+        """
         restore_session_if_needed()
         user = request.env.user
+        child, err = _resolve_child(user, child_id)
+        if err:
+            return err
+        if scope not in (None, 'mine', 'school'):
+            scope = None
+        # «Мои уроки» требует faculty: админ без своего преподавания
+        # (Макарова-директор) остаётся в режиме «Школа».
+        if child is None and scope == 'mine' and not request.env[
+                'op.faculty'].sudo().search(
+                [('partner_id', '=', user.partner_id.id)], limit=1):
+            scope = 'school'
         date = date or fields.Date.today()
         date_str = str(date)
         is_admin = user.has_group('base.group_system')
@@ -740,17 +815,18 @@ class RostMaxTimetableController(http.Controller):
         # batch_id игнорируется для не-админов: фильтр «класс» — чисто
         # админский инструмент, остальным роль срезает домен сама.
         lessons = self._get_user_timetable(
-            user, date, faculty_id=faculty_id, batch_id=batch_id)
+            user, date, faculty_id=faculty_id, batch_id=batch_id, child=child,
+            scope=scope)
 
-        # sheet_id (журнал) — только teacher/admin. Ученику/родителю журнал
-        # не показываем (семантика веба), к тому же rule 629 не даёт ему
-        # читать листы. IDOR-безопасно: sheet_id выдаётся только вместе с
-        # правом на журнал.
+        # sheet_id (журнал) — только teacher/admin и ТОЛЬКО в «Моих уроках»:
+        # в режиме ребёнка уроки чужие, журналов у них нет (и rule 629 не
+        # даёт читать листы). IDOR-безопасно: sheet_id выдаётся только
+        # вместе с правом на журнал.
         is_teacher = bool(request.env['op.faculty'].sudo().search([
             ('partner_id', '=', user.partner_id.id)
         ], limit=1))
         sheets_map = {}
-        if lessons and (is_admin or is_teacher):
+        if lessons and child is None and (is_admin or is_teacher):
             sheets_map = {
                 s.session_id.id: s.id
                 for s in request.env['op.attendance.sheet'].sudo().search(
@@ -1317,6 +1393,20 @@ class RostMaxTimetableController(http.Controller):
         elif student_rec and student_rec.avatar_128:
             avatar = '/web/image/op.student/%s/avatar_1920' % student_rec.id
 
+        # Дети юзера — для переключателя «Мои уроки / Ребёнок» (и для
+        # родителя, и для учителя-родителя). Не гейтим по ролям:
+        # у учителя-родителя (и у админа-родителя на test4) дети тоже есть,
+        # а список пуст у всех, у кого детей нет — свитч просто не рисуется.
+        children = []
+        for c in _get_user_children(user):
+            children.append({
+                "id": c.id,
+                "name": c.partner_id.name or "",
+                "batch": self._batch_short(c.active_batch_id.name),
+                "avatar": ('/web/image/op.student/%s/avatar_1920' % c.id)
+                          if c.avatar_128 else '',
+            })
+
         return request.make_json_response({
             "user_name": user.name,
             "avatar": avatar,
@@ -1324,19 +1414,50 @@ class RostMaxTimetableController(http.Controller):
             "is_teacher": is_teacher,
             "is_student": is_student,
             "is_parent": is_parent,
+            "children": children,
         })
 
     @http.route("/rost_max/api/dashboard_info", type="http", auth="public", methods=["GET"])
-    def api_dashboard_info(self, date=None, **kw):
-        """API: сбор статистики для дашборда с умным поиском даты"""
+    def api_dashboard_info(self, date=None, child_id=None, scope=None, **kw):
+        """API: сбор статистики для дашборда с умным поиском даты.
+
+        child_id (режим «ребёнок»): вся главная — данные ребёнка
+        (уроки его класса, его оценки/ДЗ). Флаги ответа отражают РЕЖИМ,
+        а не роль аккаунта: is_teacher=false, is_student=true — фронт
+        рисует ученический вид.
+        scope: 'mine' — «Мои уроки» свитча админа-родителя (его
+        преподавание + журналы к заполнению), 'school' — обзор всей школы.
+        Без scope админ получает 'school' (обратная совместимость).
+        """
         restore_session_if_needed()
         if not request.session.uid:
             return request.make_json_response({"error": "Unauthorized"}, status=401)
 
         user = request.env.user
+        child, err = _resolve_child(user, child_id)
+        if err:
+            return err
+        if scope not in (None, 'mine', 'school'):
+            scope = None
         is_admin = user.has_group('base.group_system')
         faculty = request.env['op.faculty'].sudo().search([('partner_id', '=', user.partner_id.id)], limit=1)
         student = request.env['op.student'].sudo().search([('partner_id', '=', user.partner_id.id)], limit=1)
+
+        if child is not None:
+            # Режим «ребёнок»: вид ученика на данных ребёнка. Роль
+            # учителя/админа гасим — иначе ветка metrics/feed пойдёт
+            # по «своим урокам» и покажет учительские блоки.
+            faculty = None
+            student = child
+            is_admin = False
+        elif scope == 'mine':
+            if not faculty:
+                # Админ без своего преподавания не может «Мои уроки».
+                scope = 'school'
+            else:
+                # «Мои уроки» админа-родителя = вид учителя: его пары,
+                # журналы к заполнению, своё ДЗ. Админский обзор гасим.
+                is_admin = False
 
         # 1. Целевая дата: строго та, что попросили (дефолт — сегодня).
         # Никаких подмен: если уроков нет (выходной/каникулы), главная
@@ -1345,7 +1466,8 @@ class RostMaxTimetableController(http.Controller):
         # неделю расписания (напр. 23 октября при открытии в сентябре).
         date_str = date or str(fields.Date.today())
         date_val = fields.Date.from_string(date_str)
-        sessions = self._get_user_timetable(user, date_val)
+        sessions = self._get_user_timetable(user, date_val, child=child,
+                                            scope=scope)
 
         # 2. Расчет показателей на целевую дату
         metrics = {}
@@ -1438,12 +1560,16 @@ class RostMaxTimetableController(http.Controller):
             "date": date_str,
             "metrics": metrics,
             "next_lesson": next_lesson,
-            **self._dashboard_feed(user, is_admin, faculty, student, sessions, date_val),
+            **self._dashboard_feed(user, is_admin, faculty, student, sessions,
+                                   date_val, child=child,
+                                   force_role='teacher' if scope == 'mine'
+                                   else None),
         })
 
     # --- ЛЕНТА ДНЯ (вариант A) ---------------------------------------------
 
-    def _dashboard_feed(self, user, is_admin, faculty, student, sessions, date_val):
+    def _dashboard_feed(self, user, is_admin, faculty, student, sessions,
+                        date_val, child=None, force_role=None):
         """Лента дня: уроки с бейджами + роль-специфичные блоки.
 
         Общий агрегат для ученика/родителя, учителя и админа (макеты
@@ -1451,9 +1577,19 @@ class RostMaxTimetableController(http.Controller):
         Все чтения через sudo с жёсткой ролевой фильтрацией (IDOR по
         построению): ученик — только свои оценки/ДЗ своего класса,
         учитель — только свои уроки/задания.
+
+        child (режим «ребёнок»): блоки ученика считаются по выбранному
+        ребёнку — роль аккаунта (учитель) не переключает ветку.
+        force_role='teacher': у админа-родителя в «Моих уроках» ветка
+        учителя, хотя _get_user_students вернул бы 'admin' (админ-проверка
+        в нём первая) — иначе лента уехала бы в админские блоки школы.
         """
         now = _school_now()
         role, own_students = _get_user_students(user)
+        if child is not None:
+            role, own_students = 'student', child
+        elif force_role == 'teacher':
+            role, own_students = 'teacher', request.env['op.student'].browse()
         avatar_map = self._faculty_avatar_map(sessions) if request.session.uid else {}
 
         # --- Лента уроков (все роли) ---
@@ -1726,16 +1862,25 @@ class RostMaxTimetableController(http.Controller):
         return hw_items
 
     @http.route("/rost_max/api/homework", type="http", auth="public", methods=["GET"])
-    def api_homework_list(self, **kw):
+    def api_homework_list(self, child_id=None, **kw):
         """API: вкладка «Задания» — ученику/родителю его ДЗ со статусами
-        сдачи (тот же формат элементов, что homework в ленте главной)."""
+        сдачи (тот же формат элементов, что homework в ленте главной).
+
+        child_id (режим «ребёнок»): ДЗ выбранного ребёнка; доступно и
+        учителю-родителю.
+        """
         restore_session_if_needed()
         if not request.session.uid:
             return request.make_json_response({"error": "Unauthorized"}, status=401)
 
         user = request.env.user
+        child, err = _resolve_child(user, child_id)
+        if err:
+            return err
         role, own_students = _get_user_students(user)
-        if role not in ('student', 'parent') or not own_students:
+        if child is not None:
+            own_students = child
+        elif role not in ('student', 'parent') or not own_students:
             return request.make_json_response(
                 {"error": "Доступно только ученику и родителю"}, status=403)
 
@@ -2131,7 +2276,7 @@ class RostMaxTimetableController(http.Controller):
 
     @http.route("/rost_max/api/homework/submission/<int:sub_id>/messages",
                 type="http", auth="public", methods=["GET"])
-    def api_hw_sub_messages(self, sub_id, **kw):
+    def api_hw_sub_messages(self, sub_id, child_id=None, **kw):
         """API: лента чата сдачи (сообщения + статус-события)."""
         restore_session_if_needed()
         if not request.session.uid:
@@ -2144,8 +2289,15 @@ class RostMaxTimetableController(http.Controller):
         err, _side = _hw_sub_access(sub, want_post=False)
         if err:
             return err
-        role, own_students = _get_user_students(request.env.user)
-        viewer = own_students[:1].id or None
+        user = request.env.user
+        child, cerr = _resolve_child(user, child_id)
+        if cerr:
+            return cerr
+        role, own_students = _get_user_students(user)
+        # viewer: чьи сообщения в чате «свои» (справа). В режиме ребёнка —
+        # выбранный ребёнок, не сам родитель.
+        viewer = (child.id if child is not None
+                  else own_students[:1].id or None)
         return request.make_json_response({
             "sub_id": sub.id,
             "can_post": role in ('student', 'admin', 'teacher'),
@@ -2820,20 +2972,27 @@ class RostMaxTimetableController(http.Controller):
         }
 
     @http.route("/rost_max/api/my/subjects", type="http", auth="public", methods=["GET"])
-    def api_my_subjects(self, quarter=None):
+    def api_my_subjects(self, quarter=None, child_id=None):
         """API: предметы с оценками/посещаемостью для ученика и родителя.
 
         Считается НА ЛЕТУ из op.attendance.line (не из stored-компутов
         op.subject.grades), чтобы успеваемость всегда совпадала с журналом.
         Доступ жёстко ограничен своими учениками (IDOR по построению).
+        child_id (режим «ребёнок»): успеваемость выбранного ребёнка —
+        доступно и учителю-родителю.
         """
         restore_session_if_needed()
         if not request.session.uid:
             return request.make_json_response({"error": "Unauthorized"}, status=401)
 
         user = request.env.user
+        child, err = _resolve_child(user, child_id)
+        if err:
+            return err
         role, own_students = _get_user_students(user)
-        if role not in ('student', 'parent') or not own_students:
+        if child is not None:
+            own_students = child
+        elif role not in ('student', 'parent') or not own_students:
             return request.make_json_response(
                 {"error": "Доступно только ученикам и родителям"}, status=403)
 
@@ -2922,12 +3081,15 @@ class RostMaxTimetableController(http.Controller):
         })
 
     @http.route("/rost_max/api/my/grades/<int:subject_id>", type="http", auth="public", methods=["GET"])
-    def api_my_grades(self, subject_id, quarter=None, student_id=None, **kw):
+    def api_my_grades(self, subject_id, quarter=None, student_id=None,
+                      child_id=None, **kw):
         """API: хронология оценок/посещаемости ученика по предмету за четверть.
 
         student_id передаёт учитель/админ (вкладка «Оценки»): смотрим чужого
         ученика, но ТОЛЬКО по своему предмету. Ученик/родитель параметр не
         принимает — его домен всегда «мои ученики».
+        child_id (режим «ребёнок»): учитель-родитель/родитель смотрит
+        оценки своего ребёнка по ЛЮБОМУ предмету (как родитель).
         """
         restore_session_if_needed()
         if not request.session.uid:
@@ -2937,7 +3099,13 @@ class RostMaxTimetableController(http.Controller):
         role, own_students = _get_user_students(user)
         target = own_students
         student_name = ''
-        if role in ('teacher', 'admin') and student_id:
+        child, err = _resolve_child(user, child_id)
+        if err:
+            return err
+        if child is not None:
+            target = child
+            student_name = child.partner_id.name or ""
+        elif role in ('teacher', 'admin') and student_id:
             t_role, t_faculty = self._teacher_scope(user)
             if not t_role:
                 return request.make_json_response(

@@ -14,6 +14,7 @@ import {
 import { Icon56UserBookOutline } from '@vkontakte/icons';
 import { apiGet } from '@/shared/lib/api';
 import { useToast } from '@/shared/components/Toast';
+import { useAppStore, childQuery } from '@/shared/lib/store';
 import { SubjectAvatar } from '@/shared/components/SubjectIcon';
 import { GradeChip } from '@/shared/components/JournalButton';
 import type { MySubjectsResponse, SubjectSummary } from '@/shared/lib/types';
@@ -57,6 +58,7 @@ const SubjectGradeCard: React.FC<{ subject: SubjectSummary; onClick: () => void 
 /** Экран «Успеваемость» (ученик / родитель): сводка → карточки предметов. */
 export const SubjectsPage: React.FC<SubjectsPageProps> = ({ id, onOpenSubject }) => {
   const addToast = useToast();
+  const selectedChildId = useAppStore(s => s.selectedChildId);
   const [data, setData] = React.useState<MySubjectsResponse | null>(null);
   const [loading, setLoading] = React.useState(true);
   const [quarter, setQuarter] = React.useState<number | null>(null);
@@ -64,8 +66,14 @@ export const SubjectsPage: React.FC<SubjectsPageProps> = ({ id, onOpenSubject })
   const load = React.useCallback(async (q: number | null) => {
     setLoading(true);
     try {
-      const url = q ? `/rost_max/api/my/subjects?quarter=${q}` : '/rost_max/api/my/subjects';
-      const res = await apiGet<MySubjectsResponse>(url);
+      // Параметры собираю явно: childQuery() отдаёт '&child_id=N',
+      // на энпоинте без '?' наивная конкатенация даёт 404.
+      const params: string[] = [];
+      if (q) params.push(`quarter=${q}`);
+      const cq = childQuery();
+      if (cq) params.push(cq.slice(1));
+      const res = await apiGet<MySubjectsResponse>(
+        `/rost_max/api/my/subjects${params.length ? '?' + params.join('&') : ''}`);
       setData(res);
       setQuarter(res.quarter);
     } catch {
@@ -74,7 +82,7 @@ export const SubjectsPage: React.FC<SubjectsPageProps> = ({ id, onOpenSubject })
     } finally {
       setLoading(false);
     }
-  }, [addToast]);
+  }, [addToast, selectedChildId]);
 
   React.useEffect(() => { load(quarter); }, [load]);
 

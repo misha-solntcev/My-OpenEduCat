@@ -1,10 +1,10 @@
 import React from 'react';
-import { Panel, Spinner, Div, Button, Text, Card as VkCard, Counter } from '@vkontakte/vkui';
-import { useAppStore } from '@/shared/lib/store';
+import { Panel, Spinner, Div, Button, Text, Card as VkCard, Counter, SegmentedControl } from '@vkontakte/vkui';
+import { useAppStore, childQuery, scopeQuery } from '@/shared/lib/store';
 import { apiGet } from '@/shared/lib/api';
 import { useToast } from '@/shared/components/Toast';
 import { today } from '@/shared/lib/date';
-import type { DashboardInfoResponse } from '@/shared/lib/types';
+import type { DashboardInfoResponse, ChildInfo } from '@/shared/lib/types';
 import {
   Greeting,
   TodayLessons,
@@ -126,10 +126,40 @@ export const TeacherHwCard: React.FC<{
   );
 };
 
+/** Переключатель режимов главной (сегмент, Вариант C).
+ *  Опции по АККАУНТУ: учитель — «Мои уроки», админ — «Мои уроки» (если
+ *  сам преподаёт) + «Школа» (обзор завуча), потом дети. Родитель: только
+ *  дети (2+; с одним ребёнком свитч не рисуем — данные сразу за него).
+ *  Значения: 'mine' | 'school' | String(childId). */
+export const ChildSwitcher: React.FC<{
+  children: ChildInfo[];
+  isTeacherAccount: boolean;
+  isAdminAccount: boolean;
+  selected: string;
+  onChange: (v: string) => void;
+}> = ({ children: kids, isTeacherAccount, isAdminAccount, selected, onChange }) => {
+  const options = [
+    ...(isTeacherAccount ? [{ label: 'Мои уроки', value: 'mine' }] : []),
+    ...(isAdminAccount ? [{ label: 'Школа', value: 'school' }] : []),
+    ...kids.map(k => ({ label: `${k.name.split(' ')[1] ?? k.name} · ${k.batch}`, value: String(k.id) })),
+  ];
+  // Одна опция — переключать нечего (учитель без детей, админ без детей).
+  if (options.length < 2) return null;
+  return (
+    <div style={{ paddingInline: 16, paddingBottom: 10 }}>
+      <SegmentedControl value={selected} options={options} onChange={onChange} />
+    </div>
+  );
+};
+
 export const DashboardPage: React.FC<DashboardPageProps> = ({
   id, onOpenLesson, onOpenTimetable, onOpenGrades, onOpenHomework, onOpenProfile,
 }) => {
   const userInfo = useAppStore(s => s.userInfo);
+  const selectedChildId = useAppStore(s => s.selectedChildId);
+  const setChildId = useAppStore(s => s.setChildId);
+  const schoolMode = useAppStore(s => s.schoolMode);
+  const setSchoolMode = useAppStore(s => s.setSchoolMode);
   const addToast = useToast();
 
   const [data, setData] = React.useState<DashboardInfoResponse | null>(null);
@@ -143,14 +173,14 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
     setLoading(true);
     try {
       const res = await apiGet<DashboardInfoResponse>(
-        `/rost_max/api/dashboard_info?date=${feedDate}`);
+        `/rost_max/api/dashboard_info?date=${feedDate}${scopeQuery()}${childQuery()}`);
       setData(res);
     } catch {
       addToast('Не удалось загрузить главную', 'error');
     } finally {
       setLoading(false);
     }
-  }, [feedDate, addToast]);
+  }, [feedDate, selectedChildId, schoolMode, addToast]);
 
   React.useEffect(() => { load(); }, [load]);
 
@@ -158,6 +188,16 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
   const isAdmin = Boolean(data?.is_admin);
   const isTeacher = Boolean(data?.is_teacher) && !isAdmin;
   const isStudentOrParent = !isAdmin && !isTeacher;
+
+  // Роль АККАУНТА (не режима): приветствие учителя остаётся
+  // «Здравствуйте, Надежда Николаевна» и в режиме ребёнка.
+  const isStaffAccount = Boolean(userInfo?.is_teacher || userInfo?.is_admin);
+  const kids = userInfo?.children ?? [];
+  const child = kids.find(k => k.id === selectedChildId) ?? null;
+  const switchValue = child ? String(child.id) : schoolMode ? 'school' : 'mine';
+  // Имя ребёнка для заголовка ленты: имя из ФИО («Макаров Михаил
+  // Игоревич» -> «Михаил», как в приветствии ученика).
+  const childLabel = child ? (child.name.split(' ')[1] ?? child.name) : undefined;
 
   return (
     <Panel id={id}>
@@ -177,9 +217,26 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
             name={userName}
             date={data.date}
             avatar={userInfo?.avatar}
-            short={isStudentOrParent}
+            short={!isStaffAccount}
             onOpenProfile={onOpenProfile}
           />
+
+          {/* Переключатель режимов (учитель/админ-родитель, родитель с 2+
+              детьми). Рисуем по АККАУНТУ: флаги data в режиме ребёнка
+              говорят «ученик», а свитч учителю всё равно нужен. */}
+          {kids.length > 0 && (
+            <ChildSwitcher
+              children={kids}
+              isTeacherAccount={Boolean(userInfo?.is_teacher)}
+              isAdminAccount={Boolean(userInfo?.is_admin)}
+              selected={switchValue}
+              onChange={v => {
+                if (v === 'mine') { setChildId(null); setSchoolMode(false); }
+                else if (v === 'school') { setChildId(null); setSchoolMode(true); }
+                else { setChildId(Number(v)); setSchoolMode(false); }
+              }}
+            />
+          )}
 
           {/* Админ: полоса цифр + требует внимания */}
           {isAdmin && data.admin_stats && (
@@ -202,7 +259,8 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
             onOpenJournal={isAdmin || isTeacher ? onOpenLesson : undefined}
             onOpenTimetable={onOpenTimetable}
             showBatch={isAdmin || isTeacher}
-            grouped={isAdmin}
+            grouped={isAdmin && !child}
+            childLabel={childLabel}
           />
 
           {/* Ученик: оценки за сегодня */}
