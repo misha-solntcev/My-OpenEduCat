@@ -14,7 +14,7 @@ import React from 'react';
 import {
   Panel, PanelHeader, PanelHeaderBack, PanelHeaderContent, Div, Spinner, Button,
   Caption, Text, Card as VkCard, Input, Checkbox, Box,
-  IconButton, Chip,
+  IconButton,
 } from '@vkontakte/vkui';
 import {
   Icon28EditOutline, Icon28FlashOutline,
@@ -29,6 +29,7 @@ import { ReviewQueue } from '@/shared/components/ReviewQueue';
 import { BulkReviewSheet } from '@/shared/components/BulkReviewSheet';
 import { SubjectAvatar } from '@/shared/components/SubjectIcon';
 import { HomeworkFilterModal } from '@/pages/homework/HomeworkFilterModal';
+import { FilterChipRow } from '@/shared/components/ChipFilterModal';
 import { AccentSegmentedControl } from '@/shared/components/AccentSegmentedControl';
 import { TeacherHwCard, RightPill } from '@/shared/components/TeacherHomeworkCards';
 import type {
@@ -54,43 +55,8 @@ const fmtDue = (due: string): string => {
   return `до ${d.getDate()} ${MONTHS[d.getMonth()]}`;
 };
 
-/** Строка чипов активного фильтра + кнопка «Сбросить» (мокап). */
-const FilterChips: React.FC<{
-  active: { batches: string[]; subjects: string[] };
-  onRemove: (kind: 'batch' | 'subject', v: string) => void;
-  onReset: () => void;
-}> = ({ active, onRemove, onReset }) => {
-  const chips = [
-    ...active.batches.map(v => ({ kind: 'batch' as const, v })),
-    ...active.subjects.map(v => ({ kind: 'subject' as const, v })),
-  ];
-  if (chips.length === 0) return null;
-  return (
-    <div style={{
-      display: 'flex', flexWrap: 'wrap', alignItems: 'center',
-      gap: 6, minWidth: 0, flex: 1,
-    }}>
-      {chips.map(({ kind, v }) => (
-        <Chip
-          key={`${kind}:${v}`}
-          removable
-          onRemove={() => onRemove(kind, v)}
-          aria-label={`Убрать фильтр: ${v}`}
-        >
-          {v}
-        </Chip>
-      ))}
-      <Button
-        mode="tertiary"
-        size="s"
-        appearance="accent"
-        onClick={onReset}
-      >
-        Сбросить
-      </Button>
-    </div>
-  );
-};
+// Строка чипов активного фильтра + «Сбросить» — общий FilterChipRow
+// (мокап; ранее была локальной копией, вынесена для «Моих пар» Оценок).
 
 /** Загрузка файлов в скрепку поля «Текст задания». Отдельный хук от
  *  useLessonMaterials в карточке урока: там endpoint /lesson/<id>/materials,
@@ -741,8 +707,11 @@ export const TeacherHomeworkPage: React.FC<{
 
               {filterActive && (
                 <Div style={{ padding: '10px 16px', background: 'var(--vkui--color_background_content)' }}>
-                  <FilterChips
-                    active={{ batches: [...filters.batches], subjects: [...filters.subjects] }}
+                  <FilterChipRow
+                    chips={[
+                      ...[...filters.batches].map(v => ({ kind: 'batch' as const, v })),
+                      ...[...filters.subjects].map(v => ({ kind: 'subject' as const, v })),
+                    ]}
                     onRemove={removeFilter}
                     onReset={resetFilters}
                   />
