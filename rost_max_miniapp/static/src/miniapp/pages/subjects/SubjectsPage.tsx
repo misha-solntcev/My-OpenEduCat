@@ -18,10 +18,12 @@ import { useAppStore, childQuery } from '@/shared/lib/store';
 import { SubjectAvatar } from '@/shared/components/SubjectIcon';
 import { GradeChip } from '@/shared/components/JournalButton';
 import type { MySubjectsResponse, SubjectSummary } from '@/shared/lib/types';
+import { TabHeader } from '@/shared/components/TabHeader';
 
 interface SubjectsPageProps {
   id: string;
   onOpenSubject: (subjectId: number, subjectName: string) => void;
+  onOpenProfile?: () => void;
 }
 
 const fmtAvg = (v: number): string => v > 0 ? v.toFixed(2).replace('.', ',') : '—';
@@ -56,7 +58,7 @@ const SubjectGradeCard: React.FC<{ subject: SubjectSummary; onClick: () => void 
 );
 
 /** Экран «Успеваемость» (ученик / родитель): сводка → карточки предметов. */
-export const SubjectsPage: React.FC<SubjectsPageProps> = ({ id, onOpenSubject }) => {
+export const SubjectsPage: React.FC<SubjectsPageProps> = ({ id, onOpenSubject, onOpenProfile }) => {
   const addToast = useToast();
   const selectedChildId = useAppStore(s => s.selectedChildId);
   const [data, setData] = React.useState<MySubjectsResponse | null>(null);
@@ -91,6 +93,8 @@ export const SubjectsPage: React.FC<SubjectsPageProps> = ({ id, onOpenSubject })
   return (
     <Panel id={id}>
       <Box padding="m">
+        {/* Аватар «кто смотрит» слева (решение 2026-10-14), тап — профиль. */}
+        <TabHeader title="Оценки" onOpenProfile={onOpenProfile} />
         {loading ? (
           <Flex padding="xl" align="center" justify="center"><Spinner size="l" /></Flex>
         ) : !data || subjects.length === 0 ? (

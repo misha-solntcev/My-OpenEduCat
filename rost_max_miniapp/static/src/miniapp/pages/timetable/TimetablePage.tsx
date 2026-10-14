@@ -24,11 +24,14 @@ import {
   timingToMinutes,
 } from '@/shared/components/timelinePrimitives';
 import { toISO, today, schoolTodayISO, startOfWeek, SHORT_WEEKDAYS } from '@/shared/lib/date';
+
+import { TabHeader } from '@/shared/components/TabHeader';
 import type { Lesson, Faculty, Batch, TimetableResponse, FacultiesResponse, BatchesResponse } from '@/shared/lib/types';
 
 interface TimetablePageProps {
   id: string;
   onOpenLesson: (id: number) => void;
+  onOpenProfile?: () => void;
 }
 
 type SelectOption = { value: string; label: string };
@@ -256,7 +259,7 @@ const TimetableTimeline: React.FC<{
   return <div>{items}</div>;
 };
 
-export const TimetablePage: React.FC<TimetablePageProps> = ({ id, onOpenLesson }) => {
+export const TimetablePage: React.FC<TimetablePageProps> = ({ id, onOpenLesson, onOpenProfile }) => {
   // Дата и фильтры — локальный стейт экрана: всегда стартуем с «сегодня»
   // (Europe/Moscow) и без фильтров. Эпик держит View смонтированным,
   // поэтому выбор переживает переключение вкладок, но не перезапуск.
@@ -365,6 +368,9 @@ export const TimetablePage: React.FC<TimetablePageProps> = ({ id, onOpenLesson }
       {/* Корневой таб: без PanelHeader — активный таб и так подсвечен в
           таббаре. Кнопка фильтра (админ) переехала в ленту дат. */}
       <Box padding="m" paddingInline="none">
+        {/* Аватар «кто смотрит» слева (решение 2026-10-14), тап — профиль. */}
+        <TabHeader title="Расписание" onOpenProfile={onOpenProfile} />
+
         {/* Лента дат пн-вс + переключение недель. Стрелки — крупные
             тапабельные зоны (44px) со своим отступом от края экрана. */}
         <Flex align="center" justify="space-between">

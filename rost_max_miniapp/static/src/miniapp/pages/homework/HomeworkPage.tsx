@@ -14,11 +14,14 @@ import { HomeworkCardList } from '@/shared/components/HomeworkCardList';
 import { AccentSegmentedControl } from '@/shared/components/AccentSegmentedControl';
 import type { HomeworkItem, HomeworkListResponse } from '@/shared/lib/types';
 
+import { TabHeader } from '@/shared/components/TabHeader';
+
 interface HomeworkPageProps {
   id: string;
   /** Сдавать может только ученик (правило бэка): родитель и учитель
    *  в режиме ребёнка получают false — кнопка «Сдать» не рисуется. */
   canSubmit?: boolean;
+  onOpenProfile?: () => void;
 }
 
 type StatusKey = 'fresh' | 'submitted' | 'checked';
@@ -52,7 +55,7 @@ const groupHomework = (items: HomeworkItem[]): {
   return { fresh, submitted, checked };
 };
 
-export const HomeworkPage: React.FC<HomeworkPageProps> = ({ id, canSubmit = true }) => {
+export const HomeworkPage: React.FC<HomeworkPageProps> = ({ id, canSubmit = true, onOpenProfile }) => {
   const addToast = useToast();
   const selectedChildId = useAppStore(s => s.selectedChildId);
   const [items, setItems] = React.useState<HomeworkItem[] | null>(null);
@@ -109,7 +112,9 @@ export const HomeworkPage: React.FC<HomeworkPageProps> = ({ id, canSubmit = true
 
   return (
     <Panel id={id}>
-      {/* Корневой таб: без PanelHeader — активный таб виден в таббаре */}
+      {/* Корневой таб: без PanelHeader — активный таб виден в таббаре.
+          Аватар «кто смотрит» слева (решение 2026-10-14), тап — профиль. */}
+      <TabHeader title="Задания" onOpenProfile={onOpenProfile} />
       {loading && !items ? (
         <Div style={{ display: 'flex', justifyContent: 'center', padding: 40 }}>
           <Spinner size="l" />

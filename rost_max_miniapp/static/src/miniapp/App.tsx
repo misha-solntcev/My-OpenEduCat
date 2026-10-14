@@ -301,14 +301,22 @@ export default function App() {
               onSwipeBack={handleTimetableBack}
               onSwipeBackStart={handleSwipeBackStart}
             >
-              <TimetablePage id="timetable-panel" onOpenLesson={handleOpenLesson} />
+              <TimetablePage
+                id="timetable-panel"
+                onOpenLesson={handleOpenLesson}
+                onOpenProfile={() => setActiveView('profile')}
+              />
             </View>
 
             {/* Задания: ученик/родитель — группы срочности;
                 учитель/админ — сегменты К проверке/Активные/Завершённые.
                 Epic рендерит все View, условен только TabbarItem. */}
             <View id="homework" activePanel="homework-panel">
-              <HomeworkPage id="homework-panel" canSubmit={Boolean(userInfo?.is_student)} />
+              <HomeworkPage
+                id="homework-panel"
+                canSubmit={Boolean(userInfo?.is_student)}
+                onOpenProfile={() => setActiveView('profile')}
+              />
             </View>
             <View id="teacher-homework" activePanel="teacher-homework-panel">
               <TeacherHomeworkPage
@@ -324,7 +332,11 @@ export default function App() {
               history={subjectsHistory}
               onSwipeBack={handleSubjectsBack}
             >
-              <SubjectsPage id="subjects-panel" onOpenSubject={handleOpenSubject} />
+              <SubjectsPage
+                id="subjects-panel"
+                onOpenSubject={handleOpenSubject}
+                onOpenProfile={() => setActiveView('profile')}
+              />
               <SubjectGradesPage
                 id="subject-grades-panel"
                 subjectId={selectedSubject?.id ?? 0}
