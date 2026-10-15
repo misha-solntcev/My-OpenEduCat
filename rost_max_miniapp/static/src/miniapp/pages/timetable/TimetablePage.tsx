@@ -26,6 +26,8 @@ import {
 import { toISO, today, schoolTodayISO, startOfWeek, SHORT_WEEKDAYS } from '@/shared/lib/date';
 
 import { TabHeader } from '@/shared/components/TabHeader';
+import { useViewerAxis, viewerFromDraft } from '@/shared/lib/viewerAxis';
+import { ChipFilterModal, FilterChipRow, FilterIconButton } from '@/shared/components/ChipFilterModal';
 import type { Lesson, Faculty, Batch, TimetableResponse, FacultiesResponse, BatchesResponse } from '@/shared/lib/types';
 
 interface TimetablePageProps {
@@ -271,6 +273,9 @@ export const TimetablePage: React.FC<TimetablePageProps> = ({ id, onOpenLesson, 
   const schoolMode = useAppStore(s => s.schoolMode);
   const isTeacher = Boolean(userInfo?.is_teacher);
   const addToast = useToast();
+  // Ось «Кого смотрим» (свитч удалён — решение 2026-10-14).
+  const axis = useViewerAxis();
+  const [viewerOpen, setViewerOpen] = React.useState(false);
 
   const [lessons, setLessons] = React.useState<Lesson[]>([]);
   const [faculties, setFaculties] = React.useState<Faculty[]>([]);
@@ -368,8 +373,27 @@ export const TimetablePage: React.FC<TimetablePageProps> = ({ id, onOpenLesson, 
       {/* Корневой таб: без PanelHeader — активный таб и так подсвечен в
           таббаре. Кнопка фильтра (админ) переехала в ленту дат. */}
       <Box padding="m" paddingInline="none">
-        {/* Аватар «кто смотрит» слева (решение 2026-10-14), тап — профиль. */}
-        <TabHeader title="Расписание" onOpenProfile={onOpenProfile} />
+        {/* Аватар «кто смотрит» слева (решение 2026-10-14), тап — профиль;
+            кнопка фильтра справа — только у кого есть ось «Кого смотрим». */}
+        <TabHeader
+          title="Расписание"
+          onOpenProfile={onOpenProfile}
+          after={axis ? (
+            <FilterIconButton
+              active={axis.nonDefault}
+              expanded={viewerOpen}
+              onClick={() => setViewerOpen(true)}
+            />
+          ) : undefined}
+        />
+        {axis && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '0 16px 4px' }}>
+            <FilterChipRow
+              chips={[{ kind: 'viewer', v: axis.chipLabel, removable: axis.chipRemovable }]}
+              onRemove={() => axis.apply('mine')}
+            />
+          </div>
+        )}
 
         {/* Лента дат пн-вс + переключение недель. Стрелки — крупные
             тапабельные зоны (44px) со своим отступом от края экрана. */}
@@ -506,6 +530,23 @@ export const TimetablePage: React.FC<TimetablePageProps> = ({ id, onOpenLesson, 
           </Placeholder>
         )}
       </Box>
+
+      {/* Шторка «Кого смотрим» — ось режима (решение 2026-10-14).
+          GUARD обязателен: у учителя без детей/ученика axis=null. */}
+      {axis && (
+      <ChipFilterModal
+        open={viewerOpen}
+        id="timetable-viewer"
+        sections={[axis.section]}
+        value={{ viewer: new Set([axis.value]) }}
+        footerOrder="cancel-first"
+        onClose={() => setViewerOpen(false)}
+        onApply={f => {
+          axis.apply(viewerFromDraft(f.viewer, axis));
+          setViewerOpen(false);
+        }}
+      />
+      )}
 
       <ModalPage
         id="timetable-calendar"

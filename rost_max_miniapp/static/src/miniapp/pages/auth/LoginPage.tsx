@@ -98,6 +98,13 @@ export const LoginPage: React.FC<LoginPageProps> = ({ id }) => {
         setSessionId(data.session_id);
       }
 
+      // Сессия сменилась: ребёнок/школа прошлой учётки не переносятся —
+      // иначе валидация loadUserInfo сбрасывала их уже ПОСЛЕ первых
+      // запросов, ушедших с чужим id (регресс 2026-10-14: 403 «Доступно
+      // только своим детям», главная родителя падала).
+      sessionStorage.removeItem('rost_max_child_id');
+      sessionStorage.removeItem('rost_max_school');
+
       // Обновляем CSRF-токен в window (нужен для последующих POST-запросов)
       if (data.csrf_token) {
         (window as unknown as { csrf_token?: string }).csrf_token = data.csrf_token;

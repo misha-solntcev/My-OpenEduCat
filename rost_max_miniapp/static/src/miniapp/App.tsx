@@ -323,6 +323,7 @@ export default function App() {
                 id="teacher-homework-panel"
                 initialFilter={lessonHomeworkFilter}
                 onBackToLesson={lessonIdForHw != null ? handleBackToLesson : undefined}
+                onOpenProfile={() => setActiveView('profile')}
               />
             </View>
 
@@ -357,6 +358,7 @@ export default function App() {
               <TeacherGradesPage
                 id="teacher-subjects-panel"
                 onOpenSubject={handleTeacherOpenSubject}
+                onOpenProfile={() => setActiveView('profile')}
               />
               <SubjectGradesPage
                 id="teacher-subject-grades-panel"

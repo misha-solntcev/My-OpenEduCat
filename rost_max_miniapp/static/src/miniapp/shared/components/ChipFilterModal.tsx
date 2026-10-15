@@ -19,15 +19,17 @@
 import React from 'react';
 import {
   ModalPage, ModalPageHeader, PanelHeaderButton, Group, Header, Chip,
-  Button, ButtonGroup, Footnote, AppRootPortal,
+  Button, ButtonGroup, Footnote, AppRootPortal, IconButton,
 } from '@vkontakte/vkui';
-import { Icon24Dismiss } from '@vkontakte/icons';
+import { Icon24Dismiss, Icon24Filter } from '@vkontakte/icons';
 
 /** Применённый фильтр: ключ секции -> выбранные значения (пустой Set = «все»). */
 export type ChipFilters = Record<string, Set<string>>;
 
 export interface ChipFilterOption {
   value: string;
+  /** Подпись чипа (defaults к value — у оси «Кого смотрим» value служебный). */
+  label?: string;
   /** Счётчик объектов с этим значением (мокап: цифра внутри чипа). */
   count?: number;
 }
@@ -36,6 +38,9 @@ export interface ChipFilterSection {
   key: string;
   header: string;
   options: ChipFilterOption[];
+  /** Одиночный выбор (ось «Кого смотрим»): тап ставит ровно это значение,
+   *  тап по выбранному — no-op (пустым остаться нельзя). */
+  single?: boolean;
 }
 
 interface Props {
@@ -57,11 +62,12 @@ interface Props {
 }
 
 /** Строка чипов применённого фильтра над лентой + «Сбросить» справа
- *  (общая для «Заданий» и «Моих пар» — kind непрозрачен для вызывающего). */
+ *  (общая для всех табов — kind непрозрачен для вызывающего).
+ *  removable=false — чип-индикатор без × (чип ребёнка у родителя). */
 export const FilterChipRow: React.FC<{
-  chips: { kind: string; v: string }[];
-  onRemove: (kind: string, v: string) => void;
-  onReset: () => void;
+  chips: { kind: string; v: string; removable?: boolean }[];
+  onRemove?: (kind: string, v: string) => void;
+  onReset?: () => void;
 }> = ({ chips, onRemove, onReset }) => {
   if (chips.length === 0) return null;
   return (
@@ -69,27 +75,55 @@ export const FilterChipRow: React.FC<{
       display: 'flex', flexWrap: 'wrap', alignItems: 'center',
       gap: 6, minWidth: 0, flex: 1,
     }}>
-      {chips.map(({ kind, v }) => (
+      {chips.map(({ kind, v, removable = true }) => (
         <Chip
           key={`${kind}:${v}`}
-          removable
-          onRemove={() => onRemove(kind, v)}
-          aria-label={`Убрать фильтр: ${v}`}
+          removable={removable && Boolean(onRemove)}
+          onRemove={removable && onRemove ? () => onRemove(kind, v) : undefined}
+          aria-label={removable ? `Убрать фильтр: ${v}` : undefined}
         >
           {v}
         </Chip>
       ))}
-      <Button
-        mode="tertiary"
-        size="s"
-        appearance="accent"
-        onClick={onReset}
-      >
-        Сбросить
-      </Button>
+      {onRemove && onReset && (
+        <Button
+          mode="tertiary"
+          size="s"
+          appearance="accent"
+          onClick={onReset}
+        >
+          Сбросить
+        </Button>
+      )}
     </div>
   );
 };
+
+/** Иконка-кнопка фильтра в шапке таба (справа от заголовка — решение
+ *  Миши 2026-10-14); подсвечена при активных фильтрах. */
+export const FilterIconButton: React.FC<{
+  active: boolean;
+  expanded?: boolean;
+  onClick: () => void;
+}> = ({ active, expanded, onClick }) => (
+  <IconButton
+    label="Фильтры"
+    aria-expanded={expanded}
+    style={{
+      color: active
+        ? 'var(--vkui--color_text_accent)'
+        : 'var(--vkui--color_text_secondary)',
+      flexShrink: 0, borderRadius: 12,
+      border: '1px solid var(--vkui--color_separator_primary)',
+      background: active
+        ? 'var(--vkui--color_background_secondary)'
+        : undefined,
+    }}
+    onClick={onClick}
+  >
+    <Icon24Filter />
+  </IconButton>
+);
 
 export const ChipFilterModal: React.FC<Props> = ({
   open, id = 'chip-filters', emptyText, sections, value, onClose, onApply,
@@ -122,6 +156,13 @@ export const ChipFilterModal: React.FC<Props> = ({
   };
 
   const toggle = (key: string, v: string) => {
+    // Одиночная секция: тап по выбранному ничего не меняет, по другому —
+    // заменяет выбор целиком (снять нельзя).
+    if (sections.find(s => s.key === key)?.single) {
+      if (draft[key]?.has(v)) return;
+      commit({ ...draft, [key]: new Set([v]) });
+      return;
+    }
     const next = new Set(draft[key] ?? []);
     if (next.has(v)) next.delete(v); else next.add(v);
     commit({ ...draft, [key]: next });
@@ -175,7 +216,7 @@ export const ChipFilterModal: React.FC<Props> = ({
                   : 'var(--vkui--color_text_secondary)',
                 fontWeight: active ? 600 : 400,
               }}>
-                {opt.value}
+                {opt.label ?? opt.value}
                 {opt.count != null && (
                   <span style={{
                     opacity: 0.65, fontWeight: 400, marginLeft: 5, fontSize: 12,

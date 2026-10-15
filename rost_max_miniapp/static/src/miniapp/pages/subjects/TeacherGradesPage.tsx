@@ -16,13 +16,14 @@
 import React from 'react';
 import {
   Panel, PanelHeader, PanelHeaderBack, PanelHeaderContent, Div, Spinner, Button,
-  Caption, Text, Box, SegmentedControl, IconButton,
+  Caption, Text, Box, SegmentedControl,
 } from '@vkontakte/vkui';
-import { Icon24Filter } from '@vkontakte/icons';
 import { apiGet } from '@/shared/lib/api';
 import { useToast } from '@/shared/components/Toast';
+import { useViewerAxis, viewerFromDraft } from '@/shared/lib/viewerAxis';
+import { TabHeader } from '@/shared/components/TabHeader';
 import { SubjectAvatar } from '@/shared/components/SubjectIcon';
-import { ChipFilterModal, FilterChipRow } from '@/shared/components/ChipFilterModal';
+import { ChipFilterModal, FilterChipRow, FilterIconButton } from '@/shared/components/ChipFilterModal';
 import type { ChipFilters, ChipFilterSection } from '@/shared/components/ChipFilterModal';
 import { PairCard, StudentRow, SubjectCard, fmtAvg } from '@/shared/components/TeacherGradeCards';
 import type {
@@ -63,7 +64,8 @@ export const TeacherGradesPage: React.FC<{
   onOpenSubject?: (
     subjectId: number, subjectName: string, studentId: number, studentName: string,
   ) => void;
-}> = ({ id, onOpenSubject }) => {
+  onOpenProfile?: () => void;
+}> = ({ id, onOpenSubject, onOpenProfile }) => {
   const addToast = useToast();
   const [view, setView] = React.useState<View>('pairs');
   // Пара, из которой пришли к ученику: пригодятся, когда ученик вернётся
@@ -74,6 +76,9 @@ export const TeacherGradesPage: React.FC<{
   const [detail, setDetail] = React.useState<TeacherPairStudentsResponse | null>(null);
   const [student, setStudent] = React.useState<TeacherStudentResponse | null>(null);
   const [loading, setLoading] = React.useState(true);
+  // Ось «Кого смотрим» (свитч удалён — решение 2026-10-14): секция в общей
+  // шторке фильтров ниже, отдельной шторки режима тут нет.
+  const axis = useViewerAxis();
 
   // Фильтры «Моих пар» (мокап design/grades-filters.html, утверждён
   // 2026-10-14): ИЛИ внутри секции, И между; пустой Set = «все».
@@ -102,32 +107,38 @@ export const TeacherGradesPage: React.FC<{
     const FIELD: Record<string, (p: TeacherPair) => string> = {
       batches: p => p.batch, subjects: p => p.subject, faculties: p => p.faculty,
     };
-    return KEYS.map(key => {
-      const source = pairs.filter(p => KEYS
-        .filter(k => k !== key)
-        .every(k => {
-          const sel = sheetDraft[k];
-          return !sel?.size || sel.has(FIELD[k](p));
-        }));
-      const sel = sheetDraft[key];
-      const uniq = [...new Set([
-        ...source.map(FIELD[key]),
-        ...(sel?.size ? [...sel] : []), // выбранное не пропадает из шторки
-      ])].sort((a, b) => a.localeCompare(b, 'ru', { numeric: true }));
-      return {
-        key, header: HEADERS[key],
-        options: uniq.map(v => ({
-          value: v, count: source.filter(p => FIELD[key](p) === v).length,
-        })),
-      };
-    }).filter(s => s.options.length > 0);
-  }, [data, sheetDraft, isAdminRole]);
+    // Секция «Кого смотрим» — ПЕРВАЯ (решение 2026-10-14), без фасетов:
+    // список пар от режима не зависит.
+    return [
+      ...(axis ? [{ ...axis.section }] : []),
+      ...KEYS.map(key => {
+        const source = pairs.filter(p => KEYS
+          .filter(k => k !== key)
+          .every(k => {
+            const sel = sheetDraft[k];
+            return !sel?.size || sel.has(FIELD[k](p));
+          }));
+        const sel = sheetDraft[key];
+        const uniq = [...new Set([
+          ...source.map(FIELD[key]),
+          ...(sel?.size ? [...sel] : []), // выбранное не пропадает из шторки
+        ])].sort((a, b) => a.localeCompare(b, 'ru', { numeric: true }));
+        return {
+          key, header: HEADERS[key],
+          options: uniq.map(v => ({
+            value: v, count: source.filter(p => FIELD[key](p) === v).length,
+          })),
+        };
+      }).filter(s => s.options.length > 0),
+    ];
+  }, [data, sheetDraft, isAdminRole, axis]);
 
   // Чипы над лентой строятся по ПРИМЕНЁННОМУ фильтру (порядок фиксированный).
   const chipKeys = isAdminRole
     ? ['batches', 'subjects', 'faculties']
     : ['batches', 'subjects'];
-  const filterActive = chipKeys.some(k => (filters[k]?.size ?? 0) > 0);
+  const filterActive = chipKeys.some(k => (filters[k]?.size ?? 0) > 0)
+    || Boolean(axis?.nonDefault);
 
   const filteredPairs = React.useMemo(() => {
     const pairs = data?.pairs ?? [];
@@ -313,9 +324,47 @@ export const TeacherGradesPage: React.FC<{
     <Panel id={id}>
       {view === 'pairs' && (
         <>
-          <Box padding="m" style={{ paddingBottom: 0 }}>
-            <Text weight="2" style={{ fontSize: 17 }}>Мои пары</Text>
-          </Box>
+          {/* Шапка таба: аватар «кто смотрит» слева, фильтр справа (решение
+              Миши 2026-10-14). Кнопка фильтра есть и у учителя без детей —
+              у него оси Классы/Предметы. */}
+          <TabHeader
+            title="Оценки"
+            onOpenProfile={onOpenProfile}
+            after={(
+              <FilterIconButton
+                active={filterActive}
+                expanded={filtersOpen}
+                onClick={() => {
+                  setSheetDraft({
+                    viewer: axis ? new Set([axis.value]) : new Set(),
+                    ...filters,
+                  });
+                  setFiltersOpen(true);
+                }}
+              />
+            )}
+          />
+          {/* Чипы над лентой: режим всегда (у кого есть ось), класс/предмет/
+              учитель — при активном фильтре; «Сбросить» гасит всё. */}
+          {(filterActive || Boolean(axis)) && (
+            <Div style={{ padding: '0 16px 4px' }}>
+              <FilterChipRow
+                chips={[
+                  ...(axis ? [{ kind: 'viewer' as const, v: axis.chipLabel, removable: axis.chipRemovable }] : []),
+                  ...chipKeys.flatMap(k =>
+                    [...(filters[k] ?? [])].map(v => ({ kind: k, v }))),
+                ]}
+                onRemove={(kind, v) => {
+                  if (kind === 'viewer') { axis?.apply('mine'); return; }
+                  removeFilter(kind, v);
+                }}
+                onReset={() => {
+                  resetFilters();
+                  if (axis) axis.apply('mine');
+                }}
+              />
+            </Div>
+          )}
           {data && (
             <QuarterBar
               quarters={data.quarters}
@@ -323,36 +372,6 @@ export const TeacherGradesPage: React.FC<{
               onChange={setQuarter}
             />
           )}
-          {/* Фильтры над лентой (мокап grades-filters.html): иконка слева,
-              при активных фильтрах — подсвечена + чипы с «Сбросить». */}
-          <Div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 16px 0' }}>
-            <IconButton
-              label="Фильтры"
-              aria-expanded={filtersOpen}
-              style={{
-                color: filterActive
-                  ? 'var(--vkui--color_text_accent)'
-                  : 'var(--vkui--color_text_secondary)',
-                flexShrink: 0, borderRadius: 12,
-                border: '1px solid var(--vkui--color_separator_primary)',
-                background: filterActive
-                  ? 'var(--vkui--color_background_secondary)'
-                  : undefined,
-              }}
-              onClick={() => {
-                setSheetDraft(filters);
-                setFiltersOpen(true);
-              }}
-            >
-              <Icon24Filter />
-            </IconButton>
-            <FilterChipRow
-              chips={chipKeys.flatMap(k =>
-                [...(filters[k] ?? [])].map(v => ({ kind: k, v })))}
-              onRemove={removeFilter}
-              onReset={resetFilters}
-            />
-          </Div>
         </>
       )}
       {view === 'students' && detail && (
@@ -392,7 +411,12 @@ export const TeacherGradesPage: React.FC<{
         onClose={() => setFiltersOpen(false)}
         onDraftChange={setSheetDraft}
         onApply={f => {
-          setFilters(f);
+          if (axis) axis.apply(viewerFromDraft(f.viewer, axis));
+          setFilters({
+            batches: f.batches ?? new Set<string>(),
+            subjects: f.subjects ?? new Set<string>(),
+            faculties: f.faculties ?? new Set<string>(),
+          });
           setFiltersOpen(false);
         }}
       />

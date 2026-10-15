@@ -1,10 +1,14 @@
 import React from 'react';
-import { Panel, Spinner, Div, Button, Text, Card as VkCard, Counter, SegmentedControl } from '@vkontakte/vkui';
+import { Panel, Spinner, Div, Button, Text, Card as VkCard, Counter } from '@vkontakte/vkui';
 import { useAppStore, childQuery, scopeQuery } from '@/shared/lib/store';
 import { apiGet } from '@/shared/lib/api';
 import { useToast } from '@/shared/components/Toast';
 import { today } from '@/shared/lib/date';
-import type { DashboardInfoResponse, ChildInfo } from '@/shared/lib/types';
+import { useViewerAxis, viewerFromDraft } from '@/shared/lib/viewerAxis';
+import {
+  ChipFilterModal, FilterChipRow, FilterIconButton,
+} from '@/shared/components/ChipFilterModal';
+import type { DashboardInfoResponse } from '@/shared/lib/types';
 import {
   Greeting,
   TodayLessons,
@@ -126,41 +130,19 @@ export const TeacherHwCard: React.FC<{
   );
 };
 
-/** Переключатель режимов главной (сегмент, Вариант C).
- *  Опции по АККАУНТУ: учитель — «Мои уроки», админ — «Мои уроки» (если
- *  сам преподаёт) + «Школа» (обзор завуча), потом дети. Родитель: только
- *  дети (2+; с одним ребёнком свитч не рисуем — данные сразу за него).
- *  Значения: 'mine' | 'school' | String(childId). */
-export const ChildSwitcher: React.FC<{
-  children: ChildInfo[];
-  isTeacherAccount: boolean;
-  isAdminAccount: boolean;
-  selected: string;
-  onChange: (v: string) => void;
-}> = ({ children: kids, isTeacherAccount, isAdminAccount, selected, onChange }) => {
-  const options = [
-    ...(isTeacherAccount ? [{ label: 'Мои уроки', value: 'mine' }] : []),
-    ...(isAdminAccount ? [{ label: 'Школа', value: 'school' }] : []),
-    ...kids.map(k => ({ label: `${k.name.split(' ')[1] ?? k.name} · ${k.batch}`, value: String(k.id) })),
-  ];
-  // Одна опция — переключать нечего (учитель без детей, админ без детей).
-  if (options.length < 2) return null;
-  return (
-    <div style={{ paddingInline: 16, paddingBottom: 10 }}>
-      <SegmentedControl value={selected} options={options} onChange={onChange} />
-    </div>
-  );
-};
+/** Переключатель режимов УДАЛЁН (решение Миши 2026-10-14): выбор ребёнка
+ *  и режима — секция «Кого смотрим» в шторке фильтров (useViewerAxis). */
 
 export const DashboardPage: React.FC<DashboardPageProps> = ({
   id, onOpenLesson, onOpenTimetable, onOpenGrades, onOpenHomework, onOpenProfile,
 }) => {
   const userInfo = useAppStore(s => s.userInfo);
   const selectedChildId = useAppStore(s => s.selectedChildId);
-  const setChildId = useAppStore(s => s.setChildId);
   const schoolMode = useAppStore(s => s.schoolMode);
-  const setSchoolMode = useAppStore(s => s.setSchoolMode);
   const addToast = useToast();
+  // Ось «Кого смотрим» (свитч удалён — решение 2026-10-14).
+  const axis = useViewerAxis();
+  const [viewerOpen, setViewerOpen] = React.useState(false);
 
   const [data, setData] = React.useState<DashboardInfoResponse | null>(null);
   const [loading, setLoading] = React.useState(false);
@@ -194,10 +176,11 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
   const isStaffAccount = Boolean(userInfo?.is_teacher || userInfo?.is_admin);
   const kids = userInfo?.children ?? [];
   const child = kids.find(k => k.id === selectedChildId) ?? null;
-  const switchValue = child ? String(child.id) : schoolMode ? 'school' : 'mine';
-  // Имя ребёнка для заголовка ленты: имя из ФИО («Макаров Михаил
-  // Игоревич» -> «Михаил», как в приветствии ученика).
-  const childLabel = child ? (child.name.split(' ')[1] ?? child.name) : undefined;
+  // Имя ребёнка для заголовка ленты: Фамилия Имя — как в чипах оси
+  // («Макаров Михаил»), дети одной семьи различимы.
+  const childLabel = child
+    ? (child.name.split(' ').slice(0, 2).join(' '))
+    : undefined;
 
   return (
     <Panel id={id}>
@@ -219,23 +202,40 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
             avatar={userInfo?.avatar}
             short={!isStaffAccount}
             onOpenProfile={onOpenProfile}
+            after={axis ? (
+              <FilterIconButton
+                active={axis.nonDefault}
+                expanded={viewerOpen}
+                onClick={() => setViewerOpen(true)}
+              />
+            ) : undefined}
           />
 
-          {/* Переключатель режимов (учитель/админ-родитель, родитель с 2+
-              детьми). Рисуем по АККАУНТУ: флаги data в режиме ребёнка
-              говорят «ученик», а свитч учителю всё равно нужен. */}
-          {kids.length > 0 && (
-            <ChildSwitcher
-              children={kids}
-              isTeacherAccount={Boolean(userInfo?.is_teacher)}
-              isAdminAccount={Boolean(userInfo?.is_admin)}
-              selected={switchValue}
-              onChange={v => {
-                if (v === 'mine') { setChildId(null); setSchoolMode(false); }
-                else if (v === 'school') { setChildId(null); setSchoolMode(true); }
-                else { setChildId(Number(v)); setSchoolMode(false); }
-              }}
-            />
+          {/* Ось «Кого смотрим» (решение Миши 2026-10-14, свитч удалён):
+              чип режима над лентой, кнопка фильтра — в строке аватарки
+              (решение Миши 2026-10-14); смена — в шторке.
+              Рисуем по АККАУНТУ: у родителя чип без ×. */}
+          {axis && (
+            <>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '0 16px 0' }}>
+                <FilterChipRow
+                  chips={[{ kind: 'viewer', v: axis.chipLabel, removable: axis.chipRemovable }]}
+                  onRemove={() => axis.apply('mine')}
+                />
+              </div>
+              <ChipFilterModal
+                open={viewerOpen}
+                id="dashboard-viewer"
+                sections={[axis.section]}
+                value={{ viewer: new Set([axis.value]) }}
+                footerOrder="cancel-first"
+                onClose={() => setViewerOpen(false)}
+                onApply={f => {
+                  axis.apply(viewerFromDraft(f.viewer, axis));
+                  setViewerOpen(false);
+                }}
+              />
+            </>
           )}
 
           {/* Админ: полоса цифр + требует внимания */}

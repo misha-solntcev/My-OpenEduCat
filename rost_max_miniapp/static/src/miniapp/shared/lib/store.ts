@@ -49,10 +49,15 @@ function saveSchoolMode(on: boolean): void {
 }
 
 /** Хвост query-string для «ученических» эндпоинтов в режиме ребёнка:
- *  '&child_id=N' или '' — вызов append-ом к готовому URL. */
+ *  '&child_id=N' или '' — вызов append-ом к готовому URL.
+ *  Регресс родителей (2026-10-14): при перелогине другого юзера в том же
+ *  табе sessionStorage хранил ЧУЖОГО ребёнка, и запрос с ним уходил раньше
+ *  валидации в loadUserInfo — бэк верно отвечал 403 «Доступно только своим
+ *  детям», а главная падала. Пока userInfo не загружен, id не шлём. */
 export function childQuery(): string {
-  const id = useAppStore.getState().selectedChildId;
-  return id != null ? `&child_id=${id}` : '';
+  const s = useAppStore.getState();
+  if (!s.userInfo) return '';
+  return s.selectedChildId != null ? `&child_id=${s.selectedChildId}` : '';
 }
 
 /** scope для timetable/dashboard_info у staff (teacher/admin):

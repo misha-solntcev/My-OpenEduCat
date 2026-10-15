@@ -18,18 +18,22 @@ import {
 } from '@vkontakte/vkui';
 import {
   Icon28EditOutline, Icon28FlashOutline,
-  Icon24Filter, Icon24ListCheckOutline,
+  Icon24ListCheckOutline,
 } from '@vkontakte/icons';
 import { apiGet, apiPost } from '@/shared/lib/api';
 import { useAppStore } from '@/shared/lib/store';
 import { useToast } from '@/shared/components/Toast';
+import { useViewerAxis, viewerFromDraft } from '@/shared/lib/viewerAxis';
+import { TabHeader } from '@/shared/components/TabHeader';
 import { MaterialsEditor } from '@/shared/components/MaterialsEditor';
 import { AttachField, HW_MAX_HEIGHT } from '@/shared/components/AttachField';
 import { ReviewQueue } from '@/shared/components/ReviewQueue';
 import { BulkReviewSheet } from '@/shared/components/BulkReviewSheet';
 import { SubjectAvatar } from '@/shared/components/SubjectIcon';
-import { HomeworkFilterModal } from '@/pages/homework/HomeworkFilterModal';
-import { FilterChipRow } from '@/shared/components/ChipFilterModal';
+import {
+  ChipFilterModal, FilterChipRow, FilterIconButton,
+} from '@/shared/components/ChipFilterModal';
+import type { ChipFilters, ChipFilterSection } from '@/shared/components/ChipFilterModal';
 import { AccentSegmentedControl } from '@/shared/components/AccentSegmentedControl';
 import { TeacherHwCard, RightPill } from '@/shared/components/TeacherHomeworkCards';
 import type {
@@ -532,14 +536,20 @@ export const TeacherHomeworkPage: React.FC<{
   /** Возврат в журнал урока. Задаётся ТОЛЬКО при входе из урока: во вкладке
    *  «Задания» кнопки «Назад» в шапке быть не должно, там и так таббар. */
   onBackToLesson?: () => void;
-}> = ({ id, initialFilter, onBackToLesson }) => {
+  onOpenProfile?: () => void;
+}> = ({ id, initialFilter, onBackToLesson, onOpenProfile }) => {
   const addToast = useToast();
+  // Ось «Кого смотрим» (свитч удалён — решение 2026-10-14): секция
+  // ПЕРВАЯ в шторке, чип режима над лентой.
+  const axis = useViewerAxis();
   const [items, setItems] = React.useState<TeacherHomeworkItem[] | null>(null);
   const [loading, setLoading] = React.useState(false);
   const [openId, setOpenId] = React.useState<number | null>(null);
   // Фильтры класс/предмет: Set-ы значений; пустой Set = «все».
   const [filters, setFilters] = React.useState({ batches: new Set<string>(), subjects: new Set<string>() });
   const [filtersOpen, setFiltersOpen] = React.useState(false);
+  // Зеркало черновика шторки (фасеты класс/предмет — как в «Моих парах»).
+  const [sheetDraft, setSheetDraft] = React.useState<ChipFilters>({});
   // Активный сегмент статуса (сегмент-контрол как в ReviewQueue).
   const [status, setStatus] = React.useState<StatusKey>('review');
 
@@ -597,7 +607,29 @@ export const TeacherHomeworkPage: React.FC<{
     };
   }, [items, filters]);
 
-  const filterActive = filters.batches.size > 0 || filters.subjects.size > 0;
+  const filterActive = filters.batches.size > 0 || filters.subjects.size > 0
+    || Boolean(axis?.nonDefault);
+
+  // Секции шторки: «Кого смотрим» ПЕРВОЙ (решение 2026-10-14), потом
+  // Классы/Предметы с фасетным сужением (опции секции — по заданиям,
+  // проходящим фильтры ДРУГИХ секций; выбранное не пропадает). Ось режима
+  // на фасеты не влияет: список заданий от режима не зависит.
+  const sections: ChipFilterSection[] = React.useMemo(() => {
+    const itemsAll = items || [];
+    const opts = (vals: string[], sel?: Set<string>): ChipFilterSection['options'] =>
+      [...new Set([...vals, ...(sel?.size ? [...sel] : [])])]
+        .sort((a, b) => a.localeCompare(b, 'ru', { numeric: true }))
+        .map(v => ({ value: v }));
+    const secBatches = itemsAll.filter(h =>
+      !sheetDraft.subjects?.size || sheetDraft.subjects.has(h.subject));
+    const secSubjects = itemsAll.filter(h =>
+      !sheetDraft.batches?.size || sheetDraft.batches.has(h.batch));
+    return [
+      ...(axis ? [{ ...axis.section }] : []),
+      { key: 'batches', header: 'Классы', options: opts(secBatches.map(h => h.batch), sheetDraft.batches) },
+      { key: 'subjects', header: 'Предметы', options: opts(secSubjects.map(h => h.subject), sheetDraft.subjects) },
+    ];
+  }, [items, sheetDraft, axis]);
 
   // Выбор стартового сегмента при входе из урока — ПОСЛЕ того как список
   // загрузился и groups посчитан. Логика: кнопка «Проверить ДЗ» ведёт
@@ -667,53 +699,60 @@ export const TeacherHomeworkPage: React.FC<{
             </Div>
           ) : (
             <>
-              <Div style={{
-                display: 'flex', alignItems: 'center', gap: 12, padding: '14px 18px',
-                background: 'var(--vkui--color_background_content)',
-              }}>
-                {onBackToLesson && (
+              {/* Шапка таба: аватар «кто смотрит» слева (Back из урока —
+                  в его левом слоте), кнопка фильтра справа (решение
+                  Миши 2026-10-14). */}
+              <TabHeader
+                title="Задания"
+                before={onBackToLesson ? (
                   <PanelHeaderBack
                     onClick={onBackToLesson}
                     aria-label="Вернуться в журнал урока"
                   />
+                ) : undefined}
+                onOpenProfile={onOpenProfile}
+                after={(
+                  <FilterIconButton
+                    active={filterActive}
+                    expanded={filtersOpen}
+                    onClick={() => {
+                      setSheetDraft({
+                        viewer: axis ? new Set([axis.value]) : new Set(),
+                        batches: filters.batches,
+                        subjects: filters.subjects,
+                      });
+                      setFiltersOpen(true);
+                    }}
+                  />
                 )}
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <Text Component="h1" weight="2" style={{ fontSize: 23, letterSpacing: '-0.6px', margin: 0 }}>
-                    Задания
-                  </Text>
-                  {fromLesson && initialFilter && (
-                    <Caption
-                      level="3"
-                      style={{ color: 'var(--vkui--color_text_secondary)', marginTop: 2 }}
-                    >
-                      {`из урока: ${initialFilter.subject}, ${initialFilter.batch}`}
-                    </Caption>
-                  )}
-                </div>
-                <IconButton
-                  label="Фильтры"
-                  aria-expanded={filtersOpen}
-                  style={{
-                    color: filterActive ? 'var(--vkui--color_text_accent)' : 'var(--vkui--color_text_secondary)',
-                    flexShrink: 0, borderRadius: 12,
-                    border: '1px solid var(--vkui--color_separator_primary)',
-                    background: filterActive ? 'var(--vkui--color_background_secondary)' : undefined,
-                  }}
-                  onClick={() => setFiltersOpen(true)}
+              />
+              {fromLesson && initialFilter && (
+                <Caption
+                  level="3"
+                  style={{ padding: '0 16px 4px', color: 'var(--vkui--color_text_secondary)' }}
                 >
-                  <Icon24Filter />
-                </IconButton>
-              </Div>
+                  {`из урока: ${initialFilter.subject}, ${initialFilter.batch}`}
+                </Caption>
+              )}
 
-              {filterActive && (
-                <Div style={{ padding: '10px 16px', background: 'var(--vkui--color_background_content)' }}>
+              {/* Чипы над лентой: режим («Кого смотрим») всегда, класс/предмет —
+                  при активном фильтре; «Сбросить» гасит всё, включая режим. */}
+              {(filterActive || Boolean(axis)) && (
+                <Div style={{ padding: '4px 16px 0' }}>
                   <FilterChipRow
                     chips={[
+                      ...(axis ? [{ kind: 'viewer' as const, v: axis.chipLabel, removable: axis.chipRemovable }] : []),
                       ...[...filters.batches].map(v => ({ kind: 'batch' as const, v })),
                       ...[...filters.subjects].map(v => ({ kind: 'subject' as const, v })),
                     ]}
-                    onRemove={removeFilter}
-                    onReset={resetFilters}
+                    onRemove={(kind, v) => {
+                      if (kind === 'viewer') { axis?.apply('mine'); return; }
+                      removeFilter(kind as 'batch' | 'subject', v);
+                    }}
+                    onReset={() => {
+                      resetFilters();
+                      if (axis) axis.apply('mine');
+                    }}
                   />
                 </Div>
               )}
@@ -746,14 +785,24 @@ export const TeacherHomeworkPage: React.FC<{
 
       {/* Шторка фильтров: экран задания (openId) и список живут в одной
           Panel, модалка объявлена рядом с ними и доступна в обоих
-          состояниях (VKUI ModalPage рендерится в AppRoot-портал). */}
-      <HomeworkFilterModal
+          состояниях (VKUI ModalPage рендерится в AppRoot-портал).
+          footerOrder='cancel-first' — единый порядок ОТМЕНА/ОК (решение
+          Миши 2026-10-14). */}
+      <ChipFilterModal
         open={filtersOpen}
-        items={items || []}
-        value={filters}
+        id="teacher-homework-filters"
+        emptyText="Пока нет заданий — фильтровать нечего."
+        sections={sections}
+        value={sheetDraft}
+        footerOrder="cancel-first"
         onClose={() => setFiltersOpen(false)}
+        onDraftChange={setSheetDraft}
         onApply={f => {
-          setFilters(f);
+          if (axis) axis.apply(viewerFromDraft(f.viewer, axis));
+          setFilters({
+            batches: f.batches ?? new Set<string>(),
+            subjects: f.subjects ?? new Set<string>(),
+          });
           setFiltersOpen(false);
         }}
       />

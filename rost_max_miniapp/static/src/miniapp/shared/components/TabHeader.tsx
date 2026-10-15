@@ -14,33 +14,38 @@ import { initialsOf } from '@/shared/lib/initials';
 
 export const TabHeader: React.FC<{
   title: string;
+  /** Левый слот: кнопка Back (вход из журнала урока). Back занимает левый
+   *  слот вместо аватара — профиль доступен с корневых табов. */
+  before?: React.ReactNode;
   /** Правый слот (кнопка фильтра у staff-ролей). */
   after?: React.ReactNode;
   onOpenProfile?: () => void;
-}> = ({ title, after, onOpenProfile }) => {
+}> = ({ title, before, after, onOpenProfile }) => {
   const userInfo = useAppStore(s => s.userInfo);
   return (
     <div style={{
       display: 'flex', alignItems: 'center', gap: 12,
       padding: '12px 16px 6px',
     }}>
+      {before ?? (
+        <Avatar
+          size={48}
+          src={userInfo?.avatar || undefined}
+          fallbackIcon={
+            <span style={{ fontSize: 18, fontWeight: 600 }}>
+              {initialsOf(userInfo?.user_name ?? '')}
+            </span>
+          }
+          objectPosition="center top"
+          style={{
+            borderRadius: 8, flexShrink: 0,
+            cursor: onOpenProfile ? 'pointer' : undefined,
+          }}
+          onClick={onOpenProfile}
+        />
+      )}
       {/* Размеры как в Greeting на главной (аватар 48, инициалы 18,
           заголовок 20) — решение Миши 2026-10-14. */}
-      <Avatar
-        size={48}
-        src={userInfo?.avatar || undefined}
-        fallbackIcon={
-          <span style={{ fontSize: 18, fontWeight: 600 }}>
-            {initialsOf(userInfo?.user_name ?? '')}
-          </span>
-        }
-        objectPosition="center top"
-        style={{
-          borderRadius: 8, flexShrink: 0,
-          cursor: onOpenProfile ? 'pointer' : undefined,
-        }}
-        onClick={onOpenProfile}
-      />
       <Text weight="2" style={{ fontSize: 20, flex: 1, minWidth: 0 }}>
         {title}
       </Text>

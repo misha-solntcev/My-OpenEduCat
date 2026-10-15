@@ -15,6 +15,8 @@ import { AccentSegmentedControl } from '@/shared/components/AccentSegmentedContr
 import type { HomeworkItem, HomeworkListResponse } from '@/shared/lib/types';
 
 import { TabHeader } from '@/shared/components/TabHeader';
+import { useViewerAxis, viewerFromDraft } from '@/shared/lib/viewerAxis';
+import { ChipFilterModal, FilterChipRow, FilterIconButton } from '@/shared/components/ChipFilterModal';
 
 interface HomeworkPageProps {
   id: string;
@@ -57,6 +59,10 @@ const groupHomework = (items: HomeworkItem[]): {
 
 export const HomeworkPage: React.FC<HomeworkPageProps> = ({ id, canSubmit = true, onOpenProfile }) => {
   const addToast = useToast();
+  // Ось «Кого смотрим» (свитч удалён — решение 2026-10-14): только у
+  // родителя 2+ и staff-родителя — у чистого ученика оси нет.
+  const axis = useViewerAxis();
+  const [viewerOpen, setViewerOpen] = React.useState(false);
   const selectedChildId = useAppStore(s => s.selectedChildId);
   const [items, setItems] = React.useState<HomeworkItem[] | null>(null);
   const [loading, setLoading] = React.useState(false);
@@ -114,7 +120,25 @@ export const HomeworkPage: React.FC<HomeworkPageProps> = ({ id, canSubmit = true
     <Panel id={id}>
       {/* Корневой таб: без PanelHeader — активный таб виден в таббаре.
           Аватар «кто смотрит» слева (решение 2026-10-14), тап — профиль. */}
-      <TabHeader title="Задания" onOpenProfile={onOpenProfile} />
+      <TabHeader
+        title="Задания"
+        onOpenProfile={onOpenProfile}
+        after={axis ? (
+          <FilterIconButton
+            active={axis.nonDefault}
+            expanded={viewerOpen}
+            onClick={() => setViewerOpen(true)}
+          />
+        ) : undefined}
+      />
+      {axis && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '0 16px 4px' }}>
+          <FilterChipRow
+            chips={[{ kind: 'viewer', v: axis.chipLabel, removable: axis.chipRemovable }]}
+            onRemove={() => axis.apply('mine')}
+          />
+        </div>
+      )}
       {loading && !items ? (
         <Div style={{ display: 'flex', justifyContent: 'center', padding: 40 }}>
           <Spinner size="l" />
@@ -156,6 +180,22 @@ export const HomeworkPage: React.FC<HomeworkPageProps> = ({ id, canSubmit = true
             </Caption>
           )}
         </>
+      )}
+      {/* Шторка «Кого смотрим» — ось режима (решение 2026-10-14).
+          GUARD обязателен: у ученика axis=null. */}
+      {axis && (
+      <ChipFilterModal
+        open={viewerOpen}
+        id="homework-viewer"
+        sections={[axis.section]}
+        value={{ viewer: new Set([axis.value]) }}
+        footerOrder="cancel-first"
+        onClose={() => setViewerOpen(false)}
+        onApply={f => {
+          axis.apply(viewerFromDraft(f.viewer, axis));
+          setViewerOpen(false);
+        }}
+      />
       )}
     </Panel>
   );

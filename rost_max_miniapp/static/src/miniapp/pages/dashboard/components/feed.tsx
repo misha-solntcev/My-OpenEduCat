@@ -42,7 +42,7 @@ const firstNamePatronymic = (full: string): string => {
 
 // Ученик: «Макаров Михаил Игоревич» -> «Михаил» (второе слово ФИО).
 // Учителю/админу — имя-отчество.
-export const Greeting: React.FC<{ name: string; date: string; avatar?: string; short?: boolean; onOpenProfile?: () => void }> = ({ name, date, avatar, short, onOpenProfile }) => {
+export const Greeting: React.FC<{ name: string; date: string; avatar?: string; short?: boolean; onOpenProfile?: () => void; after?: React.ReactNode }> = ({ name, date, avatar, short, onOpenProfile, after }) => {
   const parts = (name || '').trim().split(/\s+/);
   const display = short
     ? (parts.length >= 2 ? parts[1] : name)
@@ -65,13 +65,15 @@ export const Greeting: React.FC<{ name: string; date: string; avatar?: string; s
           }}
           onClick={onOpenProfile}
         />
-        <div>
+        <div style={{ flex: 1, minWidth: 0 }}>
           <Text weight="2" style={{ fontSize: 20, display: 'block' }}>Привет, {display}</Text>
           {/* Зазор имя -> дата: ощутимый, даты придаточное предложение */}
           <Caption style={{ color: 'var(--vkui--color_text_secondary)', display: 'block', marginTop: 6 }}>
             {formatDateLong(date)}
           </Caption>
         </div>
+        {/* Правый слот: кнопка фильтров (у кого есть ось «Кого смотрим») */}
+        {after}
       </div>
     </Div>
   );

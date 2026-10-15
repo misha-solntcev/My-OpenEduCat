@@ -19,6 +19,8 @@ import { SubjectAvatar } from '@/shared/components/SubjectIcon';
 import { GradeChip } from '@/shared/components/JournalButton';
 import type { MySubjectsResponse, SubjectSummary } from '@/shared/lib/types';
 import { TabHeader } from '@/shared/components/TabHeader';
+import { useViewerAxis, viewerFromDraft } from '@/shared/lib/viewerAxis';
+import { ChipFilterModal, FilterChipRow, FilterIconButton } from '@/shared/components/ChipFilterModal';
 
 interface SubjectsPageProps {
   id: string;
@@ -60,6 +62,9 @@ const SubjectGradeCard: React.FC<{ subject: SubjectSummary; onClick: () => void 
 /** Экран «Успеваемость» (ученик / родитель): сводка → карточки предметов. */
 export const SubjectsPage: React.FC<SubjectsPageProps> = ({ id, onOpenSubject, onOpenProfile }) => {
   const addToast = useToast();
+  // Ось «Кого смотрим» (свитч удалён — решение 2026-10-14).
+  const axis = useViewerAxis();
+  const [viewerOpen, setViewerOpen] = React.useState(false);
   const selectedChildId = useAppStore(s => s.selectedChildId);
   const [data, setData] = React.useState<MySubjectsResponse | null>(null);
   const [loading, setLoading] = React.useState(true);
@@ -93,8 +98,27 @@ export const SubjectsPage: React.FC<SubjectsPageProps> = ({ id, onOpenSubject, o
   return (
     <Panel id={id}>
       <Box padding="m">
-        {/* Аватар «кто смотрит» слева (решение 2026-10-14), тап — профиль. */}
-        <TabHeader title="Оценки" onOpenProfile={onOpenProfile} />
+        {/* Аватар «кто смотрит» слева (решение 2026-10-14), тап — профиль;
+            кнопка фильтра справа — у кого есть ось «Кого смотрим». */}
+        <TabHeader
+          title="Оценки"
+          onOpenProfile={onOpenProfile}
+          after={axis ? (
+            <FilterIconButton
+              active={axis.nonDefault}
+              expanded={viewerOpen}
+              onClick={() => setViewerOpen(true)}
+            />
+          ) : undefined}
+        />
+        {axis && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '0 0 4px' }}>
+            <FilterChipRow
+              chips={[{ kind: 'viewer', v: axis.chipLabel, removable: axis.chipRemovable }]}
+              onRemove={() => axis.apply('mine')}
+            />
+          </div>
+        )}
         {loading ? (
           <Flex padding="xl" align="center" justify="center"><Spinner size="l" /></Flex>
         ) : !data || subjects.length === 0 ? (
@@ -131,6 +155,22 @@ export const SubjectsPage: React.FC<SubjectsPageProps> = ({ id, onOpenSubject, o
           </>
         )}
       </Box>
+      {/* Шторка «Кого смотрим» — ось режима (решение 2026-10-14).
+          GUARD обязателен: у ученика axis=null. */}
+      {axis && (
+      <ChipFilterModal
+        open={viewerOpen}
+        id="subjects-viewer"
+        sections={[axis.section]}
+        value={{ viewer: new Set([axis.value]) }}
+        footerOrder="cancel-first"
+        onClose={() => setViewerOpen(false)}
+        onApply={f => {
+          axis.apply(viewerFromDraft(f.viewer, axis));
+          setViewerOpen(false);
+        }}
+      />
+      )}
     </Panel>
   );
 };

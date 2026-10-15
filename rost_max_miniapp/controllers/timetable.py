@@ -761,7 +761,15 @@ class RostMaxTimetableController(http.Controller):
                 # course_detail. Родитель видит расписание класса ребёнка
                 # так же (user_ids включает user.child_ids, см. rule 173).
 
-        return request.env['op.session'].search(domain, order='start_datetime asc')
+        # sudo в режиме ребёнка: у чистого родителя нет ACL read на
+        # op.session (ACL — Ученик/Учитель/Менеджер), а домен уже ограничен
+        # классами валидированного ребёнка (IDOR по построению). Под юзером
+        # search давал AccessError → 403 на главной/расписании родителя
+        # (регресс 2026-10-14). Ученик/учитель/админ читают под юзером —
+        # правило 173 само срезает до своих классов.
+        Session = request.env['op.session'].sudo() if child is not None \
+            else request.env['op.session']
+        return Session.search(domain, order='start_datetime asc')
 
     def _faculty_avatar_map(self, sessions):
         """URL аватарок учителей для набора сессий.
@@ -811,6 +819,17 @@ class RostMaxTimetableController(http.Controller):
         date = date or fields.Date.today()
         date_str = str(date)
         is_admin = user.has_group('base.group_system')
+
+        # Фоллбек родителя без child_id — первый ребёнок (см. dashboard_info):
+        # у родителя нет ни faculty, ни своих уроков, расписание иначе пустое
+        # (регресс 2026-10-14).
+        if child is None and not request.env['op.faculty'].sudo().search(
+                [('partner_id', '=', user.partner_id.id)], limit=1) \
+                and not request.env['op.student'].sudo().search(
+                [('partner_id', '=', user.partner_id.id)], limit=1):
+            kids = _get_user_children(user)
+            if kids:
+                child = kids[0]
 
         # batch_id игнорируется для не-админов: фильтр «класс» — чисто
         # админский инструмент, остальным роль срезает домен сама.
@@ -1442,6 +1461,14 @@ class RostMaxTimetableController(http.Controller):
         is_admin = user.has_group('base.group_system')
         faculty = request.env['op.faculty'].sudo().search([('partner_id', '=', user.partner_id.id)], limit=1)
         student = request.env['op.student'].sudo().search([('partner_id', '=', user.partner_id.id)], limit=1)
+
+        # Родитель без child_id (протухший sessionStorage сброшен фронтом,
+        # первый заход): дефолт — первый ребёнок. Без этого у родителя нет
+        # ни faculty, ни student — главная не соберётся (регресс 2026-10-14).
+        if child is None and not faculty and not student:
+            kids = _get_user_children(user)
+            if kids:
+                child = kids[0]
 
         if child is not None:
             # Режим «ребёнок»: вид ученика на данных ребёнка. Роль
