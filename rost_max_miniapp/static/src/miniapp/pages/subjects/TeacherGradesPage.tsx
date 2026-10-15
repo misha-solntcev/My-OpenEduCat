@@ -20,7 +20,7 @@ import {
 } from '@vkontakte/vkui';
 import { apiGet } from '@/shared/lib/api';
 import { useToast } from '@/shared/components/Toast';
-import { useViewerAxis, viewerFromDraft } from '@/shared/lib/viewerAxis';
+import { useViewerAxis, viewerChips, viewerFromDraft } from '@/shared/lib/viewerAxis';
 import { TabHeader } from '@/shared/components/TabHeader';
 import { SubjectAvatar } from '@/shared/components/SubjectIcon';
 import { ChipFilterModal, FilterChipRow, FilterIconButton } from '@/shared/components/ChipFilterModal';
@@ -350,7 +350,7 @@ export const TeacherGradesPage: React.FC<{
             <Div style={{ padding: '0 16px 4px' }}>
               <FilterChipRow
                 chips={[
-                  ...(axis ? [{ kind: 'viewer' as const, v: axis.chipLabel, removable: axis.chipRemovable }] : []),
+                  ...(viewerChips(axis)),
                   ...chipKeys.flatMap(k =>
                     [...(filters[k] ?? [])].map(v => ({ kind: k, v }))),
                 ]}

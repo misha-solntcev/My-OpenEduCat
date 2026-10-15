@@ -19,7 +19,7 @@ import { SubjectAvatar } from '@/shared/components/SubjectIcon';
 import { GradeChip } from '@/shared/components/JournalButton';
 import type { MySubjectsResponse, SubjectSummary } from '@/shared/lib/types';
 import { TabHeader } from '@/shared/components/TabHeader';
-import { useViewerAxis, viewerFromDraft } from '@/shared/lib/viewerAxis';
+import { useViewerAxis, viewerChips, viewerFromDraft } from '@/shared/lib/viewerAxis';
 import { ChipFilterModal, FilterChipRow, FilterIconButton } from '@/shared/components/ChipFilterModal';
 
 interface SubjectsPageProps {
@@ -114,7 +114,7 @@ export const SubjectsPage: React.FC<SubjectsPageProps> = ({ id, onOpenSubject, o
         {axis && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '0 0 4px' }}>
             <FilterChipRow
-              chips={[{ kind: 'viewer', v: axis.chipLabel, removable: axis.chipRemovable }]}
+              chips={viewerChips(axis)}
               onRemove={() => axis.apply('mine')}
             />
           </div>

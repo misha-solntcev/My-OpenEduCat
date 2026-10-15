@@ -23,7 +23,7 @@ import {
 import { apiGet, apiPost } from '@/shared/lib/api';
 import { useAppStore } from '@/shared/lib/store';
 import { useToast } from '@/shared/components/Toast';
-import { useViewerAxis, viewerFromDraft } from '@/shared/lib/viewerAxis';
+import { useViewerAxis, viewerChips, viewerFromDraft } from '@/shared/lib/viewerAxis';
 import { TabHeader } from '@/shared/components/TabHeader';
 import { MaterialsEditor } from '@/shared/components/MaterialsEditor';
 import { AttachField, HW_MAX_HEIGHT } from '@/shared/components/AttachField';
@@ -741,7 +741,7 @@ export const TeacherHomeworkPage: React.FC<{
                 <Div style={{ padding: '4px 16px 0' }}>
                   <FilterChipRow
                     chips={[
-                      ...(axis ? [{ kind: 'viewer' as const, v: axis.chipLabel, removable: axis.chipRemovable }] : []),
+                      ...(viewerChips(axis)),
                       ...[...filters.batches].map(v => ({ kind: 'batch' as const, v })),
                       ...[...filters.subjects].map(v => ({ kind: 'subject' as const, v })),
                     ]}

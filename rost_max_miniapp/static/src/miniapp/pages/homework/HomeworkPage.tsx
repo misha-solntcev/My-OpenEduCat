@@ -15,7 +15,7 @@ import { AccentSegmentedControl } from '@/shared/components/AccentSegmentedContr
 import type { HomeworkItem, HomeworkListResponse } from '@/shared/lib/types';
 
 import { TabHeader } from '@/shared/components/TabHeader';
-import { useViewerAxis, viewerFromDraft } from '@/shared/lib/viewerAxis';
+import { useViewerAxis, viewerChips, viewerFromDraft } from '@/shared/lib/viewerAxis';
 import { ChipFilterModal, FilterChipRow, FilterIconButton } from '@/shared/components/ChipFilterModal';
 
 interface HomeworkPageProps {
@@ -134,7 +134,7 @@ export const HomeworkPage: React.FC<HomeworkPageProps> = ({ id, canSubmit = true
       {axis && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '0 16px 4px' }}>
           <FilterChipRow
-            chips={[{ kind: 'viewer', v: axis.chipLabel, removable: axis.chipRemovable }]}
+            chips={viewerChips(axis)}
             onRemove={() => axis.apply('mine')}
           />
         </div>

@@ -4,7 +4,7 @@ import { useAppStore, childQuery, scopeQuery } from '@/shared/lib/store';
 import { apiGet } from '@/shared/lib/api';
 import { useToast } from '@/shared/components/Toast';
 import { today } from '@/shared/lib/date';
-import { useViewerAxis, viewerFromDraft } from '@/shared/lib/viewerAxis';
+import { useViewerAxis, viewerChips, viewerFromDraft } from '@/shared/lib/viewerAxis';
 import {
   ChipFilterModal, FilterChipRow, FilterIconButton,
 } from '@/shared/components/ChipFilterModal';
@@ -219,7 +219,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
             <>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '0 16px 0' }}>
                 <FilterChipRow
-                  chips={[{ kind: 'viewer', v: axis.chipLabel, removable: axis.chipRemovable }]}
+                  chips={viewerChips(axis)}
                   onRemove={() => axis.apply('mine')}
                 />
               </div>

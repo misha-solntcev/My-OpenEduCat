@@ -16,6 +16,8 @@ export interface UserInfo {
   is_teacher: boolean;
   is_student: boolean;
   is_parent?: boolean;
+  /** Завуч (group_op_timetable_manager): вариант «Школа» в «Кого смотрим». */
+  is_deputy?: boolean;
   /** Дети юзера (родитель/учитель-родитель) — для переключателя
    *  «Мои уроки / Ребёнок». Пусто — свитч не рисуется. */
   children?: ChildInfo[];

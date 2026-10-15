@@ -729,6 +729,10 @@ class RostMaxTimetableController(http.Controller):
           - guest: пусто.
         """
         is_admin = user.has_group('base.group_system')
+        # Школьный обзор: админ + завуч (group_op_timetable_manager —
+        # полный ACL на op.session и правило [(1,'=',1)]).
+        is_overview = is_admin or user.has_group(
+            'openeducat_timetable.group_op_timetable_manager')
 
         domain = [('timetable_date', '=', date)]
 
@@ -737,7 +741,7 @@ class RostMaxTimetableController(http.Controller):
             # как в rule 173, включая случай нескольких зачислений).
             batches = child.course_detail_ids.batch_id | child.active_batch_id
             domain.append(('batch_id', 'in', batches.ids))
-        elif is_admin and scope != 'mine':
+        elif is_overview and scope != 'mine':
             if faculty_id:
                 domain.append(('faculty_id', '=', int(faculty_id)))
             if batch_id:
@@ -1391,6 +1395,9 @@ class RostMaxTimetableController(http.Controller):
             ('partner_id', '=', user.partner_id.id)
         ], limit=1))
 
+        # Завуч: школьный обзор в «Кого смотрим» (наравне с админом).
+        is_deputy = user.has_group('openeducat_timetable.group_op_timetable_manager')
+
         is_student = bool(request.env['op.student'].sudo().search([
             ('partner_id', '=', user.partner_id.id)
         ], limit=1))
@@ -1431,6 +1438,7 @@ class RostMaxTimetableController(http.Controller):
             "avatar": avatar,
             "is_admin": is_admin,
             "is_teacher": is_teacher,
+            "is_deputy": is_deputy,
             "is_student": is_student,
             "is_parent": is_parent,
             "children": children,
@@ -1459,6 +1467,12 @@ class RostMaxTimetableController(http.Controller):
         if scope not in (None, 'mine', 'school'):
             scope = None
         is_admin = user.has_group('base.group_system')
+        # Школьный ОБЗОР главной (метрики/лента школы) — админская ветка:
+        # завуч-не-админ в «Школе» видит свою преподавательскую главную.
+        # Расписание всей школы ей отдаёт _get_user_timetable (is_overview).
+        if scope == 'school' and not is_admin and user.has_group(
+                'openeducat_timetable.group_op_timetable_manager'):
+            scope = 'mine'
         faculty = request.env['op.faculty'].sudo().search([('partner_id', '=', user.partner_id.id)], limit=1)
         student = request.env['op.student'].sudo().search([('partner_id', '=', user.partner_id.id)], limit=1)
 

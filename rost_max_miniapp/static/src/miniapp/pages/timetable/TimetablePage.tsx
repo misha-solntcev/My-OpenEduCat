@@ -26,7 +26,7 @@ import {
 import { toISO, today, schoolTodayISO, startOfWeek, SHORT_WEEKDAYS } from '@/shared/lib/date';
 
 import { TabHeader } from '@/shared/components/TabHeader';
-import { useViewerAxis, viewerFromDraft } from '@/shared/lib/viewerAxis';
+import { useViewerAxis, viewerChips, viewerFromDraft } from '@/shared/lib/viewerAxis';
 import { ChipFilterModal, FilterChipRow, FilterIconButton } from '@/shared/components/ChipFilterModal';
 import type { Lesson, Faculty, Batch, TimetableResponse, FacultiesResponse, BatchesResponse } from '@/shared/lib/types';
 
@@ -389,7 +389,7 @@ export const TimetablePage: React.FC<TimetablePageProps> = ({ id, onOpenLesson, 
         {axis && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '0 16px 4px' }}>
             <FilterChipRow
-              chips={[{ kind: 'viewer', v: axis.chipLabel, removable: axis.chipRemovable }]}
+              chips={viewerChips(axis)}
               onRemove={() => axis.apply('mine')}
             />
           </div>
