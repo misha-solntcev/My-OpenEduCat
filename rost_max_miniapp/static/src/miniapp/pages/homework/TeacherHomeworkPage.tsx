@@ -746,12 +746,12 @@ export const TeacherHomeworkPage: React.FC<{
                       ...[...filters.subjects].map(v => ({ kind: 'subject' as const, v })),
                     ]}
                     onRemove={(kind, v) => {
-                      if (kind === 'viewer') { axis?.apply('mine'); return; }
+                      if (kind === 'viewer') { axis?.apply('school'); return; }
                       removeFilter(kind as 'batch' | 'subject', v);
                     }}
                     onReset={() => {
                       resetFilters();
-                      if (axis) axis.apply('mine');
+                      if (axis) axis.apply('school');
                     }}
                   />
                 </Div>

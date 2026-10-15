@@ -355,12 +355,12 @@ export const TeacherGradesPage: React.FC<{
                     [...(filters[k] ?? [])].map(v => ({ kind: k, v }))),
                 ]}
                 onRemove={(kind, v) => {
-                  if (kind === 'viewer') { axis?.apply('mine'); return; }
+                  if (kind === 'viewer') { axis?.apply('school'); return; }
                   removeFilter(kind, v);
                 }}
                 onReset={() => {
                   resetFilters();
-                  if (axis) axis.apply('mine');
+                  if (axis) axis.apply('school');
                 }}
               />
             </Div>

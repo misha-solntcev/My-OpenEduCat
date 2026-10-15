@@ -390,7 +390,7 @@ export const TimetablePage: React.FC<TimetablePageProps> = ({ id, onOpenLesson, 
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '0 16px 4px' }}>
             <FilterChipRow
               chips={viewerChips(axis)}
-              onRemove={() => axis.apply('mine')}
+              onRemove={() => axis.apply('school')}
             />
           </div>
         )}

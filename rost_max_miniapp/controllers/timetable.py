@@ -720,10 +720,11 @@ class RostMaxTimetableController(http.Controller):
           - child передан (режим «ребёнок»): сессии классов ребёнка.
             Свои faculty-уроки учителя и админские фильтры игнорируются —
             валидность child_id проверена в _resolve_child;
-          - admin: все сессии на дату (+ фильтр faculty_id из query);
-            scope='mine' уводит админа-учителя из этой ветки в его
-            собственные уроки (свитч «Мои уроки / Школа»);
-          - teacher: свои сессии (faculty_id.user_id == user.id);
+          - admin/deputy: все сессии на дату (+ фильтры faculty_id/batch_id
+            из query); scope='mine' — только свои уроки;
+          - teacher: scope='mine' — свои сессии; БЕЗ scope — ВЕСЬ тайминг
+            школы (как в ПК: read учителя не сужен, «Мои уроки» —
+            снимаемый дефолтный фильтр);
           - student/parent: сессии своего класса — rule 173 «Student
             Session rule» (user_ids in user.id) сама срезает до batch'а;
           - guest: пусто.
@@ -733,6 +734,9 @@ class RostMaxTimetableController(http.Controller):
         # полный ACL на op.session и правило [(1,'=',1)]).
         is_overview = is_admin or user.has_group(
             'openeducat_timetable.group_op_timetable_manager')
+        faculty = request.env['op.faculty'].sudo().search([
+            ('partner_id', '=', user.partner_id.id)
+        ], limit=1)
 
         domain = [('timetable_date', '=', date)]
 
@@ -741,7 +745,10 @@ class RostMaxTimetableController(http.Controller):
             # как в rule 173, включая случай нескольких зачислений).
             batches = child.course_detail_ids.batch_id | child.active_batch_id
             domain.append(('batch_id', 'in', batches.ids))
-        elif is_overview and scope != 'mine':
+        elif (is_overview or faculty) and scope != 'mine':
+            # Школьный обзор: админ/завуч ИЛИ учитель со снятым фильтром
+            # «Мои уроки» — как в ПК: учитель читает ВЕСЬ тайминг школы
+            # (teacher_session_write_rule режет только write, perm_read=False).
             if faculty_id:
                 domain.append(('faculty_id', '=', int(faculty_id)))
             if batch_id:
@@ -749,9 +756,7 @@ class RostMaxTimetableController(http.Controller):
         elif user == request.env.ref('base.public_user').sudo():
             return request.env['op.session'].browse()
         else:
-            faculty = request.env['op.faculty'].sudo().search([
-                ('partner_id', '=', user.partner_id.id)
-            ], limit=1)
+            # Ученик/родитель: свои сессии под юзером.
             if faculty:
                 domain.append(('faculty_id.user_id', '=', user.id))
             else:
@@ -1468,10 +1473,10 @@ class RostMaxTimetableController(http.Controller):
             scope = None
         is_admin = user.has_group('base.group_system')
         # Школьный ОБЗОР главной (метрики/лента школы) — админская ветка:
-        # завуч-не-админ в «Школе» видит свою преподавательскую главную.
-        # Расписание всей школы ей отдаёт _get_user_timetable (is_overview).
-        if scope == 'school' and not is_admin and user.has_group(
-                'openeducat_timetable.group_op_timetable_manager'):
+        # не-админ (учитель, завуч-не-админ) в «Школе» видит свою
+        # преподавательскую главную. Расписание всей школы отдаёт
+        # _get_user_timetable (у учителя read не сужен).
+        if scope == 'school' and not is_admin:
             scope = 'mine'
         faculty = request.env['op.faculty'].sudo().search([('partner_id', '=', user.partner_id.id)], limit=1)
         student = request.env['op.student'].sudo().search([('partner_id', '=', user.partner_id.id)], limit=1)

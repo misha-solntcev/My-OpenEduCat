@@ -36,11 +36,15 @@ export interface ChipFilterOption {
 
 export interface ChipFilterSection {
   key: string;
-  header: string;
+  /** Заголовок секции; не задан — не рисуется (ось «Кого смотрим»). */
+  header?: string;
   options: ChipFilterOption[];
   /** Одиночный выбор (ось «Кого смотрим»): тап ставит ровно это значение,
    *  тап по выбранному — no-op (пустым остаться нельзя). */
   single?: boolean;
+  /** Пустой выбор разрешён (staff с правом школьного обзора): тап по
+   *  выбранному снимает фильтр — нет чипа = вся школа. */
+  allowEmpty?: boolean;
 }
 
 interface Props {
@@ -156,10 +160,16 @@ export const ChipFilterModal: React.FC<Props> = ({
   };
 
   const toggle = (key: string, v: string) => {
-    // Одиночная секция: тап по выбранному ничего не меняет, по другому —
-    // заменяет выбор целиком (снять нельзя).
+    // Одиночная секция: тап по другому заменяет выбор целиком. Тап по
+    // выбранному снимает фильтр, если allowEmpty (staff: нет чипа = вся
+    // школа), иначе no-op (пустым остаться нельзя).
     if (sections.find(s => s.key === key)?.single) {
-      if (draft[key]?.has(v)) return;
+      if (draft[key]?.has(v)) {
+        if (sections.find(s => s.key === key)?.allowEmpty) {
+          commit({ ...draft, [key]: new Set() });
+        }
+        return;
+      }
       commit({ ...draft, [key]: new Set([v]) });
       return;
     }
@@ -187,7 +197,7 @@ export const ChipFilterModal: React.FC<Props> = ({
   const renderSection = (s: ChipFilterSection) => (
     <Group
       key={s.key}
-      header={<Header size="s">{s.header}</Header>}
+      header={s.header ? <Header size="s">{s.header}</Header> : undefined}
       mode="plain"
       separator="hide"
     >

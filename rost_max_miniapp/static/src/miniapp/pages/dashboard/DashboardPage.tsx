@@ -220,7 +220,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '0 16px 0' }}>
                 <FilterChipRow
                   chips={viewerChips(axis)}
-                  onRemove={() => axis.apply('mine')}
+                  onRemove={() => axis.apply('school')}
                 />
               </div>
               <ChipFilterModal

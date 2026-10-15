@@ -115,7 +115,7 @@ export const SubjectsPage: React.FC<SubjectsPageProps> = ({ id, onOpenSubject, o
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '0 0 4px' }}>
             <FilterChipRow
               chips={viewerChips(axis)}
-              onRemove={() => axis.apply('mine')}
+              onRemove={() => axis.apply('school')}
             />
           </div>
         )}
