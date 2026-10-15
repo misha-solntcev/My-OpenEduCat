@@ -276,6 +276,13 @@ export const TimetablePage: React.FC<TimetablePageProps> = ({ id, onOpenLesson, 
   // Ось «Кого смотрим» (свитч удалён — решение 2026-10-14).
   const axis = useViewerAxis();
   const [viewerOpen, setViewerOpen] = React.useState(false);
+  // Ось «Мой класс» (классный руководитель, вариант 1): выбранные классы
+  // сужают Расписание до уроков этих классов. Локальное состояние — фильтр
+  // живёт только на этом табе.
+  const homeroom = userInfo?.homeroom_batches ?? [];
+  const [classBatches, setClassBatches] = React.useState<number[]>([]);
+  const homeroomName = (id: number): string =>
+    homeroom.find(b => b.id === id)?.name ?? String(id);
 
   const [lessons, setLessons] = React.useState<Lesson[]>([]);
   const [faculties, setFaculties] = React.useState<Faculty[]>([]);
@@ -316,6 +323,9 @@ export const TimetablePage: React.FC<TimetablePageProps> = ({ id, onOpenLesson, 
         // Режим «ребёнок»: расписание класса ребёнка, админские фильтры
         // (учитель/класс) игнорируются и бэком, и фронтом.
         url += `&child_id=${selectedChildId}`;
+      } else if (classBatches.length) {
+        // «Мой класс» (классрук): уроки выбранных классов.
+        url += `&batch_id=${classBatches.join(',')}`;
       } else if (isStaff && !schoolMode) {
         url += '&scope=mine';
       } else {
@@ -331,7 +341,7 @@ export const TimetablePage: React.FC<TimetablePageProps> = ({ id, onOpenLesson, 
       setLoading(false);
     }
   }, [globalDate, selectedFaculty, selectedBatch, selectedChildId,
-      schoolMode, userInfo, addToast]);
+      schoolMode, classBatches, userInfo, addToast]);
 
   React.useEffect(() => { loadLessons(); }, [loadLessons]);
 
@@ -380,17 +390,25 @@ export const TimetablePage: React.FC<TimetablePageProps> = ({ id, onOpenLesson, 
           onOpenProfile={onOpenProfile}
           after={axis ? (
             <FilterIconButton
-              active={axis.nonDefault}
+              active={axis.nonDefault || classBatches.length > 0}
               expanded={viewerOpen}
               onClick={() => setViewerOpen(true)}
             />
           ) : undefined}
         />
-        {axis && (
+        {(axis || classBatches.length > 0) && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '0 16px 4px' }}>
             <FilterChipRow
-              chips={viewerChips(axis)}
-              onRemove={() => axis.apply('school')}
+              chips={[
+                ...(axis ? viewerChips(axis) : []),
+                ...classBatches.map(id => ({
+                  kind: 'class' as const, v: homeroomName(id), removable: true,
+                })),
+              ]}
+              onRemove={(kind, v) => {
+                if (kind === 'viewer') axis?.apply('school');
+                else setClassBatches(b => b.filter(id => homeroomName(id) !== v));
+              }}
             />
           </div>
         )}
@@ -497,7 +515,8 @@ export const TimetablePage: React.FC<TimetablePageProps> = ({ id, onOpenLesson, 
               padding: '5px 0 10px',
             }}>
               {isAdmin && schoolMode && !selectedChildId
-               && !selectedFaculty && !selectedBatch ? (
+               && !selectedFaculty && !selectedBatch
+               && !classBatches.length ? (
                 // Админ в «Школе» без фильтров: вся школа — слоты-аккордеоны
                 // (раскрыт текущий), как раньше. В «Моих уроках» и режиме
                 // ребёнка — обычный таймлайн.
@@ -537,12 +556,25 @@ export const TimetablePage: React.FC<TimetablePageProps> = ({ id, onOpenLesson, 
       <ChipFilterModal
         open={viewerOpen}
         id="timetable-viewer"
-        sections={[axis.section]}
-        value={{ viewer: new Set([axis.value]) }}
+        sections={[
+          axis.section,
+          // Ось «Мой класс» (классрук, вариант 1): мультивыбор классов,
+          // сужает Расписание. Опции — только свои классы (из user/info).
+          ...(homeroom.length ? [{
+            key: 'klass',
+            header: 'Класс',
+            options: homeroom.map(b => ({ value: String(b.id), label: b.name })),
+          }] : []),
+        ]}
+        value={{
+          viewer: new Set([axis.value]),
+          klass: new Set(classBatches.map(String)),
+        }}
         footerOrder="cancel-first"
         onClose={() => setViewerOpen(false)}
         onApply={f => {
           axis.apply(viewerFromDraft(f.viewer, axis));
+          setClassBatches([...(f.klass ?? [])].map(Number));
           setViewerOpen(false);
         }}
       />

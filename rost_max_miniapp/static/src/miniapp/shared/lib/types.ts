@@ -21,6 +21,8 @@ export interface UserInfo {
   /** Дети юзера (родитель/учитель-родитель) — для переключателя
    *  «Мои уроки / Ребёнок». Пусто — свитч не рисуется. */
   children?: ChildInfo[];
+  /** Классы, где юзер классный руководитель (ось «Мой класс»). */
+  homeroom_batches?: { id: number; name: string }[];
 }
 
 export interface AttendanceType {

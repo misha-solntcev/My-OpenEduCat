@@ -752,7 +752,11 @@ class RostMaxTimetableController(http.Controller):
             if faculty_id:
                 domain.append(('faculty_id', '=', int(faculty_id)))
             if batch_id:
-                domain.append(('batch_id', '=', int(batch_id)))
+                # Список через запятую допускается: ось «Мой класс»
+                # классного руководителя шлёт несколько batch за раз.
+                domain.append(('batch_id', 'in', [
+                    int(x) for x in str(batch_id).split(',')
+                    if x.strip().isdigit()]))
         elif user == request.env.ref('base.public_user').sudo():
             return request.env['op.session'].browse()
         else:
@@ -1438,6 +1442,15 @@ class RostMaxTimetableController(http.Controller):
                           if c.avatar_128 else '',
             })
 
+        # Классы, где юзер классный руководитель (op.batch.homeroom_faculty_ids)
+        # — ось «Мой класс» в шторке Расписания (вариант 1, Миши 2026-10-15).
+        homeroom_batches = []
+        if faculty_rec:
+            for b in request.env['op.batch'].sudo().search([
+                    ('homeroom_faculty_ids', 'in', faculty_rec.id),
+                    ('active', '=', True)], order='name'):
+                homeroom_batches.append({"id": b.id, "name": b.name})
+
         return request.make_json_response({
             "user_name": user.name,
             "avatar": avatar,
@@ -1447,6 +1460,7 @@ class RostMaxTimetableController(http.Controller):
             "is_student": is_student,
             "is_parent": is_parent,
             "children": children,
+            "homeroom_batches": homeroom_batches,
         })
 
     @http.route("/rost_max/api/dashboard_info", type="http", auth="public", methods=["GET"])
