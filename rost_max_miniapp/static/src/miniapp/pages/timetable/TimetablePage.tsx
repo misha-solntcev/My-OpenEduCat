@@ -272,6 +272,10 @@ export const TimetablePage: React.FC<TimetablePageProps> = ({ id, onOpenLesson, 
   const selectedChildId = useAppStore(s => s.selectedChildId);
   const schoolMode = useAppStore(s => s.schoolMode);
   const isTeacher = Boolean(userInfo?.is_teacher);
+  // Школьный вид (фильтры сняты) — слоты-аккордеоны у ЛЮБОГО staff
+  // (решение Миши 2026-10-15, вариант А): учителю в школе тоже нужен
+  // аккордеон, плоский таймлайн всей школы нечитаем.
+  const isStaffAcct = Boolean(userInfo?.is_teacher || userInfo?.is_admin);
   const addToast = useToast();
   // Ось «Кого смотрим» (свитч удалён — решение 2026-10-14).
   const axis = useViewerAxis();
@@ -514,11 +518,11 @@ export const TimetablePage: React.FC<TimetablePageProps> = ({ id, onOpenLesson, 
               // снизу 10px, чтобы тень последней карточки не резалась.
               padding: '5px 0 10px',
             }}>
-              {isAdmin && schoolMode && !selectedChildId
+              {isStaffAcct && schoolMode && !selectedChildId
                && !selectedFaculty && !selectedBatch
                && !classBatches.length ? (
-                // Админ в «Школе» без фильтров: вся школа — слоты-аккордеоны
-                // (раскрыт текущий), как раньше. В «Моих уроках» и режиме
+                // Staff в «Школе» без фильтров (у всех): вся школа —
+                // слоты-аккордеоны (раскрыт текущий). В «Моих уроках»,
                 // ребёнка — обычный таймлайн.
                 <TimedGroups
                   lessons={lessons}
