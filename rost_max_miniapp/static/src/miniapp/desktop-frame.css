@@ -51,16 +51,25 @@
     background: var(--vkui--color_background);
     overflow-y: auto;
     scrollbar-width: thin;
-    /* Отступ сверху только для VKUI-шапок (кнопка «назад» и т.п.): они
-       сами съедают safe_area_inset_top в padding — как зону статус-бара
-       на телефоне. Остальной контент не двигается. Внутри media-запроса,
-       поэтому MAX WebView не затронут. */
-    --vkui_internal--safe_area_inset_top: 40px;
     /* Containing block для fixed/absolute-потомков: VKUI на переходах
        делает панели fixed к вьюпорту, а шапки в centered-панелях —
        absolute без позиционированного предка. Без transform всё это
        вылетает из корпуса и прижимается к краям окна браузера. */
     transform: translateZ(0);
+  }
+
+  /* Зазор сверху на страницах с VKUI-шапкой (профиль, журнал урока):
+     шапка остаётся нормальной высоты, просто отодвигается от края
+     экрана, над ней виден фон. Контент панели VKUI ставит вплотную под
+     шапку (margin-top = высота шапки) — сдвигаем на те же 40px, чтобы
+     не наехал на отодвинутую шапку. Только VKUI-шапки: свои шапки
+     корневых табов и контент не двигаются. */
+  .desktop-device__screen .vkuiPanelHeader__host {
+    margin-top: 40px;
+  }
+  .desktop-device__screen .vkuiPanel__centered .vkuiInternalPanelHeader--static + *,
+  .desktop-device__screen .vkuiPanel__centered .vkuiInternalPanelHeader--sep + * {
+    margin-top: calc(var(--vkui_internal--panel_header_height) + 40px);
   }
 
   /* Таббар: fixed в VKUI, но с transform на экране он якорится к экрану
