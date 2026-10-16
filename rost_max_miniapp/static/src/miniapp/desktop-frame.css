@@ -51,9 +51,11 @@
     background: var(--vkui--color_background);
     overflow-y: auto;
     scrollbar-width: thin;
-    /* Отступ сверху: на телефоне эту зону занимает статус-бар ОС,
-       в браузере её нет — отодвигаем контент от верхнего края экрана. */
-    padding-top: 40px;
+    /* Отступ сверху только для VKUI-шапок (кнопка «назад» и т.п.): они
+       сами съедают safe_area_inset_top в padding — как зону статус-бара
+       на телефоне. Остальной контент не двигается. Внутри media-запроса,
+       поэтому MAX WebView не затронут. */
+    --vkui_internal--safe_area_inset_top: 40px;
     /* Containing block для fixed/absolute-потомков: VKUI на переходах
        делает панели fixed к вьюпорту, а шапки в centered-панелях —
        absolute без позиционированного предка. Без transform всё это
