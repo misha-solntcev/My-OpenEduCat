@@ -6,8 +6,11 @@ import {
   AdaptivityProvider,
   AppRoot,
   ColorSchemeProvider,
+  SplitLayout,
+  SplitCol,
 } from '@vkontakte/vkui';
 import '@vkontakte/vkui/dist/vkui.css';
+import './desktop-frame.css';
 import App from './App';
 import { ErrorBoundary } from './shared/components/ErrorBoundary';
 import { useAppStore } from '@/shared/lib/store';
@@ -76,10 +79,31 @@ const ThemeAppRoot: React.FC = () => (
         в WebView получает mode=none и красит всю страницу в content,
         из-за чего карточки на том же токене сливаются с фоном. */}
     <AppRoot mode="full" layout="card" safeAreaInsets={{ top: 0 }} style={{ background: 'var(--vkui--color_background)' }}>
-      {/* В MAX WebView нет консоли: без Boundary render-error = белый экран */}
-      <ErrorBoundary>
-        <App />
-      </ErrorBoundary>
+      <SplitLayout center>
+        {/* 414 = экран 390 + 2*12px рамка корпуса (вариант A из
+            design/phone-frame-variants.html). Ниже 480 работает width=100%,
+            MAX WebView не меняется. */}
+        <SplitCol width="100%" maxWidth={414}>
+          {/* Корпус телефона на ПК: на мобильном .desktop-device даёт
+              display: contents и декор скрыт (см. desktop-frame.css). */}
+          <div className="desktop-device">
+            <div className="desktop-device__notch" aria-hidden="true" />
+            <div className="desktop-device__screen">
+              <div className="desktop-device__statusbar" aria-hidden="true">
+                <span>9:41</span>
+                <span className="desktop-device__status-icons">
+                  <span className="desktop-device__sig"><i /><i /><i /><i /></span>
+                  <span className="desktop-device__batt" />
+                </span>
+              </div>
+              {/* В MAX WebView нет консоли: без Boundary render-error = белый экран */}
+              <ErrorBoundary>
+                <App />
+              </ErrorBoundary>
+            </div>
+          </div>
+        </SplitCol>
+      </SplitLayout>
     </AppRoot>
   </AdaptivityProvider>
 );

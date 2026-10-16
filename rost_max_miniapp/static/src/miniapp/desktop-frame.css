@@ -1,0 +1,148 @@
+/*
+ * Корпус iPhone для ПК-браузера (вариант A из design/phone-frame-variants.html).
+ *
+ * Механика: весь декор живёт внутри media-запроса от 768px. В MAX WebView
+ * вьюпорт уже 768, поэтому обёртка display: contents (не меняет лэйаут),
+ * чёлка и статус-бар скрыты — приложение выглядит как раньше.
+ *
+ * Высота корпуса = 100dvh - 24px (12px сверху и снизу): нижний край корпуса
+ * всегда на 12px выше низа вьюпорта, ровно туда попадает fixed-таббар.
+ * Контент скроллится внутри экрана, страница браузера не скроллится.
+ */
+
+.desktop-device,
+.desktop-device__screen {
+  display: contents;
+}
+
+.desktop-device__notch,
+.desktop-device__statusbar {
+  display: none;
+}
+
+@media (min-width: 768px) {
+  .desktop-device {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    margin-block: 12px;
+    height: calc(100vh - 24px);
+    height: calc(100dvh - 24px);
+    padding: 12px;
+    border-radius: 58px;
+    background: linear-gradient(145deg, #4a4d52, #232529 40%, #575b61 75%, #2b2d31);
+    box-shadow:
+      0 24px 48px rgba(0, 0, 0, 0.28),
+      inset 0 0 2px rgba(255, 255, 255, 0.4);
+    position: relative;
+  }
+
+  /* Dynamic Island */
+  .desktop-device__notch {
+    display: block;
+    position: absolute;
+    top: 26px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 118px;
+    height: 32px;
+    background: #000;
+    border-radius: 20px;
+    z-index: 21;
+  }
+
+  /* Скроллящийся экран внутри корпуса */
+  .desktop-device__screen {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    width: 100%;
+    border-radius: 46px;
+    background: var(--vkui--color_background);
+    overflow-y: auto;
+    scrollbar-width: thin;
+  }
+
+  /* Фейковый статус-бар: в MAX WebView его не существует, на ПК рисуем сами.
+     Sticky с непрозрачным фоном — контент при скролле заходит под него,
+     как на настоящем телефоне. Цвета из VKUI-токенов (тема учитывается). */
+  .desktop-device__statusbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    height: 44px;
+    padding: 6px 26px 0;
+    flex-shrink: 0;
+    background: var(--vkui--color_background);
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--vkui--color_text_primary);
+  }
+
+  .desktop-device__status-icons {
+    display: flex;
+    gap: 5px;
+    align-items: center;
+  }
+
+  .desktop-device__sig {
+    display: inline-flex;
+    gap: 1.5px;
+    align-items: flex-end;
+  }
+  .desktop-device__sig i {
+    display: block;
+    width: 3px;
+    background: currentColor;
+    border-radius: 1px;
+  }
+  .desktop-device__sig i:nth-child(1) { height: 4px; }
+  .desktop-device__sig i:nth-child(2) { height: 7px; }
+  .desktop-device__sig i:nth-child(3) { height: 10px; }
+  .desktop-device__sig i:nth-child(4) { height: 13px; }
+
+  .desktop-device__batt {
+    display: inline-block;
+    width: 22px;
+    height: 11px;
+    border: 1.5px solid currentColor;
+    border-radius: 3px;
+    position: relative;
+  }
+  .desktop-device__batt::before {
+    content: '';
+    position: absolute;
+    top: 1.5px;
+    bottom: 1.5px;
+    left: 1.5px;
+    width: 60%;
+    background: currentColor;
+    border-radius: 1px;
+  }
+  .desktop-device__batt::after {
+    content: '';
+    position: absolute;
+    right: -4px;
+    top: 3px;
+    width: 2px;
+    height: 5px;
+    background: currentColor;
+    border-radius: 1px;
+  }
+
+  /* Таббар прибит к вьюпорту (position: fixed в VKUI) — сужаем до ширины
+     экрана корпуса (390px = 414 колонка - 2*12 рамка), центрируем и
+     прижимаем к нижнему краю экрана. Нижние углы повторяют скругление
+     экрана (46px). Канонический подход VK для десктопных миниаппов. */
+  .vkuiTabbar__host {
+    max-width: 390px;
+    left: 50%;
+    transform: translateX(-50%);
+    bottom: 12px;
+    border-radius: 0 0 46px 46px;
+  }
+}
