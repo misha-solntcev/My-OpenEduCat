@@ -51,6 +51,9 @@
     background: var(--vkui--color_background);
     overflow-y: auto;
     scrollbar-width: thin;
+    /* Отступ сверху: на телефоне эту зону занимает статус-бар ОС,
+       в браузере её нет — отодвигаем контент от верхнего края экрана. */
+    padding-top: 40px;
     /* Containing block для fixed/absolute-потомков: VKUI на переходах
        делает панели fixed к вьюпорту, а шапки в centered-панелях —
        absolute без позиционированного предка. Без transform всё это
