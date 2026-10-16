@@ -80,22 +80,16 @@ const ThemeAppRoot: React.FC = () => (
         из-за чего карточки на том же токене сливаются с фоном. */}
     <AppRoot mode="full" layout="card" safeAreaInsets={{ top: 0 }} style={{ background: 'var(--vkui--color_background)' }}>
       <SplitLayout center>
-        {/* 414 = экран 390 + 2*12px рамка корпуса (вариант A из
-            design/phone-frame-variants.html). Ниже 480 работает width=100%,
+        {/* 400 = экран 390 + 2*5px рамка (вариант 2 Galaxy из
+            design/phone-frame-variants.html). Ниже 768 работает width=100%,
             MAX WebView не меняется. */}
-        <SplitCol width="100%" maxWidth={414}>
-          {/* Корпус телефона на ПК: на мобильном .desktop-device даёт
-              display: contents и декор скрыт (см. desktop-frame.css). */}
+        <SplitCol width="100%" maxWidth={400}>
+          {/* Лёгкая рамка телефона на ПК: на мобильном .desktop-device даёт
+              display: contents (см. desktop-frame.css). 400 = экран 390
+              + 2*5px рамка. Ниже 768 работает width=100%, MAX WebView
+              не меняется. */}
           <div className="desktop-device">
-            <div className="desktop-device__notch" aria-hidden="true" />
             <div className="desktop-device__screen">
-              <div className="desktop-device__statusbar" aria-hidden="true">
-                <span>9:41</span>
-                <span className="desktop-device__status-icons">
-                  <span className="desktop-device__sig"><i /><i /><i /><i /></span>
-                  <span className="desktop-device__batt" />
-                </span>
-              </div>
               {/* В MAX WebView нет консоли: без Boundary render-error = белый экран */}
               <ErrorBoundary>
                 <App />
