@@ -51,17 +51,21 @@
     background: var(--vkui--color_background);
     overflow-y: auto;
     scrollbar-width: thin;
+    /* Containing block для fixed/absolute-потомков: VKUI на переходах
+       делает панели fixed к вьюпорту, а шапки в centered-панелях —
+       absolute без позиционированного предка. Без transform всё это
+       вылетает из корпуса и прижимается к краям окна браузера. */
+    transform: translateZ(0);
   }
 
-  /* Таббар прибит к вьюпорту (position: fixed в VKUI) — сужаем до ширины
-     экрана корпуса (390px), центрируем и прижимаем к его нижнему краю
-     (24px = нижний отступ корпуса). Нижние углы повторяют скругление
-     экрана (30px). Канонический подход VK для десктопных миниаппов. */
+  /* Таббар: fixed в VKUI, но с transform на экране он якорится к экрану
+     корпуса — прижат к его нижнему краю без поправок на отступы.
+     Нижние углы повторяют скругление экрана (30px). */
   .vkuiTabbar__host {
     max-width: 390px;
     left: 50%;
     transform: translateX(-50%);
-    bottom: 24px;
+    bottom: 0;
     border-radius: 0 0 30px 30px;
   }
 }
