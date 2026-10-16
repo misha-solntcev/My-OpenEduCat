@@ -6,5 +6,6 @@ from . import mail_message_hw
 from . import assignment_hw_reset
 from . import assignment_hw_publish
 from . import assignment_hw_view
+from . import assignment_hw_stats
 from . import assignment_hw_works
 from . import op_session_write

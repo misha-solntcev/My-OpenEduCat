@@ -1749,39 +1749,20 @@ class RostMaxTimetableController(http.Controller):
                 hw_domain.append(('faculty_id', '=', faculty.id))
             my_asgs = request.env['op.assignment'].sudo().search(
                 hw_domain, order='submission_date asc')
-            submitted_counts = {
-                s['assignment_id'][0]: s['assignment_id_count']
-                for s in request.env['op.assignment.sub.line'].sudo().read_group(
-                    [('assignment_id', 'in', my_asgs.ids),
-                     ('state', 'in', ['submit', 'accept'])],
-                    ['assignment_id'], ['assignment_id'])
-            }
-            to_review_counts = {
-                s['assignment_id'][0]: s['assignment_id_count']
-                for s in request.env['op.assignment.sub.line'].sudo().read_group(
-                    [('assignment_id', 'in', my_asgs.ids),
-                     ('state', '=', 'submit')],
-                    ['assignment_id'], ['assignment_id'])
-            }
-            accepted_counts = {
-                s['assignment_id'][0]: s['assignment_id_count']
-                for s in request.env['op.assignment.sub.line'].sudo().read_group(
-                    [('assignment_id', 'in', my_asgs.ids),
-                     ('state', '=', 'accept')],
-                    ['assignment_id'], ['assignment_id'])
-            }
+            # Счётчики сдач — поля на задании (assignment_hw_stats.py),
+            # единая формула с ПК-списком; раньше здесь были три read_group.
             feed["my_homework"] = [{
                 "id": a.id,
                 "subject": a.subject_id.name if a.subject_id else "",
                 "batch": self._batch_short(a.batch_id.name) if a.batch_id else "",
                 "task": tools.html2plaintext(a.description) or a.name,
                 "due": str(a.submission_date) if a.submission_date else "",
-                "submitted": submitted_counts.get(a.id, 0),
-                "total": len(a.allocation_ids),
+                "submitted": a.x_hw_submitted,
+                "total": a.x_hw_total,
                 # Есть ли что проверять (сдачи в submit — не принятые)
-                "to_review": to_review_counts.get(a.id, 0),
+                "to_review": a.x_hw_to_review,
                 # Принято (accept) — знаменатель прогресса проверки.
-                "accepted": accepted_counts.get(a.id, 0),
+                "accepted": a.x_hw_accepted,
                 "answer_required": a.answer_required,
                 # Только счётчик: сами файлы учитель открывает через
                 # GET /materials (свежие токены на каждый показ).
@@ -1801,28 +1782,15 @@ class RostMaxTimetableController(http.Controller):
             if role == 'teacher':
                 asg_domain.append(('faculty_id', '=', faculty.id))
             hw_asgs = request.env['op.assignment'].sudo().search(asg_domain)
-            sub_counts = {
-                s['assignment_id'][0]: s['assignment_id_count']
-                for s in request.env['op.assignment.sub.line'].sudo().read_group(
-                    [('assignment_id', 'in', hw_asgs.ids),
-                     ('state', 'in', ['submit', 'accept'])],
-                    ['assignment_id'], ['assignment_id'])
-            }
-            to_review_counts = {
-                s['assignment_id'][0]: s['assignment_id_count']
-                for s in request.env['op.assignment.sub.line'].sudo().read_group(
-                    [('assignment_id', 'in', hw_asgs.ids),
-                     ('state', '=', 'submit')],
-                    ['assignment_id'], ['assignment_id'])
-            }
-            # Точная сегментация вкладки «Задания» (TeacherHomeworkPage):
+            # Точная сегментация вкладки «Задания» (TeacherHomeworkPage) —
+            # теперь по полю x_hw_state (assignment_hw_stats.py): формула
+            # сегментации живёт в модели, одной и той же и для миниаппа, и
+            # для ПК-списка из смарт-кнопки журнала.
             review = issued = checked = 0
-            for a in hw_asgs:
-                n_sub = sub_counts.get(a.id, 0)
-                n_rev = to_review_counts.get(a.id, 0)
-                if a.state == 'publish' and n_rev > 0:
+            for st in hw_asgs.mapped('x_hw_state'):
+                if st == 'review':
                     review += 1
-                elif a.state == 'publish' and n_sub == 0 and n_rev == 0:
+                elif st == 'issued':
                     issued += 1
                 else:
                     checked += 1
@@ -2649,29 +2617,8 @@ class RostMaxTimetableController(http.Controller):
         asgs = request.env['op.assignment'].sudo().search(
             domain, order='submission_date desc, id desc')
 
-        submitted_counts = {
-            s['assignment_id'][0]: s['assignment_id_count']
-            for s in request.env['op.assignment.sub.line'].sudo().read_group(
-                [('assignment_id', 'in', asgs.ids),
-                 ('state', 'in', ['submit', 'accept'])],
-                ['assignment_id'], ['assignment_id'])
-        }
-        to_review_counts = {
-            s['assignment_id'][0]: s['assignment_id_count']
-            for s in request.env['op.assignment.sub.line'].sudo().read_group(
-                [('assignment_id', 'in', asgs.ids),
-                 ('state', '=', 'submit')],
-                ['assignment_id'], ['assignment_id'])
-        }
-        # Принятые (accept) — для прогресса «N из M проверено» на карточке
-        # задания: submitted считает submit+accept и для прогресса не годится.
-        accepted_counts = {
-            s['assignment_id'][0]: s['assignment_id_count']
-            for s in request.env['op.assignment.sub.line'].sudo().read_group(
-                [('assignment_id', 'in', asgs.ids),
-                 ('state', '=', 'accept')],
-                ['assignment_id'], ['assignment_id'])
-        }
+        # Счётчики — поля на задании (assignment_hw_stats.py), единая
+        # формула с журналом и сводкой; раньше — три read_group по строкам.
         # submission_date в UTC — просрочка по UTC now, не по Moscow-naive.
         now = fields.Datetime.now()
         # Тема урока: журналы, создавшие задания (один батч-поиск).
@@ -2693,10 +2640,10 @@ class RostMaxTimetableController(http.Controller):
             "due": str(a.submission_date) if a.submission_date else "",
             "overdue": bool(a.state == 'publish' and a.submission_date
                             and a.submission_date < now),
-            "submitted": submitted_counts.get(a.id, 0),
-            "total": len(a.allocation_ids),
-            "to_review": to_review_counts.get(a.id, 0),
-            "accepted": accepted_counts.get(a.id, 0),
+            "submitted": a.x_hw_submitted,
+            "total": a.x_hw_total,
+            "to_review": a.x_hw_to_review,
+            "accepted": a.x_hw_accepted,
             "answer_required": a.answer_required,
             "materials_count": len(a._hw_material_payload()),
             # Источник в журнале (для правки текста через синк); бывает

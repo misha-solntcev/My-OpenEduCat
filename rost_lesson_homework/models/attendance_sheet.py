@@ -367,3 +367,48 @@ class OpAttendanceSheet(models.Model):
         sheets = super().create(vals_list)
         sheets._homework_sync()
         return sheets
+
+    # ------------------------------------------------------------------
+    # Смарт-кнопка «На проверке N» → окно заданий учителя по предмету
+    # ------------------------------------------------------------------
+    hw_review_count = fields.Integer(
+        'На проверке (ДЗ)', compute='_compute_hw_review_count')
+
+    def _compute_hw_review_count(self):
+        Asg = self.env['op.assignment']
+        hw_review_count = Asg._hw_review_count
+        for sh in self:
+            sh.hw_review_count = hw_review_count(
+                sh.subject_id, sh.faculty_id)
+
+    def action_open_teacher_assignments(self):
+        """Окно «Домашние задания учителя» по предмету этого журнала.
+
+        Скоуп задаётся domain'ом (мой предмет + мои задания) — он же
+        бейдж кнопки; состояние «На проверке» — снимаемый тег из search
+        view. target='current': Odoo web client не открывает act_window
+        в новой вкладке браузера, возврат в журнал — по крошке.
+        """
+        self.ensure_one()
+        # В views ОБЯЗАТЕЛЬНО (False, 'form'): web client открывает запись
+        # из списка только если form-вьюха есть в views действия
+        # (action_service.js openFormView: нет form + не force = тихий no-op).
+        return {
+            'type': 'ir.actions.act_window',
+            'name': 'Домашние задания',
+            'res_model': 'op.assignment',
+            'view_mode': 'list,form',
+            'views': [
+                (self.env.ref(
+                    'rost_lesson_homework.view_op_assignment_hw_list').id,
+                 'list'),
+                (False, 'form'),
+            ],
+            'domain': self.env['op.assignment']._hw_teacher_assignments_domain(
+                self.subject_id, self.faculty_id),
+            'context': {
+                'search_default_filter_review': 1,
+                'search_default_group_batch': 1,
+            },
+            'target': 'current',
+        }

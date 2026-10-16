@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!--
+      Окно «Домашние задания учителя» из смарт-кнопки журнала (2026-10-15,
+      мокап design/journal-hw-smartbutton-v2.html).
+
+      Своя list+search вьюха на op.assignment: у штатного списка «Задания»
+      свои колонки и аудитории — их не трогаем. Счётчики и «Состояние ДЗ» —
+      store-поля из models/assignment_hw_stats.py (единая формула с
+      миниаппом); по ним же работают фильтры и группировка.
+    -->
+
+    <record id="view_op_assignment_hw_list" model="ir.ui.view">
+        <field name="name">op.assignment.hw.list</field>
+        <field name="model">op.assignment</field>
+        <field name="arch" type="xml">
+            <list decoration-warning="x_hw_state == 'review'"
+                  decoration-muted="x_hw_state == 'cancel'"
+                  default_order="submission_date desc">
+                <field name="name"/>
+                <field name="batch_id"/>
+                <field name="submission_date"/>
+                <field name="x_hw_state" widget="badge"
+                       decoration-info="x_hw_state == 'issued'"
+                       decoration-warning="x_hw_state == 'review'"
+                       decoration-success="x_hw_state == 'checked'"
+                       decoration-muted="x_hw_state in ('draft', 'cancel')"/>
+                <field name="x_hw_submitted" string="Сдали"/>
+                <field name="x_hw_total" string="из"/>
+                <field name="x_hw_to_review" string="На проверке"/>
+                <field name="x_hw_accepted" string="Проверено"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_op_assignment_hw_search" model="ir.ui.view">
+        <field name="name">op.assignment.hw.search</field>
+        <field name="model">op.assignment</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="name"/>
+                <field name="batch_id"/>
+                <field name="subject_id"/>
+                <!-- Состояния ДЗ: та же формула, что у сводки миниаппа. -->
+                <filter string="На проверке" name="filter_review"
+                        domain="[('x_hw_state', '=', 'review')]"/>
+                <filter string="Выдано" name="filter_issued"
+                        domain="[('x_hw_state', '=', 'issued')]"/>
+                <filter string="Проверено" name="filter_checked"
+                        domain="[('x_hw_state', '=', 'checked')]"/>
+                <filter string="Черновик" name="filter_draft"
+                        domain="[('x_hw_state', '=', 'draft')]"/>
+                <!-- Просрочено: срок прошёл И есть несдавшие (согласовано
+                     2026-10-15: не отдельный статус, а пересекающийся фильтр —
+                     «Просрочено + На проверке» это осмысленный запрос). -->
+                <filter string="Просрочено" name="filter_overdue"
+                        domain="[
+                                 ('submission_date', '&lt;',
+                                  context_today().strftime('%Y-%m-%d 00:00:00')),
+                                 ('x_hw_missing', '=', True)]"/>
+                <separator/>
+                <filter string="Отменённые" name="filter_cancel"
+                        domain="[('x_hw_state', '=', 'cancel')]"/>
+                <group expand="0" string="Группировка">
+                    <filter string="Класс" name="group_batch"
+                            context="{'group_by': 'batch_id'}"/>
+                    <filter string="Предмет" name="group_subject"
+                            context="{'group_by': 'subject_id'}"/>
+                    <filter string="Состояние ДЗ" name="group_hw_state"
+                            context="{'group_by': 'x_hw_state'}"/>
+                    <filter string="Учитель" name="group_faculty"
+                            context="{'group_by': 'faculty_id'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- Смарт-кнопка в button box формы журнала (рядом с «Присутствует»). -->
+    <record id="view_attendance_sheet_form_hw_button" model="ir.ui.view">
+        <field name="name">op.attendance.sheet.form.hw.button</field>
+        <field name="model">op.attendance.sheet</field>
+        <field name="inherit_id"
+               ref="openeducat_attendance.view_op_attendance_sheet_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//div[@name='button_box']" position="inside">
+                <button class="oe_stat_button" icon="fa-book"
+                        name="action_open_teacher_assignments" type="object"
+                        groups="openeducat_attendance.group_teacher_attendance,
+                                openeducat_core.group_op_back_office_admin">
+                    <div class="o_field_widget o_stat_info">
+                        <span class="o_stat_value">
+                            <field name="hw_review_count"/>
+                        </span>
+                        <span class="o_stat_text">На проверке</span>
+                    </div>
+                </button>
+            </xpath>
+        </field>
+    </record>
+
+</odoo>
