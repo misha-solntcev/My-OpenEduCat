@@ -9,12 +9,21 @@ import { Panel, Div, Spinner, Button, Placeholder, Caption } from '@vkontakte/vk
 import { Icon56DocumentOutline } from '@vkontakte/icons';
 import { apiGet, apiPost } from '@/shared/lib/api';
 import { useToast } from '@/shared/components/Toast';
+import { useAppStore, childQuery } from '@/shared/lib/store';
 import { HomeworkCardList } from '@/shared/components/HomeworkCardList';
 import { AccentSegmentedControl } from '@/shared/components/AccentSegmentedControl';
 import type { HomeworkItem, HomeworkListResponse } from '@/shared/lib/types';
 
+import { TabHeader } from '@/shared/components/TabHeader';
+import { useViewerAxis, viewerChips, viewerFromDraft } from '@/shared/lib/viewerAxis';
+import { ChipFilterModal, FilterChipRow, FilterIconButton } from '@/shared/components/ChipFilterModal';
+
 interface HomeworkPageProps {
   id: string;
+  /** Сдавать может только ученик (правило бэка): родитель и учитель
+   *  в режиме ребёнка получают false — кнопка «Сдать» не рисуется. */
+  canSubmit?: boolean;
+  onOpenProfile?: () => void;
 }
 
 type StatusKey = 'fresh' | 'submitted' | 'checked';
@@ -48,8 +57,13 @@ const groupHomework = (items: HomeworkItem[]): {
   return { fresh, submitted, checked };
 };
 
-export const HomeworkPage: React.FC<HomeworkPageProps> = ({ id }) => {
+export const HomeworkPage: React.FC<HomeworkPageProps> = ({ id, canSubmit = true, onOpenProfile }) => {
   const addToast = useToast();
+  // Ось «Кого смотрим» (свитч удалён — решение 2026-10-14): только у
+  // родителя 2+ и staff-родителя — у чистого ученика оси нет.
+  const axis = useViewerAxis();
+  const [viewerOpen, setViewerOpen] = React.useState(false);
+  const selectedChildId = useAppStore(s => s.selectedChildId);
   const [items, setItems] = React.useState<HomeworkItem[] | null>(null);
   const [loading, setLoading] = React.useState(false);
   // Активный сегмент статуса (сегмент-контрол как у учителя/ReviewQueue).
@@ -58,14 +72,16 @@ export const HomeworkPage: React.FC<HomeworkPageProps> = ({ id }) => {
   const load = React.useCallback(async () => {
     setLoading(true);
     try {
-      const res = await apiGet<HomeworkListResponse>('/rost_max/api/homework');
+      const cq = childQuery();
+      const res = await apiGet<HomeworkListResponse>(
+        `/rost_max/api/homework${cq ? '?' + cq.slice(1) : ''}`);
       setItems(res.homework || []);
     } catch {
       addToast('Не удалось загрузить задания', 'error');
     } finally {
       setLoading(false);
     }
-  }, [addToast]);
+  }, [addToast, selectedChildId]);
 
   React.useEffect(() => { load(); }, [load]);
 
@@ -102,7 +118,27 @@ export const HomeworkPage: React.FC<HomeworkPageProps> = ({ id }) => {
 
   return (
     <Panel id={id}>
-      {/* Корневой таб: без PanelHeader — активный таб виден в таббаре */}
+      {/* Корневой таб: без PanelHeader — активный таб виден в таббаре.
+          Аватар «кто смотрит» слева (решение 2026-10-14), тап — профиль. */}
+      <TabHeader
+        title="Задания"
+        onOpenProfile={onOpenProfile}
+        after={axis ? (
+          <FilterIconButton
+            active={axis.nonDefault}
+            expanded={viewerOpen}
+            onClick={() => setViewerOpen(true)}
+          />
+        ) : undefined}
+      />
+      {axis && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '0 16px 4px' }}>
+          <FilterChipRow
+            chips={viewerChips(axis)}
+            onRemove={() => axis.apply('school')}
+          />
+        </div>
+      )}
       {loading && !items ? (
         <Div style={{ display: 'flex', justifyContent: 'center', padding: 40 }}>
           <Spinner size="l" />
@@ -134,7 +170,7 @@ export const HomeworkPage: React.FC<HomeworkPageProps> = ({ id }) => {
           {groups[status].length > 0 ? (
             <HomeworkCardList
               items={groups[status]}
-              canSubmit={status === 'fresh'}
+              canSubmit={canSubmit && status === 'fresh'}
               onSubmit={submit}
               onUpdated={load}
             />
@@ -144,6 +180,22 @@ export const HomeworkPage: React.FC<HomeworkPageProps> = ({ id }) => {
             </Caption>
           )}
         </>
+      )}
+      {/* Шторка «Кого смотрим» — ось режима (решение 2026-10-14).
+          GUARD обязателен: у ученика axis=null. */}
+      {axis && (
+      <ChipFilterModal
+        open={viewerOpen}
+        id="homework-viewer"
+        sections={[axis.section]}
+        value={{ viewer: new Set([axis.value]) }}
+        footerOrder="cancel-first"
+        onClose={() => setViewerOpen(false)}
+        onApply={f => {
+          axis.apply(viewerFromDraft(f.viewer, axis));
+          setViewerOpen(false);
+        }}
+      />
       )}
     </Panel>
   );

@@ -1,0 +1,85 @@
+/*
+ * Лёгкий намёк на телефон для ПК-браузера: ультратонкая рамка в стиле
+ * Samsung Galaxy S (вариант 2 из design/phone-frame-variants.html).
+ *
+ * Механика: весь декор живёт внутри media-запроса от 768px. В MAX WebView
+ * вьюпорт уже 768, поэтому обёртка display: contents (не меняет лэйаут) —
+ * приложение выглядит как раньше.
+ *
+ * Высота корпуса = 100dvh - 48px (отступы 24px сверху и снизу): нижний край
+ * экрана всегда на 24px выше низа вьюпорта, ровно туда попадает fixed-таббар.
+ * Контент скроллится внутри экрана, страница браузера не скроллится.
+ */
+
+.desktop-device {
+  display: contents;
+}
+
+@media (min-width: 768px) {
+  .desktop-device {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    margin-block: 24px;
+    height: calc(100vh - 48px);
+    height: calc(100dvh - 48px);
+    padding: 5px;
+    border-radius: 34px;
+    background: linear-gradient(160deg, #3d4148, #1d1f23);
+    box-shadow: 0 18px 36px rgba(0, 0, 0, 0.24);
+  }
+
+  /* Светлая тема: рамка серебристая (лёгкий намёк на телефон), иначе
+     тёмный корпус давит на светлый интерфейс. Селектор — класс токенов,
+     который VKUI вешает на AppRoot: переключается по выбранной в профиле
+     теме (light/dark/system), а не по системной. */
+  .vkui--vkBase--light .desktop-device {
+    background: linear-gradient(160deg, #f4f5f7, #d7dade);
+    box-shadow:
+      0 18px 36px rgba(0, 0, 0, 0.12),
+      0 0 0 1px rgba(0, 0, 0, 0.06);
+  }
+
+  /* Скроллящийся экран внутри корпуса (390px = колонка 400 - 2*5px рамка) */
+  .desktop-device__screen {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    width: 100%;
+    border-radius: 30px;
+    background: var(--vkui--color_background);
+    overflow-y: auto;
+    scrollbar-width: thin;
+    /* Containing block для fixed/absolute-потомков: VKUI на переходах
+       делает панели fixed к вьюпорту, а шапки в centered-панелях —
+       absolute без позиционированного предка. Без transform всё это
+       вылетает из корпуса и прижимается к краям окна браузера. */
+    transform: translateZ(0);
+  }
+
+  /* Зазор сверху на страницах с VKUI-шапкой (профиль, журнал урока):
+     шапка остаётся нормальной высоты, просто отодвигается от края
+     экрана, над ней виден фон. Контент панели VKUI ставит вплотную под
+     шапку (margin-top = высота шапки) — сдвигаем на те же 40px, чтобы
+     не наехал на отодвинутую шапку. Только VKUI-шапки: свои шапки
+     корневых табов и контент не двигаются. */
+  .desktop-device__screen .vkuiPanelHeader__host {
+    margin-top: 40px;
+  }
+  .desktop-device__screen .vkuiPanel__centered .vkuiInternalPanelHeader--static + *,
+  .desktop-device__screen .vkuiPanel__centered .vkuiInternalPanelHeader--sep + * {
+    margin-top: calc(var(--vkui_internal--panel_header_height) + 40px);
+  }
+
+  /* Таббар: fixed в VKUI, но с transform на экране он якорится к экрану
+     корпуса — прижат к его нижнему краю без поправок на отступы.
+     Нижние углы повторяют скругление экрана (30px). */
+  .vkuiTabbar__host {
+    max-width: 390px;
+    left: 50%;
+    transform: translateX(-50%);
+    bottom: 0;
+    border-radius: 0 0 30px 30px;
+  }
+}

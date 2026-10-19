@@ -6,8 +6,11 @@ import {
   AdaptivityProvider,
   AppRoot,
   ColorSchemeProvider,
+  SplitLayout,
+  SplitCol,
 } from '@vkontakte/vkui';
 import '@vkontakte/vkui/dist/vkui.css';
+import './desktop-frame.css';
 import App from './App';
 import { ErrorBoundary } from './shared/components/ErrorBoundary';
 import { useAppStore } from '@/shared/lib/store';
@@ -76,10 +79,25 @@ const ThemeAppRoot: React.FC = () => (
         в WebView получает mode=none и красит всю страницу в content,
         из-за чего карточки на том же токене сливаются с фоном. */}
     <AppRoot mode="full" layout="card" safeAreaInsets={{ top: 0 }} style={{ background: 'var(--vkui--color_background)' }}>
-      {/* В MAX WebView нет консоли: без Boundary render-error = белый экран */}
-      <ErrorBoundary>
-        <App />
-      </ErrorBoundary>
+      <SplitLayout center>
+        {/* 400 = экран 390 + 2*5px рамка (вариант 2 Galaxy из
+            design/phone-frame-variants.html). Ниже 768 работает width=100%,
+            MAX WebView не меняется. */}
+        <SplitCol width="100%" maxWidth={400}>
+          {/* Лёгкая рамка телефона на ПК: на мобильном .desktop-device даёт
+              display: contents (см. desktop-frame.css). 400 = экран 390
+              + 2*5px рамка. Ниже 768 работает width=100%, MAX WebView
+              не меняется. */}
+          <div className="desktop-device">
+            <div className="desktop-device__screen">
+              {/* В MAX WebView нет консоли: без Boundary render-error = белый экран */}
+              <ErrorBoundary>
+                <App />
+              </ErrorBoundary>
+            </div>
+          </div>
+        </SplitCol>
+      </SplitLayout>
     </AppRoot>
   </AdaptivityProvider>
 );

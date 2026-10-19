@@ -1,3 +1,13 @@
+export interface ChildInfo {
+  /** id op.student выбранного ребёнка — параметр child_id во всех
+   *  «ученических» эндпоинтах. */
+  id: number;
+  name: string;
+  /** Класс («6А») — подпись в переключателе/заголовках. */
+  batch: string;
+  avatar: string;
+}
+
 export interface UserInfo {
   user_name: string;
   /** URL своей аватарки ('' — рисуем инициалы). */
@@ -6,6 +16,13 @@ export interface UserInfo {
   is_teacher: boolean;
   is_student: boolean;
   is_parent?: boolean;
+  /** Завуч (group_op_timetable_manager): вариант «Школа» в «Кого смотрим». */
+  is_deputy?: boolean;
+  /** Дети юзера (родитель/учитель-родитель) — для переключателя
+   *  «Мои уроки / Ребёнок». Пусто — свитч не рисуется. */
+  children?: ChildInfo[];
+  /** Классы, где юзер классный руководитель (ось «Мой класс»). */
+  homeroom_batches?: { id: number; name: string }[];
 }
 
 export interface AttendanceType {

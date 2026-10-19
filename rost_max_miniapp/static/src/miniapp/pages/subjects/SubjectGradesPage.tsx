@@ -16,6 +16,7 @@ import { apiGet } from '@/shared/lib/api';
 import { JournalButton } from '@/shared/components/JournalButton';
 import { SubjectAvatar } from '@/shared/components/SubjectIcon';
 import { useToast } from '@/shared/components/Toast';
+import { useAppStore, childQuery } from '@/shared/lib/store';
 import type { MyGradesResponse } from '@/shared/lib/types';
 
 interface SubjectGradesPageProps {
@@ -45,16 +46,20 @@ export const SubjectGradesPage: React.FC<SubjectGradesPageProps> = ({
   quarter,
 }) => {
   const addToast = useToast();
+  const selectedChildId = useAppStore(s => s.selectedChildId);
   const [data, setData] = React.useState<MyGradesResponse | null>(null);
   const [loading, setLoading] = React.useState(true);
 
   React.useEffect(() => {
     let cancelled = false;
     setLoading(true);
+    // Учитель в режиме ребёнка смотрит оценки ребёнка по любому предмету
+    // (child_id); в «своих» режимах studentId передаёт только учитель.
     apiGet<MyGradesResponse>(
       `/rost_max/api/my/grades/${subjectId}`
-      + (studentId ? `?student_id=${studentId}` : '')
-      + (quarter ? `${studentId ? '&' : '?'}quarter=${quarter}` : ''))
+      + (studentId && !selectedChildId ? `?student_id=${studentId}` : '?_t=1')
+      + childQuery()
+      + (quarter ? `&quarter=${quarter}` : ''))
       .then(res => { if (!cancelled) setData(res); })
       .catch(() => {
         if (!cancelled) {
@@ -64,7 +69,7 @@ export const SubjectGradesPage: React.FC<SubjectGradesPageProps> = ({
       })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
-  }, [subjectId, studentId, quarter, addToast]);
+  }, [subjectId, studentId, quarter, selectedChildId, addToast]);
 
   return (
     <Panel id={id}>

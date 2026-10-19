@@ -24,11 +24,16 @@ import {
   timingToMinutes,
 } from '@/shared/components/timelinePrimitives';
 import { toISO, today, schoolTodayISO, startOfWeek, SHORT_WEEKDAYS } from '@/shared/lib/date';
+
+import { TabHeader } from '@/shared/components/TabHeader';
+import { useViewerAxis, viewerChips, viewerFromDraft } from '@/shared/lib/viewerAxis';
+import { ChipFilterModal, FilterChipRow, FilterIconButton } from '@/shared/components/ChipFilterModal';
 import type { Lesson, Faculty, Batch, TimetableResponse, FacultiesResponse, BatchesResponse } from '@/shared/lib/types';
 
 interface TimetablePageProps {
   id: string;
   onOpenLesson: (id: number) => void;
+  onOpenProfile?: () => void;
 }
 
 type SelectOption = { value: string; label: string };
@@ -256,7 +261,7 @@ const TimetableTimeline: React.FC<{
   return <div>{items}</div>;
 };
 
-export const TimetablePage: React.FC<TimetablePageProps> = ({ id, onOpenLesson }) => {
+export const TimetablePage: React.FC<TimetablePageProps> = ({ id, onOpenLesson, onOpenProfile }) => {
   // Дата и фильтры — локальный стейт экрана: всегда стартуем с «сегодня»
   // (Europe/Moscow) и без фильтров. Эпик держит View смонтированным,
   // поэтому выбор переживает переключение вкладок, но не перезапуск.
@@ -264,8 +269,24 @@ export const TimetablePage: React.FC<TimetablePageProps> = ({ id, onOpenLesson }
   const [selectedFaculty, setSelectedFaculty] = React.useState<number | null>(null);
   const [selectedBatch, setSelectedBatch] = React.useState<number | null>(null);
   const userInfo = useAppStore(s => s.userInfo);
+  const selectedChildId = useAppStore(s => s.selectedChildId);
+  const schoolMode = useAppStore(s => s.schoolMode);
   const isTeacher = Boolean(userInfo?.is_teacher);
+  // Школьный вид (фильтры сняты) — слоты-аккордеоны у ЛЮБОГО staff
+  // (решение Миши 2026-10-15, вариант А): учителю в школе тоже нужен
+  // аккордеон, плоский таймлайн всей школы нечитаем.
+  const isStaffAcct = Boolean(userInfo?.is_teacher || userInfo?.is_admin);
   const addToast = useToast();
+  // Ось «Кого смотрим» (свитч удалён — решение 2026-10-14).
+  const axis = useViewerAxis();
+  const [viewerOpen, setViewerOpen] = React.useState(false);
+  // Ось «Мой класс» (классный руководитель, вариант 1): выбранные классы
+  // сужают Расписание до уроков этих классов. Локальное состояние — фильтр
+  // живёт только на этом табе.
+  const homeroom = userInfo?.homeroom_batches ?? [];
+  const [classBatches, setClassBatches] = React.useState<number[]>([]);
+  const homeroomName = (id: number): string =>
+    homeroom.find(b => b.id === id)?.name ?? String(id);
 
   const [lessons, setLessons] = React.useState<Lesson[]>([]);
   const [faculties, setFaculties] = React.useState<Faculty[]>([]);
@@ -299,8 +320,22 @@ export const TimetablePage: React.FC<TimetablePageProps> = ({ id, onOpenLesson }
     setLoading(true);
     try {
       let url = `/rost_max/api/timetable?date=${globalDate}`;
-      if (selectedFaculty) url += `&faculty_id=${selectedFaculty}`;
-      if (selectedBatch) url += `&batch_id=${selectedBatch}`;
+      // staff без ребёнка шлёт scope: 'mine' — свои уроки (у админа-родителя
+      // свитч), 'school'/'Школа' — админский обзор с фильтрами.
+      const isStaff = Boolean(userInfo?.is_teacher || userInfo?.is_admin);
+      if (selectedChildId != null) {
+        // Режим «ребёнок»: расписание класса ребёнка, админские фильтры
+        // (учитель/класс) игнорируются и бэком, и фронтом.
+        url += `&child_id=${selectedChildId}`;
+      } else if (classBatches.length) {
+        // «Мой класс» (классрук): уроки выбранных классов.
+        url += `&batch_id=${classBatches.join(',')}`;
+      } else if (isStaff && !schoolMode) {
+        url += '&scope=mine';
+      } else {
+        if (selectedFaculty) url += `&faculty_id=${selectedFaculty}`;
+        if (selectedBatch) url += `&batch_id=${selectedBatch}`;
+      }
       const data = await apiGet<TimetableResponse>(url);
       setLessons(data.lessons || []);
     } catch {
@@ -309,7 +344,8 @@ export const TimetablePage: React.FC<TimetablePageProps> = ({ id, onOpenLesson }
     } finally {
       setLoading(false);
     }
-  }, [globalDate, selectedFaculty, selectedBatch, addToast]);
+  }, [globalDate, selectedFaculty, selectedBatch, selectedChildId,
+      schoolMode, classBatches, userInfo, addToast]);
 
   React.useEffect(() => { loadLessons(); }, [loadLessons]);
 
@@ -351,6 +387,36 @@ export const TimetablePage: React.FC<TimetablePageProps> = ({ id, onOpenLesson }
       {/* Корневой таб: без PanelHeader — активный таб и так подсвечен в
           таббаре. Кнопка фильтра (админ) переехала в ленту дат. */}
       <Box padding="m" paddingInline="none">
+        {/* Аватар «кто смотрит» слева (решение 2026-10-14), тап — профиль;
+            кнопка фильтра справа — только у кого есть ось «Кого смотрим». */}
+        <TabHeader
+          title="Расписание"
+          onOpenProfile={onOpenProfile}
+          after={axis ? (
+            <FilterIconButton
+              active={axis.nonDefault || classBatches.length > 0}
+              expanded={viewerOpen}
+              onClick={() => setViewerOpen(true)}
+            />
+          ) : undefined}
+        />
+        {(axis || classBatches.length > 0) && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '0 16px 4px' }}>
+            <FilterChipRow
+              chips={[
+                ...(axis ? viewerChips(axis) : []),
+                ...classBatches.map(id => ({
+                  kind: 'class' as const, v: homeroomName(id), removable: true,
+                })),
+              ]}
+              onRemove={(kind, v) => {
+                if (kind === 'viewer') axis?.apply('school');
+                else setClassBatches(b => b.filter(id => homeroomName(id) !== v));
+              }}
+            />
+          </div>
+        )}
+
         {/* Лента дат пн-вс + переключение недель. Стрелки — крупные
             тапабельные зоны (44px) со своим отступом от края экрана. */}
         <Flex align="center" justify="space-between">
@@ -389,12 +455,9 @@ export const TimetablePage: React.FC<TimetablePageProps> = ({ id, onOpenLesson }
         <DayStrip selected={globalDate} onSelect={setGlobalDate} />
 
         {/* Фильтры — только админ, показываются всегда (без кнопки-тумблера).
-            ВАЖНО: у VKUI Flex по умолчанию flex-wrap — без noWrap селекты
-            уходят друг под друга. flexBasis:0 + flexGrow:1 делят строку
-            поровну. Дропдаун раскрывается на всю ширину своего поля
-            (floating-ui sameWidth, dropdownAutoWidth=false по умолчанию).
-            Белый фон + рамка, чтобы не сливались с серым фоном панели. */}
-        {isAdmin && (
+            В режиме «Мои уроки» (свитч админа) фильтры смысла не имеют —
+            запрос и так срезан на свои уроки. */}
+        {isAdmin && schoolMode && (
           <Flex
             gap={8}
             noWrap
@@ -455,9 +518,12 @@ export const TimetablePage: React.FC<TimetablePageProps> = ({ id, onOpenLesson }
               // снизу 10px, чтобы тень последней карточки не резалась.
               padding: '5px 0 10px',
             }}>
-              {isAdmin && !selectedFaculty && !selectedBatch ? (
-                // Админ без фильтров: вся школа — слоты-аккордеоны
-                // (раскрыт текущий), как раньше.
+              {isStaffAcct && schoolMode && !selectedChildId
+               && !selectedFaculty && !selectedBatch
+               && !classBatches.length ? (
+                // Staff в «Школе» без фильтров (у всех): вся школа —
+                // слоты-аккордеоны (раскрыт текущий). В «Моих уроках»,
+                // ребёнка — обычный таймлайн.
                 <TimedGroups
                   lessons={lessons}
                   isToday={isToday}
@@ -487,6 +553,36 @@ export const TimetablePage: React.FC<TimetablePageProps> = ({ id, onOpenLesson }
           </Placeholder>
         )}
       </Box>
+
+      {/* Шторка «Кого смотрим» — ось режима (решение 2026-10-14).
+          GUARD обязателен: у учителя без детей/ученика axis=null. */}
+      {axis && (
+      <ChipFilterModal
+        open={viewerOpen}
+        id="timetable-viewer"
+        sections={[
+          axis.section,
+          // Ось «Мой класс» (классрук, вариант 1): мультивыбор классов,
+          // сужает Расписание. Опции — только свои классы (из user/info).
+          ...(homeroom.length ? [{
+            key: 'klass',
+            header: 'Класс',
+            options: homeroom.map(b => ({ value: String(b.id), label: b.name })),
+          }] : []),
+        ]}
+        value={{
+          viewer: new Set([axis.value]),
+          klass: new Set(classBatches.map(String)),
+        }}
+        footerOrder="cancel-first"
+        onClose={() => setViewerOpen(false)}
+        onApply={f => {
+          axis.apply(viewerFromDraft(f.viewer, axis));
+          setClassBatches([...(f.klass ?? [])].map(Number));
+          setViewerOpen(false);
+        }}
+      />
+      )}
 
       <ModalPage
         id="timetable-calendar"

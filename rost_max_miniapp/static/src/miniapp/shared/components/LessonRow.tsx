@@ -56,10 +56,14 @@ export const lessonStatus = (
   return 'now';
 };
 
-/** Фон строки по статусу: past — серый, now — акцентная подложка. */
+/** Фон строки по статусу: past — серый, now — мягкая синяя подложка.
+ *  НЕ использовать color_background_accent_tint: в vkBase он определён
+ *  один раз (#5a9eff, насыщенный синий, без лайт/дарк-оверрайдов) —
+ *  текст на нём нечитаем в обеих темах (регресс 2026-10-15). Мягкая
+ *  адаптивная подложка — color_background_info_tint. */
 export const STATUS_BACKGROUND: Record<LessonStatus | 'none', string | undefined> = {
   past: 'var(--vkui--color_background_secondary)',
-  now: 'var(--vkui--color_background_accent_tint)',
+  now: 'var(--vkui--color_background_info_tint)',
   future: undefined,
   none: undefined,
 };

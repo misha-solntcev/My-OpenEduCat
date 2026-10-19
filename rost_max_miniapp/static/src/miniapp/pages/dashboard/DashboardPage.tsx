@@ -1,9 +1,13 @@
 import React from 'react';
 import { Panel, Spinner, Div, Button, Text, Card as VkCard, Counter } from '@vkontakte/vkui';
-import { useAppStore } from '@/shared/lib/store';
+import { useAppStore, childQuery, scopeQuery } from '@/shared/lib/store';
 import { apiGet } from '@/shared/lib/api';
 import { useToast } from '@/shared/components/Toast';
 import { today } from '@/shared/lib/date';
+import { useViewerAxis, viewerChips, viewerFromDraft } from '@/shared/lib/viewerAxis';
+import {
+  ChipFilterModal, FilterChipRow, FilterIconButton,
+} from '@/shared/components/ChipFilterModal';
 import type { DashboardInfoResponse } from '@/shared/lib/types';
 import {
   Greeting,
@@ -126,11 +130,19 @@ export const TeacherHwCard: React.FC<{
   );
 };
 
+/** Переключатель режимов УДАЛЁН (решение Миши 2026-10-14): выбор ребёнка
+ *  и режима — секция «Кого смотрим» в шторке фильтров (useViewerAxis). */
+
 export const DashboardPage: React.FC<DashboardPageProps> = ({
   id, onOpenLesson, onOpenTimetable, onOpenGrades, onOpenHomework, onOpenProfile,
 }) => {
   const userInfo = useAppStore(s => s.userInfo);
+  const selectedChildId = useAppStore(s => s.selectedChildId);
+  const schoolMode = useAppStore(s => s.schoolMode);
   const addToast = useToast();
+  // Ось «Кого смотрим» (свитч удалён — решение 2026-10-14).
+  const axis = useViewerAxis();
+  const [viewerOpen, setViewerOpen] = React.useState(false);
 
   const [data, setData] = React.useState<DashboardInfoResponse | null>(null);
   const [loading, setLoading] = React.useState(false);
@@ -143,14 +155,14 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
     setLoading(true);
     try {
       const res = await apiGet<DashboardInfoResponse>(
-        `/rost_max/api/dashboard_info?date=${feedDate}`);
+        `/rost_max/api/dashboard_info?date=${feedDate}${scopeQuery()}${childQuery()}`);
       setData(res);
     } catch {
       addToast('Не удалось загрузить главную', 'error');
     } finally {
       setLoading(false);
     }
-  }, [feedDate, addToast]);
+  }, [feedDate, selectedChildId, schoolMode, addToast]);
 
   React.useEffect(() => { load(); }, [load]);
 
@@ -158,6 +170,17 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
   const isAdmin = Boolean(data?.is_admin);
   const isTeacher = Boolean(data?.is_teacher) && !isAdmin;
   const isStudentOrParent = !isAdmin && !isTeacher;
+
+  // Роль АККАУНТА (не режима): приветствие учителя остаётся
+  // «Здравствуйте, Надежда Николаевна» и в режиме ребёнка.
+  const isStaffAccount = Boolean(userInfo?.is_teacher || userInfo?.is_admin);
+  const kids = userInfo?.children ?? [];
+  const child = kids.find(k => k.id === selectedChildId) ?? null;
+  // Имя ребёнка для заголовка ленты: Фамилия Имя — как в чипах оси
+  // («Макаров Михаил»), дети одной семьи различимы.
+  const childLabel = child
+    ? (child.name.split(' ').slice(0, 2).join(' '))
+    : undefined;
 
   return (
     <Panel id={id}>
@@ -177,9 +200,43 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
             name={userName}
             date={data.date}
             avatar={userInfo?.avatar}
-            short={isStudentOrParent}
+            short={!isStaffAccount}
             onOpenProfile={onOpenProfile}
+            after={axis ? (
+              <FilterIconButton
+                active={axis.nonDefault}
+                expanded={viewerOpen}
+                onClick={() => setViewerOpen(true)}
+              />
+            ) : undefined}
           />
+
+          {/* Ось «Кого смотрим» (решение Миши 2026-10-14, свитч удалён):
+              чип режима над лентой, кнопка фильтра — в строке аватарки
+              (решение Миши 2026-10-14); смена — в шторке.
+              Рисуем по АККАУНТУ: у родителя чип без ×. */}
+          {axis && (
+            <>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '0 16px 0' }}>
+                <FilterChipRow
+                  chips={viewerChips(axis)}
+                  onRemove={() => axis.apply('school')}
+                />
+              </div>
+              <ChipFilterModal
+                open={viewerOpen}
+                id="dashboard-viewer"
+                sections={[axis.section]}
+                value={{ viewer: new Set([axis.value]) }}
+                footerOrder="cancel-first"
+                onClose={() => setViewerOpen(false)}
+                onApply={f => {
+                  axis.apply(viewerFromDraft(f.viewer, axis));
+                  setViewerOpen(false);
+                }}
+              />
+            </>
+          )}
 
           {/* Админ: полоса цифр + требует внимания */}
           {isAdmin && data.admin_stats && (
@@ -202,7 +259,8 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
             onOpenJournal={isAdmin || isTeacher ? onOpenLesson : undefined}
             onOpenTimetable={onOpenTimetable}
             showBatch={isAdmin || isTeacher}
-            grouped={isAdmin}
+            grouped={isAdmin && !child}
+            childLabel={childLabel}
           />
 
           {/* Ученик: оценки за сегодня */}

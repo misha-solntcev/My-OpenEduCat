@@ -14,13 +14,18 @@ import {
 import { Icon56UserBookOutline } from '@vkontakte/icons';
 import { apiGet } from '@/shared/lib/api';
 import { useToast } from '@/shared/components/Toast';
+import { useAppStore, childQuery } from '@/shared/lib/store';
 import { SubjectAvatar } from '@/shared/components/SubjectIcon';
 import { GradeChip } from '@/shared/components/JournalButton';
 import type { MySubjectsResponse, SubjectSummary } from '@/shared/lib/types';
+import { TabHeader } from '@/shared/components/TabHeader';
+import { useViewerAxis, viewerChips, viewerFromDraft } from '@/shared/lib/viewerAxis';
+import { ChipFilterModal, FilterChipRow, FilterIconButton } from '@/shared/components/ChipFilterModal';
 
 interface SubjectsPageProps {
   id: string;
   onOpenSubject: (subjectId: number, subjectName: string) => void;
+  onOpenProfile?: () => void;
 }
 
 const fmtAvg = (v: number): string => v > 0 ? v.toFixed(2).replace('.', ',') : '—';
@@ -55,8 +60,12 @@ const SubjectGradeCard: React.FC<{ subject: SubjectSummary; onClick: () => void 
 );
 
 /** Экран «Успеваемость» (ученик / родитель): сводка → карточки предметов. */
-export const SubjectsPage: React.FC<SubjectsPageProps> = ({ id, onOpenSubject }) => {
+export const SubjectsPage: React.FC<SubjectsPageProps> = ({ id, onOpenSubject, onOpenProfile }) => {
   const addToast = useToast();
+  // Ось «Кого смотрим» (свитч удалён — решение 2026-10-14).
+  const axis = useViewerAxis();
+  const [viewerOpen, setViewerOpen] = React.useState(false);
+  const selectedChildId = useAppStore(s => s.selectedChildId);
   const [data, setData] = React.useState<MySubjectsResponse | null>(null);
   const [loading, setLoading] = React.useState(true);
   const [quarter, setQuarter] = React.useState<number | null>(null);
@@ -64,8 +73,14 @@ export const SubjectsPage: React.FC<SubjectsPageProps> = ({ id, onOpenSubject })
   const load = React.useCallback(async (q: number | null) => {
     setLoading(true);
     try {
-      const url = q ? `/rost_max/api/my/subjects?quarter=${q}` : '/rost_max/api/my/subjects';
-      const res = await apiGet<MySubjectsResponse>(url);
+      // Параметры собираю явно: childQuery() отдаёт '&child_id=N',
+      // на энпоинте без '?' наивная конкатенация даёт 404.
+      const params: string[] = [];
+      if (q) params.push(`quarter=${q}`);
+      const cq = childQuery();
+      if (cq) params.push(cq.slice(1));
+      const res = await apiGet<MySubjectsResponse>(
+        `/rost_max/api/my/subjects${params.length ? '?' + params.join('&') : ''}`);
       setData(res);
       setQuarter(res.quarter);
     } catch {
@@ -74,7 +89,7 @@ export const SubjectsPage: React.FC<SubjectsPageProps> = ({ id, onOpenSubject })
     } finally {
       setLoading(false);
     }
-  }, [addToast]);
+  }, [addToast, selectedChildId]);
 
   React.useEffect(() => { load(quarter); }, [load]);
 
@@ -83,6 +98,27 @@ export const SubjectsPage: React.FC<SubjectsPageProps> = ({ id, onOpenSubject })
   return (
     <Panel id={id}>
       <Box padding="m">
+        {/* Аватар «кто смотрит» слева (решение 2026-10-14), тап — профиль;
+            кнопка фильтра справа — у кого есть ось «Кого смотрим». */}
+        <TabHeader
+          title="Оценки"
+          onOpenProfile={onOpenProfile}
+          after={axis ? (
+            <FilterIconButton
+              active={axis.nonDefault}
+              expanded={viewerOpen}
+              onClick={() => setViewerOpen(true)}
+            />
+          ) : undefined}
+        />
+        {axis && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '0 0 4px' }}>
+            <FilterChipRow
+              chips={viewerChips(axis)}
+              onRemove={() => axis.apply('school')}
+            />
+          </div>
+        )}
         {loading ? (
           <Flex padding="xl" align="center" justify="center"><Spinner size="l" /></Flex>
         ) : !data || subjects.length === 0 ? (
@@ -119,6 +155,22 @@ export const SubjectsPage: React.FC<SubjectsPageProps> = ({ id, onOpenSubject })
           </>
         )}
       </Box>
+      {/* Шторка «Кого смотрим» — ось режима (решение 2026-10-14).
+          GUARD обязателен: у ученика axis=null. */}
+      {axis && (
+      <ChipFilterModal
+        open={viewerOpen}
+        id="subjects-viewer"
+        sections={[axis.section]}
+        value={{ viewer: new Set([axis.value]) }}
+        footerOrder="cancel-first"
+        onClose={() => setViewerOpen(false)}
+        onApply={f => {
+          axis.apply(viewerFromDraft(f.viewer, axis));
+          setViewerOpen(false);
+        }}
+      />
+      )}
     </Panel>
   );
 };
