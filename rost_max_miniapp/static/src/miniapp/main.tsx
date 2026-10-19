@@ -90,10 +90,16 @@ const ThemeAppRoot: React.FC = () => (
               не меняется. */}
           <div className="desktop-device">
             <div className="desktop-device__screen">
-              {/* В MAX WebView нет консоли: без Boundary render-error = белый экран */}
-              <ErrorBoundary>
-                <App />
-              </ErrorBoundary>
+              {/* Скролл живёт здесь, а не на экране: экран с transform —
+                  containing block для fixed-таббара, и если бы он сам
+                  скроллился, таббар позиционировался бы относительно
+                  прокручиваемого содержимого и уезжал при скролле. */}
+              <div className="desktop-device__content">
+                {/* В MAX WebView нет консоли: без Boundary render-error = белый экран */}
+                <ErrorBoundary>
+                  <App />
+                </ErrorBoundary>
+              </div>
             </div>
           </div>
         </SplitCol>
