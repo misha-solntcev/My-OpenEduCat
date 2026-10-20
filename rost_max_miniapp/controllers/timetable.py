@@ -2586,6 +2586,122 @@ class RostMaxTimetableController(http.Controller):
             done += 1
         return request.make_json_response({"success": True, "updated": done})
 
+    @http.route("/rost_max/api/homework/<int:assignment_id>/save_marks",
+                type="http", auth="public", methods=["POST"], cors="*",
+                csrf=False)
+    def api_homework_save_marks(self, assignment_id, **kw):
+        """API: пакетное сохранение оценок ДЗ — одна кнопка «Сохранить»
+        в экране проверки (буфер правок как в журнале урока). Принимает
+        marks: [{sub_id, mark, mark_2}] и пишет ТОЛЬКО оценки: состояние
+        (accept/change) здесь не трогается, комментарии не дублируются
+        в чат — всё это действия кнопок «Принять»/«На доработку», они
+        остаются на одиночном /review. Пишет только автору задания/админу."""
+        restore_session_if_needed()
+        csrf_err = _check_spa_csrf()
+        if csrf_err:
+            return csrf_err
+        if not request.session.uid:
+            return request.make_json_response(
+                {"error": "Unauthorized"}, status=401)
+
+        user = request.env.user
+        is_admin = user.has_group('base.group_system')
+        faculty = request.env['op.faculty'].sudo().search([
+            ('partner_id', '=', user.partner_id.id)], limit=1)
+
+        asg = request.env['op.assignment'].sudo().browse(assignment_id)
+        if not asg.exists():
+            return request.make_json_response(
+                {"error": "Задание не найдено"}, status=404)
+        if not is_admin and (not faculty or asg.faculty_id != faculty):
+            return request.make_json_response(
+                {"error": "Доступно только автору задания"}, status=403)
+
+        try:
+            body = request.get_json_data()
+        except Exception:
+            return request.make_json_response(
+                {"error": "Invalid JSON"}, status=400)
+        rows = body.get('marks') or []
+        if not isinstance(rows, list):
+            return request.make_json_response(
+                {"error": "marks должен быть списком"}, status=400)
+
+        SubLine = request.env['op.assignment.sub.line'].sudo()
+        saved = 0
+        # Разбор ДО любых записей: ошибка валидации не должна оставлять
+        # полузаписанный класс.
+        writes = {}     # {sub_id: vals} — существующие сдачи, пишем оценки
+        creates = {}    # {student_id: vals} — оценки без сдачи
+        for row in rows:
+            sub_id = row.get('sub_id')
+            # mark/mark_2 обязательны ключами: пустое значение = сброс (0.0),
+            # как в _hw_parse_mark — иначе массовое сохранение стёрло бы
+            # оценку, которую тапнули только у половины класса.
+            for key in ('mark', 'mark_2'):
+                if key not in row:
+                    return request.make_json_response(
+                        {"error": "В строке нет %s" % key}, status=400)
+            vals = {}
+            for key, field in (('mark', 'marks'), ('mark_2', 'marks_2')):
+                val, err = _hw_parse_mark(row, key)
+                if err:
+                    return request.make_json_response({"error": err}, status=400)
+                vals[field] = val
+            if sub_id:
+                if sub_id in writes:
+                    return request.make_json_response(
+                        {"error": "Дубликат sub_id в marks"}, status=400)
+                writes[sub_id] = vals
+            else:
+                # Пустая оценка несдавшему — нечего сохранять: создавать
+                # сдачу state=accept с нулями нельзя (ложное «принято»).
+                if not vals.get('marks') and not vals.get('marks_2'):
+                    continue
+                # Оценка ученику БЕЗ строки сдачи: хранить её негде, кроме
+                # как создав сдачу. Поступаем как кнопка «Принять» у
+                # несдавшего (ответ устно/в тетради): строка создаётся
+                # сразу state=accept.
+                student_id = row.get('student_id')
+                if not student_id:
+                    return request.make_json_response(
+                        {"error": "Не задан student_id (у строки нет sub_id)"},
+                        status=400)
+                if student_id in creates:
+                    return request.make_json_response(
+                        {"error": "Дубликат student_id в marks"}, status=400)
+                creates[student_id] = vals
+
+        # Валидация ДО записей: чужая сдача / чужой ученик — ошибка целиком.
+        subs = SubLine.browse(list(writes.keys())).exists()
+        if any(sub.assignment_id != asg for sub in subs):
+            return request.make_json_response(
+                {"error": "Сдача из другого задания"}, status=403)
+        allocation_ids = {st.id for st in asg.allocation_ids}
+        if any(st_id not in allocation_ids for st_id in creates):
+            return request.make_json_response(
+                {"error": "Ученик не назначен на задание"}, status=403)
+
+        for sub in subs:
+            sub.write(writes[sub.id])
+            saved += 1
+        for student_id, vals in creates.items():
+            sub = SubLine.search([
+                ('assignment_id', '=', asg.id),
+                ('student_id', '=', student_id),
+            ], limit=1)
+            if sub:
+                # Строка появилась после загрузки фронта — дописываем оценку.
+                sub.write(vals)
+            else:
+                # Приём без сдачи: дата сдачи = сейчас (как в /review_student).
+                SubLine.create(dict(
+                    vals, state='accept',
+                    assignment_id=asg.id, student_id=student_id,
+                    submission_date=fields.Datetime.now()))
+            saved += 1
+        return request.make_json_response({"success": True, "updated": saved})
+
     @http.route("/rost_max/api/teacher_homework", type="http",
                 auth="public", methods=["GET"])
     def api_teacher_homework(self, **kw):
