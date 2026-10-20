@@ -23,6 +23,8 @@ import {
 import { apiGet, apiPost } from '@/shared/lib/api';
 import { useAppStore } from '@/shared/lib/store';
 import { useToast } from '@/shared/components/Toast';
+import { SaveBar } from '@/shared/components/SaveBar';
+import { ExitBanner } from '@/shared/components/ExitBanner';
 import { useViewerAxis, viewerChips, viewerFromDraft } from '@/shared/lib/viewerAxis';
 import { TabHeader } from '@/shared/components/TabHeader';
 import { MaterialsEditor } from '@/shared/components/MaterialsEditor';
@@ -285,7 +287,12 @@ const EditHomeworkCard: React.FC<{
   );
 };
 
-/** Экран одного задания: карточка + правка + сдачи. */
+/** Экран одного задания: карточка + правка + сдачи.
+ *  Оценки ДЗ (ДЗ 1/ДЗ 2 у принятых работ) живут в ЛОКАЛЬНОМ буфере здесь,
+ *  а не в ReviewQueue: тап по оценке не ходит на сервер — один POST
+ *  /save_marks по кнопке «Сохранить» или баннеру выхода (механика журнала
+ *  урока). Раньше каждый тап у принятой работы сразу шёл POST /review и
+ *  перезагружал два списка — на медленной сети тапы терялись. */
 const AssignmentDetail: React.FC<{
   assignmentId: number;
   onBack: () => void;
@@ -300,6 +307,12 @@ const AssignmentDetail: React.FC<{
   const [busyFinish, setBusyFinish] = React.useState(false);
   // Шторка массовых действий («Весь класс») — как молния в журнале урока.
   const [bulkOpen, setBulkOpen] = React.useState(false);
+
+  // Буфер оценок (student_id -> оценка) + dirty-механика журнала урока.
+  const [marks, setMarks] = React.useState<Record<number, number | null>>({});
+  const [marks2, setMarks2] = React.useState<Record<number, number | null>>({});
+  const [saving, setSaving] = React.useState(false);
+  const [showExitBanner, setShowExitBanner] = React.useState(false);
 
   const load = React.useCallback(async () => {
     setLoading(true);
@@ -319,6 +332,98 @@ const AssignmentDetail: React.FC<{
   }, [assignmentId, addToast]);
 
   React.useEffect(() => { load(); }, [load]);
+
+  // Синк буфера с сервером. ВАЖНО: dirty считается ТОЛЬКО по строкам,
+  // тронутым с момента загрузки (touchedRef): сравнивать весь буфер нельзя —
+  // при входе буфер ещё пуст, и «пустой ≠ сохранённое на сервере» давало
+  // ложный dirty, блокировало синк (кнопки выглядели пустыми при
+  // сохранённых оценках), а «Сохранить» в этом состоянии затирало их нулями.
+  const touchedRef = React.useRef<Set<string>>(new Set());
+  const dirty = React.useMemo(() => (data ? data.students.some(s => {
+    if (touchedRef.current.has(`${s.student_id}:1`)
+      && (marks[s.student_id] ?? null) !== s.mark) return true;
+    if (touchedRef.current.has(`${s.student_id}:2`)
+      && (marks2[s.student_id] ?? null) !== s.mark_2) return true;
+    return false;
+  }) : false),
+  [data, marks, marks2]);
+  const dirtyRef = React.useRef(false);
+  React.useEffect(() => { dirtyRef.current = dirty; }, [dirty]);
+  React.useEffect(() => {
+    if (!data || dirtyRef.current) return;
+    setMarks(Object.fromEntries(data.students.map(s => [s.student_id, s.mark])));
+    setMarks2(Object.fromEntries(data.students.map(s => [s.student_id, s.mark_2])));
+    // Буфер совпадает с сервером — история правок закрыта.
+    touchedRef.current = new Set();
+  }, [data]);
+
+  /** Тап по оценке — только буфер, без запроса. */
+  const handleMarkChange = React.useCallback((studentId: number, which: 1 | 2, next: number | null) => {
+    touchedRef.current.add(`${studentId}:${which}`);
+    if (which === 1) {
+      setMarks(prev => ({ ...prev, [studentId]: next }));
+    } else {
+      setMarks2(prev => ({ ...prev, [studentId]: next }));
+    }
+  }, []);
+
+  const saveAll = async () => {
+    if (saving || !data || !dirty) return;
+    setSaving(true);
+    try {
+      // Шлём ВСЕ строки задания: у сдавших sub_id, у несдавших student_id —
+      // бэк создаст сдачу state=accept (приём без сдачи, «устно/в тетради»).
+      // Идемпотентно, один запрос. Пустые оценки у несдавших (sub_id=null,
+      // mark=null) пропускаем — создавать сдачу ради пустой оценки нечего.
+      const payload = data.students
+        .filter(s => s.sub_id != null
+          || (marks[s.student_id] ?? null) !== null
+          || (marks2[s.student_id] ?? null) !== null)
+        .map(s => ({
+          sub_id: s.sub_id,
+          student_id: s.student_id,
+          mark: marks[s.student_id] ?? null,
+          mark_2: marks2[s.student_id] ?? null,
+        }));
+      const res = await apiPost<{ success?: boolean; error?: string }>(
+        `/rost_max/api/homework/${assignmentId}/save_marks`, { marks: payload });
+      if (res.error) {
+        addToast(res.error, 'error');
+        return;
+      }
+      // Перезачитываем: буфер совпадёт с сервером, dirty погаснет, счётчики
+      // на карточке обновятся.
+      await load();
+    } catch {
+      addToast('Не удалось сохранить. Изменения сохранены локально, повторите позже.', 'error');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // Назад: с несохранёнными оценками — баннер «Сохранить изменения?».
+  const handleBack = () => {
+    if (dirty) {
+      setShowExitBanner(true);
+    } else {
+      onBack();
+    }
+  };
+
+  const exitSave = async () => {
+    setShowExitBanner(false);
+    await saveAll();
+    onBack();
+  };
+
+  const exitDiscard = () => {
+    setShowExitBanner(false);
+    if (data) {
+      setMarks(Object.fromEntries(data.students.map(s => [s.student_id, s.mark])));
+      setMarks2(Object.fromEntries(data.students.map(s => [s.student_id, s.mark_2])));
+    }
+    onBack();
+  };
 
   const toggleFinish = async () => {
     if (!meta) return;
@@ -345,7 +450,7 @@ const AssignmentDetail: React.FC<{
   if (loading && !data) {
     return (
       <Panel id="assignment-detail">
-        <PanelHeader before={<PanelHeaderBack onClick={onBack} />} />
+        <PanelHeader before={<PanelHeaderBack onClick={handleBack} />} />
         <Div style={{ display: 'flex', justifyContent: 'center', padding: 40 }}>
           <Spinner size="l" />
         </Div>
@@ -356,7 +461,7 @@ const AssignmentDetail: React.FC<{
   return (
     <Panel id="assignment-detail">
       <PanelHeader
-        before={<PanelHeaderBack onClick={onBack} />}
+        before={<PanelHeaderBack onClick={handleBack} />}
         after={meta && data && (
           <IconButton
             label="Массовые действия: принять всем, оценка всем"
@@ -484,6 +589,9 @@ const AssignmentDetail: React.FC<{
       {data && (
         <ReviewQueue
           submission={data}
+          marks={marks}
+          marks2={marks2}
+          onMarkChange={handleMarkChange}
           onReview={async (subId, action, note, mark, studentId, mark2) => {
               try {
                 // subId === null — приём без сдачи (ответ устно/в тетради):
@@ -510,6 +618,15 @@ const AssignmentDetail: React.FC<{
             }}
         />
       )}
+
+      <SaveBar visible={dirty} saving={saving} onSave={saveAll} />
+      <ExitBanner
+        visible={showExitBanner}
+        onClose={() => setShowExitBanner(false)}
+        onSave={exitSave}
+        onDiscard={exitDiscard}
+        saving={saving}
+      />
       {meta && (
         <BulkReviewSheet
           assignmentId={meta.id}

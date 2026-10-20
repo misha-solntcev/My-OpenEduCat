@@ -5,6 +5,11 @@
  * Принять/На доработку), тап по строке переключает раскрытие. Оценки
  * (ДЗ 1 и ДЗ 2, тап по кругу) стоят в самой строке ученика — видны и у
  * закрытой строки. «На доработке» и «Проверено» — компактные строки.
+ *
+ * Компонент презентационный: буфер оценок (marks/marks2) живёт в
+ * AssignmentDetail — тап только правит его, серверу оценки уходят одним
+ * POST /save_marks по кнопке «Сохранить» или баннеру выхода (механика
+ * журнала урока). «Принять»/«На доработку» по-прежнему шлют /review сразу.
  */
 import React from 'react';
 import { Avatar, Button, Caption, Text } from '@vkontakte/vkui';
@@ -41,21 +46,24 @@ const SEG_TITLES: Record<SegKey, string> = {
   checked: 'Проверено',
 };
 
-export const ReviewQueue: React.FC<{
+interface ReviewQueueProps {
   submission: HomeworkSubmissionsResponse;
+  /** Локальный буфер оценок (владелец — AssignmentDetail). */
+  marks: Record<number, number | null>;
+  marks2: Record<number, number | null>;
+  /** Тап по оценке — правка буфера родителя, без запроса. */
+  onMarkChange: (studentId: number, which: 1 | 2, next: number | null) => void;
   // subId === null значит «сдачи нет» — caller шлёт student_id на
   // /homework/<id>/review_student (приём без сдачи).
   onReview: (subId: number | null, action: 'accept' | 'change', note: string | undefined, mark: number | null, studentId: number, mark2: number | null) => Promise<string | null>;
-}> = ({ submission, onReview }) => {
+}
+
+export const ReviewQueue: React.FC<ReviewQueueProps> = ({
+  submission, marks, marks2, onMarkChange, onReview,
+}) => {
   const { students } = submission;
   const [seg, setSeg] = React.useState<SegKey>('submit');
   const [busyId, setBusyId] = React.useState<number | null>(null);
-  const [marks, setMarks] = React.useState<Record<number, number | null>>({});
-  const [marks2, setMarks2] = React.useState<Record<number, number | null>>({});
-  React.useEffect(() => {
-    setMarks(Object.fromEntries(students.map(s => [s.student_id, s.mark])));
-    setMarks2(Object.fromEntries(students.map(s => [s.student_id, s.mark_2])));
-  }, [students]);
 
   // undefined = юзер ещё не тапал (авто-раскрыта первая строка),
   // null = закрыл руками, число = открытая строка.
@@ -87,36 +95,6 @@ export const ReviewQueue: React.FC<{
       undefined, mark, s.student_id, mark2);
     setBusyId(null);
     return err;
-  };
-
-  const changeAcceptedMark = async (
-    s: HomeworkSubmissionStudent,
-    which: 1 | 2,
-    next: number | null,
-  ) => {
-    if (busyId !== null) return;
-
-    const previousMark = marks[s.student_id] ?? null;
-    const previousMark2 = marks2[s.student_id] ?? null;
-    const mark = which === 1 ? next : previousMark;
-    const mark2 = which === 2 ? next : previousMark2;
-
-    setBusyId(s.student_id);
-    if (which === 1) {
-      setMarks(prev => ({ ...prev, [s.student_id]: next }));
-    } else {
-      setMarks2(prev => ({ ...prev, [s.student_id]: next }));
-    }
-
-    // При точечной правке оценки не отправляем teacher_note: пустое поле
-    // в Input не должно стирать уже сохранённый комментарий учителя.
-    const err = await onReview(s.sub_id ?? null, 'accept', undefined,
-      mark, s.student_id, mark2);
-    if (err) {
-      setMarks(prev => ({ ...prev, [s.student_id]: previousMark }));
-      setMarks2(prev => ({ ...prev, [s.student_id]: previousMark2 }));
-    }
-    setBusyId(null);
   };
 
   return (
@@ -209,9 +187,10 @@ export const ReviewQueue: React.FC<{
                 </div>
                 {/* Оценки в строке ученика — видны и у закрытой строки
                     (Миша: «чтобы её было видно, когда строка закрыта»).
-                    У принятой работы тап сразу сохраняет оценку; у ещё не
-                    принятой — только выбирает её, сохранение происходит
-                    по кнопке «Принять». */}
+                    Тап у ЛЮБОЙ строки правит только локальный буфер родителя:
+                    у принятой работы сохранение — по «Сохранить»/баннеру
+                    выхода (один POST, как в журнале урока), у не принятой —
+                    оценка уйдёт на сервер по кнопке «Принять». */}
                 <span
                   style={{ display: 'inline-flex', gap: 4, flexShrink: 0 }}
                   onClick={e => e.stopPropagation()}
@@ -220,22 +199,14 @@ export const ReviewQueue: React.FC<{
                     kind="grade"
                     size="l"
                     value={marks[subId] ?? null}
-                    onCycle={busyId === null ? next => (
-                      s.state === 'accept'
-                        ? changeAcceptedMark(s, 1, next)
-                        : setMarks(prev => ({ ...prev, [subId]: next }))
-                    ) : undefined}
+                    onCycle={next => onMarkChange(subId, 1, next)}
                     title="Оценка 1 за домашнее задание"
                   />
                   <JournalButton
                     kind="grade"
                     size="l"
                     value={marks2[subId] ?? null}
-                    onCycle={busyId === null ? next => (
-                      s.state === 'accept'
-                        ? changeAcceptedMark(s, 2, next)
-                        : setMarks2(prev => ({ ...prev, [subId]: next }))
-                    ) : undefined}
+                    onCycle={next => onMarkChange(subId, 2, next)}
                     title="Оценка 2 за домашнее задание"
                   />
                 </span>
