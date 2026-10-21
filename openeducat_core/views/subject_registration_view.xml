@@ -63,7 +63,8 @@
                         <button name="get_subjects" type="object" string="Get Subjects" class="oe_highlight mt-3"/>
                         <group>
                             <separator string="Compulsory Subjects" colspan="2"/>
-                            <field name="compulsory_subject_ids" widget="many2many_tags"/>
+                            <field name="compulsory_subject_ids" widget="many2many_tags"
+                                   readonly="state != 'draft'"/>
                             <separator string="Elective Subjects" colspan="2"/>
                             <field name="elective_subject_ids" widget="many2many_tags"
                                    domain="[('subject_type', '=', 'elective')]"

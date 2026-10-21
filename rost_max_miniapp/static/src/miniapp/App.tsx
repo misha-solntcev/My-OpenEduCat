@@ -15,6 +15,7 @@ import { LoginPage } from '@/pages/auth/LoginPage';
 import { DashboardPage } from '@/pages/dashboard/DashboardPage';
 import { TimetablePage } from '@/pages/timetable/TimetablePage';
 import { HomeworkPage } from '@/pages/homework/HomeworkPage';
+import { AssignmentPage } from '@/pages/homework/AssignmentPage';
 import { TeacherHomeworkPage } from '@/pages/homework/TeacherHomeworkPage';
 import { SubjectsPage } from '@/pages/subjects/SubjectsPage';
 import { SubjectGradesPage } from '@/pages/subjects/SubjectGradesPage';
@@ -92,7 +93,11 @@ export default function App() {
 
   // Вложенная навигация внутри таба "Успеваемость"
   const [subjectsHistory, setSubjectsHistory] = React.useState<string[]>(
-    savedNav.subjectsHistory?.length ? savedNav.subjectsHistory : ['subjects-panel']
+    savedNav.subjectsHistory?.includes('assignment-panel')
+      // Панель «задание» не переживает перезапуск WebView: openAssignmentId
+      // не восстанавливается, восстановили бы пустой экран. Срезаем её.
+      ? savedNav.subjectsHistory.slice(0, savedNav.subjectsHistory.indexOf('assignment-panel'))
+      : savedNav.subjectsHistory?.length ? savedNav.subjectsHistory : ['subjects-panel']
   );
   const [selectedSubject, setSelectedSubject] = React.useState<{ id: number; name: string } | null>(
     savedNav.selectedSubject ?? null
@@ -163,8 +168,27 @@ export default function App() {
   const handleSubjectsBack = () => {
     if (subjectsHistory.length > 1) {
       setSubjectsHistory(h => h.slice(0, -1));
-      setSelectedSubject(null);
+      // subject-grades -> assignment: имя предмета не трогаем (шапка
+      // детализации остаётся заполненной при возврате), иначе чистим.
+      if (subjectsHistory[subjectsHistory.length - 1] !== 'assignment-panel') {
+        setSelectedSubject(null);
+      }
     }
+  };
+
+  // Экран одного задания (тап по строке ДЗ в детализации предмета) —
+  // панель той же вьюхи «Оценки»: таббар не переключается, «назад»
+  // возвращает в детализацию. id сбрасывается при закрытии панели.
+  const [openAssignmentId, setOpenAssignmentId] = React.useState<number | null>(null);
+  const handleOpenAssignmentFromGrades = (assignmentId: number) => {
+    setOpenAssignmentId(assignmentId);
+    setSubjectsHistory(h =>
+      h[h.length - 1] === 'assignment-panel' ? h : [...h, 'assignment-panel']);
+  };
+  const handleCloseAssignment = () => {
+    setOpenAssignmentId(null);
+    setSubjectsHistory(h => (h[h.length - 1] === 'assignment-panel'
+      ? h.slice(0, -1) : h));
   };
 
   const handleOpenLesson = (lessonId: number) => {
@@ -316,6 +340,7 @@ export default function App() {
                 id="homework-panel"
                 canSubmit={Boolean(userInfo?.is_student)}
                 onOpenProfile={() => setActiveView('profile')}
+                autoExpandId={openAssignmentId}
               />
             </View>
             <View id="teacher-homework" activePanel="teacher-homework-panel">
@@ -343,6 +368,15 @@ export default function App() {
                 subjectId={selectedSubject?.id ?? 0}
                 subjectName={selectedSubject?.name ?? ''}
                 onBack={handleSubjectsBack}
+                onOpenAssignment={handleOpenAssignmentFromGrades}
+              />
+              {/* Одно задание — третья панель той же вьюхи: тап по строке
+                  ДЗ в детализации предмета. Таббар не переключается. */}
+              <AssignmentPage
+                id="assignment-panel"
+                assignmentId={openAssignmentId}
+                onBack={handleCloseAssignment}
+                canSubmit={Boolean(userInfo?.is_student)}
               />
             </View>
 

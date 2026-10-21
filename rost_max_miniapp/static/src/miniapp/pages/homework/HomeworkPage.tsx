@@ -24,6 +24,10 @@ interface HomeworkPageProps {
    *  в режиме ребёнка получают false — кнопка «Сдать» не рисуется. */
   canSubmit?: boolean;
   onOpenProfile?: () => void;
+  /** id задания для глубокого входа (тап по строке ДЗ в «Оценках»):
+   *  карточка раскрывается сразу, сегмент переключается на статус этого
+   *  задания (принято -> «Проверено», сдано -> «На проверке»). */
+  autoExpandId?: number | null;
 }
 
 type StatusKey = 'fresh' | 'submitted' | 'checked';
@@ -57,7 +61,7 @@ const groupHomework = (items: HomeworkItem[]): {
   return { fresh, submitted, checked };
 };
 
-export const HomeworkPage: React.FC<HomeworkPageProps> = ({ id, canSubmit = true, onOpenProfile }) => {
+export const HomeworkPage: React.FC<HomeworkPageProps> = ({ id, canSubmit = true, onOpenProfile, autoExpandId }) => {
   const addToast = useToast();
   // Ось «Кого смотрим» (свитч удалён — решение 2026-10-14): только у
   // родителя 2+ и staff-родителя — у чистого ученика оси нет.
@@ -116,6 +120,22 @@ export const HomeworkPage: React.FC<HomeworkPageProps> = ({ id, canSubmit = true
     [items],
   );
 
+  // Глубокий вход из «Оценок»: сегмент переключается на статус задания,
+  // иначе autoExpand-карточка не в списке активного сегмента и не видна.
+  // Эффект один раз на каждое новое autoExpandId (lastApplied — как у
+  // initialFilter в TeacherHomeworkPage, без него повторный тап по той же
+  // строке не сработал бы).
+  const lastExpandRef = React.useRef<number | null>(null);
+  React.useEffect(() => {
+    if (autoExpandId == null || lastExpandRef.current === autoExpandId) return;
+    lastExpandRef.current = autoExpandId;
+    const it = (items || []).find(x => x.id === autoExpandId);
+    if (it) {
+      if (it.state === 'accept') setStatus('checked');
+      else if (it.state === 'submit') setStatus('submitted');
+    }
+  }, [autoExpandId, items]);
+
   return (
     <Panel id={id}>
       {/* Корневой таб: без PanelHeader — активный таб виден в таббаре.
@@ -173,6 +193,7 @@ export const HomeworkPage: React.FC<HomeworkPageProps> = ({ id, canSubmit = true
               canSubmit={canSubmit && status === 'fresh'}
               onSubmit={submit}
               onUpdated={load}
+              autoExpandId={autoExpandId}
             />
           ) : (
             <Caption style={{ display: 'block', padding: '16px 16px 24px', color: 'var(--vkui--color_text_secondary)' }}>

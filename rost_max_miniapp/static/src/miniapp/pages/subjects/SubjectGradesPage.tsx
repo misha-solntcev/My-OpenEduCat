@@ -28,6 +28,9 @@ interface SubjectGradesPageProps {
    *  не передают — их домен «мои ученики» формирует бэк. */
   studentId?: number | undefined;
   quarter?: number | undefined;
+  /** Тап по строке ДЗ на карточке дня: открыть задание (вкладка
+   *  «Задания» с раскрытой карточкой). Не передан — строка без перехода. */
+  onOpenAssignment?: (assignmentId: number) => void;
 }
 
 const fmtDate = (iso: string): string => {
@@ -44,6 +47,7 @@ export const SubjectGradesPage: React.FC<SubjectGradesPageProps> = ({
   onBack,
   studentId,
   quarter,
+  onOpenAssignment,
 }) => {
   const addToast = useToast();
   const selectedChildId = useAppStore(s => s.selectedChildId);
@@ -132,21 +136,71 @@ export const SubjectGradesPage: React.FC<SubjectGradesPageProps> = ({
                     </Text>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <Text style={{ display: 'block', lineHeight: 1.35 }}>{ln.topic || 'Тема не указана'}</Text>
+                      {/* Оценки за работу на уроке слева, посещаемость по
+                          центру карточки (Миша, 2026-10-21): сетка
+                          1fr auto 1fr — крайние колонки равные, средняя
+                          встаёт ровно по центру строки. Колонки заданы
+                          явно: при отсутствии оценок или посещаемости
+                          чип не уезжает в чужую ячейку. */}
                       {(ln.attendance_type_id || ln.grades.length > 0) && (
-                        <Flex gap={4} align="center" wrap="wrap" style={{ marginTop: 8 }}>
-                          {ln.attendance_type_id && (
-                            <JournalButton
-                              kind="attendance"
-                              value={ln.attendance_type_id}
-                              attendanceTypes={[{ id: ln.attendance_type_id, name: ln.attendance || '' }]}
-                              size="m"
-                            />
+                        <div
+                          style={{
+                            display: 'grid',
+                            gridTemplateColumns: '1fr auto 1fr',
+                            alignItems: 'center', gap: 4, marginTop: 8,
+                          }}
+                        >
+                          {ln.grades.length > 0 && (
+                            <Flex gap={4} align="center" wrap="wrap" style={{ gridColumn: 1 }}>
+                              {ln.grades.map((g, i) => (
+                                <JournalButton key={`${g}-${i}`} kind="grade" value={g} size="m" />
+                              ))}
+                            </Flex>
                           )}
-                          {ln.grades.map((g, i) => (
-                            <JournalButton key={`${g}-${i}`} kind="grade" value={g} size="m" />
-                          ))}
-                        </Flex>
+                          {ln.attendance_type_id && (
+                            <span style={{ gridColumn: 2, display: 'inline-flex' }}>
+                              <JournalButton
+                                kind="attendance"
+                                value={ln.attendance_type_id}
+                                attendanceTypes={[{ id: ln.attendance_type_id, name: ln.attendance || '' }]}
+                                size="m"
+                              />
+                            </span>
+                          )}
+                        </div>
                       )}
+                      {/* Оценки за ДЗ — отдельной строкой (вариант C Миши,
+                          2026-10-20): 📘, текст задания одной строкой с
+                          «...», оценка справа. Тап по строке открывает
+                          задание. В общий ряд чипов ДЗ не попадает, чтобы
+                          оценки за урок (О1/О2) и за ДЗ не смешивались. */}
+                      {(ln.hw_grades || []).map((hw, i) => (
+                        <div
+                          key={`hw-${hw.assignment_id}-${i}`}
+                          onClick={() => hw.assignment_id && onOpenAssignment?.(hw.assignment_id)}
+                          style={{
+                            display: 'flex', alignItems: 'center', gap: 8,
+                            borderTop: '1px solid var(--vkui--color_separator_primary)',
+                            marginTop: 8, paddingTop: 8,
+                            cursor: hw.assignment_id ? 'pointer' : undefined,
+                          }}
+                        >
+                          <span style={{
+                            width: 26, height: 26, borderRadius: 8, flexShrink: 0,
+                            background: 'var(--vkui--color_background_secondary)',
+                            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                            fontSize: 13,
+                          }}>📘</span>
+                          <span style={{
+                            flex: 1, minWidth: 0, fontSize: 12.5, lineHeight: 1.3,
+                            color: 'var(--vkui--color_text_secondary)',
+                            whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                          }}>
+                            {hw.task || 'Домашнее задание'}
+                          </span>
+                          <JournalButton kind="grade" value={hw.grade} size="m" />
+                        </div>
+                      ))}
                     </div>
                   </Flex>
                 </VkCard>

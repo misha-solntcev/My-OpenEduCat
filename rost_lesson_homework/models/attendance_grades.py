@@ -112,13 +112,72 @@ class OpAttendanceLineHw(models.Model):
         оценок stored-значения расходились с фактическим (проверено на проде
         27.09.2026 — 43 строки без ДЗ-оценок, расхождение до 0.67).
         Пересчитываем явно и синхронизируем агрегаты листа.
+
+        Плюс пересчёт карточек успеваемости: их stored-среднее зависит от
+        оценок В строках, а @api.depends тянет только сам список строк — см.
+        _rost_recompute_subject_grades.
         """
         res = super().write(vals)
         if 'grade_1' in vals or 'grade_2' in vals:
             self.invalidate_recordset(['grade_avg'])
             self._rost_compute_grade_avg()
             self.mapped('attendance_id')._rost_compute_all_stats()
+            self._rost_recompute_subject_grades(self)
         return res
+
+    def _rost_recompute_subject_grades(self, lines):
+        """Пересчитать карточки успеваемости (op.subject.grades) по строкам.
+
+        Зачем: карточка успеваемости — stored-агрегат по строкам журнала, но
+        её пересчёт НЕ привязан к правке оценок. @api.depends у
+        op.subject.grades._compute_all_stats тянет только список строк
+        (q*_line_ids), а не оценки внутри них; правка оценки этот список не
+        меняет, поэтому stored q*_average_mark/average_mark оставались
+        старыми до «Завершить урок» и ночного крона. Учитель вводил итог
+        четверти по неверному среднему (проверено на test4: правка оценки за
+        ДЗ 5→2 — в карточке оставалось 4.50 вместо 4.00; правка О1 4→2 —
+        3.67 вместо 3.33).
+
+        Затрагиваются только карточки, в ЧЕТВЕРТИ которых реально лежит
+        изменённая строка: у ученика бывают карточки одного предмета за
+        прошлый год, их среднее от правки не меняется.
+
+        Список строк карточки (q*_line_ids) — тоже stored-агрегат, он
+        обновляется по «Завершить урок» и крону, поэтому перед проверкой
+        пересчитываем его заново: иначе правка в строке, ещё не попавшей
+        в карточку, была бы пропущена.
+
+        sudo: это технический пересчёт агрегата по строкам, которые
+        учитель и так редактирует. Без sudo AccessError на карточке
+        чужого преподавателя сорвал бы сохранение оценки — цена ошибки
+        (не сохранилась оценка) тут выше цены пересчёта.
+        """
+        if not lines:
+            return
+        line_ids = set(lines.ids)
+        students = lines.mapped('student_id')
+        subjects = lines.mapped('subject_id')
+        if not students or not subjects:
+            return
+        Grade = self.env['op.subject.grades'].sudo()
+        cards = Grade.search([
+            ('student_id', 'in', students.ids),
+            ('subject_id', 'in', subjects.ids),
+        ])
+        for card in cards:
+            card._compute_line_ids()
+            card_lines = (card.q1_line_ids | card.q2_line_ids
+                          | card.q3_line_ids | card.q4_line_ids)
+            if not line_ids.intersection(card_lines.ids):
+                continue
+            card.invalidate_recordset([
+                'average_mark', 'attendance_rate', 'total_classes', 'present_classes',
+                'q1_average_mark', 'q1_last_remark',
+                'q2_average_mark', 'q2_last_remark',
+                'q3_average_mark', 'q3_last_remark',
+                'q4_average_mark', 'q4_last_remark',
+            ])
+            card._compute_all_stats()
 
     @api.depends('grade_1', 'grade_2',
                  'attendance_id.homework_assignment_id.assignment_sub_line.marks',
@@ -283,6 +342,10 @@ class OpAssignmentSubLineHw(models.Model):
         (массовая правка, в т.ч. удаление полей x_mark/x_behavior 06.05.2026)
         stored-поля оставались с прежними значениями. Штатная правка одной
         оценки работает через depends — этот метод страхует остальное.
+
+        Плюс пересчёт карточек успеваемости (op.subject.grades): их
+        stored-среднее тоже не триггерится правкой оценки — см.
+        op.attendance.line._rost_recompute_subject_grades.
         """
         if not self:
             return
@@ -295,3 +358,4 @@ class OpAssignmentSubLineHw(models.Model):
             return
         lines._rost_compute_grade_avg()
         lines.mapped('attendance_id')._rost_compute_all_stats()
+        lines._rost_recompute_subject_grades(lines)

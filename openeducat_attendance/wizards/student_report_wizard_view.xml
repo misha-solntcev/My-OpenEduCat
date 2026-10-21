@@ -4,11 +4,16 @@
         <field name="model">student.report.wizard</field>
         <field name="arch" type="xml">
             <form string="Итоговые оценки">
-                <group>                    
+                <group>
                     <field name="academic_year_id" options="{'no_create': True, 'no_open': True}"/>
+                    <!-- Скрытое поле: список классов выбранного учебного года.
+                         Батч живёт один год, в базе есть и «5 А 2025/2026», и
+                         «5 А 2026/2027» — без домена можно выбрать чужой год. -->
+                    <field name="available_batch_ids" invisible="1"/>
                     <!-- Поле переименовано, добавлен виджет тегов -->
-                    <field name="batch_ids" 
+                    <field name="batch_ids"
                         widget="many2many_tags"
+                        domain="[('id', 'in', available_batch_ids)]"
                         options="{'no_create': True, 'no_open': True}"
                         placeholder="Все классы школы"/>
                     <!-- В domain заменено batch_id на batch_ids и '=' на 'in' -->
@@ -17,6 +22,10 @@
                         options="{'no_create': True}"
                         domain="batch_ids and [('course_detail_ids.batch_id', 'in', batch_ids)] or []"
                         placeholder="Весь класс"/>
+                    <!-- Два режима отчёта: на первом этапе учитель смотрит,
+                         кто не проставил итоги (пустые строки видны),
+                         для финальной версии пустые строки скрываются. -->
+                    <field name="hide_empty_subjects"/>
                 </group>
                 <footer>
                     <button name="action_print_report" string="Сформировать PDF" type="object" class="btn-primary"/>
