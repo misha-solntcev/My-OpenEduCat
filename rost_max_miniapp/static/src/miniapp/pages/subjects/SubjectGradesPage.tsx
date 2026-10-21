@@ -136,20 +136,38 @@ export const SubjectGradesPage: React.FC<SubjectGradesPageProps> = ({
                     </Text>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <Text style={{ display: 'block', lineHeight: 1.35 }}>{ln.topic || 'Тема не указана'}</Text>
+                      {/* Оценки за работу на уроке слева, посещаемость по
+                          центру карточки (Миша, 2026-10-21): сетка
+                          1fr auto 1fr — крайние колонки равные, средняя
+                          встаёт ровно по центру строки. Колонки заданы
+                          явно: при отсутствии оценок или посещаемости
+                          чип не уезжает в чужую ячейку. */}
                       {(ln.attendance_type_id || ln.grades.length > 0) && (
-                        <Flex gap={4} align="center" wrap="wrap" style={{ marginTop: 8 }}>
-                          {ln.attendance_type_id && (
-                            <JournalButton
-                              kind="attendance"
-                              value={ln.attendance_type_id}
-                              attendanceTypes={[{ id: ln.attendance_type_id, name: ln.attendance || '' }]}
-                              size="m"
-                            />
+                        <div
+                          style={{
+                            display: 'grid',
+                            gridTemplateColumns: '1fr auto 1fr',
+                            alignItems: 'center', gap: 4, marginTop: 8,
+                          }}
+                        >
+                          {ln.grades.length > 0 && (
+                            <Flex gap={4} align="center" wrap="wrap" style={{ gridColumn: 1 }}>
+                              {ln.grades.map((g, i) => (
+                                <JournalButton key={`${g}-${i}`} kind="grade" value={g} size="m" />
+                              ))}
+                            </Flex>
                           )}
-                          {ln.grades.map((g, i) => (
-                            <JournalButton key={`${g}-${i}`} kind="grade" value={g} size="m" />
-                          ))}
-                        </Flex>
+                          {ln.attendance_type_id && (
+                            <span style={{ gridColumn: 2, display: 'inline-flex' }}>
+                              <JournalButton
+                                kind="attendance"
+                                value={ln.attendance_type_id}
+                                attendanceTypes={[{ id: ln.attendance_type_id, name: ln.attendance || '' }]}
+                                size="m"
+                              />
+                            </span>
+                          )}
+                        </div>
                       )}
                       {/* Оценки за ДЗ — отдельной строкой (вариант C Миши,
                           2026-10-20): 📘, текст задания одной строкой с
