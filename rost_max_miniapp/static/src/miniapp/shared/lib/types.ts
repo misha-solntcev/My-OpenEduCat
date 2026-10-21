@@ -169,11 +169,22 @@ export interface GradeLine {
   date: string;
   subject_id: number | null;
   subject: string;
+  /** Оценки за работу НА УРОКЕ (О1/О2). */
   grades: number[];
+  /** Оценки за ДЗ — отдельной структурой: тап по строке открывает задание
+   *  (assignment_id), название показываем вместо оценки-в-общем-ряду. */
+  hw_grades: HwGradeRef[];
   attendance_type_id: number | null;
   attendance: string | null;
   remark: string;
   topic: string;
+}
+
+/** Оценка за ДЗ на карточке дня в «Оценках» (решение Миши 2026-10-20). */
+export interface HwGradeRef {
+  grade: number;
+  assignment_id: number | null;
+  task: string;
 }
 
 export interface MyGradesResponse {

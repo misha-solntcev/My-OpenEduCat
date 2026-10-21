@@ -3077,17 +3077,37 @@ class RostMaxTimetableController(http.Controller):
 
     @staticmethod
     def _line_payload(ln):
-        """Сериализация op.attendance.line для read-only экранов."""
+        """Сериализация op.attendance.line для read-only экранов.
+
+        Оценки урока (О1/О2) и ДЗ отдаются РАЗДЕЛЬНО: grades — только за
+        работу на уроке, hw_grades — оценки за домашнее задание с
+        assignment_id и названием (Миша, 2026-10-20: в «Оценках» должно
+        быть ясно, какая оценка за ДЗ; строка ДЗ на карточке дня тапом
+        открывает задание). Раньше всё валилось в один список grades и
+        визуально оценки не различались.
+        """
         grades = [int(g) for g in (ln.grade_1, ln.grade_2) if g and g > 0]
         sub = ln.hw_sub_line_id
+        hw_grades = []
         if sub:
-            grades += [int(g) for g in (sub.marks, sub.marks_2) if g and g > 0]
+            for mark in (sub.marks, sub.marks_2):
+                if mark and mark > 0:
+                    asg = sub.assignment_id
+                    hw_grades.append({
+                        "grade": int(mark),
+                        # id задания для тапа «оценка -> задание».
+                        "assignment_id": asg.id if asg else None,
+                        # Название — как в ленте «Заданий» (task).
+                        "task": (tools.html2plaintext(asg.description)
+                                 or asg.name) if asg else "",
+                    })
         return {
             "line_id": ln.id,
             "date": str(ln.attendance_date) if ln.attendance_date else '',
             "subject_id": ln.subject_id.id if ln.subject_id else None,
             "subject": ln.subject_id.name if ln.subject_id else '',
             "grades": grades,
+            "hw_grades": hw_grades,
             "attendance_type_id": ln.attendance_type_id.id if ln.attendance_type_id else None,
             "attendance": ln.attendance_type_id.name if ln.attendance_type_id else None,
             "remark": ln.remark or '',
@@ -3162,8 +3182,15 @@ class RostMaxTimetableController(http.Controller):
                 latest_grades = []
                 for line in subj_lines.sorted('attendance_date', reverse=True):
                     payload = self._line_payload(line)
+                    # grades теперь ТОЛЬКО оценки урока: ДЗ-оценки в hw_grades.
+                    # На чипах учителя их не различаем (задача только для
+                    # ученика), но терять их из «последних оценок» нельзя —
+                    # дописываем с тем же форматом {grade, date}.
                     for grade in payload['grades']:
                         latest_grades.append({"grade": grade, "date": payload['date']})
+                    for hw in payload['hw_grades']:
+                        latest_grades.append(
+                            {"grade": hw['grade'], "date": payload['date']})
                 subjects.append({
                     "subject_id": subj.id,
                     "name": subj.name,

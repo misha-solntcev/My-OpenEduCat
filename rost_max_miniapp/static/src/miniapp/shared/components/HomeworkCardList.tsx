@@ -88,8 +88,11 @@ export const HomeworkRowItem: React.FC<{
   canSubmit?: boolean;
   onSubmit?: (id: number, answer: string, files: { filename: string; mimetype: string; b64: string }[]) => Promise<string | null>;
   onUpdated?: () => void;
-}> = ({ h, canSubmit, onSubmit, onUpdated }) => {
-  const [expanded, setExpanded] = React.useState(false);
+  /** Глубокий вход (тап по строке ДЗ в «Оценках»): карточка раскрыта
+   *  сразу. Один раз при монтировании — дальше обычный тап-режим. */
+  autoExpand?: boolean;
+}> = ({ h, canSubmit, onSubmit, onUpdated, autoExpand = false }) => {
+  const [expanded, setExpanded] = React.useState(autoExpand);
   const [answer, setAnswer] = React.useState('');
   const [files, setFiles] = React.useState<File[]>([]);
   const [busy, setBusy] = React.useState(false);
@@ -418,7 +421,10 @@ export const HomeworkCardList: React.FC<{
   onSubmit?: (id: number, answer: string, files: { filename: string; mimetype: string; b64: string }[]) => Promise<string | null>;
   onUpdated?: () => void;
   max?: number;
-}> = ({ items, title, afterTitle, canSubmit, onSubmit, onUpdated, max }) => (
+  /** id задания, которое нужно показать раскрытым (глубокий вход из
+   *  «Оценок»: тап по строке ДЗ). undefined — обычное поведение. */
+  autoExpandId?: number | null;
+}> = ({ items, title, afterTitle, canSubmit, onSubmit, onUpdated, max, autoExpandId }) => (
   <div style={{ margin: '0 8px 8px' }}>
     {(title != null || afterTitle != null) && (
       <div style={{
@@ -440,6 +446,7 @@ export const HomeworkCardList: React.FC<{
             canSubmit={canSubmit}
             onSubmit={onSubmit}
             onUpdated={onUpdated}
+            autoExpand={autoExpandId === h.id}
           />
         ))}
         {max != null && items.length > max && (

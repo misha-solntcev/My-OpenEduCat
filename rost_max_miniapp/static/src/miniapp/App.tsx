@@ -167,6 +167,16 @@ export default function App() {
     }
   };
 
+  // Глубокий вход «Оценки -> задание»: тап по строке ДЗ на карточке дня
+  // открывает вкладку «Задания» с раскрытой карточкой этого задания.
+  // id живёт в App (переход меняет таб целиком); сбрасывается при уходе
+  // с вкладки «Задания», иначе раскрытие «прилипнет» к следующему визиту.
+  const [openAssignmentId, setOpenAssignmentId] = React.useState<number | null>(null);
+  const handleOpenAssignmentFromGrades = (assignmentId: number) => {
+    setOpenAssignmentId(assignmentId);
+    setActiveTab('homework');
+  };
+
   const handleOpenLesson = (lessonId: number) => {
     setSelectedLessonId(lessonId);
     setActiveView('lesson-journal');
@@ -316,6 +326,7 @@ export default function App() {
                 id="homework-panel"
                 canSubmit={Boolean(userInfo?.is_student)}
                 onOpenProfile={() => setActiveView('profile')}
+                autoExpandId={openAssignmentId}
               />
             </View>
             <View id="teacher-homework" activePanel="teacher-homework-panel">
@@ -343,6 +354,7 @@ export default function App() {
                 subjectId={selectedSubject?.id ?? 0}
                 subjectName={selectedSubject?.name ?? ''}
                 onBack={handleSubjectsBack}
+                onOpenAssignment={handleOpenAssignmentFromGrades}
               />
             </View>
 
