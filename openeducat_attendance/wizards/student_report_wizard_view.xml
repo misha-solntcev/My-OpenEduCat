@@ -22,6 +22,10 @@
                         options="{'no_create': True}"
                         domain="batch_ids and [('course_detail_ids.batch_id', 'in', batch_ids)] or []"
                         placeholder="Весь класс"/>
+                    <!-- Два режима отчёта: на первом этапе учитель смотрит,
+                         кто не проставил итоги (пустые строки видны),
+                         для финальной версии пустые строки скрываются. -->
+                    <field name="hide_empty_subjects"/>
                 </group>
                 <footer>
                     <button name="action_print_report" string="Сформировать PDF" type="object" class="btn-primary"/>

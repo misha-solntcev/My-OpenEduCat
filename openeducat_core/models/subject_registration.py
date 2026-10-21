@@ -36,8 +36,13 @@ class OpSubjectRegistration(models.Model):
                                tracking=True)
     compulsory_subject_ids = fields.Many2many(
         'op.subject', 'subject_compulsory_rel',
-        'register_id', 'subject_id', string="Compulsory Subjects",
-        readonly=True)
+        'register_id', 'subject_id', string="Compulsory Subjects")
+    # readonly снят: набор обязательных предметов у каждого ученика свой
+    # (английский А/Б, профильная математика), и задать его вручную —
+    # единственный способ. Раньше поле было readonly=True, заполнить его
+    # можно было только кнопкой get_subjects, которая брала предметы курса
+    # и подтирала индивидуальный набор. Фактическая блокировка перенесена
+    # во вьюху: редактируемо только в состоянии draft.
     elective_subject_ids = fields.Many2many(
         'op.subject', string="Elective Subjects")
     state = fields.Selection([
@@ -67,18 +72,32 @@ class OpSubjectRegistration(models.Model):
                 subject_ids.append(sub.id)
             for sub in record.elective_subject_ids:
                 subject_ids.append(sub.id)
-            course_id = self.env['op.student.course'].search([
-                ('student_id', '=', record.student_id.id),
-                ('course_id', '=', record.course_id.id)
-            ], limit=1)
+            # Зачисление ищем по (ученик, курс, ПАРАЛЛЕЛЬ) — курс общий
+            # для нескольких лет, и поиск без batch_id + limit=1 писал бы
+            # предметы в зачисление ПРОШЛОГО года, тихо портя историю.
+            course_id = record._find_enrollment()
             if course_id:
+                # Элективные предметы, уже записанные в зачисление, не
+                # теряем: Approve не должен стирать выбор ученика, если
+                # в регистрации их не перечислили. Обязательные — наоборот,
+                # берём ровно те, что указаны в регистрации.
+                electives = course_id.subject_ids.filtered(
+                    lambda s: s.subject_type == 'elective'
+                )
+                merged = list(set(subject_ids) | set(electives.ids))
                 course_id.write({
-                    'subject_ids': [[6, 0, list(set(subject_ids))]]
+                    'subject_ids': [(6, 0, merged)]
                 })
                 record.state = 'approved'
             else:
-                raise ValidationError(
-                    _("Course not found on student's admission!"))
+                # Зачисления в этой параллели нет — писать некуда. Раньше
+                # поиск шёл без параллели и молча писал в зачисление
+                # ДРУГОГО года. Лучше явная ошибка.
+                raise ValidationError(_(
+                    "Student %s is not enrolled in batch %s. "
+                    "Check the batch of this registration, or enrol "
+                    "the student in 'Student Info → Course Details' first."
+                ) % (record.student_id.name or '', record.batch_id.name or ''))
 
     def action_submitted(self):
         self.state = 'submitted'
@@ -91,21 +110,68 @@ class OpSubjectRegistration(models.Model):
                     'op.subject.registration') or '/'
         return super(OpSubjectRegistration, self).create(vals_list)
 
+    def _find_enrollment(self):
+        """Зачисление ученика для этой регистрации.
+
+        Ищем по (ученик, курс, ПАРАЛЛЕЛЬ): курс в OpenEduCat общий для
+        нескольких лет (курс «6 класс» — и для 6А 2025/2026, и для
+        6А 2026/2027), поэтому поиск только по (ученик, курс) без
+        параллели брал бы зачисление ПРОШЛОГО года и молча портило
+        историю. Если параллель в регистрации не совпала с зачислением
+        (бывает при переносе класса), ищем ту же параллель по названию.
+
+        Если параллель указана, но зачисления в ней нет — ВОЗВРАЩАЕМ
+        ПУСТО: подставлять зачисление другой параллели нельзя, Approve
+        записал бы предметы не тому ученику (или тому же, но в чужом
+        году). Лучше явная ошибка, чем тихая порча.
+
+        state НЕ фильтруем: у переведённых учеников зачисление в состоянии
+        finished, и они тоже должны получить свой индивидуальный набор
+        предметов, а не предметы курса.
+        """
+        self.ensure_one()
+        StudentCourse = self.env['op.student.course']
+        if self.batch_id:
+            enrollment = StudentCourse.search([
+                ('student_id', '=', self.student_id.id),
+                ('course_id', '=', self.course_id.id),
+                ('batch_id', '=', self.batch_id.id),
+            ], limit=1)
+            if enrollment:
+                return enrollment
+            # Та же параллель по названию (регистрация могла быть создана
+            # для одноимённого класса другого года).
+            batch = self.env['op.batch'].search([
+                ('name', '=', self.batch_id.name),
+            ], limit=1)
+            if batch:
+                enrollment = StudentCourse.search([
+                    ('student_id', '=', self.student_id.id),
+                    ('course_id', '=', self.course_id.id),
+                    ('batch_id', '=', batch.id),
+                ], limit=1)
+                if enrollment:
+                    return enrollment
+            return self.env['op.student.course']
+        # Параллель не указана — ищем единственное зачисление по курсу.
+        return StudentCourse.search([
+            ('student_id', '=', self.student_id.id),
+            ('course_id', '=', self.course_id.id),
+        ], limit=1)
+
     def get_subjects(self):
         for record in self:
-            subject_ids = []
-            # Обязательные предметы ученика: сначала предметы ЕГО зачисления
-            # (subject_ids в op.student.course — там учтены группы/уровни:
-            # база/профиль, англ. А/Б). Fallback — предметы курса (старое
-            # поведение), если у зачисления предметный набор не заполнен.
-            enrollment = self.env['op.student.course'].search([
-                ('student_id', '=', record.student_id.id),
-                ('course_id', '=', record.course_id.id),
-                ('state', '=', 'running'),
-            ], limit=1)
+            enrollment = record._find_enrollment()
             if enrollment and enrollment.subject_ids:
-                record.compulsory_subject_ids = [(6, 0, enrollment.subject_ids.ids)]
+                # Индивидуальный набор ученика (англ. А/Б, профиль).
+                record.compulsory_subject_ids = [
+                    (6, 0, enrollment.subject_ids.ids)
+                ]
                 continue
+            # Зачисление не найдено или в нём нет предметов — первичное
+            # заполнение предметами курса. Дальше завуч дорабатывает
+            # набор вручную (поле редактируемо в состоянии draft).
+            subject_ids = []
             if record.course_id and record.course_id.subject_ids:
                 for subject in record.course_id.subject_ids:
                     if subject.subject_type == 'compulsory':

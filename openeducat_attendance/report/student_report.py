@@ -9,6 +9,10 @@ class ReportStudentSummary(models.AbstractModel):
     def _get_report_values(self, docids, data=None):
         wizard = self.env['student.report.wizard'].browse(docids)
         year = wizard.academic_year_id
+        # Скрывать предметы без итоговых оценок (галка в визарде). По
+        # умолчанию False: на первом этапе учителю видно, кто из
+        # преподавателей ещё не проставил итоги.
+        hide_empty = bool(wizard.hide_empty_subjects)
         
         # 1. Получаем все 4 четверти года
         terms = self.env['op.academic.term'].search([
@@ -84,31 +88,80 @@ class ReportStudentSummary(models.AbstractModel):
                 ('batch_id', '=', batch.id),
             ])
 
+            # Зачисления класса: из них берём индивидуальный набор
+            # предметов ученика (английский А/Б, профильная математика —
+            # того, чего в курсе класса нет вообще).
+            enroll_by_student = {c.student_id.id: c for c in courses}
+
+            # Имена предметов: из карточек и зачислений (одним проходом),
+            # чтобы не дёргать ORM в цикле по ученикам.
+            subject_names = {}
+            for g in all_grades:
+                subject_names[g.subject_id.id] = g.subject_id.name
+            for c in courses:
+                for sub in c.subject_ids:
+                    subject_names.setdefault(sub.id, sub.name)
+
             student_list = []
             for student in students_in_batch:
-                
+
                 # Собираем оценки
-                subject_data_list = [] # Переименовали для ясности
-                # Добавим проверку, есть ли вообще предметы у курса
-                subjects = batch.course_id.subject_ids or []
-                
-                for subject in subjects:
-                    grade_rec = all_grades.filtered(
-                        lambda g: g.student_id.id == student.id and g.subject_id.id == subject.id
-                    )
+                subject_data_list = []
+                # Предметы отчёта = ЗАЧИСЛЕНИЕ ученика ∪ КАРТОЧКИ успеваемости.
+                #
+                # Зачисление (op.student.course.subject_ids) — индивидуальный
+                # набор: в 6А английский разделён на «А»/«Б» (42/43), в 11А
+                # трое профильников на профильной математике (39/40/41).
+                # В курсе класса этих предметов нет, поэтому брать предметы
+                # из курса было неверно — отчёт показывал пустую строку
+                # «Английский язык» вместо «Английский А» с оценками.
+                #
+                # Карточки добавляют предметы, которых нет в зачислении:
+                # элективные (21/22/27/28, 29) — они определяются позже,
+                # к концу первой четверти, и в зачисление не попадают,
+                # но уроки и оценки по ним уже есть.
+                student_cards = all_grades.filtered(
+                    lambda g: g.student_id.id == student.id
+                )
+                enrollment = enroll_by_student.get(student.id)
+                enrolled_subject_ids = enrollment.subject_ids.ids if enrollment else []
 
-                    # Берем первую запись, если их несколько (защита от дублей)
-                    g = grade_rec[0] if grade_rec else False
+                # Порядок: сначала предметы курса (как раньше), потом
+                # остальные — по алфавиту, чтобы «Английский А»/«Б» и
+                # элективные стояли рядом.
+                course_subjects = batch.course_id.subject_ids
+                course_ids = course_subjects.ids
 
+                card_by_subject = {g.subject_id.id: g for g in student_cards}
+                all_subject_ids = list(enrolled_subject_ids) + [
+                    sid for sid in card_by_subject if sid not in enrolled_subject_ids
+                ]
+
+                def _subject_sort_key(sid, course_ids=course_ids,
+                                      names=subject_names):
+                    if sid in course_ids:
+                        return (0, course_ids.index(sid), '')
+                    return (1, 0, names.get(sid) or '')
+
+                for sid in sorted(all_subject_ids, key=_subject_sort_key):
+                    g = card_by_subject.get(sid)
+                    grades = [
+                        g.q1_final_grade or '' if g else '',
+                        g.q2_final_grade or '' if g else '',
+                        g.q3_final_grade or '' if g else '',
+                        g.q4_final_grade or '' if g else '',
+                    ]
+                    year_grade = (g.final_quarter_grade or '') if g else ''
+                    # Пустую строку по умолчанию НЕ прячем: по ней учитель
+                    # видит, кто из преподавателей ещё не проставил итоги.
+                    # Для финальной версии отчёта есть галка «скрывать
+                    # предметы без оценок» — тогда пустые строки уходят.
+                    if hide_empty and not any(grades) and not year_grade:
+                        continue
                     subject_data_list.append({
-                        'name': subject.name or 'Без названия',
-                        'grades': [
-                            (g.q1_final_grade or '') if g else '',
-                            (g.q2_final_grade or '') if g else '',
-                            (g.q3_final_grade or '') if g else '',
-                            (g.q4_final_grade or '') if g else ''
-                        ],
-                        'year_grade': (g.final_quarter_grade or '') if g else ''
+                        'name': subject_names.get(sid) or 'Без названия',
+                        'grades': grades,
+                        'year_grade': year_grade,
                     })
 
                 # Собираем посещаемость (также фильтруем из памяти)
