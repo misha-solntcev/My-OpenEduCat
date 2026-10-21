@@ -1855,13 +1855,20 @@ class RostMaxTimetableController(http.Controller):
         # can_submit: ученик из allocation (родитель сдаёт false).
         hw_items = []
         for a in asgs:
-            sub = sub_map.get(a.id)
-            st = sub.state if sub else 'none'
-            hw_items.append({
+            hw_items.append(self._hw_item_payload(
+                a, sub_map.get(a.id), topic_map.get(a.id, ''), now_server))
+        return hw_items
+
+    @staticmethod
+    def _hw_item_payload(a, sub, topic, now_server):
+        """Один элемент ленты ДЗ — общий формат вкладки «Заданий»,
+        ленты главной и экрана одного задания. sub — строка сдачи
+        ученика (или None), topic — тема урока из журнала."""
+        return {
                 "id": a.id,
                 "subject": a.subject_id.name if a.subject_id else "",
                 # Тема урока из журнала, создавшего задание.
-                "topic": topic_map.get(a.id, ''),
+                "topic": topic,
                 # Дата выдачи — issued_date из linked grading_assignment.
                 "issued_at": str(a.grading_assignment_id.issued_date)
                              if a.grading_assignment_id and a.grading_assignment_id.issued_date else "",
@@ -1873,7 +1880,7 @@ class RostMaxTimetableController(http.Controller):
                 # Просрочка по UTC now_server, не по Moscow-naive now.
                 "overdue": bool(a.submission_date and a.submission_date < now_server),
                 "answer_required": a.answer_required,
-                "state": st,
+                "state": sub.state if sub else 'none',
                 "answer": (sub.note or '') if sub else '',
                 "mark": (int(sub.marks) if sub and sub.marks else None),
                 "mark_2": (int(sub.marks_2) if sub and sub.marks_2 else None),
@@ -1886,8 +1893,7 @@ class RostMaxTimetableController(http.Controller):
                 # Материалы задания (вложения учителя) с одноразовыми
                 # ссылками (24 ч) — как вложения сдач в /submissions.
                 "materials": a._hw_material_payload(),
-            })
-        return hw_items
+        }
 
     @http.route("/rost_max/api/homework", type="http", auth="public", methods=["GET"])
     def api_homework_list(self, child_id=None, **kw):
@@ -1916,6 +1922,49 @@ class RostMaxTimetableController(http.Controller):
             "homework": self._student_homework_feed(
                 own_students, _school_now()),
         })
+
+    @http.route("/rost_max/api/homework/<int:assignment_id>",
+                type="http", auth="public", methods=["GET"])
+    def api_homework_one(self, assignment_id, child_id=None, **kw):
+        """API: одно задание по id — тот же формат элемента, что в ленте
+        «Заданий». Экран «Оценки -> тап по строке ДЗ»: карточка задания
+        открывается прямо в детализации, без прыжка на вкладку.
+
+        Доступ тот же, что у списка: ученик/родитель (+ режим «ребёнок»),
+        задание — опубликованное и из класса ученика, иначе 404.
+        """
+        restore_session_if_needed()
+        if not request.session.uid:
+            return request.make_json_response({"error": "Unauthorized"}, status=401)
+
+        user = request.env.user
+        child, err = _resolve_child(user, child_id)
+        if err:
+            return err
+        role, own_students = _get_user_students(user)
+        if child is not None:
+            own_students = child
+        elif role not in ('student', 'parent') or not own_students:
+            return request.make_json_response(
+                {"error": "Доступно только ученику и родителю"}, status=403)
+
+        a = request.env['op.assignment'].sudo().browse(assignment_id)
+        if not a.exists() or a.state != 'publish':
+            return request.make_json_response({"error": "Not found"}, status=404)
+        # Задание обязано быть из класса ученика: id-энумерация чужих
+        # классов не должна раскрывать содержимое.
+        if a.batch_id.id not in own_students.mapped('active_batch_id').ids:
+            return request.make_json_response({"error": "Not found"}, status=404)
+
+        sub = request.env['op.assignment.sub.line'].sudo().search([
+            ('assignment_id', '=', a.id),
+            ('student_id', 'in', own_students.ids),
+        ], limit=1)
+        sheet = request.env['op.attendance.sheet'].sudo().search([
+            ('homework_assignment_id', '=', a.id)], limit=1)
+        item = self._hw_item_payload(
+            a, sub, sheet.lesson_topic or '', fields.Datetime.now())
+        return request.make_json_response({"homework": item})
 
     @staticmethod
     def _batch_short(name):
