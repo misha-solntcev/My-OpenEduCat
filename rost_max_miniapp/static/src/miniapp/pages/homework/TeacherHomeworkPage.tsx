@@ -21,6 +21,7 @@ import {
   Icon24ListCheckOutline,
 } from '@vkontakte/icons';
 import { apiGet, apiPost } from '@/shared/lib/api';
+import { fmtIssued } from '@/shared/lib/datetime';
 import { useAppStore } from '@/shared/lib/store';
 import { useToast } from '@/shared/components/Toast';
 import { SaveBar } from '@/shared/components/SaveBar';
@@ -475,13 +476,16 @@ const AssignmentDetail: React.FC<{
         <VkCard mode="shadow" style={{ margin: '8px 8px 0', overflow: 'hidden' }}>
           <div style={{ padding: '12px 16px' }}>
             {/* Шапка карточки задания — по образцу карточки в списке
-                «Задания» (TeacherHwCard): иконка ДЗ слева, тема в колонке,
-                срок-бейдж справа, текст задания — отдельной строкой на всю
-                ширину. Плашка RightPill убрана: «Сдали N из M» дублировала
-                прогресс-бар «N из M проверено» и, будучи nowrap с
-                flexShrink: 0, отжимала текст задания и темы в узкую
-                колонку (на скриншоте 466px — 100px вместо 336px). */}
-            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+                «Задания» (TeacherHwCard). Раскладка:
+                  строка 1: иконка ДЗ, «Выдано <дата>», срок-бейдж справа;
+                  строка 2: тема — на всю ширину;
+                  строка 3: текст задания — на всю ширину.
+                Тема и задание не делят колонку с бейджем: тема бывает
+                длинной, а бейдж nowrap+flexShrink:0 — колонка сжималась.
+                Плашка RightPill убрана: «Сдали N из M» дублировала
+                прогресс-бар «N из M проверено» и отжимала текст
+                (на скриншоте 466px — 100px вместо 336px). */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               <span style={{
                 width: 38, height: 38, borderRadius: 10, flexShrink: 0,
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -491,29 +495,31 @@ const AssignmentDetail: React.FC<{
               }}>
                 <Icon24ListCheckOutline width={20} height={20} />
               </span>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <Text style={{
-                  fontSize: 15, fontWeight: 400, lineHeight: '20px',
-                  color: 'var(--vkui--color_text_primary)',
-                  overflowWrap: 'anywhere', display: 'block',
-                }}>
-                  {meta.topic ? `Тема: ${meta.topic}` : 'Без темы'}
-                </Text>
-                <Caption style={{
-                  color: 'var(--vkui--color_text_secondary)', display: 'block',
-                  marginTop: 4,
-                }}>
-                  {[
-                    meta.answer_required ? 'требуется ответ' : '',
-                    meta.state === 'finish' ? 'приём завершён' : '',
-                  ].filter(Boolean).join(' · ')}
-                </Caption>
-              </div>
+              <Caption style={{
+                flex: 1, minWidth: 0, color: 'var(--vkui--color_text_secondary)',
+              }}>
+                {[
+                  meta.issued_at ? `Выдано ${fmtIssued(meta.issued_at)}` : '',
+                  meta.answer_required ? 'требуется ответ' : '',
+                  meta.state === 'finish' ? 'приём завершён' : '',
+                ].filter(Boolean).join(' · ')}
+              </Caption>
               <DueBadge
                 due={fmtDueTeacher(meta.due)}
                 overdue={meta.state !== 'finish' && meta.overdue}
               />
             </div>
+
+            {/* Тема — на всю ширину карточки, как задание в списке. */}
+            {meta.topic && (
+              <div style={{
+                fontSize: 15, fontWeight: 400, lineHeight: '20px',
+                marginTop: 11, overflowWrap: 'anywhere',
+                color: 'var(--vkui--color_text_primary)',
+              }}>
+                {`Тема: ${meta.topic}`}
+              </div>
+            )}
 
             {/* Текст задания — на всю ширину карточки, как в списке. */}
             <div style={{
