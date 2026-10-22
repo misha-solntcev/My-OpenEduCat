@@ -161,27 +161,69 @@ export default function App() {
   };
 
   const handleTeacherGradesBack = () => {
-    // Четвёртая панель — экран задания (тап по ДЗ ученика): при «назад»
-    // с неё сначала закрываем задание, потом уходим с панели предмета.
-    if (teacherGradesHistory[teacherGradesHistory.length - 1]
-      === 'teacher-assignment-panel') {
-      setTeacherGradesHistory(h => h.slice(0, -1));
-      setTeacherOpenAssignmentId(null);
-      return;
-    }
     setTeacherGradesHistory(h => (h.length > 1 ? h.slice(0, -1) : h));
     setTeacherSubject(null);
   };
 
-  // Тап по строке ДЗ в карточке ученика («Оценки» учителя) — тот же
-  // единый экран задания, что на вкладке «Заданий» (TeacherHomeworkPage
-  // в режиме прямого входа), четвёртая панель вьюхи teacher-subjects.
+  // Тап по строке ДЗ в карточке ученика («Оценки» учителя) открывает
+  // ЕДИНЫЙ экран задания — тот же, что на вкладке «Заданий». Раньше это
+  // была третья панель вьюхи teacher-subjects: структура View (три панели
+  // + история переходов) давала вёрстку, отличную от «Заданий» (одна
+  // панель, без истории), и шапка с заданием выглядела иначе. Теперь
+  // показываем вьюху teacher-homework — ровно ту, что на вкладке
+  // «Заданий», — а таб при этом остаётся «Оценки». «Назад» в шапке
+  // детали возвращает на панель предмета: стек «Оценок» при открытии
+  // задания не трогаем.
   const [teacherOpenAssignmentId, setTeacherOpenAssignmentId] = React.useState<number | null>(null);
+  const [teacherAssignmentOpen, setTeacherAssignmentOpen] = React.useState(false);
   const handleTeacherOpenAssignment = (assignmentId: number) => {
     setTeacherOpenAssignmentId(assignmentId);
-    setTeacherGradesHistory(h =>
-      h[h.length - 1] === 'teacher-assignment-panel' ? h : [...h, 'teacher-assignment-panel']);
+    setTeacherAssignmentOpen(true);
   };
+  // «Назад» в шапке детали: закрываем задание и возвращаем вьюху
+  // «Оценки» — на панель предмета (стек «Оценок» не менялся, в нём
+  // последней осталась именно панель предмета).
+  const handleTeacherAssignmentBack = () => {
+    setTeacherOpenAssignmentId(null);
+    setTeacherAssignmentOpen(false);
+  };
+
+  // Стек «Оценок» не переживает уход из раздела: ушёл на главную или в
+  // профиль — вернулся, и снова начальный экран (список предметов/пар),
+  // а не оставшееся открытым задание. Раньше стек жил в состоянии App
+  // и переживал переключение табов, поэтому задание оставалось открытым
+  // (и для ученика, и для учителя).
+  //
+  // Два случая разные:
+  //  • сменили вкладку — «Оценки» откроются с начального экрана;
+  //  • зашли в профиль (вкладка та же) — закрываем открытое задание,
+  //    но панель предмета оставляем.
+  const prevNavRef = React.useRef({ view: activeView, tab: activeTab });
+  React.useEffect(() => {
+    const prev = prevNavRef.current;
+    const wasInSubjects = prev.view === 'main' && prev.tab === 'subjects';
+    const isInSubjects = activeView === 'main' && activeTab === 'subjects';
+    if (wasInSubjects && !isInSubjects) {
+      // Экран задания учителя — отдельная story; её надо закрыть всегда,
+      // иначе после ухода останется висеть экран задания вместо того
+      // экрана, куда ушли.
+      setTeacherOpenAssignmentId(null);
+      setTeacherAssignmentOpen(false);
+      if (activeTab !== 'subjects') {
+        // Вкладку сменили — «Оценки» откроются с начального экрана.
+        setSubjectsHistory(['subjects-panel']);
+        setSelectedSubject(null);
+        setTeacherGradesHistory(['teacher-subjects-panel']);
+        setTeacherSubject(null);
+        setOpenAssignmentId(null);
+      } else {
+        // Ушли в профиль: закрываем только открытое задание.
+        setSubjectsHistory(h => (h[h.length - 1] === 'assignment-panel'
+          ? h.slice(0, -1) : h));
+      }
+    }
+    prevNavRef.current = { view: activeView, tab: activeTab };
+  }, [activeView, activeTab]);
 
   const handleSubjectsBack = () => {
     if (subjectsHistory.length > 1) {
@@ -207,6 +249,20 @@ export default function App() {
     setOpenAssignmentId(null);
     setSubjectsHistory(h => (h[h.length - 1] === 'assignment-panel'
       ? h.slice(0, -1) : h));
+  };
+
+  // Тап по вкладке «Оценки» (из таббара или с главной) — открываем
+  // раздел с начального экрана. Иначе открытое задание «залипало»:
+  // ушёл на главную, вернулся в «Оценки» — и снова экран задания.
+  const handleOpenGradesTab = () => {
+    setSubjectsHistory(['subjects-panel']);
+    setSelectedSubject(null);
+    setOpenAssignmentId(null);
+    setTeacherGradesHistory(['teacher-subjects-panel']);
+    setTeacherSubject(null);
+    setTeacherOpenAssignmentId(null);
+    setTeacherAssignmentOpen(false);
+    setActiveTab('subjects');
   };
 
   const handleOpenLesson = (lessonId: number) => {
@@ -283,9 +339,15 @@ export default function App() {
           <Epic
             id="main"
             activeStory={
-              activeTab === 'homework' && isStaff && !childMode ? 'teacher-homework'
-                : activeTab === 'subjects' && isStaff && !childMode ? 'teacher-subjects'
-                  : activeTab
+              // Единый экран задания, открытый из «Оценок» учителя,
+              // показываем в той же вьюхе, что и вкладка «Заданий»
+              // (story teacher-homework): так раскладка шапки и карточки
+              // задания совпадает с вкладкой «Заданий» byte-for-byte.
+              // Таб при этом остаётся «Оценки» — меняется только story.
+              teacherAssignmentOpen && isStaff && !childMode ? 'teacher-homework'
+                : activeTab === 'homework' && isStaff && !childMode ? 'teacher-homework'
+                  : activeTab === 'subjects' && isStaff && !childMode ? 'teacher-subjects'
+                    : activeTab
             }
             tabbar={
               <Tabbar mode="horizontal">
@@ -316,7 +378,7 @@ export default function App() {
                   <TabbarItem
                     label="Оценки"
                     selected={activeTab === 'subjects'}
-                    onClick={() => setActiveTab('subjects')}
+                    onClick={handleOpenGradesTab}
                   >
                     <Icon28BookSpreadOutline />
                   </TabbarItem>
@@ -330,7 +392,7 @@ export default function App() {
                 id="dashboard-panel"
                 onOpenLesson={handleOpenLesson}
                 onOpenTimetable={() => setActiveTab('timetable')}
-                onOpenGrades={() => setActiveTab('subjects')}
+                onOpenGrades={handleOpenGradesTab}
                 onOpenHomework={() => setActiveTab('homework')}
                 onOpenProfile={() => setActiveView('profile')}
               />
@@ -367,6 +429,8 @@ export default function App() {
                 initialFilter={lessonHomeworkFilter}
                 onBackToLesson={lessonIdForHw != null ? handleBackToLesson : undefined}
                 onOpenProfile={() => setActiveView('profile')}
+                openAssignmentId={teacherOpenAssignmentId}
+                onDirectBack={handleTeacherAssignmentBack}
               />
             </View>
 
@@ -398,9 +462,12 @@ export default function App() {
               />
             </View>
 
-            {/* Оценки учителя/админа: список своих пар -> ученики ->
-                карточка ученика. Детализация предмета — тот же экран
-                SubjectGradesPage, что у ученика, с studentId. */}
+            {/* Задания учителя/админа. Сюда же попадает единый экран
+                задания, открытый из «Оценок» (тап по ДЗ ученика): та же
+                вьюха, что и на вкладке «Заданий» — иначе раскладка шапки
+                и карточки задания отличалась бы от вкладки «Заданий».
+                Таб при этом остаётся «Оценки», а «Назад» в шапке детали
+                возвращает на панель предмета. */}
             <View
               id="teacher-subjects"
               activePanel={activeTeacherGradesPanel}
@@ -420,15 +487,6 @@ export default function App() {
                 quarter={teacherSubject?.quarter}
                 onBack={handleTeacherGradesBack}
                 onOpenAssignment={handleTeacherOpenAssignment}
-              />
-              {/* Единый экран задания (вариант Б): тап по ДЗ ученика в
-                  «Оценках» ведёт сюда — тот же TeacherHomeworkPage, что на
-                  вкладке «Заданий», сразу с открытой деталью. Чат, оценки
-                  и «Принять/На доработку» — в одном месте для всех входов. */}
-              <TeacherHomeworkPage
-                id="teacher-assignment-panel"
-                openAssignmentId={teacherOpenAssignmentId}
-                onOpenProfile={() => setActiveView('profile')}
               />
             </View>
           </Epic>

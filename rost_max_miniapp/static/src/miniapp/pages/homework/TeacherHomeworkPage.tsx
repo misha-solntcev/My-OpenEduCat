@@ -657,11 +657,14 @@ export const TeacherHomeworkPage: React.FC<{
    *  «Задания» кнопки «Назад» в шапке быть не должно, там и так таббар. */
   onBackToLesson?: () => void;
   onOpenProfile?: () => void;
-  /** Прямой вход (вариант Б, единый экран): открыть сразу деталь задания,
+  /** Прямой вход (единый экран): открыть сразу деталь задания,
    *  минуя список вкладки (вход из «Оценок» — тап по ДЗ ученика). Назад —
    *  закрыть деталь. Внутри вкладки «Заданий» этот проп не передаётся. */
   openAssignmentId?: number | null;
-}> = ({ id, initialFilter, onBackToLesson, onOpenProfile, openAssignmentId }) => {
+  /** «Назад» в шапке детали при прямом входе. В App.tsx это возврат на
+   *  панель предмета в «Оценках» (учитель) либо в список заданий. */
+  onDirectBack?: () => void;
+}> = ({ id, initialFilter, onBackToLesson, onOpenProfile, openAssignmentId, onDirectBack }) => {
   const addToast = useToast();
   // Ось «Кого смотрим» (свитч удалён — решение 2026-10-14): секция
   // ПЕРВАЯ в шторке, чип режима над лентой.
@@ -802,19 +805,18 @@ export const TeacherHomeworkPage: React.FC<{
   const listChanged = React.useCallback(() => { load(); }, [load]);
 
   // Прямой вход (openAssignmentId): деталь сразу, список вкладки не рендерим.
-  // Это отдельная панель вьюхи teacher-subjects («Оценки» → тап по ДЗ
-  // ученика), поэтому «назад» в шапке детали обязан быть всегда —
-  // таббара поверх этой панели нет.
-  const [directBack, setDirectBack] = React.useState(false);
-  React.useEffect(() => { setDirectBack(openAssignmentId != null); }, [openAssignmentId]);
-
-  if (directBack && openAssignmentId != null) {
+  // Это НЕ отдельная панель вьюхи «Оценки», а та же вьюха teacher-homework,
+  // что и на вкладке «Заданий» (см. App.tsx): иначе раскладка отличалась бы
+  // от вкладки «Заданий» — шапка и карточка задания вставали иначе.
+  // «Назад» в шапке детали уводит на панель предмета — за это отвечает
+  // onDirectBack (App.tsx), он же возвращает вьюху «Оценки».
+  if (openAssignmentId != null) {
     return (
       <Panel id={id}>
         <AssignmentDetail
           key={`direct:${openAssignmentId}`}
           assignmentId={openAssignmentId}
-          onBack={() => setDirectBack(false)}
+          onBack={onDirectBack ?? (() => undefined)}
           onListChanged={listChanged}
           showFaculty={isAdmin}
         />
