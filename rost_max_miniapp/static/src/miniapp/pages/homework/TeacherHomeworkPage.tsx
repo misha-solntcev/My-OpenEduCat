@@ -37,13 +37,10 @@ import {
 } from '@/shared/components/ChipFilterModal';
 import type { ChipFilters, ChipFilterSection } from '@/shared/components/ChipFilterModal';
 import { AccentSegmentedControl } from '@/shared/components/AccentSegmentedControl';
-import { TeacherHwCard, RightPill } from '@/shared/components/TeacherHomeworkCards';
+import { TeacherHwCard, DueBadge, fmtDueTeacher } from '@/shared/components/TeacherHomeworkCards';
 import type {
   TeacherHomeworkItem, TeacherHomeworkResponse, HomeworkSubmissionsResponse,
 } from '@/shared/lib/types';
-
-const MONTHS = ['янв', 'фев', 'мар', 'апр', 'мая', 'июн',
-  'июл', 'авг', 'сен', 'окт', 'ноя', 'дек'];
 
 type StatusKey = 'review' | 'issued' | 'checked';
 
@@ -53,13 +50,6 @@ const SEGMENTS: { key: StatusKey; title: string; empty: string }[] = [
   { key: 'issued', title: 'Выдано', empty: 'Нет выданных заданий без ответов' },
   { key: 'checked', title: 'Проверено', empty: 'Проверенных заданий пока нет' },
 ];
-
-const fmtDue = (due: string): string => {
-  if (!due) return '';
-  const d = new Date(due);
-  if (isNaN(d.getTime())) return due;
-  return `до ${d.getDate()} ${MONTHS[d.getMonth()]}`;
-};
 
 // Строка чипов активного фильтра + «Сбросить» — общий FilterChipRow
 // (мокап; ранее была локальной копией, вынесена для «Моих пар» Оценок).
@@ -484,8 +474,13 @@ const AssignmentDetail: React.FC<{
       {meta && (
         <VkCard mode="shadow" style={{ margin: '8px 8px 0', overflow: 'hidden' }}>
           <div style={{ padding: '12px 16px' }}>
-            {/* мокап D: [иконка ДЗ] [задание / тема-срок] — иконка ДЗ (чек-лист
-                на синем тинте) отличается от палитры предметов (FontAwesome). */}
+            {/* Шапка карточки задания — по образцу карточки в списке
+                «Задания» (TeacherHwCard): иконка ДЗ слева, тема в колонке,
+                срок-бейдж справа, текст задания — отдельной строкой на всю
+                ширину. Плашка RightPill убрана: «Сдали N из M» дублировала
+                прогресс-бар «N из M проверено» и, будучи nowrap с
+                flexShrink: 0, отжимала текст задания и темы в узкую
+                колонку (на скриншоте 466px — 100px вместо 336px). */}
             <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
               <span style={{
                 width: 38, height: 38, borderRadius: 10, flexShrink: 0,
@@ -497,25 +492,36 @@ const AssignmentDetail: React.FC<{
                 <Icon24ListCheckOutline width={20} height={20} />
               </span>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <Text weight="2" style={{
-                  color: 'var(--vkui--color_text_primary)', display: 'block',
-                  whiteSpace: 'pre-wrap', overflowWrap: 'anywhere',
+                <Text style={{
+                  fontSize: 15, fontWeight: 400, lineHeight: '20px',
+                  color: 'var(--vkui--color_text_primary)',
+                  overflowWrap: 'anywhere', display: 'block',
                 }}>
-                  {meta.task}
+                  {meta.topic ? `Тема: ${meta.topic}` : 'Без темы'}
                 </Text>
                 <Caption style={{
                   color: 'var(--vkui--color_text_secondary)', display: 'block',
                   marginTop: 4,
                 }}>
                   {[
-                    meta.topic ? `Тема: ${meta.topic}` : '',
-                    fmtDue(meta.due),
                     meta.answer_required ? 'требуется ответ' : '',
                     meta.state === 'finish' ? 'приём завершён' : '',
                   ].filter(Boolean).join(' · ')}
                 </Caption>
               </div>
-              <RightPill h={meta} />
+              <DueBadge
+                due={fmtDueTeacher(meta.due)}
+                overdue={meta.state !== 'finish' && meta.overdue}
+              />
+            </div>
+
+            {/* Текст задания — на всю ширину карточки, как в списке. */}
+            <div style={{
+              fontSize: 15, fontWeight: 400, lineHeight: 1.5,
+              marginTop: 11, overflowWrap: 'anywhere', whiteSpace: 'pre-wrap',
+              color: 'var(--vkui--color_text_primary)',
+            }}>
+              {meta.task}
             </div>
 
             {/* мокап D: синий прогресс проверки (submitted с оценкой неизвестен,
