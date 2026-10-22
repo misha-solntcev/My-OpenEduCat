@@ -659,6 +659,21 @@
                         ('batch_id.end_date', '&gt;=', (context_today() + relativedelta(months=-(((context_today().month) - 9) % 12), day=1)).strftime('%Y-%m-%d')),
                         ('batch_id.start_date', '&lt;=', (context_today() + relativedelta(months=-(((context_today().month) - 9) % 12), day=1, years=1, days=-1)).strftime('%Y-%m-%d'))]" />
 
+                <!-- Отчисленные в текущем году: ученик left, его курс в
+                     этом классе finished и ни одного running-курса в
+                     учебном году класса нет. Окно года — то же, что в
+                     «Текущий год»: с прошлого 1 сентября. Ученик,
+                     отчисленный в ПРОШЛОМ году (left + все его курсы
+                     finished), в канбан этого года всё равно не попадёт:
+                     его батчи не пересекаются с окном. Снимаемый дефолт
+                     (search_default) в act_window. -->
+                <filter string="⭕ Без отчисленных" name="hide_left_students"
+                    domain="['|',
+                        ('student_id.state', '!=', 'left'),
+                        ('student_id.course_detail_ids', 'any',
+                            [('academic_years_id.start_date', '=', (context_today() + relativedelta(months=-(((context_today().month) - 9) % 12), day=1)).strftime('%Y-%m-%d')),
+                             ('state', '=', 'running')])]" />
+
                 <separator />
 
                 <!-- Блок фильтров по баллам -->
@@ -732,6 +747,6 @@
         <field name="res_model">op.subject.grades</field>
         <field name="view_mode">kanban,list,form</field>
         <field name="search_view_id" ref="view_op_subject_grades_search" />
-        <field name="context">{'search_default_current_year': 1}</field>
+        <field name="context">{'search_default_current_year': 1, 'search_default_hide_left_students': 1}</field>
     </record>
 </odoo>

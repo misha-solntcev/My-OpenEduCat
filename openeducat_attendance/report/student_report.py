@@ -1,4 +1,4 @@
-from odoo import models, api, _
+from odoo import fields, models, api, _
 from odoo.exceptions import UserError
 
 class ReportStudentSummary(models.AbstractModel):
@@ -67,9 +67,6 @@ class ReportStudentSummary(models.AbstractModel):
             if wizard.student_ids:
                 students_in_batch = students_in_batch & wizard.student_ids
 
-            if not students_in_batch:
-                continue
-
             # --- СУПЕР-ОПТИМИЗАЦИЯ: СКАЧИВАЕМ ДАННЫЕ ОДНИМ ЗАПРОСОМ НА ВЕСЬ КЛАСС ---
             # 1. Находим все карточки успеваемости для этого класса
             all_grades = self.env['op.subject.grades'].search([
@@ -87,6 +84,34 @@ class ReportStudentSummary(models.AbstractModel):
                 ('term_id', 'in', terms.ids),
                 ('batch_id', '=', batch.id),
             ])
+
+            # Отчисленный (state='left') не попадает в отчёт, если он
+            # отчислен ИМЕННО в отчётном году: его курс в этом классе
+            # закрыт (finished) и ни в одном классе этого года он не
+            # числится (running). Отчисленные в ПРОШЛЫХ годах остаются:
+            # они отучили тот год, их итоги в ведомости за него легитимны
+            # (6 left в 7А 2025/26 с полными итогами).
+            # Наличие attendance lines — не критерий: строки создаются
+            # автоматически из журналов по всем числившимся, они есть у
+            # всех, включая отчисленных (905 строк у ушедших в августе).
+            # Фильтр применяется только к отчёту за ТЕКУЩИЙ (ещё не
+            # закончившийся) год. Отчёты за завершившиеся годы — архив:
+            # там все left отучили свой год и остаются как есть.
+            if year.end_date >= fields.Date.context_today(self):
+                if students_in_batch and any(s.state == 'left' for s in students_in_batch):
+                    left_ids = students_in_batch.filtered(
+                        lambda s: s.state == 'left').ids
+                    running = self.env['op.student.course'].sudo().search_read(
+                        [('student_id', 'in', left_ids),
+                         ('academic_years_id', '=', year.id),
+                         ('state', '=', 'running')],
+                        ['student_id'])
+                    running_ids = {r['student_id'][0] for r in running}
+                    students_in_batch = students_in_batch.filtered(
+                        lambda s: s.state != 'left' or s.id in running_ids)
+
+            if not students_in_batch:
+                continue
 
             # Зачисления класса: из них берём индивидуальный набор
             # предметов ученика (английский А/Б, профильная математика —
