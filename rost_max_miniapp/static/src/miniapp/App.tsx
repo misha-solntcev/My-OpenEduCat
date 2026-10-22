@@ -161,8 +161,26 @@ export default function App() {
   };
 
   const handleTeacherGradesBack = () => {
+    // Четвёртая панель — экран задания (тап по ДЗ ученика): при «назад»
+    // с неё сначала закрываем задание, потом уходим с панели предмета.
+    if (teacherGradesHistory[teacherGradesHistory.length - 1]
+      === 'teacher-assignment-panel') {
+      setTeacherGradesHistory(h => h.slice(0, -1));
+      setTeacherOpenAssignmentId(null);
+      return;
+    }
     setTeacherGradesHistory(h => (h.length > 1 ? h.slice(0, -1) : h));
     setTeacherSubject(null);
+  };
+
+  // Тап по строке ДЗ в карточке ученика («Оценки» учителя) — тот же
+  // единый экран задания, что на вкладке «Заданий» (TeacherHomeworkPage
+  // в режиме прямого входа), четвёртая панель вьюхи teacher-subjects.
+  const [teacherOpenAssignmentId, setTeacherOpenAssignmentId] = React.useState<number | null>(null);
+  const handleTeacherOpenAssignment = (assignmentId: number) => {
+    setTeacherOpenAssignmentId(assignmentId);
+    setTeacherGradesHistory(h =>
+      h[h.length - 1] === 'teacher-assignment-panel' ? h : [...h, 'teacher-assignment-panel']);
   };
 
   const handleSubjectsBack = () => {
@@ -401,6 +419,16 @@ export default function App() {
                 studentId={teacherSubject?.studentId}
                 quarter={teacherSubject?.quarter}
                 onBack={handleTeacherGradesBack}
+                onOpenAssignment={handleTeacherOpenAssignment}
+              />
+              {/* Единый экран задания (вариант Б): тап по ДЗ ученика в
+                  «Оценках» ведёт сюда — тот же TeacherHomeworkPage, что на
+                  вкладке «Заданий», сразу с открытой деталью. Чат, оценки
+                  и «Принять/На доработку» — в одном месте для всех входов. */}
+              <TeacherHomeworkPage
+                id="teacher-assignment-panel"
+                openAssignmentId={teacherOpenAssignmentId}
+                onOpenProfile={() => setActiveView('profile')}
               />
             </View>
           </Epic>

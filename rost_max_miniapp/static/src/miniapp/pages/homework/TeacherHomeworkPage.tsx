@@ -298,7 +298,7 @@ const AssignmentDetail: React.FC<{
   onBack: () => void;
   onListChanged: () => void;
   showFaculty: boolean;
-}> = ({ assignmentId, onBack, onListChanged }) => {
+}> = ({ assignmentId, onBack, onListChanged, showFaculty }) => {
   const addToast = useToast();
   const [data, setData] = React.useState<HomeworkSubmissionsResponse | null>(null);
   const [meta, setMeta] = React.useState<TeacherHomeworkItem | null>(null);
@@ -475,7 +475,7 @@ const AssignmentDetail: React.FC<{
           before={meta && (
             <SubjectAvatar subject={meta.subject} color={meta.subject_color} size={30} />
           )}
-          subtitle={meta?.faculty || undefined}
+          subtitle={showFaculty ? (meta?.faculty || undefined) : undefined}
         >
           {meta ? `${meta.subject} · ${meta.batch}` : 'Задание'}
         </PanelHeaderContent>
@@ -592,22 +592,25 @@ const AssignmentDetail: React.FC<{
           marks={marks}
           marks2={marks2}
           onMarkChange={handleMarkChange}
-          onReview={async (subId, action, note, mark, studentId, mark2) => {
+          onReview={async (subId, action, note, mark, studentId, mark2, clearNote) => {
               try {
                 // subId === null — приём без сдачи (ответ устно/в тетради):
                 // создаёт строку сдачи сразу с итоговым состоянием.
                 const url = subId === null
                   ? `/rost_max/api/homework/${data!.assignment.id}/review_student`
                   : `/rost_max/api/homework/submission/${subId}/review`;
+                // teacher_note_clear — явная очистка комментария. Без него
+                // пустой teacher_note бэкенд игнорирует (чтобы повторное
+                // «Принять» не затирало текст, кейс Макаровой 2026-10-21).
                 const payload = subId === null
-                  ? { student_id: studentId, action, teacher_note: note, mark, mark_2: mark2 }
-                  : { action, teacher_note: note, mark, mark_2: mark2 };
+                  ? { student_id: studentId, action, teacher_note: note, mark, mark_2: mark2, teacher_note_clear: !!clearNote }
+                  : { action, teacher_note: note, mark, mark_2: mark2, teacher_note_clear: !!clearNote };
                 const res = await apiPost<{ success?: boolean; error?: string }>(url, payload);
                 if (res.error) {
                   addToast(res.error, 'error');
                   return res.error;
                 }
-                addToast(action === 'accept' ? 'Принято' : 'Отправлено на доработку', 'success');
+                addToast(clearNote ? 'Комментарий очищен' : (action === 'accept' ? 'Принято' : 'Отправлено на доработку'), 'success');
                 await load();
                 onListChanged();
                 return null;
@@ -654,7 +657,11 @@ export const TeacherHomeworkPage: React.FC<{
    *  «Задания» кнопки «Назад» в шапке быть не должно, там и так таббар. */
   onBackToLesson?: () => void;
   onOpenProfile?: () => void;
-}> = ({ id, initialFilter, onBackToLesson, onOpenProfile }) => {
+  /** Прямой вход (вариант Б, единый экран): открыть сразу деталь задания,
+   *  минуя список вкладки (вход из «Оценок» — тап по ДЗ ученика). Назад —
+   *  закрыть деталь. Внутри вкладки «Заданий» этот проп не передаётся. */
+  openAssignmentId?: number | null;
+}> = ({ id, initialFilter, onBackToLesson, onOpenProfile, openAssignmentId }) => {
   const addToast = useToast();
   // Ось «Кого смотрим» (свитч удалён — решение 2026-10-14): секция
   // ПЕРВАЯ в шторке, чип режима над лентой.
@@ -793,6 +800,27 @@ export const TeacherHomeworkPage: React.FC<{
   const showFaculty = isAdmin;
 
   const listChanged = React.useCallback(() => { load(); }, [load]);
+
+  // Прямой вход (openAssignmentId): деталь сразу, список вкладки не рендерим.
+  // Это отдельная панель вьюхи teacher-subjects («Оценки» → тап по ДЗ
+  // ученика), поэтому «назад» в шапке детали обязан быть всегда —
+  // таббара поверх этой панели нет.
+  const [directBack, setDirectBack] = React.useState(false);
+  React.useEffect(() => { setDirectBack(openAssignmentId != null); }, [openAssignmentId]);
+
+  if (directBack && openAssignmentId != null) {
+    return (
+      <Panel id={id}>
+        <AssignmentDetail
+          key={`direct:${openAssignmentId}`}
+          assignmentId={openAssignmentId}
+          onBack={() => setDirectBack(false)}
+          onListChanged={listChanged}
+          showFaculty={isAdmin}
+        />
+      </Panel>
+    );
+  }
 
   return (
     <Panel id={id}>
