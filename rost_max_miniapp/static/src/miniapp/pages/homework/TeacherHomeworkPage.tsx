@@ -886,7 +886,7 @@ export const TeacherHomeworkPage: React.FC<{
                 <Div style={{ padding: '4px 16px 0' }}>
                   <FilterChipRow
                     chips={[
-                      ...(viewerChips(axis)),
+                      ...(axis ? viewerChips(axis) : []),
                       ...[...filters.batches].map(v => ({ kind: 'batch' as const, v })),
                       ...[...filters.subjects].map(v => ({ kind: 'subject' as const, v })),
                     ]}

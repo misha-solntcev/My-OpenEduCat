@@ -130,7 +130,7 @@ export const SubjectGradesPage: React.FC<SubjectGradesPageProps> = ({
                   mode="shadow"
                   style={{ padding: 12, marginBottom: 8, borderRadius: 12 }}
                 >
-                  <Flex align="center" gap={10} alignItems="flex-start">
+                  <Flex align="start" gap={10}>
                     <Text weight="1" style={{ color: 'var(--vkui--color_text_secondary)', whiteSpace: 'nowrap', minWidth: 42 }}>
                       {fmtDate(ln.date)}
                     </Text>

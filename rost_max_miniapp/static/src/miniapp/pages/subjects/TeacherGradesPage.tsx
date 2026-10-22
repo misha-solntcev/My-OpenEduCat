@@ -350,7 +350,7 @@ export const TeacherGradesPage: React.FC<{
             <Div style={{ padding: '0 16px 4px' }}>
               <FilterChipRow
                 chips={[
-                  ...(viewerChips(axis)),
+                  ...(axis ? viewerChips(axis) : []),
                   ...chipKeys.flatMap(k =>
                     [...(filters[k] ?? [])].map(v => ({ kind: k, v }))),
                 ]}
@@ -376,9 +376,7 @@ export const TeacherGradesPage: React.FC<{
       )}
       {view === 'students' && detail && (
         <PanelHeader
-          before={<PanelHeaderBack onClick={() => { setView('pairs'); }}>
-            Назад
-          </PanelHeaderBack>}
+          before={<PanelHeaderBack label="Назад" onClick={() => { setView('pairs'); }} />}
         >
           <PanelHeaderContent
             before={<SubjectAvatar subject={detail.pair.subject} color={detail.pair.subject_color} size={30} />}
@@ -390,9 +388,7 @@ export const TeacherGradesPage: React.FC<{
       )}
       {view === 'student' && student && (
         <PanelHeader
-          before={<PanelHeaderBack onClick={() => { setStudent(null); setView('students'); }}>
-            Назад
-          </PanelHeaderBack>}
+          before={<PanelHeaderBack label="Назад" onClick={() => { setStudent(null); setView('students'); }} />}
         >
           {student.student.name}
         </PanelHeader>
