@@ -21,6 +21,7 @@ import {
   Icon24ListCheckOutline,
 } from '@vkontakte/icons';
 import { apiGet, apiPost } from '@/shared/lib/api';
+import { fmtIssued } from '@/shared/lib/datetime';
 import { useAppStore } from '@/shared/lib/store';
 import { useToast } from '@/shared/components/Toast';
 import { SaveBar } from '@/shared/components/SaveBar';
@@ -37,13 +38,10 @@ import {
 } from '@/shared/components/ChipFilterModal';
 import type { ChipFilters, ChipFilterSection } from '@/shared/components/ChipFilterModal';
 import { AccentSegmentedControl } from '@/shared/components/AccentSegmentedControl';
-import { TeacherHwCard, RightPill } from '@/shared/components/TeacherHomeworkCards';
+import { TeacherHwCard, DueBadge, fmtDueTeacher } from '@/shared/components/TeacherHomeworkCards';
 import type {
   TeacherHomeworkItem, TeacherHomeworkResponse, HomeworkSubmissionsResponse,
 } from '@/shared/lib/types';
-
-const MONTHS = ['янв', 'фев', 'мар', 'апр', 'мая', 'июн',
-  'июл', 'авг', 'сен', 'окт', 'ноя', 'дек'];
 
 type StatusKey = 'review' | 'issued' | 'checked';
 
@@ -53,13 +51,6 @@ const SEGMENTS: { key: StatusKey; title: string; empty: string }[] = [
   { key: 'issued', title: 'Выдано', empty: 'Нет выданных заданий без ответов' },
   { key: 'checked', title: 'Проверено', empty: 'Проверенных заданий пока нет' },
 ];
-
-const fmtDue = (due: string): string => {
-  if (!due) return '';
-  const d = new Date(due);
-  if (isNaN(d.getTime())) return due;
-  return `до ${d.getDate()} ${MONTHS[d.getMonth()]}`;
-};
 
 // Строка чипов активного фильтра + «Сбросить» — общий FilterChipRow
 // (мокап; ранее была локальной копией, вынесена для «Моих пар» Оценок).
@@ -298,7 +289,7 @@ const AssignmentDetail: React.FC<{
   onBack: () => void;
   onListChanged: () => void;
   showFaculty: boolean;
-}> = ({ assignmentId, onBack, onListChanged }) => {
+}> = ({ assignmentId, onBack, onListChanged, showFaculty }) => {
   const addToast = useToast();
   const [data, setData] = React.useState<HomeworkSubmissionsResponse | null>(null);
   const [meta, setMeta] = React.useState<TeacherHomeworkItem | null>(null);
@@ -475,7 +466,7 @@ const AssignmentDetail: React.FC<{
           before={meta && (
             <SubjectAvatar subject={meta.subject} color={meta.subject_color} size={30} />
           )}
-          subtitle={meta?.faculty || undefined}
+          subtitle={showFaculty ? (meta?.faculty || undefined) : undefined}
         >
           {meta ? `${meta.subject} · ${meta.batch}` : 'Задание'}
         </PanelHeaderContent>
@@ -484,9 +475,17 @@ const AssignmentDetail: React.FC<{
       {meta && (
         <VkCard mode="shadow" style={{ margin: '8px 8px 0', overflow: 'hidden' }}>
           <div style={{ padding: '12px 16px' }}>
-            {/* мокап D: [иконка ДЗ] [задание / тема-срок] — иконка ДЗ (чек-лист
-                на синем тинте) отличается от палитры предметов (FontAwesome). */}
-            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+            {/* Шапка карточки задания — по образцу карточки в списке
+                «Задания» (TeacherHwCard). Раскладка:
+                  строка 1: иконка ДЗ, «Выдано <дата>», срок-бейдж справа;
+                  строка 2: тема — на всю ширину;
+                  строка 3: текст задания — на всю ширину.
+                Тема и задание не делят колонку с бейджем: тема бывает
+                длинной, а бейдж nowrap+flexShrink:0 — колонка сжималась.
+                Плашка RightPill убрана: «Сдали N из M» дублировала
+                прогресс-бар «N из M проверено» и отжимала текст
+                (на скриншоте 466px — 100px вместо 336px). */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               <span style={{
                 width: 38, height: 38, borderRadius: 10, flexShrink: 0,
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -496,26 +495,39 @@ const AssignmentDetail: React.FC<{
               }}>
                 <Icon24ListCheckOutline width={20} height={20} />
               </span>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <Text weight="2" style={{
-                  color: 'var(--vkui--color_text_primary)', display: 'block',
-                  whiteSpace: 'pre-wrap', overflowWrap: 'anywhere',
-                }}>
-                  {meta.task}
-                </Text>
-                <Caption style={{
-                  color: 'var(--vkui--color_text_secondary)', display: 'block',
-                  marginTop: 4,
-                }}>
-                  {[
-                    meta.topic ? `Тема: ${meta.topic}` : '',
-                    fmtDue(meta.due),
-                    meta.answer_required ? 'требуется ответ' : '',
-                    meta.state === 'finish' ? 'приём завершён' : '',
-                  ].filter(Boolean).join(' · ')}
-                </Caption>
+              <Caption style={{
+                flex: 1, minWidth: 0, color: 'var(--vkui--color_text_secondary)',
+              }}>
+                {[
+                  meta.issued_at ? `Выдано ${fmtIssued(meta.issued_at)}` : '',
+                  meta.answer_required ? 'требуется ответ' : '',
+                  meta.state === 'finish' ? 'приём завершён' : '',
+                ].filter(Boolean).join(' · ')}
+              </Caption>
+              <DueBadge
+                due={fmtDueTeacher(meta.due)}
+                overdue={meta.state !== 'finish' && meta.overdue}
+              />
+            </div>
+
+            {/* Тема — на всю ширину карточки, как задание в списке. */}
+            {meta.topic && (
+              <div style={{
+                fontSize: 15, fontWeight: 400, lineHeight: '20px',
+                marginTop: 11, overflowWrap: 'anywhere',
+                color: 'var(--vkui--color_text_primary)',
+              }}>
+                {`Тема: ${meta.topic}`}
               </div>
-              <RightPill h={meta} />
+            )}
+
+            {/* Текст задания — на всю ширину карточки, как в списке. */}
+            <div style={{
+              fontSize: 15, fontWeight: 400, lineHeight: 1.5,
+              marginTop: 11, overflowWrap: 'anywhere', whiteSpace: 'pre-wrap',
+              color: 'var(--vkui--color_text_primary)',
+            }}>
+              {meta.task}
             </div>
 
             {/* мокап D: синий прогресс проверки (submitted с оценкой неизвестен,
@@ -592,22 +604,25 @@ const AssignmentDetail: React.FC<{
           marks={marks}
           marks2={marks2}
           onMarkChange={handleMarkChange}
-          onReview={async (subId, action, note, mark, studentId, mark2) => {
+          onReview={async (subId, action, note, mark, studentId, mark2, clearNote) => {
               try {
                 // subId === null — приём без сдачи (ответ устно/в тетради):
                 // создаёт строку сдачи сразу с итоговым состоянием.
                 const url = subId === null
                   ? `/rost_max/api/homework/${data!.assignment.id}/review_student`
                   : `/rost_max/api/homework/submission/${subId}/review`;
+                // teacher_note_clear — явная очистка комментария. Без него
+                // пустой teacher_note бэкенд игнорирует (чтобы повторное
+                // «Принять» не затирало текст, кейс Макаровой 2026-10-21).
                 const payload = subId === null
-                  ? { student_id: studentId, action, teacher_note: note, mark, mark_2: mark2 }
-                  : { action, teacher_note: note, mark, mark_2: mark2 };
+                  ? { student_id: studentId, action, teacher_note: note, mark, mark_2: mark2, teacher_note_clear: !!clearNote }
+                  : { action, teacher_note: note, mark, mark_2: mark2, teacher_note_clear: !!clearNote };
                 const res = await apiPost<{ success?: boolean; error?: string }>(url, payload);
                 if (res.error) {
                   addToast(res.error, 'error');
                   return res.error;
                 }
-                addToast(action === 'accept' ? 'Принято' : 'Отправлено на доработку', 'success');
+                addToast(clearNote ? 'Комментарий очищен' : (action === 'accept' ? 'Принято' : 'Отправлено на доработку'), 'success');
                 await load();
                 onListChanged();
                 return null;
@@ -654,7 +669,14 @@ export const TeacherHomeworkPage: React.FC<{
    *  «Задания» кнопки «Назад» в шапке быть не должно, там и так таббар. */
   onBackToLesson?: () => void;
   onOpenProfile?: () => void;
-}> = ({ id, initialFilter, onBackToLesson, onOpenProfile }) => {
+  /** Прямой вход (единый экран): открыть сразу деталь задания,
+   *  минуя список вкладки (вход из «Оценок» — тап по ДЗ ученика). Назад —
+   *  закрыть деталь. Внутри вкладки «Заданий» этот проп не передаётся. */
+  openAssignmentId?: number | null;
+  /** «Назад» в шапке детали при прямом входе. В App.tsx это возврат на
+   *  панель предмета в «Оценках» (учитель) либо в список заданий. */
+  onDirectBack?: () => void;
+}> = ({ id, initialFilter, onBackToLesson, onOpenProfile, openAssignmentId, onDirectBack }) => {
   const addToast = useToast();
   // Ось «Кого смотрим» (свитч удалён — решение 2026-10-14): секция
   // ПЕРВАЯ в шторке, чип режима над лентой.
@@ -794,6 +816,26 @@ export const TeacherHomeworkPage: React.FC<{
 
   const listChanged = React.useCallback(() => { load(); }, [load]);
 
+  // Прямой вход (openAssignmentId): деталь сразу, список вкладки не рендерим.
+  // Это НЕ отдельная панель вьюхи «Оценки», а та же вьюха teacher-homework,
+  // что и на вкладке «Заданий» (см. App.tsx): иначе раскладка отличалась бы
+  // от вкладки «Заданий» — шапка и карточка задания вставали иначе.
+  // «Назад» в шапке детали уводит на панель предмета — за это отвечает
+  // onDirectBack (App.tsx), он же возвращает вьюху «Оценки».
+  if (openAssignmentId != null) {
+    return (
+      <Panel id={id}>
+        <AssignmentDetail
+          key={`direct:${openAssignmentId}`}
+          assignmentId={openAssignmentId}
+          onBack={onDirectBack ?? (() => undefined)}
+          onListChanged={listChanged}
+          showFaculty={isAdmin}
+        />
+      </Panel>
+    );
+  }
+
   return (
     <Panel id={id}>
       {openId != null ? (
@@ -858,7 +900,7 @@ export const TeacherHomeworkPage: React.FC<{
                 <Div style={{ padding: '4px 16px 0' }}>
                   <FilterChipRow
                     chips={[
-                      ...(viewerChips(axis)),
+                      ...(axis ? viewerChips(axis) : []),
                       ...[...filters.batches].map(v => ({ kind: 'batch' as const, v })),
                       ...[...filters.subjects].map(v => ({ kind: 'subject' as const, v })),
                     ]}

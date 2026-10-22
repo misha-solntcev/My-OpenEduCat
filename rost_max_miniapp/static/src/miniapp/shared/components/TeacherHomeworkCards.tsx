@@ -54,35 +54,25 @@ export const fmtDueTeacher = (due: string): string => {
   return `до ${d.getDate()} ${MONTHS_SHORT[d.getMonth()]}`;
 };
 
-/** .pill: flex, gap 4, 11px/600, padding 4 8, radius 8. Цвет текста
- *  из мокапа (синий на тинте / янтарный / серый) — мокап светлый,
- *  в тёмной теме серый берём токеном. */
-const pillStyle = (background: string, color: string): React.CSSProperties => ({
-  display: 'flex', alignItems: 'center', gap: 4,
-  fontSize: 11, fontWeight: 600, padding: '4px 8px', borderRadius: 8,
-  whiteSpace: 'nowrap', flexShrink: 0,
-  background, color,
-});
-
-const PILL_BLUE_BG = '#e8f0fe';
-const PILL_AMBER_BG = '#fdf3e0';
-const PILL_BLUE_TEXT = '#2d81e0';
-const PILL_AMBER_TEXT = '#a86600';
-
-export const RightPill: React.FC<{ h: TeacherHomeworkItem }> = ({ h }) => {
-  const gray = () => pillStyle(
-    'var(--vkui--color_background_secondary)',
-    'var(--vkui--color_text_secondary)');
-  if (h.state === 'finish') return <span style={gray()}>Завершено</span>;
-  if (h.to_review > 0) {
-    return <span style={pillStyle(PILL_BLUE_BG, PILL_BLUE_TEXT)}>{`${h.to_review} новых`}</span>;
-  }
-  if (h.overdue && h.submitted < h.total) {
-    return <span style={pillStyle(PILL_AMBER_BG, PILL_AMBER_TEXT)}>{`Просрочено, ${h.total - h.submitted} не сдали`}</span>;
-  }
-  return <span style={gray()}>{`Сдали ${h.submitted} из ${h.total}`}</span>;
+/** Срок «до 24 сен» — цветной бейдж справа. Общий для карточки в списке
+ *  «Задания» и карточки самого задания, чтобы обе выглядели одинаково:
+ *  красный тинт при просрочке, синий в остальных случаях. */
+export const DueBadge: React.FC<{ due: string; overdue: boolean }> = ({ due, overdue }) => {
+  if (!due) return null;
+  const colors = statusColors(useColorScheme() === 'dark');
+  return (
+    <span style={{
+      display: 'inline-flex', alignItems: 'center',
+      fontSize: 12, fontWeight: 600, lineHeight: '18px',
+      padding: '4px 10px', borderRadius: 999, whiteSpace: 'nowrap',
+      flexShrink: 0,
+      background: overdue ? colors.red.background : colors.review.background,
+      color: overdue ? colors.red.color : colors.review.color,
+    }}>
+      {due}
+    </span>
+  );
 };
-
 
 const CardFoot: React.FC<{ h: TeacherHomeworkItem }> = ({ h }) => {
   return (
@@ -107,7 +97,6 @@ interface TeacherHwCardProps {
 }
 
 export const TeacherHwCard: React.FC<TeacherHwCardProps> = ({ h, showFaculty, onOpen }) => {
-  const colors = statusColors(useColorScheme() === 'dark');
   const overdue = h.state !== 'finish' && h.overdue;
   const due = fmtDueTeacher(h.due); // «до 24 сен»
 
@@ -149,18 +138,7 @@ export const TeacherHwCard: React.FC<TeacherHwCardProps> = ({ h, showFaculty, on
         </div>
         {/* Срок — цветной бейдж справа сверху (как у карточки ученика):
             красный тинт при просрочке, синий тинт в остальных случаях. */}
-        {due && (
-          <span style={{
-            display: 'inline-flex', alignItems: 'center',
-            fontSize: 12, fontWeight: 600, lineHeight: '18px',
-            padding: '4px 10px', borderRadius: 999, whiteSpace: 'nowrap',
-            flexShrink: 0,
-            background: overdue ? colors.red.background : colors.review.background,
-            color: overdue ? colors.red.color : colors.review.color,
-          }}>
-            {due}
-          </span>
-        )}
+        <DueBadge due={due} overdue={overdue} />
       </div>
       <div style={{
         fontSize: 15, fontWeight: 400, lineHeight: 1.5,

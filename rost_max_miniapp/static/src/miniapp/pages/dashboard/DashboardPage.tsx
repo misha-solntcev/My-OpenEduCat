@@ -71,15 +71,15 @@ export const StudentHwCard: React.FC<{
   // Просрочено — первое: горящее всегда сверху
   const rows = [
     overdue > 0 && { dot: 'var(--vkui--color_icon_negative)', label: 'Просрочено',
-      count: overdue, appearance: 'accent-red' as const },
+      count: overdue, counterAppearance: 'accent-red' as const },
     fresh > 0 && { dot: 'var(--vkui--color_background_accent)', label: 'Новые',
-      count: fresh, appearance: 'accent' as const },
+      count: fresh, counterAppearance: 'accent' as const },
     change > 0 && { dot: 'var(--vkui--color_icon_negative)', label: 'На доработке',
-      count: change, appearance: 'accent-red' as const },
+      count: change, counterAppearance: 'accent-red' as const },
     submitted > 0 && { dot: 'var(--vkui--color_icon_warning)', label: 'На проверке',
-      count: submitted, appearance: 'accent' as const },
+      count: submitted, counterAppearance: 'accent' as const },
     checked > 0 && { dot: 'var(--vkui--color_icon_positive)', label: 'Проверено',
-      count: checked, appearance: 'accent-green' as const },
+      count: checked, counterAppearance: 'accent-green' as const },
   ].filter(Boolean) as { dot: string; label: string; count: number;
     counterAppearance: 'accent' | 'accent-red' | 'accent-green' }[];
   if (rows.length === 0) return null;

@@ -55,7 +55,8 @@ interface ReviewQueueProps {
   onMarkChange: (studentId: number, which: 1 | 2, next: number | null) => void;
   // subId === null значит «сдачи нет» — caller шлёт student_id на
   // /homework/<id>/review_student (приём без сдачи).
-  onReview: (subId: number | null, action: 'accept' | 'change', note: string | undefined, mark: number | null, studentId: number, mark2: number | null) => Promise<string | null>;
+  // clearNote=true — явная очистка комментария учителя (teacher_note_clear).
+  onReview: (subId: number | null, action: 'accept' | 'change', note: string | undefined, mark: number | null, studentId: number, mark2: number | null, clearNote?: boolean) => Promise<string | null>;
 }
 
 export const ReviewQueue: React.FC<ReviewQueueProps> = ({
@@ -93,6 +94,20 @@ export const ReviewQueue: React.FC<ReviewQueueProps> = ({
     const mark2 = action === 'accept' ? (marks2[s.student_id] ?? null) : null;
     const err = await onReview(s.sub_id ?? null, action,
       undefined, mark, s.student_id, mark2);
+    setBusyId(null);
+    return err;
+  };
+
+  // Явная очистка комментария учителя. Комментарий — легаси-поле
+  // op.assignment.sub.line.teacher_note (учительский комментарий живёт
+  // в чате, но старые сдачи показывают поле синтезированным сообщением).
+  // Без явного флага очистки его нечем стереть: пустой teacher_note
+  // бэкенд намеренно игнорирует, чтобы повторное «Принять» не затирало
+  // ранее написанный текст (кейс Макаровой 2026-10-21).
+  const clearNote = async (s: HomeworkSubmissionStudent) => {
+    setBusyId(s.student_id);
+    const err = await onReview(s.sub_id ?? null, 'accept',
+      undefined, null, s.student_id, null, true);
     setBusyId(null);
     return err;
   };
@@ -233,6 +248,19 @@ export const ReviewQueue: React.FC<ReviewQueueProps> = ({
                 }}>
                   <HwChat subId={s.sub_id} canPost />
                   <div style={{ display: 'flex', gap: 8, marginTop: 8, alignItems: 'center' }}>
+                    {/* Комментарий учителя (легаси-поле teacher_note) —
+                        стирается только явной кнопкой: пустой teacher_note
+                        бэкенд игнорирует, чтобы повторное «Принять» не
+                        затирало ранее написанный текст. */}
+                    {s.teacher_note && (
+                      <Button
+                        size="s" mode="outline" stretched
+                        disabled={busyId === subId}
+                        onClick={() => clearNote(s)}
+                      >
+                        Очистить комментарий
+                      </Button>
+                    )}
                     <Button
                       size="s" stretched
                       loading={busyId === subId}

@@ -2466,8 +2466,19 @@ class RostMaxTimetableController(http.Controller):
                 {"error": "action должен быть accept|change"}, status=400)
 
         vals = {'state': 'accept' if action == 'accept' else 'change'}
-        if 'teacher_note' in body:
-            vals['teacher_note'] = (body.get('teacher_note') or '').strip()
+        # Комментарий затирается только ЯВНОЙ очисткой: пустое поле в
+        # запросе (фронт всегда шлёт teacher_note) не должно стирать
+        # ранее написанный текст при повторном «Принять» (кейс Макаровой
+        # 2026-10-21: комментарий потерялся после второго accept).
+        # teacher_note_clear=1 — явная очистка (кнопка «Очистить
+        # комментарий»): стирает поле, даже если teacher_note не прислали.
+        # Ключ teacher_note в теле может отсутствовать: фронт шлёт
+        # undefined, а JSON.stringify такие значения выбрасывает.
+        note_val = (body.get('teacher_note') or '').strip()
+        if body.get('teacher_note_clear'):
+            vals['teacher_note'] = False
+        elif note_val:
+            vals['teacher_note'] = note_val
         for key, field in (('mark', 'marks'), ('mark_2', 'marks_2')):
             val, err = _hw_parse_mark(body, key)
             if err:
@@ -2532,8 +2543,13 @@ class RostMaxTimetableController(http.Controller):
         ], limit=1)
 
         vals = {'state': 'accept' if action == 'accept' else 'change'}
-        if 'teacher_note' in body:
-            vals['teacher_note'] = (body.get('teacher_note') or '').strip()
+        # Как в /review: пустой teacher_note не стирает ранее написанный
+        # комментарий — только явный teacher_note_clear.
+        note_val = (body.get('teacher_note') or '').strip()
+        if body.get('teacher_note_clear'):
+            vals['teacher_note'] = False
+        elif note_val:
+            vals['teacher_note'] = note_val
         for key, field in (('mark', 'marks'), ('mark_2', 'marks_2')):
             val, err = _hw_parse_mark(body, key)
             if err:

@@ -130,53 +130,46 @@ export const SubjectGradesPage: React.FC<SubjectGradesPageProps> = ({
                   mode="shadow"
                   style={{ padding: 12, marginBottom: 8, borderRadius: 12 }}
                 >
-                  <Flex align="center" gap={10} alignItems="flex-start">
+                  <Flex align="start" gap={10}>
                     <Text weight="1" style={{ color: 'var(--vkui--color_text_secondary)', whiteSpace: 'nowrap', minWidth: 42 }}>
                       {fmtDate(ln.date)}
                     </Text>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <Text style={{ display: 'block', lineHeight: 1.35 }}>{ln.topic || 'Тема не указана'}</Text>
-                      {/* Оценки за работу на уроке слева, посещаемость по
-                          центру карточки (Миша, 2026-10-21): сетка
-                          1fr auto 1fr — крайние колонки равные, средняя
-                          встаёт ровно по центру строки. Колонки заданы
-                          явно: при отсутствии оценок или посещаемости
-                          чип не уезжает в чужую ячейку. */}
+                      {/* Чипы одной строкой, как в журнале (Миша,
+                          2026-10-21): в сетке 1fr auto 1fr с wrap две
+                          оценки вставали друг под другом и росла высота
+                          строки — отказались от центрирования посещаемости. */}
                       {(ln.attendance_type_id || ln.grades.length > 0) && (
-                        <div
-                          style={{
-                            display: 'grid',
-                            gridTemplateColumns: '1fr auto 1fr',
-                            alignItems: 'center', gap: 4, marginTop: 8,
-                          }}
-                        >
-                          {ln.grades.length > 0 && (
-                            <Flex gap={4} align="center" wrap="wrap" style={{ gridColumn: 1 }}>
-                              {ln.grades.map((g, i) => (
-                                <JournalButton key={`${g}-${i}`} kind="grade" value={g} size="m" />
-                              ))}
-                            </Flex>
-                          )}
+                        <Flex gap={4} align="center" style={{ marginTop: 8 }}>
+                          {ln.grades.map((g, i) => (
+                            <JournalButton key={`${g}-${i}`} kind="grade" value={g} size="m" />
+                          ))}
                           {ln.attendance_type_id && (
-                            <span style={{ gridColumn: 2, display: 'inline-flex' }}>
-                              <JournalButton
-                                kind="attendance"
-                                value={ln.attendance_type_id}
-                                attendanceTypes={[{ id: ln.attendance_type_id, name: ln.attendance || '' }]}
-                                size="m"
-                              />
-                            </span>
+                            <JournalButton
+                              kind="attendance"
+                              value={ln.attendance_type_id}
+                              attendanceTypes={[{ id: ln.attendance_type_id, name: ln.attendance || '' }]}
+                              size="m"
+                            />
                           )}
-                        </div>
+                        </Flex>
                       )}
                       {/* Оценки за ДЗ — отдельной строкой (вариант C Миши,
                           2026-10-20): 📘, текст задания одной строкой с
-                          «...», оценка справа. Тап по строке открывает
+                          «...», оценки справа. Тап по строке открывает
                           задание. В общий ряд чипов ДЗ не попадает, чтобы
-                          оценки за урок (О1/О2) и за ДЗ не смешивались. */}
-                      {(ln.hw_grades || []).map((hw, i) => (
+                          оценки за урок (О1/О2) и за ДЗ не смешивались.
+                          Группировка по заданию (Миша, 2026-10-22): ДЗ 1 и
+                          ДЗ 2 одной сдачи — ОДНА строка, оценки в ряд
+                          справа, а не две дублирующиеся строки. */}
+                      {Object.entries((ln.hw_grades || []).reduce((acc, hw) => {
+                        const key = hw.assignment_id ?? `none-${hw.task}`;
+                        (acc[key] = acc[key] || { hw, grades: [] }).grades.push(hw.grade);
+                        return acc;
+                      }, {} as Record<string, { hw: typeof ln.hw_grades[0]; grades: number[] }>)).map(([key, { hw, grades }]) => (
                         <div
-                          key={`hw-${hw.assignment_id}-${i}`}
+                          key={`hw-${key}`}
                           onClick={() => hw.assignment_id && onOpenAssignment?.(hw.assignment_id)}
                           style={{
                             display: 'flex', alignItems: 'center', gap: 8,
@@ -198,7 +191,11 @@ export const SubjectGradesPage: React.FC<SubjectGradesPageProps> = ({
                           }}>
                             {hw.task || 'Домашнее задание'}
                           </span>
-                          <JournalButton kind="grade" value={hw.grade} size="m" />
+                          <span style={{ display: 'inline-flex', gap: 4, flexShrink: 0 }}>
+                            {grades.map((g, i) => (
+                              <JournalButton key={`${g}-${i}`} kind="grade" value={g} size="m" />
+                            ))}
+                          </span>
                         </div>
                       ))}
                     </div>
