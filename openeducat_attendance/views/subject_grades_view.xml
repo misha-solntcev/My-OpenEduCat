@@ -691,61 +691,18 @@
 
                 <separator />
 
-                <!-- Блок фильтров по баллам. Система координат — четверть:
-                     отдельный набор на каждую четверть + «за год». Валидатор
-                     доменов Odoo 18 не допускает динамическое имя поля
-                     (context.get(...) в leaf), поэтому без Python-полей
-                     единственный штатный путь — явные фильтры. Группы
-                     свёрнуты в панели «Фильтры» и не замусоривают шапку. -->
-                <group string="⭐ Отличники (>= 4.5) по...">
-                    <filter string="Q1" name="high_q1"
-                        domain="[('q1_average_mark', '&gt;=', 4.5)]" />
-                    <filter string="Q2" name="high_q2"
-                        domain="[('q2_average_mark', '&gt;=', 4.5)]" />
-                    <filter string="Q3" name="high_q3"
-                        domain="[('q3_average_mark', '&gt;=', 4.5)]" />
-                    <filter string="Q4" name="high_q4"
-                        domain="[('q4_average_mark', '&gt;=', 4.5)]" />
-                    <filter string="Год" name="high_year"
-                        domain="[('average_mark', '&gt;=', 4.5)]" />
-                </group>
+                <!-- Блок фильтров по баллам -->
+                <filter string="⭐ Отличники (>= 4.5)" name="high_performers"
+                    domain="[('average_mark', '>=', 4.5)]" />
 
-                <group string="👍 Хорошисты (4.0-4.5) по...">
-                    <filter string="Q1" name="good_q1"
-                        domain="[('q1_average_mark', '&gt;=', 4.0), ('q1_average_mark', '&lt;', 4.5)]" />
-                    <filter string="Q2" name="good_q2"
-                        domain="[('q2_average_mark', '&gt;=', 4.0), ('q2_average_mark', '&lt;', 4.5)]" />
-                    <filter string="Q3" name="good_q3"
-                        domain="[('q3_average_mark', '&gt;=', 4.0), ('q3_average_mark', '&lt;', 4.5)]" />
-                    <filter string="Q4" name="good_q4"
-                        domain="[('q4_average_mark', '&gt;=', 4.0), ('q4_average_mark', '&lt;', 4.5)]" />
-                    <filter string="Год" name="good_year"
-                        domain="[('average_mark', '&gt;=', 4.0), ('average_mark', '&lt;', 4.5)]" />
-                </group>
+                <filter string="👍 Хорошисты (4.0-4.5)" name="good_performers"
+                    domain="[('average_mark', '>=', 4.0), ('average_mark', '&lt;', 4.5)]" />
 
-                <group string="⚠️ Группа риска (&lt; 3.5) по...">
-                    <filter string="Q1" name="risk_q1"
-                        domain="[('q1_average_mark', '&lt;', 3.5), ('q1_average_mark', '&gt;', 0)]" />
-                    <filter string="Q2" name="risk_q2"
-                        domain="[('q2_average_mark', '&lt;', 3.5), ('q2_average_mark', '&gt;', 0)]" />
-                    <filter string="Q3" name="risk_q3"
-                        domain="[('q3_average_mark', '&lt;', 3.5), ('q3_average_mark', '&gt;', 0)]" />
-                    <filter string="Q4" name="risk_q4"
-                        domain="[('q4_average_mark', '&lt;', 3.5), ('q4_average_mark', '&gt;', 0)]" />
-                    <filter string="Год" name="risk_year"
-                        domain="[('average_mark', '&lt;', 3.5), ('average_mark', '&gt;', 0)]" />
-                </group>
+                <filter string="⚠️ Группа риска (&lt; 3.5)" name="low_performers"
+                    domain="[('average_mark', '&lt;', 3.5), ('average_mark', '>', 0)]" />
 
-                <group string="❓ Без оценок по...">
-                    <filter string="Q1" name="empty_q1"
-                        domain="[('q1_average_mark', '=', 0)]" />
-                    <filter string="Q2" name="empty_q2"
-                        domain="[('q2_average_mark', '=', 0)]" />
-                    <filter string="Q3" name="empty_q3"
-                        domain="[('q3_average_mark', '=', 0)]" />
-                    <filter string="Q4" name="empty_q4"
-                        domain="[('q4_average_mark', '=', 0)]" />
-                </group>
+                <filter string="❓ Без оценок" name="no_grades"
+                    domain="[('average_mark', '=', 0)]" />
 
                 <separator />
 
