@@ -14,16 +14,70 @@
                 <field name="subject_id" optional="show" />
                 <field name="faculty_id" string="Учитель" optional="show" />
                 <field name="batch_id" optional="show" />
-                <field name="q1_average_mark" string="Средняя Q1" avg="1" optional="show" />
-                <field name="q1_final_grade" optional="show" />
-                <field name="q2_average_mark" string="Средняя Q2" avg="1" optional="hide" />
-                <field name="q2_final_grade" optional="hide" />
-                <field name="q3_average_mark" string="Средняя Q3" avg="1" optional="hide" />
-                <field name="q3_final_grade" optional="hide" />
-                <field name="q4_average_mark" string="Средняя Q4" avg="1" optional="hide" />
-                <field name="q4_final_grade" optional="hide" />
-                <field name="average_mark" string="Средний балл" avg="1" optional="hide" />
-                <field name="final_quarter_grade" string="Годовая" optional="hide" />
+                <!-- Раскраска ячеек (вариант B из design/grades-list-color-variants.html):
+                     итог — цветом оценки, средняя — порогом. decoration-* на field
+                     красит ТОЛЬКО ячейку (list_renderer.js), строка нейтральна.
+                     Н/а встречается в трёх написаниях — гасим в серый все. -->
+                <field name="q1_average_mark" string="Средняя Q1" avg="1" optional="show" decoration-bf="1"
+                    decoration-success="q1_average_mark &gt;= 4.5"
+                    decoration-info="q1_average_mark &gt;= 3.5 and q1_average_mark &lt; 4.5"
+                    decoration-warning="q1_average_mark &gt;= 2.5 and q1_average_mark &lt; 3.5"
+                    decoration-danger="q1_average_mark &gt; 0 and q1_average_mark &lt; 2.5"
+                    decoration-muted="q1_average_mark == 0" />
+                <field name="q1_final_grade" optional="show" decoration-bf="1"
+                    decoration-success="q1_final_grade == '5'"
+                    decoration-info="q1_final_grade == '4'"
+                    decoration-warning="q1_final_grade == '3'"
+                    decoration-danger="q1_final_grade == '2'"
+                    decoration-muted="q1_final_grade in ('н/а', 'Н/а', 'Н/А')" />
+                <field name="q2_average_mark" string="Средняя Q2" avg="1" optional="hide" decoration-bf="1"
+                    decoration-success="q2_average_mark &gt;= 4.5"
+                    decoration-info="q2_average_mark &gt;= 3.5 and q2_average_mark &lt; 4.5"
+                    decoration-warning="q2_average_mark &gt;= 2.5 and q2_average_mark &lt; 3.5"
+                    decoration-danger="q2_average_mark &gt; 0 and q2_average_mark &lt; 2.5"
+                    decoration-muted="q2_average_mark == 0" />
+                <field name="q2_final_grade" optional="hide" decoration-bf="1"
+                    decoration-success="q2_final_grade == '5'"
+                    decoration-info="q2_final_grade == '4'"
+                    decoration-warning="q2_final_grade == '3'"
+                    decoration-danger="q2_final_grade == '2'"
+                    decoration-muted="q2_final_grade in ('н/а', 'Н/а', 'Н/А')" />
+                <field name="q3_average_mark" string="Средняя Q3" avg="1" optional="hide" decoration-bf="1"
+                    decoration-success="q3_average_mark &gt;= 4.5"
+                    decoration-info="q3_average_mark &gt;= 3.5 and q3_average_mark &lt; 4.5"
+                    decoration-warning="q3_average_mark &gt;= 2.5 and q3_average_mark &lt; 3.5"
+                    decoration-danger="q3_average_mark &gt; 0 and q3_average_mark &lt; 2.5"
+                    decoration-muted="q3_average_mark == 0" />
+                <field name="q3_final_grade" optional="hide" decoration-bf="1"
+                    decoration-success="q3_final_grade == '5'"
+                    decoration-info="q3_final_grade == '4'"
+                    decoration-warning="q3_final_grade == '3'"
+                    decoration-danger="q3_final_grade == '2'"
+                    decoration-muted="q3_final_grade in ('н/а', 'Н/а', 'Н/А')" />
+                <field name="q4_average_mark" string="Средняя Q4" avg="1" optional="hide" decoration-bf="1"
+                    decoration-success="q4_average_mark &gt;= 4.5"
+                    decoration-info="q4_average_mark &gt;= 3.5 and q4_average_mark &lt; 4.5"
+                    decoration-warning="q4_average_mark &gt;= 2.5 and q4_average_mark &lt; 3.5"
+                    decoration-danger="q4_average_mark &gt; 0 and q4_average_mark &lt; 2.5"
+                    decoration-muted="q4_average_mark == 0" />
+                <field name="q4_final_grade" optional="hide" decoration-bf="1"
+                    decoration-success="q4_final_grade == '5'"
+                    decoration-info="q4_final_grade == '4'"
+                    decoration-warning="q4_final_grade == '3'"
+                    decoration-danger="q4_final_grade == '2'"
+                    decoration-muted="q4_final_grade in ('н/а', 'Н/а', 'Н/А')" />
+                <field name="average_mark" string="Средний балл" avg="1" optional="hide" decoration-bf="1"
+                    decoration-success="average_mark &gt;= 4.5"
+                    decoration-info="average_mark &gt;= 3.5 and average_mark &lt; 4.5"
+                    decoration-warning="average_mark &gt;= 2.5 and average_mark &lt; 3.5"
+                    decoration-danger="average_mark &gt; 0 and average_mark &lt; 2.5"
+                    decoration-muted="average_mark == 0" />
+                <field name="final_quarter_grade" string="Годовая" optional="hide" decoration-bf="1"
+                    decoration-success="final_quarter_grade == '5'"
+                    decoration-info="final_quarter_grade == '4'"
+                    decoration-warning="final_quarter_grade == '3'"
+                    decoration-danger="final_quarter_grade == '2'"
+                    decoration-muted="final_quarter_grade in ('н/а', 'Н/а', 'Н/А')" />
             </list>
         </field>
     </record>
