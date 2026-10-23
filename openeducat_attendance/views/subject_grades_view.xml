@@ -762,6 +762,6 @@
         <field name="res_model">op.subject.grades</field>
         <field name="view_mode">kanban,list,form</field>
         <field name="search_view_id" ref="view_op_subject_grades_search" />
-        <field name="context">{'search_default_current_year': 1, 'search_default_state_studying': 1, 'group_by': ['faculty_id', 'subject_id', 'batch_id']}</field>
+        <field name="context">{'search_default_current_year': 1, 'search_default_state_studying': 1, 'group_by': ['faculty_id', 'batch_id', 'subject_id']}</field>
     </record>
 </odoo>
