@@ -554,6 +554,54 @@ class OpSubjectGrades(models.Model):
         ('4', '4 четверть')
     ], string="Период", default=lambda self: self._get_current_q_code(), store=False)
 
+    # --- СОВМЕСТНЫЕ ФИЛЬТРЫ «ЧЕТВЕРТЬ × ОЦЕНКА» (2026-10-23) ---
+    # Блок «Четверть» во вью кладёт в контекст grades_quarter='q1'..'q4',
+    # блок «Оценки» фильтрует по этому полю. Поле non-stored: ORM зовёт
+    # search-метод (osv/expression.py: "Non-stored field should provide an
+    # implementation of search"), тот видит env.context с выбранной четвертью
+    # — контекст активных фильтров веб-клиент склеивает в контекст запроса сам
+    # (web/search_model.js _getContext → makeContext), AND между блоками родной.
+    grades_mark_filter = fields.Selection([
+        ('2', 'Есть 2'),
+        ('3', 'Есть 3'),
+        ('4', 'Есть 4'),
+        ('5', 'Есть 5'),
+        ('none', 'Нет оценок'),
+    ], string="Оценка (по четвертям)", store=False, search='_search_grades_mark_filter')
+
+    def _search_grades_mark_filter(self, operator, value):
+        """Домен «есть оценка N в выбранной четверти» / «нет оценок в четверти».
+
+        Четверть берётся из контекста (grades_quarter), поэтому выбор в блоке
+        «Четверть» меняет смысл фильтров блока «Оценки» — штатная механика:
+        домены фильтров статичны, но контексты активных фильтров склеиваются
+        в контекст запроса. Без контекста (и в варианте «Год») поиск по всем
+        четырём четвертям. «Нет оценок» = ни одной оценки >0 в строках.
+        """
+        if value not in ('2', '3', '4', '5', 'none') or operator != '=':
+            return []
+        quarters = [self.env.context.get('grades_quarter') or None] \
+            if self.env.context.get('grades_quarter') in ('q1', 'q2', 'q3', 'q4') \
+            else ['q1', 'q2', 'q3', 'q4']
+
+        def has_any(q):
+            # в строках четверти есть хоть какая-то оценка
+            return ['|', (f'{q}_line_ids.grade_1', '>', 0),
+                    '|', (f'{q}_line_ids.grade_2', '>', 0),
+                    (f'{q}_line_ids.grade_3', '>', 0)]
+
+        def has_mark(q, mark):
+            return ['|', (f'{q}_line_ids.grade_1', '=', mark),
+                    '|', (f'{q}_line_ids.grade_2', '=', mark),
+                    (f'{q}_line_ids.grade_3', '=', mark)]
+
+        parts = [has_any(q) if value == 'none' else has_mark(q, int(value)) for q in quarters]
+        # OR между четвертями (для 'none' отрицание применяем к общему ИЛИ)
+        dom = parts[0]
+        for p in parts[1:]:
+            dom = ['|'] + dom + p
+        return ['!'] + dom if value == 'none' else dom
+
     def _get_current_q_code(self):
         """Определяет номер текущей четверти на основе даты"""
         today = fields.Date.today()

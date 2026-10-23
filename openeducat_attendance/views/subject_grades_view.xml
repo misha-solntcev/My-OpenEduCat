@@ -746,6 +746,41 @@
                 <separator />
 
                 <!-- Блок фильтров по баллам -->
+                <!-- СОВМЕСТНЫЕ ФИЛЬТРЫ «ЧЕТВЕРТЬ × ОЦЕНКА»: блок «Четверть»
+                     НЕ фильтрует сам — кладёт grades_quarter в контекст
+                     (context-only); блок «Оценки» ищет по non-stored полю
+                     grades_mark_filter, чей search-метод строит домен по
+                     строкам выбранной четверти (механика: контексты активных
+                     фильтров веб-клиент склеивает в контекст запроса, ORM
+                     зовёт search-метод поля с этим контекстом). Разные
+                     <group> => AND. «Год» = контекст не ставит, поиск по
+                     всем четвертям. -->
+                <group string="quarter_scope">
+                    <filter string="Q1" name="quarter_q1"
+                        context="{'grades_quarter': 'q1'}" />
+                    <filter string="Q2" name="quarter_q2"
+                        context="{'grades_quarter': 'q2'}" />
+                    <filter string="Q3" name="quarter_q3"
+                        context="{'grades_quarter': 'q3'}" />
+                    <filter string="Q4" name="quarter_q4"
+                        context="{'grades_quarter': 'q4'}" />
+                    <filter string="Год" name="quarter_year"
+                        context="{}" />
+                </group>
+
+                <group string="marks_block">
+                    <filter string="❗ Есть 2" name="mark_2"
+                        domain="[('grades_mark_filter', '=', '2')]" />
+                    <filter string="❗ Есть 3" name="mark_3"
+                        domain="[('grades_mark_filter', '=', '3')]" />
+                    <filter string="Есть 4" name="mark_4"
+                        domain="[('grades_mark_filter', '=', '4')]" />
+                    <filter string="Есть 5" name="mark_5"
+                        domain="[('grades_mark_filter', '=', '5')]" />
+                    <filter string="Нет оценок" name="mark_none"
+                        domain="[('grades_mark_filter', '=', 'none')]" />
+                </group>
+
                 <filter string="⭐ Отличники (>= 4.5)" name="high_performers"
                     domain="[('average_mark', '>=', 4.5)]" />
 
