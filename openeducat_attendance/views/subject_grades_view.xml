@@ -10,10 +10,20 @@
                     <button name="action_force_recompute" type="object" string="ОБНОВИТЬ СТАТИСТИКУ"
                         class="btn-warning" />
                 </header>
-                <field name="student_id" />
-                <field name="subject_id" />
-                <field name="batch_id" />
-                <field name="average_mark" string="Средний балл" avg="1" />
+                <field name="student_id" optional="show" />
+                <field name="subject_id" optional="show" />
+                <field name="faculty_id" string="Учитель" optional="show" />
+                <field name="batch_id" optional="show" />
+                <field name="q1_average_mark" string="Средняя Q1" avg="1" optional="show" />
+                <field name="q1_final_grade" optional="show" />
+                <field name="q2_average_mark" string="Средняя Q2" avg="1" optional="hide" />
+                <field name="q2_final_grade" optional="hide" />
+                <field name="q3_average_mark" string="Средняя Q3" avg="1" optional="hide" />
+                <field name="q3_final_grade" optional="hide" />
+                <field name="q4_average_mark" string="Средняя Q4" avg="1" optional="hide" />
+                <field name="q4_final_grade" optional="hide" />
+                <field name="average_mark" string="Средний балл" avg="1" optional="hide" />
+                <field name="final_quarter_grade" string="Годовая" optional="hide" />
             </list>
         </field>
     </record>
@@ -654,25 +664,30 @@
                      год (на новый набор заводят новые), поэтому фильтруем
                      по пересечению дат класса с окном учебного года.
                      Снимаемый дефолт (search_default) в act_window. -->
-                <filter string="🎓 Текущий год" name="current_year"
+                <filter string="📅 Текущий год" name="current_year"
                     domain="[
                         ('batch_id.end_date', '&gt;=', (context_today() + relativedelta(months=-(((context_today().month) - 9) % 12), day=1)).strftime('%Y-%m-%d')),
                         ('batch_id.start_date', '&lt;=', (context_today() + relativedelta(months=-(((context_today().month) - 9) % 12), day=1, years=1, days=-1)).strftime('%Y-%m-%d'))]" />
 
-                <!-- Отчисленные в текущем году: ученик left, его курс в
-                     этом классе finished и ни одного running-курса в
-                     учебном году класса нет. Окно года — то же, что в
-                     «Текущий год»: с прошлого 1 сентября. Ученик,
-                     отчисленный в ПРОШЛОМ году (left + все его курсы
-                     finished), в канбан этого года всё равно не попадёт:
-                     его батчи не пересекаются с окном. Снимаемый дефолт
-                     (search_default) в act_window. -->
-                <filter string="⭕ Без отчисленных" name="hide_left_students"
-                    domain="['|',
-                        ('student_id.state', '!=', 'left'),
-                        ('student_id.course_detail_ids', 'any',
-                            [('academic_years_id.start_date', '=', (context_today() + relativedelta(months=-(((context_today().month) - 9) % 12), day=1)).strftime('%Y-%m-%d')),
-                             ('state', '=', 'running')])]" />
+                <!-- Статус ученика: группа = OR между собой, AND с прочими
+                     фильтрами. Замена старого «Без отчисленных»: тот домен
+                     не был про год и при сбросе дефолта «Текущий год»
+                     разворачивал оба года. У ушедших (left) все курсы
+                     finished — простой проверки статуса достаточно.
+                     Дефолт — «Обучается» (search_default в act_window). -->
+                <group>
+                    <filter string="✅ Обучается" name="state_studying"
+                        domain="[('student_id.state', '=', 'studying')]" />
+
+                    <filter string="🎓 Выпускник" name="state_pass_out"
+                        domain="[('student_id.state', '=', 'pass_out')]" />
+
+                    <filter string="🚪 Ушел/Отчислен" name="state_left"
+                        domain="[('student_id.state', '=', 'left')]" />
+
+                    <filter string="📝 Черновик" name="state_draft"
+                        domain="[('student_id.state', '=', 'draft')]" />
+                </group>
 
                 <separator />
 
@@ -747,6 +762,6 @@
         <field name="res_model">op.subject.grades</field>
         <field name="view_mode">kanban,list,form</field>
         <field name="search_view_id" ref="view_op_subject_grades_search" />
-        <field name="context">{'search_default_current_year': 1, 'search_default_hide_left_students': 1}</field>
+        <field name="context">{'search_default_current_year': 1, 'search_default_state_studying': 1, 'group_by': ['faculty_id', 'subject_id', 'batch_id']}</field>
     </record>
 </odoo>
