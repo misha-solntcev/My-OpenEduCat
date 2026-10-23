@@ -2,6 +2,8 @@
 import logging
 import re
 from odoo import models, fields, api, _
+from odoo.models import parse_read_group_spec
+from odoo.tools import SQL
 
 _logger = logging.getLogger(__name__)
 
@@ -31,22 +33,22 @@ class OpSubjectGrades(models.Model):
 
     # --- ЧЕТВЕРТИ (ДАННЫЕ) ---
     q1_line_ids = fields.Many2many('op.attendance.line', 'rel_grades_q1_lines', 'grade_id', 'line_id', compute='_compute_line_ids', store=True)
-    q1_average_mark = fields.Float(compute='_compute_all_stats', store=True)
+    q1_average_mark = fields.Float(compute='_compute_all_stats', store=True, aggregator="avg")
     q1_last_remark = fields.Char(compute='_compute_all_stats', store=True)
     q1_final_grade = fields.Char('Итог Q1')
 
     q2_line_ids = fields.Many2many('op.attendance.line', 'rel_grades_q2_lines', 'grade_id', 'line_id', compute='_compute_line_ids', store=True)
-    q2_average_mark = fields.Float(compute='_compute_all_stats', store=True)
+    q2_average_mark = fields.Float(compute='_compute_all_stats', store=True, aggregator="avg")
     q2_last_remark = fields.Char(compute='_compute_all_stats', store=True)
     q2_final_grade = fields.Char('Итог Q2')
 
     q3_line_ids = fields.Many2many('op.attendance.line', 'rel_grades_q3_lines', 'grade_id', 'line_id', compute='_compute_line_ids', store=True)
-    q3_average_mark = fields.Float(compute='_compute_all_stats', store=True)
+    q3_average_mark = fields.Float(compute='_compute_all_stats', store=True, aggregator="avg")
     q3_last_remark = fields.Char(compute='_compute_all_stats', store=True)
     q3_final_grade = fields.Char('Итог Q3')
 
     q4_line_ids = fields.Many2many('op.attendance.line', 'rel_grades_q4_lines', 'grade_id', 'line_id', compute='_compute_line_ids', store=True)
-    q4_average_mark = fields.Float(compute='_compute_all_stats', store=True)
+    q4_average_mark = fields.Float(compute='_compute_all_stats', store=True, aggregator="avg")
     q4_last_remark = fields.Char(compute='_compute_all_stats', store=True)
     q4_final_grade = fields.Char('Итог Q4')    
 
@@ -192,6 +194,24 @@ class OpSubjectGrades(models.Model):
             rec._compute_all_stats()  # Считаем среднее
             rec._compute_visuals()    # СРАЗУ рисуем графики
         return True
+
+    # --- ГРУППОВОЕ СРЕДНЕЕ БЕЗ НУЛЕЙ ---
+    # Карточка без оценок в четверти хранит 0.0 (Float в Odoo не хранит NULL:
+    # даже write({'field': False}) попадает в БД как 0.0). Обычный AVG в
+    # свёрнутых группах усредняет и эти нули, занижая среднее учителя
+    # (реальный кейс: 2.39 вместо 4.16 при 475 пустых карточках).
+    # Штатный хук Odoo 18 для кастомного агрегата — override _read_group_select:
+    # для полей средних подменяем AVG на «среднее по ненулевым».
+    _AVG_POSITIVE_FIELDS = ('average_mark', 'q1_average_mark', 'q2_average_mark',
+                            'q3_average_mark', 'q4_average_mark')
+
+    def _read_group_select(self, aggregate_spec, query):
+        fname, __, func = parse_read_group_spec(aggregate_spec)
+        if func == 'avg' and fname in self._AVG_POSITIVE_FIELDS:
+            sql_field = self._field_to_sql(self._table, fname, query)
+            return SQL("AVG(CASE WHEN %s > 0 THEN %s END)", sql_field, sql_field)
+        return super()._read_group_select(aggregate_spec, query)
+
 
     @api.depends('average_mark', 'attendance_rate', 'q1_line_ids', 'q2_line_ids', 'q3_line_ids', 'q4_line_ids')
     def _compute_visuals(self):
