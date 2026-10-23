@@ -15,7 +15,7 @@ class StudentReportWizard(models.TransientModel):
     # лишние пустые строки мешают.
     hide_empty_subjects = fields.Boolean(
         string='Скрывать предметы без оценок',
-        default=False,
+        default=True,
         help='Не показывать предметы, по которым у ученика нет ни одной '
              'итоговой оценки. Выключите на первом этапе — тогда видно, '
              'кто из учителей ещё не проставил итоги.')
