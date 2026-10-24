@@ -37,6 +37,27 @@ class OpSubjectGrades(models.Model):
     q1_last_remark = fields.Char(compute='_compute_all_stats', store=True)
     q1_final_grade = fields.Char('Итог Q1')
 
+    # Есть хоть одна оценка за четверть — для фильтров «1-4 четверть»
+    # (проиндексированный boolean на карточке вместо джойна строк журнала;
+    # ДЗ-оценки добавляет rost_lesson_homework override'ом compute).
+    q1_has_grades = fields.Boolean(compute='_compute_has_grades', store=True, index=True)
+    q2_has_grades = fields.Boolean(compute='_compute_has_grades', store=True, index=True)
+    q3_has_grades = fields.Boolean(compute='_compute_has_grades', store=True, index=True)
+    q4_has_grades = fields.Boolean(compute='_compute_has_grades', store=True, index=True)
+
+    def _compute_has_grades(self):
+        """Есть ли в строках четверти хоть какая-то оценка.
+
+        База: оценки за работу на уроке (О1/О2) и призрачная О3.
+        rost_lesson_homework расширяет: ДЗ 1/ДЗ 2 из строк сдачи
+        (l.hw_sub_line_id).
+        """
+        for rec in self:
+            for i in range(1, 5):
+                lines = getattr(rec, f'q{i}_line_ids')
+                has = any(l.grade_1 > 0 or l.grade_2 > 0 or l.grade_3 > 0 for l in lines)
+                setattr(rec, f'q{i}_has_grades', has)
+
     q2_line_ids = fields.Many2many('op.attendance.line', 'rel_grades_q2_lines', 'grade_id', 'line_id', compute='_compute_line_ids', store=True)
     q2_average_mark = fields.Float(compute='_compute_all_stats', store=True, aggregator="avg")
     q2_last_remark = fields.Char(compute='_compute_all_stats', store=True)
@@ -576,31 +597,45 @@ class OpSubjectGrades(models.Model):
         «Четверть» меняет смысл фильтров блока «Оценки» — штатная механика:
         домены фильтров статичны, но контексты активных фильтров склеиваются
         в контекст запроса. Без контекста (и в варианте «Год») поиск по всем
-        четырём четвертям. «Нет оценок» = ни одной оценки >0 в строках.
+        четырём четвертям. «Нет оценок» = ни одной оценки в строках.
+
+        Ищет по ВСЕМ 4 источникам урока: О1/О2 (grade_1/grade_2), призрачная
+        О3 (grade_3 — данные до миграции 2026-09-26, после неё всегда 0) и
+        ДЗ 1/ДЗ 2 — строка сдачи урока ученика (hw_sub_line_id из
+        rost_lesson_homework; без модуля атрибута нет — листья ДЗ не входят).
+        Совпадает с средним баллом карточки (get_stats_from_lines).
         """
         if value not in ('2', '3', '4', '5', 'none') or operator != '=':
             return []
-        quarters = [self.env.context.get('grades_quarter') or None] \
-            if self.env.context.get('grades_quarter') in ('q1', 'q2', 'q3', 'q4') \
-            else ['q1', 'q2', 'q3', 'q4']
+        quarter = self.env.context.get('grades_quarter')
+        quarters = [quarter] if quarter in ('q1', 'q2', 'q3', 'q4') else ['q1', 'q2', 'q3', 'q4']
+        has_hw = 'hw_sub_line_id' in self.env['op.attendance.line']._fields
 
-        def has_any(q):
-            # в строках четверти есть хоть какая-то оценка
-            return ['|', (f'{q}_line_ids.grade_1', '>', 0),
-                    '|', (f'{q}_line_ids.grade_2', '>', 0),
-                    (f'{q}_line_ids.grade_3', '>', 0)]
+        def source_leaves(q, op, operand):
+            """Листы по всем источникам оценки строки четверти (О1/О2/О3+ДЗ)."""
+            leaves = [(f'{q}_line_ids.{f}', op, operand) for f in ('grade_1', 'grade_2', 'grade_3')]
+            if has_hw:
+                leaves += [(f'{q}_line_ids.hw_sub_line_id.{f}', op, operand)
+                           for f in ('marks', 'marks_2')]
+            return leaves
 
-        def has_mark(q, mark):
-            return ['|', (f'{q}_line_ids.grade_1', '=', mark),
-                    '|', (f'{q}_line_ids.grade_2', '=', mark),
-                    (f'{q}_line_ids.grade_3', '=', mark)]
+        if value == 'none':
+            # «Нет оценок» = И (НЕ лист) по всем источникам всех четвертей;
+            # И на верхнем уровне неявный, '!' гасит ровно один лист.
+            dom = []
+            for q in quarters:
+                for leaf in source_leaves(q, '>', 0):
+                    dom += ['!', leaf]
+            return dom
 
-        parts = [has_any(q) if value == 'none' else has_mark(q, int(value)) for q in quarters]
-        # OR между четвертями (для 'none' отрицание применяем к общему ИЛИ)
-        dom = parts[0]
-        for p in parts[1:]:
-            dom = ['|'] + dom + p
-        return ['!'] + dom if value == 'none' else dom
+        mark = int(value)
+        leaves = [leaf for q in quarters for leaf in source_leaves(q, '=', mark)]
+        # Плоский OR: '|', L1, '|', L2, ..., '|', Lk-1, Lk
+        # ВНИМАНИЕ: list(leaf) РАЗВОРАЧИВАЕТ кортеж — нужен [leaf].
+        dom = [leaves[-1]]
+        for leaf in reversed(leaves[:-1]):
+            dom = ['|', leaf] + dom
+        return dom
 
     def _get_current_q_code(self):
         """Определяет номер текущей четверти на основе даты"""

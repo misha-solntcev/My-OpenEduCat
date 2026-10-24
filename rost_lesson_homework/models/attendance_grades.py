@@ -22,8 +22,13 @@ class OpAttendanceLineHw(models.Model):
         related='attendance_id.homework_assignment_id', string='Задание ДЗ')
 
     # Строка сдачи этого ученика по заданию урока (может не существовать).
+    # STORED с индексом: через неё ищут ДЗ-оценки в фильтрах Успеваемости
+    # ('qN_line_ids.hw_sub_line_id.marks' — домен ищет в SQL; non-stored
+    # колонки не существует, ORM вырождал лист в «есть любая строка» —
+    # 2662 карточки вместо 16. Пересчёт: _rost_recalc_hw_sub_lines ниже
+    # + depends на состав строк сдачи задания.
     hw_sub_line_id = fields.Many2one('op.assignment.sub.line',
-        compute='_compute_hw_sub_line')
+        compute='_compute_hw_sub_line', store=True, index=True)
 
     hw_grade_1_ui = fields.Selection([('2', '2'), ('3', '3'), ('4', '4'), ('5', '5')],
         string='ДЗ 1', compute='_compute_hw_grade_ui', inverse='_set_hw_grade_1_ui')
@@ -178,6 +183,11 @@ class OpAttendanceLineHw(models.Model):
                 'q4_average_mark', 'q4_last_remark',
             ])
             card._compute_all_stats()
+            # q*_has_grades тоже stored и зависят от оценок внутри строк:
+            # ДЗ-двойка делает четверть «с оценками» даже без О1/О2.
+            card.invalidate_recordset(['q1_has_grades', 'q2_has_grades',
+                                       'q3_has_grades', 'q4_has_grades'])
+            card._compute_has_grades()
 
     @api.depends('grade_1', 'grade_2',
                  'attendance_id.homework_assignment_id.assignment_sub_line.marks',
@@ -233,6 +243,22 @@ class OpAttendanceLineHw(models.Model):
             if rec.hw_sub_line_id:
                 rec.hw_sub_line_id.write({'marks': 0.0, 'marks_2': 0.0})
         return res
+
+    def _compute_has_grades(self):
+        """Супер: «четверть с оценками» учитывает ДЗ 1/ДЗ 2.
+
+        Фильтры «1-4 четверть» списка Успеваемость используют q*_has_grades;
+        карточка с единственной ДЗ-двойкой в четверти — тоже «с оценками»,
+        иначе фильтр противоречил среднему баллу (он считает 4 источника).
+        """
+        super()._compute_has_grades()
+        for rec in self:
+            for i in range(1, 5):
+                if not getattr(rec, f'q{i}_has_grades'):
+                    lines = getattr(rec, f'q{i}_line_ids')
+                    if any(l.hw_sub_line_id and (l.hw_sub_line_id.marks > 0
+                            or l.hw_sub_line_id.marks_2 > 0) for l in lines):
+                        setattr(rec, f'q{i}_has_grades', True)
 
 
 class OpAttendanceSheetHw(models.Model):
@@ -349,6 +375,19 @@ class OpAssignmentSubLineHw(models.Model):
         """
         if not self:
             return
+        # 1) обновить hw_sub_line_id на строках журнала этих заданий/учеников
+        #    (stored с 2026-10-23: через него ищут ДЗ-оценки фильтры четвертей;
+        #    строка сдачи появляется/исчезает — связка должна обновиться ДО
+        #    пересчёта has_grades, иначе новая ДЗ-оценка не попадает в фильтр).
+        sheets = self.env['op.attendance.sheet'].sudo().search([
+            ('homework_assignment_id', 'in', self.mapped('assignment_id').ids)])
+        if sheets:
+            lines = self.env['op.attendance.line'].sudo().search([
+                ('attendance_id', 'in', sheets.ids),
+                ('student_id', 'in', self.mapped('student_id').ids)])
+            if lines:
+                lines._compute_hw_sub_line()
+        # 2) пересчёт агрегатов
         lines = self.env['op.attendance.line'].sudo().search([
             ('attendance_id.homework_assignment_id', 'in',
              self.mapped('assignment_id').ids),
