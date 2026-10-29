@@ -334,5 +334,54 @@
         </field>
     </record>
 
-    
+    <!-- ===== res.users: диалог «Настройки» — ученикам фото и email readonly =====
+
+         Серверный гейт в models/res_users.py отдаёт AccessError при попытке
+         записи; здесь убираем саму возможность из UI. Механика — вычисляемое
+         булево поле rost_self_edit_locked + выражение в readonly (рабочий
+         паттерн этой вьюхи: odoobot_state readonly="not can_edit", кнопка
+         языка invisible="not is_system"). Узловые groups и fields_get тут
+         не работают, причины в комментарии к полю в models/res_users.py.
+    -->
+    <record id="view_users_form_simple_modif_rost_self_edit" model="ir.ui.view">
+        <field name="name">Настройки: ученикам фото/email readonly</field>
+        <field name="model">res.users</field>
+        <field name="inherit_id" ref="base.view_users_form_simple_modif"/>
+        <field name="arch" type="xml">
+            <data>
+                <xpath expr="//field[@name='can_edit']" position="after">
+                    <field name="rost_self_edit_locked" invisible="1"/>
+                </xpath>
+                <xpath expr="//field[@name='image_1920']" position="attributes">
+                    <attribute name="readonly">rost_self_edit_locked</attribute>
+                </xpath>
+                <xpath expr="//field[@name='email']" position="attributes">
+                    <attribute name="readonly">rost_self_edit_locked</attribute>
+                </xpath>
+                <!-- Вкладка «Предпочтения» для учеников ТОЛЬКО ДЛЯ ЧТЕНИЯ
+                     (решение 2026-10-29, правка «не скрыть, а readonly»):
+                     накрываем все редактируемые поля вкладки выражением.
+                     У не-учеников выражение False — поля как были. -->
+                <xpath expr="//field[@name='notification_type']" position="attributes">
+                    <attribute name="readonly">rost_self_edit_locked</attribute>
+                </xpath>
+                <xpath expr="//field[@name='lang']" position="attributes">
+                    <attribute name="readonly">rost_self_edit_locked</attribute>
+                </xpath>
+                <xpath expr="//field[@name='tz']" position="attributes">
+                    <attribute name="readonly">rost_self_edit_locked</attribute>
+                </xpath>
+                <xpath expr="//field[@name='calendar_default_privacy']" position="attributes">
+                    <attribute name="readonly">rost_self_edit_locked</attribute>
+                </xpath>
+                <xpath expr="//field[@name='signature']" position="attributes">
+                    <attribute name="readonly">rost_self_edit_locked</attribute>
+                </xpath>
+                <xpath expr="//field[@name='property_warehouse_id']" position="attributes">
+                    <attribute name="readonly">rost_self_edit_locked</attribute>
+                </xpath>
+            </data>
+        </field>
+    </record>
+
 </odoo>
