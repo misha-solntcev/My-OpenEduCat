@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_op_admission_form_billing" model="ir.ui.view">
+        <field name="name">op.admission.form.billing</field>
+        <field name="model">op.admission</field>
+        <field name="inherit_id" ref="openeducat_admission.view_op_admission_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//header" position="inside">
+                <button name="action_create_subscription" type="object"
+                        string="Создать подписку" class="btn-primary"
+                        invisible="state != 'done' or contract_count"/>
+                <button name="action_create_entry_fee_invoice" type="object"
+                        string="Счёт: вступительный взнос"
+                        invisible="state != 'done'"/>
+            </xpath>
+            <xpath expr="//field[@name='fees_term_id']" position="attributes">
+                <attribute name="invisible">1</attribute>
+            </xpath>
+            <xpath expr="//sheet" position="inside">
+                <group string="Биллинг" name="billing">
+                    <group>
+                        <div colspan="2" class="text-muted"
+                             invisible="state == 'done'">
+                            Подписка создаётся кнопкой «Создать подписку»
+                            в шапке после подтверждения приёмки.
+                        </div>
+                        <field name="billing_partner_id"/>
+                        <field name="contract_count" invisible="1"/>
+                        <field name="entry_fee_invoice_id"
+                               invisible="not entry_fee_invoice_id"/>
+                    </group>
+                    <field name="contract_ids" nolabel="1" colspan="2"
+                           readonly="1">
+                        <list>
+                            <field name="name" string="Подписка"/>
+                            <field name="partner_id" string="Плательщик"/>
+                            <field name="date_start" string="Начало"/>
+                            <field name="date_end" string="Окончание"/>
+                            <field name="recurring_next_date"
+                                   string="Следующий счёт"/>
+                            <field name="last_date_invoiced"
+                                   string="Последний счёт"/>
+                        </list>
+                    </field>
+                    <field name="billing_schedule_html" nolabel="1"
+                           colspan="2" readonly="1"
+                           invisible="not contract_ids"/>
+                </group>
+            </xpath>
+        </field>
+    </record>
+</odoo>

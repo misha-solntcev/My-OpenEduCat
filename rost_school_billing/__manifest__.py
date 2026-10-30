@@ -1,0 +1,21 @@
+{
+    'name': 'Рост: биллинг школы (помесячные подписки)',
+    'version': '18.0.1.0.0',
+    'license': 'LGPL-3',
+    'category': 'Education',
+    'summary': 'Помесячные счета родителям на базе OCA contract',
+    'author': 'rostschoolspb',
+    'website': 'https://rostschoolspb.ru',
+    'depends': ['contract', 'openeducat_admission', 'openeducat_parent', 'sale_management'],
+    'data': [
+        'views/course_view.xml',
+        'views/contract_view.xml',
+        'views/sale_template_view.xml',
+        'views/admission_view.xml',
+        'views/student_view.xml',
+        'views/hide_menus.xml',
+        'data/ir_actions_server.xml',
+    ],
+    'installable': True,
+    'auto_install': False,
+}

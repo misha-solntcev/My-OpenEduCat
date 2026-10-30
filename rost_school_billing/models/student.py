@@ -1,0 +1,132 @@
+from dateutil.relativedelta import relativedelta
+from odoo import _, fields, models
+from odoo.exceptions import UserError
+
+
+class OpStudent(models.Model):
+    _inherit = 'op.student'
+
+    contract_ids = fields.One2many(
+        'contract.contract', 'student_id', string='Подписки на обучение')
+    contract_count = fields.Integer(compute='_compute_contract_count')
+
+    def _compute_contract_count(self):
+        for student in self:
+            student.contract_count = len(student.contract_ids)
+
+    def action_view_contracts(self):
+        self.ensure_one()
+        return {
+            'type': 'ir.actions.act_window',
+            'name': _('Подписки'),
+            'res_model': 'contract.contract',
+            'view_mode': 'tree,form',
+            'domain': [('student_id', '=', self.id)],
+            'context': {'default_student_id': self.id},
+        }
+
+    def _get_billing_course_detail(self):
+        self.ensure_one()
+        running = self.course_detail_ids.filtered(
+            lambda c: c.state == 'running')
+        today = fields.Date.context_today(self)
+        current = running.filtered(
+            lambda c: c.academic_years_id.start_date <= today
+            <= c.academic_years_id.end_date)
+        return current[:1] or running[:1] or self.course_detail_ids[:1]
+
+    def action_create_subscription(self, start_date=None, partner=None):
+        """Create the monthly-training subscription (OCA contract) for each
+        student. Idempotent: students who already have a subscription are
+        skipped, so the action is safe to run on big selections."""
+        created = self.env['contract.contract']
+        for student in self:
+            if student.contract_count:
+                continue
+            detail = student._get_billing_course_detail()
+            course = detail.course_id
+            if not course:
+                raise UserError(_(
+                    'У ученика %s не указан курс.') % student.name)
+            template = course.sale_order_template_id
+            pricelist = course.billing_pricelist_id
+            if not template or not pricelist:
+                raise UserError(_(
+                    'Для курса «%s» не заданы шаблон КП и прайс-лист '
+                    'биллинга (карточка курса, раздел «Биллинг»).')
+                    % course.name)
+            start = (start_date or detail.fees_start_date
+                     or fields.Date.context_today(self))
+            billing_partner = partner or student.parent_ids[:1].name \
+                or student.partner_id
+            if not billing_partner:
+                raise UserError(_(
+                    'Не определён плательщик для ученика %s.')
+                    % student.name)
+            line_vals = []
+            month_cursor = 0
+            for tline in template.sale_order_template_line_ids:
+                if tline.display_type or not tline.product_uom_qty:
+                    continue
+                # entry-fee lines (charged once) are invoiced separately
+                if tline.charge_at_start:
+                    continue
+                months = int(tline.product_uom_qty)
+                price = pricelist._get_product_price(
+                    tline.product_id, 1, date=start)
+                line_start = start + relativedelta(months=month_cursor)
+                line_end = line_start + relativedelta(
+                    months=months) - relativedelta(days=1)
+                month_cursor += months
+                line_vals.append((0, 0, {
+                    'name': tline.product_id.display_name,
+                    'product_id': tline.product_id.id,
+                    'quantity': 1,
+                    'uom_id': tline.product_id.uom_id.id,
+                    'price_unit': price,
+                    'automatic_price': False,
+                    'date_start': line_start,
+                    'date_end': line_end,
+                    'recurring_rule_type': 'monthly',
+                    'recurring_interval': 1,
+                    'recurring_invoicing_type': 'pre-paid',
+                    'recurring_invoicing_offset': 0,
+                }))
+            if not line_vals:
+                raise UserError(_(
+                    'В шаблоне «%s» нет строк для подписки.')
+                    % template.name)
+            contract = self.env['contract.contract'].create({
+                'name': _('Обучение: %s (%s)')
+                        % (student.name, course.name),
+                'partner_id': billing_partner.id,
+                'student_id': student.id,
+                'contract_type': 'sale',
+                'generation_type': 'invoice',
+                'date_start': start,
+                'date': start,
+                'pricelist_id': pricelist.id,
+                'line_recurrence': True,
+                'recurring_rule_type': 'monthly',
+                'recurring_interval': 1,
+                'recurring_invoicing_type': 'pre-paid',
+                'contract_line_ids': line_vals,
+            })
+            created |= contract
+        if not created:
+            return None
+        if len(created) == 1:
+            return {
+                'type': 'ir.actions.act_window',
+                'res_model': 'contract.contract',
+                'res_id': created.id,
+                'view_mode': 'form',
+                'target': 'current',
+            }
+        return {
+            'type': 'ir.actions.act_window',
+            'name': _('Созданные подписки'),
+            'res_model': 'contract.contract',
+            'view_mode': 'tree,form',
+            'domain': [('id', 'in', created.ids)],
+        }
