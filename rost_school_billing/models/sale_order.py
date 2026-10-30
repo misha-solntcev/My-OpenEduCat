@@ -49,32 +49,21 @@ class SaleOrder(models.Model):
         }
 
     def _school_find_batch(self, course):
-        """Единственная параллель «А» класса: активный батч курса
-        (сегодня внутри дат), иначе последний созданный для курса."""
+        """Единственная параллель «А» класса: батч курса, активный
+        на сегодня. Не находим — ошибка, батч заводится вручную."""
         today = fields.Date.context_today(self)
         batches = self.env['op.batch'].search(
             [('course_id', '=', course.id)])
         current = batches.filtered(
             lambda b: b.start_date and b.end_date
             and b.start_date <= today <= b.end_date)
-        if current:
-            return current[-1]
-        if batches:
-            return batches.sorted('start_date')[-1]
-        today_ = today
-        if today_.month >= 9:
-            year = '%s/%s' % (today_.year, today_.year + 1)
-            start = date(today_.year, 9, 1)
-        else:
-            year = '%s/%s' % (today_.year - 1, today_.year)
-            start = date(today_.year - 1, 9, 1)
-        return self.env['op.batch'].create({
-            'name': _('%s А %s') % (course.name, year),
-            'code': _('%sА %s') % (course.name.replace(' класс', ''), year),
-            'course_id': course.id,
-            'start_date': start,
-            'end_date': date(start.year + 1, 5, 25),
-        })
+        if not current:
+            raise UserError(_(
+                'Для класса «%s» нет параллели на текущий учебный год. '
+                'Создайте её в Приёмка → Параллели '
+                '(с датами, охватывающими сегодняшнюю дату).')
+                % course.name)
+        return current[-1]
 
     def action_open_admission(self):
         """Создать приёмку по результатам воронки (или открыть существующую).
@@ -122,7 +111,6 @@ class SaleOrder(models.Model):
             'application_date': fields.Date.context_today(self),
             'fees_start_date': self._school_default_fees_start(),
             'partner_id': self.partner_id.id,
-            'billing_partner_id': self.partner_id.id,
             'sale_order_id': self.id,
         }
         admission = self.env['op.admission'].create(vals)
