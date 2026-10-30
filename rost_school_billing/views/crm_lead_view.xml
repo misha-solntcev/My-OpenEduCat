@@ -15,6 +15,7 @@
                             <field name="child_course_id"/>
                             <field name="child_current_school"/>
                             <field name="child_interests"/>
+                            <field name="child_medical"/>
                         </group>
                         <group string="Семья и согласия">
                             <field name="child_address"/>

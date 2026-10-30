@@ -15,6 +15,9 @@ class CrmLead(models.Model):
         help='Подсказка для КП; окончательно класс подтверждается в приёмке.')
     child_current_school = fields.Char('Текущая школа')
     child_interests = fields.Text('Интересы и увлечения')
+    child_medical = fields.Text(
+        'Медицинские особенности',
+        help='Указываются добровольно (анкета сайта).')
     child_address = fields.Char(
         'Адрес проживания (семья)',
         help='Записывается в адрес родителя при создании приёмки.')
