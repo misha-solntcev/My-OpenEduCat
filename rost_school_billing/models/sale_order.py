@@ -69,6 +69,11 @@ class SaleOrder(models.Model):
             raise UserError(_(
                 'В лиде заказа не заполнено ФИО ребёнка '
                 '(вкладка «Ученик»).'))
+        if not lead.child_birth_date:
+            raise UserError(_(
+                'В лиде «%s» не заполнена дата рождения ребёнка. '
+                'Заполните её на вкладке «Ученик» лида и повторите '
+                'кнопку «Поступление».') % lead.name)
         email = self.partner_id.email or (lead.email_from or '')
         if not email:
             raise UserError(_(
