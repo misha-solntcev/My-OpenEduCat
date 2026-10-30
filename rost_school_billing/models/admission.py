@@ -28,6 +28,9 @@ class OpAdmission(models.Model):
                  'student_id.partner_id')
     def _compute_billing_partner(self):
         for admission in self:
+            if admission.billing_partner_id:
+                # плательщик уже определён (из заказа воронки или руками)
+                continue
             parent = admission.student_id.parent_ids[:1].name
             admission.billing_partner_id = (
                 parent or admission.student_id.partner_id)
