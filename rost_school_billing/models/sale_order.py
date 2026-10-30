@@ -16,12 +16,8 @@ class SaleOrder(models.Model):
         ], limit=1)
 
     def _school_default_fees_start(self):
-        """До сентября — старт с 1 сентября; в учебном году — с 1-го числа
-        текущего месяца. Секретарь может поправить в приёмке."""
-        today = fields.Date.context_today(self)
-        if today.month < 9:
-            return date(today.year, 9, 1)
-        return today.replace(day=1)
+        """Старт оплаты — дата поступления (секретарь может поправить)."""
+        return fields.Date.context_today(self)
 
     def _school_find_register(self, course):
         today = fields.Date.context_today(self)
