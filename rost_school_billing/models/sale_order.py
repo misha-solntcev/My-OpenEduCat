@@ -89,4 +89,6 @@ class SaleOrder(models.Model):
             'sale_order_id': self.id,
         }
         admission = self.env['op.admission'].create(vals)
+        if lead.child_address and not self.partner_id.street:
+            self.partner_id.write({'street': lead.child_address})
         return self._admission_action(admission)

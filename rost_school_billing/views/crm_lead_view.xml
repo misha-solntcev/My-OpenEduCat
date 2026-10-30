@@ -13,8 +13,12 @@
                             <field name="child_birth_date"/>
                             <field name="child_gender"/>
                             <field name="child_course_id"/>
+                            <field name="child_current_school"/>
+                            <field name="child_interests"/>
                         </group>
-                        <group string="Уже учится в школе">
+                        <group string="Семья и согласия">
+                            <field name="child_address"/>
+                            <field name="personal_data_consent"/>
                             <field name="existing_student_id"/>
                             <div colspan="2" class="text-muted">
                                 Заполните, если ребёнок уже числится в школе:
