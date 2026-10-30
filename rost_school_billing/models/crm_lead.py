@@ -9,7 +9,6 @@ class CrmLead(models.Model):
     child_gender = fields.Selection([
         ('m', 'Мужской'),
         ('f', 'Женский'),
-        ('o', 'Другой'),
     ], 'Пол ребёнка')
     child_course_id = fields.Many2one(
         'op.course', 'Планируемый класс',

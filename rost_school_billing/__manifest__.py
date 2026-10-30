@@ -13,6 +13,7 @@
         'views/contract_view.xml',
         'views/sale_template_view.xml',
         'views/crm_lead_view.xml',
+        'views/sale_order_view.xml',
         'views/admission_view.xml',
         'views/student_view.xml',
         'views/hide_menus.xml',

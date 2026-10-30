@@ -35,10 +35,11 @@ class OpStudent(models.Model):
             <= c.academic_years_id.end_date)
         return current[:1] or running[:1] or self.course_detail_ids[:1]
 
-    def action_create_subscription(self, start_date=None, partner=None):
-        """Create the monthly-training subscription (OCA contract) for each
-        student. Idempotent: students who already have a subscription are
-        skipped, so the action is safe to run on big selections."""
+    def action_create_subscription(self, start_date=None, partner=None,
+                                   order=None):
+        """Подписка на обучение. Источник строк: подтверждённый заказ
+        воронки (order) либо шаблон КП + прайс-лист курса (старый путь).
+        Идемпотентно: ученики с подпиской пропускаются."""
         created = self.env['contract.contract']
         for student in self:
             if student.contract_count:
@@ -48,13 +49,6 @@ class OpStudent(models.Model):
             if not course:
                 raise UserError(_(
                     'У ученика %s не указан курс.') % student.name)
-            template = course.sale_order_template_id
-            pricelist = course.billing_pricelist_id
-            if not template or not pricelist:
-                raise UserError(_(
-                    'Для курса «%s» не заданы шаблон КП и прайс-лист '
-                    'биллинга (карточка курса, раздел «Биллинг»).')
-                    % course.name)
             start = (start_date or detail.fees_start_date
                      or fields.Date.context_today(self))
             billing_partner = partner or student.parent_ids[:1].name \
@@ -63,26 +57,44 @@ class OpStudent(models.Model):
                 raise UserError(_(
                     'Не определён плательщик для ученика %s.')
                     % student.name)
+            if order and order.state != 'sale':
+                raise UserError(_(
+                    'Заказ %s не подтверждён — сначала завершите КП '
+                    'в Продажах.') % order.name)
             line_vals = []
             month_cursor = 0
-            for tline in template.sale_order_template_line_ids:
-                if tline.display_type or not tline.product_uom_qty:
+            template = pricelist = None
+            if order:
+                pricelist = order.pricelist_id or course.billing_pricelist_id
+                src_lines = order.order_line
+            else:
+                template = course.sale_order_template_id
+                pricelist = course.billing_pricelist_id
+                if not template or not pricelist:
+                    raise UserError(_(
+                        'Для курса «%s» не заданы шаблон КП и прайс-лист '
+                        'биллинга (карточка курса, раздел «Биллинг»).')
+                        % course.name)
+                src_lines = template.sale_order_template_line_ids
+            for src in src_lines:
+                if src.display_type or src.charge_at_start \
+                        or not src.product_uom_qty:
                     continue
-                # entry-fee lines (charged once) are invoiced separately
-                if tline.charge_at_start:
-                    continue
-                months = int(tline.product_uom_qty)
-                price = pricelist._get_product_price(
-                    tline.product_id, 1, date=start)
+                months = int(src.product_uom_qty)
+                if order:
+                    price = src.price_unit
+                else:
+                    price = pricelist._get_product_price(
+                        src.product_id, 1, date=start)
                 line_start = start + relativedelta(months=month_cursor)
                 line_end = line_start + relativedelta(
                     months=months) - relativedelta(days=1)
                 month_cursor += months
                 line_vals.append((0, 0, {
-                    'name': tline.product_id.display_name,
-                    'product_id': tline.product_id.id,
+                    'name': src.product_id.display_name,
+                    'product_id': src.product_id.id,
                     'quantity': 1,
-                    'uom_id': tline.product_id.uom_id.id,
+                    'uom_id': src.product_id.uom_id.id,
                     'price_unit': price,
                     'automatic_price': False,
                     'date_start': line_start,

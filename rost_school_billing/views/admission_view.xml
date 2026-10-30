@@ -25,6 +25,8 @@
                             в шапке после подтверждения приёмки.
                         </div>
                         <field name="billing_partner_id"/>
+                        <field name="sale_order_id" readonly="1"
+                               invisible="not sale_order_id"/>
                         <field name="contract_count" invisible="1"/>
                         <field name="entry_fee_invoice_id"
                                invisible="not entry_fee_invoice_id"/>

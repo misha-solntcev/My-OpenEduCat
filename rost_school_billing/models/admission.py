@@ -13,6 +13,10 @@ class OpAdmission(models.Model):
              "ученика.")
     entry_fee_invoice_id = fields.Many2one(
         'account.move', 'Счёт за вступительный взнос', copy=False)
+    sale_order_id = fields.Many2one(
+        'sale.order', 'Заказ (воронка)', copy=False,
+        help='Подтверждённый заказ из воронки, по которому создана '
+             'приёмка.')
     contract_ids = fields.One2many(
         'contract.contract', compute='_compute_contract_ids',
         string='Подписки')
@@ -49,9 +53,14 @@ class OpAdmission(models.Model):
         self.ensure_one()
         if not self.student_id:
             raise UserError(_('Ученик ещё не создан (подтвердите приёмку).'))
+        if self.sale_order_id and self.sale_order_id.state != 'sale':
+            raise UserError(_(
+                'КП ещё не подтверждено — завершите его в Продажах, '
+                'затем создайте подписку.'))
         return self.student_id.action_create_subscription(
             start_date=self.fees_start_date,
-            partner=self.billing_partner_id or None)
+            partner=self.billing_partner_id or None,
+            order=self.sale_order_id or None)
 
     def action_create_entry_fee_invoice(self):
         self.ensure_one()
@@ -65,7 +74,10 @@ class OpAdmission(models.Model):
                 'view_mode': 'form',
                 'target': 'current',
             }
-        product = self.env['product.product'].search(
+        fee_line = self.sale_order_id.order_line.filtered(
+            'charge_at_start')[:1] if self.sale_order_id else False
+        product = fee_line.product_id if fee_line else self.env[
+            'product.product'].search(
             [('name', 'ilike', 'Вступительный взнос')], limit=1)
         if not product:
             raise UserError(_(
@@ -79,10 +91,10 @@ class OpAdmission(models.Model):
         partner = (self.billing_partner_id or self.student_id.partner_id)
         course = self.student_id._get_billing_course_detail().course_id
         pricelist = course.billing_pricelist_id
-        price = product.lst_price or 0.0
-        if pricelist:
-            price = pricelist._get_product_price(
+        price = fee_line.price_unit if fee_line else (
+            pricelist._get_product_price(
                 product, 1, date=fields.Date.context_today(self))
+            if pricelist else product.lst_price or 0.0)
         invoice = self.env['account.move'].create({
             'move_type': 'out_invoice',
             'partner_id': partner.id,
