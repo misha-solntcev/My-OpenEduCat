@@ -1,0 +1,20 @@
+from odoo import fields, models
+
+
+class CrmLead(models.Model):
+    _inherit = 'crm.lead'
+
+    child_name = fields.Char('ФИО ребёнка')
+    child_birth_date = fields.Date('Дата рождения ребёнка')
+    child_gender = fields.Selection([
+        ('m', 'Мужской'),
+        ('f', 'Женский'),
+        ('o', 'Другой'),
+    ], 'Пол ребёнка')
+    child_course_id = fields.Many2one(
+        'op.course', 'Планируемый класс',
+        help='Подсказка для КП; окончательно класс подтверждается в приёмке.')
+    existing_student_id = fields.Many2one(
+        'op.student', 'Уже учится (ученик)',
+        help='Заполните, если ребёнок уже числится в школе: '
+             'приёмка привяжется к нему, а не создаст нового.')
