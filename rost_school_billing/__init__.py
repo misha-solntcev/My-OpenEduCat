@@ -1,7 +1,7 @@
 from . import models
 
 FORM_FIELDS = (
-    'child_name', 'child_gender', 'child_birth_date',
+    'child_name', 'child_gender', 'child_birth_date', 'child_course_id',
     'child_current_school', 'child_interests', 'child_medical',
     'child_address', 'personal_data_consent',
 )

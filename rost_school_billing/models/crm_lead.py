@@ -11,7 +11,7 @@ class CrmLead(models.Model):
         ('f', 'Женский'),
     ], 'Пол ребёнка')
     child_course_id = fields.Many2one(
-        'op.course', 'Планируемый класс',
+        'op.course', 'Класс',
         help='Подсказка для КП; окончательно класс подтверждается в приёмке.')
     child_current_school = fields.Char('Текущая школа')
     child_interests = fields.Text('Интересы и увлечения')
