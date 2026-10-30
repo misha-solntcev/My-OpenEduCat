@@ -1,3 +1,5 @@
+from datetime import date
+
 from dateutil.relativedelta import relativedelta
 from odoo import _, fields, models
 from odoo.exceptions import UserError
@@ -76,6 +78,12 @@ class OpStudent(models.Model):
                         'биллинга (карточка курса, раздел «Биллинг»).')
                         % course.name)
                 src_lines = template.sale_order_template_line_ids
+            # Линии подписки = учебные месяцы, привязанные к календарю
+            # учебного года (якорь — 1 сентября), а не к годовщине даты
+            # старта: зачисленный в середине года ученик получает
+            # оставшиеся месяцы года по 1-м числам, месяцы до поступления
+            # не оплачиваются. qty товара — число учебных месяцев.
+            year_start = date(start.year, 9, 1)
             for src in src_lines:
                 if src.display_type or src.charge_at_start \
                         or not src.product_uom_qty:
@@ -86,24 +94,28 @@ class OpStudent(models.Model):
                 else:
                     price = pricelist._get_product_price(
                         src.product_id, 1, date=start)
-                line_start = start + relativedelta(months=month_cursor)
-                line_end = line_start + relativedelta(
-                    months=months) - relativedelta(days=1)
+                for i in range(months):
+                    m_start = year_start + relativedelta(
+                        months=month_cursor + i)
+                    m_end = (m_start + relativedelta(months=1)
+                             - relativedelta(days=1))
+                    if m_end < start:
+                        continue  # месяц прошёл до поступления
+                    line_vals.append((0, 0, {
+                        'name': src.product_id.display_name,
+                        'product_id': src.product_id.id,
+                        'quantity': 1,
+                        'uom_id': src.product_id.uom_id.id,
+                        'price_unit': price,
+                        'automatic_price': False,
+                        'date_start': max(m_start, start),
+                        'date_end': m_end,
+                        'recurring_rule_type': 'monthly',
+                        'recurring_interval': 1,
+                        'recurring_invoicing_type': 'pre-paid',
+                        'recurring_invoicing_offset': 0,
+                    }))
                 month_cursor += months
-                line_vals.append((0, 0, {
-                    'name': src.product_id.display_name,
-                    'product_id': src.product_id.id,
-                    'quantity': 1,
-                    'uom_id': src.product_id.uom_id.id,
-                    'price_unit': price,
-                    'automatic_price': False,
-                    'date_start': line_start,
-                    'date_end': line_end,
-                    'recurring_rule_type': 'monthly',
-                    'recurring_interval': 1,
-                    'recurring_invoicing_type': 'pre-paid',
-                    'recurring_invoicing_offset': 0,
-                }))
             if not line_vals:
                 raise UserError(_(
                     'В шаблоне «%s» нет строк для подписки.')
