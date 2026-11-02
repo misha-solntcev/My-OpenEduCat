@@ -360,7 +360,13 @@ class OpSession(models.Model):
 
     def unlink(self):
         # Neighbors before deletion: their conflict may disappear with us.
-        pre_neighbors = self.browse(self._conflict_neighbor_ids())
+        # ВАЖНО: сами удаляемые записи исключаем из соседей — при пакетном
+        # удалении пересекающихся уроков (пара «Английский А/Б» на одном
+        # звонке) сосед члена пачки — соседняя УДАЛЯЕМАЯ запись; после
+        # super().unlink() пересчёт флагов по ней падал MissingError
+        # («Запись не существует»), откатывая всё удаление целиком —
+        # расписание с параллелями становилось неудаляемым.
+        pre_neighbors = self.browse(self._conflict_neighbor_ids()) - self
         res = super(OpSession, self).unlink()
         pre_neighbors._recompute_conflict_flags()
         return res

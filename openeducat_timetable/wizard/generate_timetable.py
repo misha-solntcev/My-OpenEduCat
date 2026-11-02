@@ -1,6 +1,6 @@
 from odoo import _, api, fields, models
 from odoo.exceptions import ValidationError
-from collections import defaultdict
+from collections import Counter, defaultdict
 import datetime
 
 
@@ -236,6 +236,17 @@ class GenerateSession(models.TransientModel):
         protected = self.env['op.attendance.sheet'].sudo().search(
             [('session_id', 'in', existing.ids)]).mapped('session_id')
 
+        # Параллельные уроки ВНУТРИ самой генерации (импорт приносит два
+        # предмета на один звонок — «Английский А/Б»): существующих уроков
+        # в периоде может не быть вовсе, а конфликты уже есть. Без учёта
+        # этих пар шаг подтверждения молчит (has_soft_conflicts=False),
+        # галочка автоутверждения не показывается, и вся пара создаётся
+        # красной. Считаем уроки, попавшие в слоты с несколькими уроками
+        # (пара даёт 2 — при auto_approve утверждается ОБЕ карточки).
+        slot_load = Counter((d['timetable_date'], d['timing_id'])
+                            for d in sessions_data)
+        stat_parallel = sum(n for n in slot_load.values() if n > 1)
+
         confirm = self.env['generate.time.table.confirm'].create({
             'gen_wizard_id': self.id,
             'mode': 'overlap' if overlaps else 'add',
@@ -243,6 +254,7 @@ class GenerateSession(models.TransientModel):
             'stat_existing': len(existing),
             'stat_overlap': len(overlaps),
             'stat_protected': len(protected),
+            'stat_parallel': stat_parallel,
         })
         return {
             'type': 'ir.actions.act_window',
@@ -336,13 +348,24 @@ class GenerateSession(models.TransientModel):
         if not sessions:
             raise ValidationError("Уроков для импорта не найдено.")
 
+        # Дедупликация. Ключ = день + слот + предмет + учитель: параллельные
+        # уроки («Английский А»/«Английский Б» на одном звонке) попадают в
+        # таблицу КАК ОТДЕЛЬНЫЕ строки — их разводит конфликт-механика
+        # генерации (красная карточка / conflict_override в шаге
+        # подтверждения). Отсекаются только полные дубли: период импорта
+        # длиннее недели, и один и тот же урок повторяется в каждой неделе
+        # периода. Раньше ключ был (день, слот) — второй урок пары молча
+        # терялся без всякого предупреждения.
         seen = set()
         lines_data = []
+        skipped_dups = 0
         for s in sessions:
             day = str(s.timetable_date.weekday())
-            if (day, s.timing_id.id) in seen:
+            key = (day, s.timing_id.id, s.subject_id.id, s.faculty_id.id)
+            if key in seen:
+                skipped_dups += 1
                 continue
-            seen.add((day, s.timing_id.id))
+            seen.add(key)
             lines_data.append((0, 0, {
                 'day': day, 'timing_id': s.timing_id.id, 'faculty_id': s.faculty_id.id,
                 'subject_id': s.subject_id.id, 'classroom_id': s.classroom_id.id,
@@ -350,7 +373,44 @@ class GenerateSession(models.TransientModel):
 
         self.time_table_lines.unlink()
         self.write({'time_table_lines': lines_data})
-        return self._reopen_wizard()
+
+        # Слоты, на которые импорт положил несколько уроков (параллельные
+        # подгруппы) — сразу виден масштаб будущих «конфликтов».
+        import_load = Counter((d['day'], d['timing_id'])
+                              for _, _, d in lines_data)
+        parallel_slots = sum(1 for n in import_load.values() if n > 1)
+
+        # Отчёт вместо тихого успеха. params.next поддерживается
+        # обработчиком display_notification (web/client_actions.js) —
+        # переоткрывает мастера, чтобы таблица отрисовала новые строки.
+        # ВАЖНО: next возвращается из КЛИЕНТСКОГО действия напрямую в
+        # doAction, минуя серверный clean_action/generate_views — без
+        # явного views падает в _preprocessAction (action.views.map).
+        reopen = self._reopen_wizard()
+        reopen['views'] = [[False, 'form']]
+        if skipped_dups:
+            message = (
+                "Импортировано уроков: %s. Пропущено полных дублей: %s "
+                "(тот же предмет и учитель на том же уроке — повтор в "
+                "неделях периода импорта)."
+                % (len(lines_data), skipped_dups))
+            ntype = 'warning'
+        else:
+            message = "Импортировано уроков: %s." % len(lines_data)
+            ntype = 'success'
+        if parallel_slots:
+            message += " Слотов с параллельными уроками: %s." % parallel_slots
+        return {
+            'type': 'ir.actions.client',
+            'tag': 'display_notification',
+            'params': {
+                'title': 'Импорт расписания',
+                'message': message,
+                'type': ntype,
+                'sticky': False,
+                'next': reopen,
+            },
+        }
 
     @api.constrains('start_date', 'end_date')
     def check_dates(self):
