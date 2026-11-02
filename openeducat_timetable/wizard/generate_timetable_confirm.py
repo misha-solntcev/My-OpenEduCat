@@ -33,6 +33,11 @@ class GenerateTimeTableConfirm(models.TransientModel):
     stat_new = fields.Integer('Будет создано')
     stat_existing = fields.Integer('Существует в периоде')
     stat_overlap = fields.Integer('Совпадают с новыми')
+    stat_parallel = fields.Integer(
+        'Параллельных внутри генерации',
+        help='Уроки, попавшие в один слот с другими уроками этой же '
+             'генерации (параллельные подгруппы «Английский А/Б»). '
+             'Существующих уроков может не быть, а конфликт уже есть.')
     stat_protected = fields.Integer('Защищены журналом посещаемости')
     protected_info = fields.Text('Защищённые уроки')
 
@@ -40,24 +45,33 @@ class GenerateTimeTableConfirm(models.TransientModel):
     can_all = fields.Boolean(compute='_compute_mode_availability')
     empty_period = fields.Boolean(compute='_compute_mode_availability')
     has_soft_conflicts = fields.Boolean(compute='_compute_mode_availability')
+    has_parallel_conflicts = fields.Boolean(compute='_compute_mode_availability')
     summary_html = fields.Html(compute='_compute_summary_html')
 
-    @api.depends('stat_existing', 'stat_overlap')
+    @api.depends('stat_existing', 'stat_overlap', 'stat_parallel')
     def _compute_mode_availability(self):
         for rec in self:
             rec.can_overlap = rec.stat_overlap > 0
             rec.can_all = rec.stat_existing > 0
             rec.empty_period = rec.stat_existing == 0
-            # Мягкие конфликты = новые уроки на занятые слоты в режиме add
-            # (stat_overlap считался только по точному совпадению день+слот;
-            # фактические пересечения по времени могут быть шире, но для
-            # чекбокса этой оценки достаточно — точный список смотрит
-            # action_apply).
-            rec.has_soft_conflicts = rec.stat_overlap > 0
+            # Мягкие конфликты = новые уроки на занятые слоты в режиме add.
+            # Два источника: пересечения с УЖЕ существующими уроками
+            # (stat_overlap, по точному совпадению день+слот) и параллельные
+            # уроки ВНУТРИ самой генерации (stat_parallel — импорт приносит
+            # «Английский А» и «Б» на один звонок; существующих уроков может
+            # не быть вовсе). Фактические пересечения по времени могут быть
+            # шире, но для чекбокса этой оценки достаточно — точный список
+            # смотрит action_apply.
+            rec.has_soft_conflicts = (rec.stat_overlap > 0
+                                      or rec.stat_parallel > 0)
+            # Параллельные конфликты выживают В ЛЮБОМ режиме: в overlap/all
+            # старые совпадающие уроки удаляются, но пара «А/Б» из самой
+            # генерации никуда не девается — галочка нужна и там.
+            rec.has_parallel_conflicts = rec.stat_parallel > 0
             if not rec.can_overlap and rec.mode == 'overlap':
                 rec.mode = 'add'
 
-    @api.depends('stat_new', 'stat_existing', 'stat_overlap',
+    @api.depends('stat_new', 'stat_existing', 'stat_overlap', 'stat_parallel',
                  'stat_protected', 'empty_period', 'mode')
     def _compute_summary_html(self):
         for rec in self:
@@ -68,34 +82,78 @@ class GenerateTimeTableConfirm(models.TransientModel):
             rows = []
             rows.append("<div class='mb-2'>Новых уроков будет создано: "
                         "<b>%s</b></div>" % rec.stat_new)
+
+            def _conflict_warning():
+                detail = []
+                if rec.stat_overlap:
+                    detail.append("пересечений с существующими: %s"
+                                  % rec.stat_overlap)
+                if rec.stat_parallel:
+                    detail.append("параллельных уроков в генерации: %s"
+                                  % rec.stat_parallel)
+                if not detail:
+                    return ''
+                return (
+                    "<div class='alert alert-warning py-2 px-3 mb-1'>"
+                    "Некоторые новые уроки попадут на занятое время "
+                    "(%s) — они будут созданы и <b>подсвечены "
+                    "красным</b>. Включите «Утвердить конфликты "
+                    "автоматически», чтобы конфликты класса и кабинета "
+                    "были утверждены сразу; учительские пересечения "
+                    "останутся красными для завуча.</div>"
+                    % "; ".join(detail))
+
+            def _parallel_warning():
+                # Для overlap/all: stat_overlap там заменяется, а параллели
+                # внутри генерации остаются — предупреждать нужно только про
+                # них.
+                if not rec.stat_parallel:
+                    return ''
+                return (
+                    "<div class='alert alert-warning py-2 px-3 mb-1'>"
+                    "Параллельные уроки этой генерации (%s) попадут в один "
+                    "слот — при применении будут созданы красными, если не "
+                    "включить «Утвердить конфликты автоматически».</div>"
+                    % rec.stat_parallel)
+
             if rec.empty_period:
                 rows.append(
                     "<div class='alert alert-info py-2 px-3 mb-1'>"
                     "Расписание класса на период %s свободно.</div>" % period)
+                # Пустой период не значит «конфликтов нет»: параллельные
+                # уроки из импорта конфликтуют внутри самой генерации —
+                # раньше сводка обрывалась на «свободно» и предупреждение
+                # не показывалось вовсе.
+                if rec.stat_parallel:
+                    rows.append(_conflict_warning())
                 rec.summary_html = "".join(rows)
                 continue
+            parallel_row = ''
+            if rec.stat_parallel:
+                parallel_row = (
+                    "<tr class='table-warning'><td>Параллельные уроки в одном "
+                    "слоте (внутри генерации)</td><td><b>%s</b></td></tr>"
+                    % rec.stat_parallel)
             rows.append(
                 "<div class='mb-1'>Уроков уже существует в периоде %s: "
                 "<b>%s</b></div>"
                 "<table class='table table-sm table-bordered mb-2'>"
                 "<tr><td>Совпадают с новыми (день и время)</td><td><b>%s</b></td></tr>"
                 "<tr><td>Не совпадают</td><td><b>%s</b></td></tr>"
+                "%s"
                 "<tr class='table-warning'><td>Защищены журналом посещаемости "
                 "(не удаляются)</td><td><b>%s</b></td></tr>"
                 "</table>" % (period, rec.stat_existing, rec.stat_overlap,
                               rec.stat_existing - rec.stat_overlap,
-                              rec.stat_protected))
+                              parallel_row, rec.stat_protected))
             # Динамический прогноз по выбранному режиму
             protected = min(rec.stat_protected, rec.stat_overlap) \
                 if rec.mode == 'overlap' else \
                 min(rec.stat_protected, rec.stat_existing)
             if rec.mode == 'add':
-                if rec.has_soft_conflicts:
-                    rows.append(
-                        "<div class='alert alert-warning py-2 px-3 mb-1'>"
-                        "Некоторые новые уроки попадут на занятое время — "
-                        "они будут созданы и <b>подсвечены красным</b> "
-                        "(конфликт разрешается вручную в расписании).</div>")
+                warning = _conflict_warning()
+                if warning:
+                    rows.append(warning)
                 else:
                     rows.append(
                         "<div class='alert alert-info py-2 px-3 mb-1'>"
@@ -109,6 +167,9 @@ class GenerateTimeTableConfirm(models.TransientModel):
                     "<b>останутся как есть</b>.</div>"
                     % (rec.stat_overlap, protected,
                        rec.stat_existing - rec.stat_overlap))
+                parallel = _parallel_warning()
+                if parallel:
+                    rows.append(parallel)
             else:
                 will_delete = max(rec.stat_existing - protected, 0)
                 rows.append(
@@ -116,6 +177,9 @@ class GenerateTimeTableConfirm(models.TransientModel):
                     "При применении: удалено будет <b>%s</b> из %s существующих "
                     "(защищённые журналом пропущены), создано <b>%s</b> новых."
                     "</div>" % (will_delete, rec.stat_existing, rec.stat_new))
+                parallel = _parallel_warning()
+                if parallel:
+                    rows.append(parallel)
             if (rec.mode == 'all'
                     and rec.stat_new < rec.stat_existing - rec.stat_protected):
                 rows.append(
