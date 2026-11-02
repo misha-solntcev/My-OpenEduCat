@@ -40,6 +40,17 @@ class GenerateTimeTableConfirm(models.TransientModel):
              'Существующих уроков может не быть, а конфликт уже есть.')
     stat_protected = fields.Integer('Защищены журналом посещаемости')
     protected_info = fields.Text('Защищённые уроки')
+    # Учительские пересечения (против всех классов + внутри генерации):
+    # «физра — два класса вместе» и т.п. По умолчанию остаются красными,
+    # галочка auto_approve_faculty утверждает их осознанно.
+    stat_faculty = fields.Integer('Учительских пересечений')
+    faculty_conflicts_html = fields.Html('Пересечения по учителям')
+    auto_approve_faculty = fields.Boolean(
+        'Утвердить и конфликты учителей',
+        help='Учительские пересечения из списка ниже тоже будут утверждены '
+             '(conflict_override), включая карточки уроков других классов. '
+             'Включайте, только если сверились со списком: обычно это '
+             'совместные занятия (физра — два класса вместе).')
 
     can_overlap = fields.Boolean(compute='_compute_mode_availability')
     can_all = fields.Boolean(compute='_compute_mode_availability')
@@ -72,7 +83,8 @@ class GenerateTimeTableConfirm(models.TransientModel):
                 rec.mode = 'add'
 
     @api.depends('stat_new', 'stat_existing', 'stat_overlap', 'stat_parallel',
-                 'stat_protected', 'empty_period', 'mode')
+                 'stat_protected', 'stat_faculty', 'auto_approve_faculty',
+                 'empty_period', 'mode')
     def _compute_summary_html(self):
         for rec in self:
             p = rec.gen_wizard_id.start_date
@@ -186,6 +198,19 @@ class GenerateTimeTableConfirm(models.TransientModel):
                     "<div class='alert alert-warning py-2 px-3 mb-1 small'>"
                     "⚠ Внимание: будет удалено больше уроков, чем создано. "
                     "Дни, не заполненные в таблице мастера, опустеют.</div>")
+            if rec.stat_faculty:
+                if rec.auto_approve_faculty:
+                    fac_note = (
+                        "будут утверждены вместе с карточками уроков "
+                        "других классов")
+                else:
+                    fac_note = (
+                        "останутся красными — утвердите галочкой «Утвердить "
+                        "и конфликты учителей», сверившись со списком ниже")
+                rows.append(
+                    "<div class='alert alert-warning py-2 px-3 mb-1'>"
+                    "Учительских пересечений: <b>%s</b> (список ниже) — %s.</div>"
+                    % (rec.stat_faculty, fac_note))
             rec.summary_html = "".join(rows)
 
     def action_back(self):
@@ -239,7 +264,10 @@ class GenerateTimeTableConfirm(models.TransientModel):
             raise ValidationError("Нет данных для генерации.")
 
         Session = self.env['op.session']
-        Sheet = self.env['op.attendance.sheet'].sudo()
+        # Журналы посещаемости — опциональный спутник (страж на случай
+        # незагруженного openeducat_attendance, см. act_gen_time_table).
+        Sheet = ('op.attendance.sheet' in self.env and
+                 self.env['op.attendance.sheet'].sudo())
 
         # 2. Существующие уроки параллели за период
         existing = Session.search([
@@ -248,8 +276,8 @@ class GenerateTimeTableConfirm(models.TransientModel):
             ('timetable_date', '>=', wizard.start_date),
             ('timetable_date', '<=', wizard.end_date),
         ])
-        protected = Sheet.search([('session_id', 'in', existing.ids)]).mapped(
-            'session_id')
+        protected = (Sheet.search([('session_id', 'in', existing.ids)]).mapped(
+            'session_id') if Sheet else Session)
 
         # 3. Удаление по выбранному режиму
         to_delete = Session.browse()
@@ -307,10 +335,12 @@ class GenerateTimeTableConfirm(models.TransientModel):
         allow_c = get_param('timetable.prevent_classroom_overlap') != 'True'
         wizard._check_batch_conflicts(sessions_to_create, allow_f, allow_c, allow_b)
 
-        # 6. Создание. При auto_approve — precreate-оценка пересечений:
-        # новым урокам с конфликтом КЛАССА или КАБИНЕТА ставится
-        # conflict_override=True. Учительские пересечения не утверждаются.
-        if self.auto_approve:
+        # 6. Создание. Precreate-оценка пересечений: конфликт КЛАССА или
+        # КАБИНЕТА утверждает auto_approve (в т.ч. параллели «А/Б»),
+        # учительские пересечения — auto_approve_faculty (совместные
+        # занятия: «физра — два класса вместе»). Проход выполняется, если
+        # включена хотя бы одна галочка.
+        if self.auto_approve or self.auto_approve_faculty:
             for d in sessions_to_create:
                 d['conflict_override'] = False
             fac_iv = defaultdict(list)
@@ -323,19 +353,39 @@ class GenerateTimeTableConfirm(models.TransientModel):
                 if sess.classroom_id.id:
                     cls_iv[sess.classroom_id.id].append(iv)
                 bat_iv[sess.batch_id.id].append(iv)
+            # Учительские пересечения с ДРУГИМИ классами: без этого проход
+            # слеп к «физре — два класса вместе» (fac_iv наполнялся только
+            # целевым классом). cls/bat НЕ расширяем: чужие классы не должны
+            # сами утверждать кабинет/класс целевого.
+            broad = Session.search([
+                ('state', '!=', 'cancel'),
+                ('start_datetime', '<', max(d['end_datetime']
+                                            for d in sessions_to_create)),
+                ('end_datetime', '>', min(d['start_datetime']
+                                          for d in sessions_to_create)),
+            ])
+            for sess in broad:
+                if sess.faculty_id.id:
+                    fac_iv[sess.faculty_id.id].append(
+                        (sess.start_datetime, sess.end_datetime))
 
             def _hit(iv_map, key, d):
                 return any(s < d['end_datetime'] and e > d['start_datetime']
                            for s, e in iv_map.get(key, []))
 
+            approve_par = self.auto_approve
+            approve_fac = self.auto_approve_faculty
             for d in sessions_to_create:
                 fac = _hit(fac_iv, d['faculty_id'], d)
                 cls = _hit(cls_iv, d['classroom_id'], d)
                 bat = _hit(bat_iv, d['batch_id'], d)
-                # Утверждаем только класс/кабинет; пересечение учителя
-                # оставляем красным — его разрешает человек.
+                # Учительское пересечение: по умолчанию красное — его
+                # разрешает человек. С auto_approve_faculty утверждается
+                # целиком (завуч сверился со списком пар в диалоге).
                 d['_fac_hit'] = fac
-                if (bat or cls) and not fac:
+                if fac and approve_fac:
+                    d['conflict_override'] = True
+                elif (bat or cls) and not fac and approve_par:
                     d['conflict_override'] = True
                 # Занятость наращиваем: два новых урока в одном слоте
                 # должны видеть пересечение друг с другом.
@@ -361,7 +411,9 @@ class GenerateTimeTableConfirm(models.TransientModel):
                                  and a['timing_id'] == b['timing_id'])
                     if not same_slot:
                         continue
-                    if b['_fac_hit']:
+                    if b['_fac_hit'] and not approve_fac:
+                        continue
+                    if not b['_fac_hit'] and not approve_par:
                         continue
                     # bat/cls пересечение уже гарантировано: a и b в одном
                     # слоте одной генерации одного класса (same_slot) —
@@ -373,4 +425,22 @@ class GenerateTimeTableConfirm(models.TransientModel):
             d.pop('_fac_hit', None)
 
         Session.create(sessions_to_create)
+
+        # Совместные занятия: утверждаем и карточки уроков ДРУГИХ классов,
+        # пересекающиеся по учителю, иначе пара остаётся наполовину красной
+        # (у чужого класса нет своей галочки в этом диалоге). Флаг —
+        # flag-only write, sudo: карточка может принадлежать чужому классу.
+        if self.auto_approve_faculty:
+            created = Session.search([
+                ('batch_id', '=', target_batch.id),
+                ('state', '!=', 'cancel'),
+                ('timetable_date', '>=', wizard.start_date),
+                ('timetable_date', '<=', wizard.end_date),
+            ])
+            for rec in created:
+                mates = rec._find_overlapping_sessions().filtered(
+                    lambda s: s.batch_id != rec.batch_id
+                    and s.faculty_id == rec.faculty_id)
+                if mates:
+                    mates.sudo().write({'conflict_override': True})
         return {'type': 'ir.actions.act_window_close'}

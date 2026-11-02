@@ -216,6 +216,10 @@ class GenerateSession(models.TransientModel):
                         'start_datetime': sync['start_datetime'],
                         'end_datetime': sync['end_datetime'],
                         'timetable_date': sync['timetable_date'],
+                        # display-ключи для списка учительских пересечений
+                        'timing_name': line.timing_id.name,
+                        'subject_name': line.subject_id.name,
+                        'faculty_name': line.faculty_id.name,
                     })
             curr_date += datetime.timedelta(days=1)
 
@@ -233,8 +237,13 @@ class GenerateSession(models.TransientModel):
         new_slots = {(d['timetable_date'], d['timing_id']) for d in sessions_data}
         overlaps = existing.filtered(
             lambda s: (s.timetable_date, s.timing_id.id) in new_slots)
-        protected = self.env['op.attendance.sheet'].sudo().search(
-            [('session_id', 'in', existing.ids)]).mapped('session_id')
+        # Журналы посещаемости — опциональный спутник: при прогоне тестов
+        # модуль openeducat_attendance может быть ещё не загружен в реестре
+        # (порядок загрузки модулей при -u нестабилен), поэтому страж.
+        protected = self.env['op.session']
+        if 'op.attendance.sheet' in self.env:
+            protected = self.env['op.attendance.sheet'].sudo().search(
+                [('session_id', 'in', existing.ids)]).mapped('session_id')
 
         # Параллельные уроки ВНУТРИ самой генерации (импорт приносит два
         # предмета на один звонок — «Английский А/Б»): существующих уроков
@@ -247,6 +256,79 @@ class GenerateSession(models.TransientModel):
                             for d in sessions_data)
         stat_parallel = sum(n for n in slot_load.values() if n > 1)
 
+        # Учительские пересечения против ВСЕХ классов за период (+ внутри
+        # самой генерации): физра «два класса вместе». Precreate-проход
+        # утверждения раньше был слеп к чужим классам (fac_iv наполнялся
+        # только целевым классом), а завуч и вовсе не видел список пар.
+        # Отображаем дни по-русски, слоты — названиями из сетки звонков.
+        day_short = ('Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс')
+        min_start = min(d['start_datetime'] for d in sessions_data)
+        max_end = max(d['end_datetime'] for d in sessions_data)
+        others = Session.search([
+            ('state', '!=', 'cancel'),
+            ('batch_id', '!=', target_batch.id),
+            ('start_datetime', '<', max_end),
+            ('end_datetime', '>', min_start),
+        ])
+        stat_faculty = 0
+        fac_lesson_idx = set()
+        fac_rows = []
+        seen_fac_pairs = set()
+        for i, d in enumerate(sessions_data):
+            hits = others.filtered(
+                lambda s: s.faculty_id.id == d['faculty_id']
+                and s.start_datetime < d['end_datetime']
+                and s.end_datetime > d['start_datetime'])
+            if hits:
+                fac_lesson_idx.add(i)
+            when = '%s %s, %s' % (d['timetable_date'].strftime('%d.%m'),
+                                  day_short[d['timetable_date'].weekday()],
+                                  d['timing_name'])
+            for s in hits:
+                key = (d['timetable_date'], d['timing_id'], s.id)
+                if key in seen_fac_pairs:
+                    continue
+                seen_fac_pairs.add(key)
+                fac_rows.append(
+                    "<tr><td>%s</td><td>%s</td><td>%s (%s)</td>"
+                    "<td>%s (%s)</td></tr>"
+                    % (d['faculty_name'], when, d['subject_name'],
+                       target_batch.name, s.subject_id.name, s.batch_id.name))
+        # внутри самой генерации: один учитель на двух уроках одного слота
+        # (информатика + её электив с одним преподавателем и т.п.)
+        for i, a in enumerate(sessions_data):
+            for j in range(i + 1, len(sessions_data)):
+                b = sessions_data[j]
+                if a['faculty_id'] != b['faculty_id']:
+                    continue
+                if not (a['start_datetime'] < b['end_datetime']
+                        and a['end_datetime'] > b['start_datetime']):
+                    continue
+                fac_lesson_idx.update((i, j))
+                key = ('gen', a['timetable_date'], a['timing_id'],
+                       a['subject_id'], b['subject_id'])
+                if key in seen_fac_pairs:
+                    continue
+                seen_fac_pairs.add(key)
+                when = '%s %s, %s' % (a['timetable_date'].strftime('%d.%m'),
+                                      day_short[a['timetable_date'].weekday()],
+                                      a['timing_name'])
+                fac_rows.append(
+                    "<tr><td>%s</td><td>%s</td><td>%s (%s)</td>"
+                    "<td>%s (%s)</td></tr>"
+                    % (a['faculty_name'], when, a['subject_name'],
+                       target_batch.name, b['subject_name'], target_batch.name))
+        stat_faculty = len(fac_lesson_idx)
+        if fac_rows:
+            faculty_conflicts_html = (
+                "<div class='mb-1'><b>Пересечения по учителям:</b>"
+                "<table class='table table-sm table-bordered mb-2'>"
+                "<tr class='table-warning'><th>Учитель</th><th>Когда</th>"
+                "<th>Новый урок</th><th>Пересекается с</th></tr>%s</table></div>"
+                % ''.join(fac_rows))
+        else:
+            faculty_conflicts_html = False
+
         confirm = self.env['generate.time.table.confirm'].create({
             'gen_wizard_id': self.id,
             'mode': 'overlap' if overlaps else 'add',
@@ -255,6 +337,8 @@ class GenerateSession(models.TransientModel):
             'stat_overlap': len(overlaps),
             'stat_protected': len(protected),
             'stat_parallel': stat_parallel,
+            'stat_faculty': stat_faculty,
+            'faculty_conflicts_html': faculty_conflicts_html,
         })
         return {
             'type': 'ir.actions.act_window',
