@@ -40,11 +40,17 @@ class GenerateTimeTableConfirm(models.TransientModel):
              'Существующих уроков может не быть, а конфликт уже есть.')
     stat_protected = fields.Integer('Защищены журналом посещаемости')
     protected_info = fields.Text('Защищённые уроки')
-    # Учительские пересечения (против всех классов + внутри генерации):
-    # «физра — два класса вместе» и т.п. По умолчанию остаются красными,
-    # галочка auto_approve_faculty утверждает их осознанно.
+    # Единый список всех «совпадений» генерации: параллельные в одном
+    # слоте, новые уроки на слотах с защищёнными журналами (будет
+    # задвоение), учительские пересечения. По умолчанию красные,
+    # галочки утверждают осознанно.
     stat_faculty = fields.Integer('Учительских пересечений')
-    faculty_conflicts_html = fields.Html('Пересечения по учителям')
+    stat_protected_overlap = fields.Integer(
+        'Новых уроков на слотах с защищёнными журналами',
+        help='Новый урок встаёт рядом с уроком, который уже прошёл и '
+             'защищён журналом посещаемости: старый не удалится, будет '
+             'задвоение. Точный список — conflicts_html.')
+    conflicts_html = fields.Html('Все совпадения генерации')
     auto_approve_faculty = fields.Boolean(
         'Утвердить и конфликты учителей',
         help='Учительские пересечения из списка ниже тоже будут утверждены '
@@ -84,7 +90,7 @@ class GenerateTimeTableConfirm(models.TransientModel):
 
     @api.depends('stat_new', 'stat_existing', 'stat_overlap', 'stat_parallel',
                  'stat_protected', 'stat_faculty', 'auto_approve_faculty',
-                 'empty_period', 'mode')
+                 'stat_protected_overlap', 'empty_period', 'mode')
     def _compute_summary_html(self):
         for rec in self:
             p = rec.gen_wizard_id.start_date
@@ -138,6 +144,18 @@ class GenerateTimeTableConfirm(models.TransientModel):
                 # не показывалось вовсе.
                 if rec.stat_parallel:
                     rows.append(_conflict_warning())
+                if rec.stat_faculty:
+                    if rec.auto_approve_faculty:
+                        fac_note = ("будут утверждены вместе с карточками "
+                                    "уроков других классов")
+                    else:
+                        fac_note = ("останутся красными — утвердите галочкой "
+                                    "«Утвердить и конфликты учителей», "
+                                    "сверившись со списком ниже")
+                    rows.append(
+                        "<div class='alert alert-warning py-2 px-3 mb-1'>"
+                        "Учительских пересечений: <b>%s</b> (список ниже) "
+                        "— %s.</div>" % (rec.stat_faculty, fac_note))
                 rec.summary_html = "".join(rows)
                 continue
             parallel_row = ''
@@ -211,6 +229,13 @@ class GenerateTimeTableConfirm(models.TransientModel):
                     "<div class='alert alert-warning py-2 px-3 mb-1'>"
                     "Учительских пересечений: <b>%s</b> (список ниже) — %s.</div>"
                     % (rec.stat_faculty, fac_note))
+            if rec.stat_protected_overlap:
+                rows.append(
+                    "<div class='alert alert-warning py-2 px-3 mb-1'>"
+                    "Новых уроков на слотах с защищёнными журналами: "
+                    "<b>%s</b> — старые уроки не удалятся, будет задвоение "
+                    "(список ниже); лишнюю копию придётся удалить вручную.</div>"
+                    % rec.stat_protected_overlap)
             rec.summary_html = "".join(rows)
 
     def action_back(self):
@@ -443,4 +468,40 @@ class GenerateTimeTableConfirm(models.TransientModel):
                     and s.faculty_id == rec.faculty_id)
                 if mates:
                     mates.sudo().write({'conflict_override': True})
-        return {'type': 'ir.actions.act_window_close'}
+
+        # Тост-итог: сколько создано и сколько из них встали на слоты с
+        # защищёнными журналами (задвоение рядом с журналом — старый урок
+        # защищён, лишнюю копию удаляет человек).
+        if not sessions_to_create:
+            return {
+                'type': 'ir.actions.client',
+                'tag': 'display_notification',
+                'params': {
+                    'title': 'Расписание',
+                    'message': ('Новых уроков нет: все совпадают с '
+                                'существующими, защищённые журналом '
+                                'уроки не изменены.'),
+                    'type': 'info',
+                    'sticky': False,
+                },
+            }
+        prot_slots = {(s.timetable_date, s.timing_id.id) for s in protected}
+        n_prot = sum(1 for d in sessions_to_create
+                     if (d['timetable_date'], d['timing_id']) in prot_slots)
+        message = 'Создано уроков: %s.' % len(sessions_to_create)
+        ntype = 'success'
+        if n_prot:
+            message += (' Из них %s встали на слоты с защищёнными журналами '
+                        '— будет задвоение, лишнюю копию удалите вручную.'
+                        % n_prot)
+            ntype = 'warning'
+        return {
+            'type': 'ir.actions.client',
+            'tag': 'display_notification',
+            'params': {
+                'title': 'Расписание обновлено',
+                'message': message,
+                'type': ntype,
+                'sticky': False,
+            },
+        }

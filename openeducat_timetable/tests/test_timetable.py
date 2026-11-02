@@ -227,6 +227,10 @@ class TestImportLastWeek(common.TransactionCase):
         self.assertFalse(confirm.stat_overlap)
         self.assertEqual(confirm.stat_parallel, 2)
         self.assertTrue(confirm.has_soft_conflicts)
+        # единый список совпадений: раздел параллелей с обоими предметами
+        self.assertIn('Параллельные уроки в одном слоте', confirm.conflicts_html)
+        self.assertIn('Английский язык А (тест) ↔ Английский язык Б (тест)',
+                      confirm.conflicts_html)
 
     def test_reimport_keeps_parallel_toggle_in_overlap_mode(self):
         """Повторный импорт того же расписания: режим overlap (совпадающие
@@ -289,8 +293,9 @@ class TestImportLastWeek(common.TransactionCase):
         confirm = self.env['generate.time.table.confirm'].browse(
             action['res_id'])
         self.assertEqual(confirm.stat_faculty, 1)
-        self.assertTrue(confirm.faculty_conflicts_html)
-        self.assertIn('Физкультура', confirm.faculty_conflicts_html)
+        self.assertTrue(confirm.conflicts_html)
+        self.assertIn('Физкультура', confirm.conflicts_html)
+        self.assertIn('Учительские пересечения', confirm.conflicts_html)
 
         # без галочки учителей — красная
         confirm.action_apply()

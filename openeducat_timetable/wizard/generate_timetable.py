@@ -256,14 +256,72 @@ class GenerateSession(models.TransientModel):
                             for d in sessions_data)
         stat_parallel = sum(n for n in slot_load.values() if n > 1)
 
-        # Учительские пересечения против ВСЕХ классов за период (+ внутри
-        # самой генерации): физра «два класса вместе». Precreate-проход
-        # утверждения раньше был слеп к чужим классам (fac_iv наполнялся
-        # только целевым классом), а завуч и вовсе не видел список пар.
-        # Отображаем дни по-русски, слоты — названиями из сетки звонков.
+        # Единый список всех «совпадений» для диалога (по всем случаям):
+        # 1) параллельные уроки в одном слоте (new↔new, «Английский А/Б»);
+        # 2) новые уроки на слотах с ЗАЩИЩЁННЫМИ уроками (new↔журнал:
+        #    урок уже прошёл, журнал заполнен — старый не удалится,
+        #    будет задвоение; именно этот случай путает завуча);
+        # 3) учительские пересечения (new↔урок другого класса: «физра —
+        #    два класса вместе»).
         day_short = ('Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс')
+
+        def _when(d):
+            return '%s %s, %s' % (d['timetable_date'].strftime('%d.%m'),
+                                  day_short[d['timetable_date'].weekday()],
+                                  d['timing_name'])
+
         min_start = min(d['start_datetime'] for d in sessions_data)
         max_end = max(d['end_datetime'] for d in sessions_data)
+
+        # 1. Параллельные внутри генерации
+        slot_groups = defaultdict(list)
+        for i, d in enumerate(sessions_data):
+            slot_groups[(d['timetable_date'], d['timing_id'])].append(i)
+        rows_parallel = []
+        for (date_, timing_id_), idxs in sorted(slot_groups.items()):
+            if len(idxs) < 2:
+                continue
+            subjects = ' ↔ '.join(sessions_data[i]['subject_name']
+                                  for i in idxs)
+            teachers = ' / '.join(sorted(
+                {sessions_data[i]['faculty_name'] for i in idxs}))
+            rows_parallel.append(
+                "<tr><td>%s %s, %s</td><td>%s</td><td>%s</td></tr>"
+                % (date_.strftime('%d.%m'), day_short[date_.weekday()],
+                   sessions_data[idxs[0]]['timing_name'], subjects, teachers))
+
+        # 2. Новые уроки на слотах с защищёнными журналами
+        protected_by_slot = defaultdict(list)
+        for s in protected:
+            protected_by_slot[(s.timetable_date, s.timing_id.id)].append(s)
+        stat_protected_overlap = 0
+        seen_prot = set()
+        rows_protected = []
+        for d in sessions_data:
+            prots = protected_by_slot.get((d['timetable_date'],
+                                           d['timing_id']))
+            if not prots:
+                continue
+            # точный дубль защищённого урока (тот же предмет и учитель)
+            # не создаётся вовсе — в списке задвоений его не пугаем
+            exact = [s for s in prots
+                     if s.subject_id.id == d['subject_id']
+                     and s.faculty_id.id == d['faculty_id']]
+            if exact:
+                continue
+            stat_protected_overlap += 1
+            for s in prots:
+                key = (d['timetable_date'], d['timing_id'], s.id)
+                if key in seen_prot:
+                    continue
+                seen_prot.add(key)
+                rows_protected.append(
+                    "<tr><td>%s</td><td>%s (%s)</td><td>%s (%s) — журнал "
+                    "заполнен, не удаляется</td></tr>"
+                    % (_when(d), d['subject_name'], d['faculty_name'],
+                       s.subject_id.name, s.faculty_id.name))
+
+        # 3. Учительские пересечения с другими классами
         others = Session.search([
             ('state', '!=', 'cancel'),
             ('batch_id', '!=', target_batch.id),
@@ -271,63 +329,52 @@ class GenerateSession(models.TransientModel):
             ('end_datetime', '>', min_start),
         ])
         stat_faculty = 0
-        fac_lesson_idx = set()
-        fac_rows = []
+        rows_faculty = []
         seen_fac_pairs = set()
-        for i, d in enumerate(sessions_data):
+        for d in sessions_data:
             hits = others.filtered(
                 lambda s: s.faculty_id.id == d['faculty_id']
                 and s.start_datetime < d['end_datetime']
                 and s.end_datetime > d['start_datetime'])
-            if hits:
-                fac_lesson_idx.add(i)
-            when = '%s %s, %s' % (d['timetable_date'].strftime('%d.%m'),
-                                  day_short[d['timetable_date'].weekday()],
-                                  d['timing_name'])
+            if not hits:
+                continue
+            stat_faculty += 1
+            when = _when(d)
             for s in hits:
                 key = (d['timetable_date'], d['timing_id'], s.id)
                 if key in seen_fac_pairs:
                     continue
                 seen_fac_pairs.add(key)
-                fac_rows.append(
+                rows_faculty.append(
                     "<tr><td>%s</td><td>%s</td><td>%s (%s)</td>"
                     "<td>%s (%s)</td></tr>"
                     % (d['faculty_name'], when, d['subject_name'],
                        target_batch.name, s.subject_id.name, s.batch_id.name))
-        # внутри самой генерации: один учитель на двух уроках одного слота
-        # (информатика + её электив с одним преподавателем и т.п.)
-        for i, a in enumerate(sessions_data):
-            for j in range(i + 1, len(sessions_data)):
-                b = sessions_data[j]
-                if a['faculty_id'] != b['faculty_id']:
-                    continue
-                if not (a['start_datetime'] < b['end_datetime']
-                        and a['end_datetime'] > b['start_datetime']):
-                    continue
-                fac_lesson_idx.update((i, j))
-                key = ('gen', a['timetable_date'], a['timing_id'],
-                       a['subject_id'], b['subject_id'])
-                if key in seen_fac_pairs:
-                    continue
-                seen_fac_pairs.add(key)
-                when = '%s %s, %s' % (a['timetable_date'].strftime('%d.%m'),
-                                      day_short[a['timetable_date'].weekday()],
-                                      a['timing_name'])
-                fac_rows.append(
-                    "<tr><td>%s</td><td>%s</td><td>%s (%s)</td>"
-                    "<td>%s (%s)</td></tr>"
-                    % (a['faculty_name'], when, a['subject_name'],
-                       target_batch.name, b['subject_name'], target_batch.name))
-        stat_faculty = len(fac_lesson_idx)
-        if fac_rows:
-            faculty_conflicts_html = (
-                "<div class='mb-1'><b>Пересечения по учителям:</b>"
+
+        sections = []
+        if rows_parallel:
+            sections.append(
+                "<div class='mb-1'><b>Параллельные уроки в одном слоте:</b>"
+                "<table class='table table-sm table-bordered mb-2'>"
+                "<tr class='table-warning'><th>Когда</th><th>Предметы</th>"
+                "<th>Учителя</th></tr>%s</table></div>"
+                % ''.join(rows_parallel))
+        if rows_protected:
+            sections.append(
+                "<div class='mb-1'><b>Новые уроки на слотах с защищёнными "
+                "журналами (будет задвоение):</b><table class='table "
+                "table-sm table-bordered mb-2'>"
+                "<tr class='table-warning'><th>Когда</th><th>Новый урок</th>"
+                "<th>Защищённый урок</th></tr>%s</table></div>"
+                % ''.join(rows_protected))
+        if rows_faculty:
+            sections.append(
+                "<div class='mb-1'><b>Учительские пересечения:</b>"
                 "<table class='table table-sm table-bordered mb-2'>"
                 "<tr class='table-warning'><th>Учитель</th><th>Когда</th>"
                 "<th>Новый урок</th><th>Пересекается с</th></tr>%s</table></div>"
-                % ''.join(fac_rows))
-        else:
-            faculty_conflicts_html = False
+                % ''.join(rows_faculty))
+        conflicts_html = ''.join(sections) or False
 
         confirm = self.env['generate.time.table.confirm'].create({
             'gen_wizard_id': self.id,
@@ -337,8 +384,9 @@ class GenerateSession(models.TransientModel):
             'stat_overlap': len(overlaps),
             'stat_protected': len(protected),
             'stat_parallel': stat_parallel,
+            'stat_protected_overlap': stat_protected_overlap,
             'stat_faculty': stat_faculty,
-            'faculty_conflicts_html': faculty_conflicts_html,
+            'conflicts_html': conflicts_html,
         })
         return {
             'type': 'ir.actions.act_window',
