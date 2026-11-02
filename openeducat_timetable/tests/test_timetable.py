@@ -12,8 +12,10 @@ get_import_templates) и создавал wizard с удалённым course_id
   соседей, изменение геометрии/отмена — пересчитывает (кейс Ермаковой);
 - день недели и учебный год проставляются compute'ами.
 """
+from odoo import fields
 from odoo.tests import common
 from odoo.exceptions import UserError
+from unittest import mock
 
 
 class TestSessionSmoke(common.TransactionCase):
@@ -68,11 +70,12 @@ class TestSessionSmoke(common.TransactionCase):
         self.assertEqual(s.state, 'confirm')
         # прямой контракт: write state не меняет геометрию — соседи
         # не пересчитываются (функция не вызывается вообще).
-        # Патчим метод инстанса на время вызова.
+        # Патчим через mock.patch.object: детектор «утёкших» атрибутов
+        # классов (odoo.tests.common) считает прямое присваивание
+        # env_session.<attr> = ... утечкой, даже с восстановлением в finally.
         env_session = type(s)
-        orig = env_session._recompute_conflict_flags
-        env_session._recompute_conflict_flags = _fake_recompute
-        try:
+        with mock.patch.object(env_session, '_recompute_conflict_flags',
+                               _fake_recompute):
             s.write({'state': 'start'})
             self.assertEqual(called, [], 'state write must skip recompute')
             # геометрия — должна вызвать (auto_reset добавляет второй
@@ -80,8 +83,6 @@ class TestSessionSmoke(common.TransactionCase):
             s.write({'timetable_date': '2026-09-15'})
             self.assertEqual(len(called), 2,
                              'geometry write must recompute (2x with auto_reset)')
-        finally:
-            env_session._recompute_conflict_flags = orig
 
     def test_unlink_overlapping_pair(self):
         """Пакетное удаление пересекающихся уроков («Английский А/Б» на
@@ -95,7 +96,7 @@ class TestSessionSmoke(common.TransactionCase):
             start_datetime='2026-09-14 06:00:00',
             end_datetime='2026-09-14 06:40:00')
         (s1 + s2).unlink()
-        self.assertFalse(self.op_session.search_count(
+        self.assertFalse(self.env['op.session'].search_count(
             [('id', 'in', [s1.id, s2.id])]))
 
     def test_bad_time_raises(self):
@@ -140,8 +141,10 @@ class TestImportLastWeek(common.TransactionCase):
             'name': 'Английский язык А (тест)', 'code': 'TIMPA'})
         self.subject_b = self.env['op.subject'].create({
             'name': 'Английский язык Б (тест)', 'code': 'TIMPB'})
-        self.fac_a = self.env['op.faculty'].create({'name': 'Учитель А'})
-        self.fac_b = self.env['op.faculty'].create({'name': 'Учитель Б'})
+        self.fac_a = self.env['op.faculty'].create({
+            'name': 'Учитель А', 'first_name': 'А', 'last_name': 'Учитель'})
+        self.fac_b = self.env['op.faculty'].create({
+            'name': 'Учитель Б', 'first_name': 'Б', 'last_name': 'Учитель'})
 
     def _make_session(self, subject, faculty, date):
         """Урок в понедельник на тестовый слот (время — середина дня UTC,
@@ -244,4 +247,76 @@ class TestImportLastWeek(common.TransactionCase):
         self.assertEqual(confirm.stat_parallel, 2)
         self.assertTrue(confirm.has_soft_conflicts)
         self.assertTrue(confirm.has_parallel_conflicts)
+
+    def test_faculty_joint_lesson_auto_approve(self):
+        """Физра «два класса вместе»: один учитель ведёт физру у двух
+        классов на одном звонке. Учительское пересечение с ДРУГИМ классом:
+        без галочки — красная; с auto_approve_faculty — утверждена, причём
+        и карточка чужого класса (иначе пара наполовину красная). Список
+        пар в диалоге не пуст, stat_faculty посчитан."""
+        subj_pe = self.env['op.subject'].create({
+            'name': 'Физкультура (тест)', 'code': 'TPE'})
+        fac_pe = self.env['op.faculty'].create({
+            'name': 'Учитель физры', 'first_name': 'Ф',
+            'last_name': 'Физрук'})
+        batch2 = self.env['op.batch'].create({
+            'name': 'Тест класс 2 импорта', 'code': 'TIMP2',
+            'start_date': '2026-09-01', 'end_date': '2027-06-30',
+            'course_id': self.batch.course_id.id})
+        # физра в ЧУЖОМ классе: время строго из синхронизатора, чтобы
+        # интервалы гарантированно совпали с созданными мастером
+        sync = self.env['generate.time.table']._sync_time_values(
+            date_val=fields.Date.to_date(self.WEEK1_MONDAY),
+            timing_id=self.timing.id)
+        self.env['op.session'].create({
+            'timing_id': self.timing.id,
+            'start_datetime': sync['start_datetime'],
+            'end_datetime': sync['end_datetime'],
+            'faculty_id': fac_pe.id,
+            'batch_id': batch2.id,
+            'subject_id': subj_pe.id,
+            'course_id': self.batch.course_id.id,
+        })
+
+        wizard = self._make_wizard()
+        wizard.source_batch_id = batch2
+        # период генерации = неделя фикстуры, иначе урок встанет на другую
+        # дату и учительского пересечения не будет
+        wizard.start_date = self.WEEK1_MONDAY
+        wizard.end_date = '2026-11-22'
+        wizard.action_import_last_week()
+        action = wizard.act_gen_time_table()
+        confirm = self.env['generate.time.table.confirm'].browse(
+            action['res_id'])
+        self.assertEqual(confirm.stat_faculty, 1)
+        self.assertTrue(confirm.faculty_conflicts_html)
+        self.assertIn('Физкультура', confirm.faculty_conflicts_html)
+
+        # без галочки учителей — красная
+        confirm.action_apply()
+        new_pe = self.env['op.session'].search([
+            ('batch_id', '=', self.batch.id), ('subject_id', '=', subj_pe.id)])
+        self.assertEqual(len(new_pe), 1)
+        self.assertTrue(new_pe.has_conflict)
+        self.assertFalse(new_pe.conflict_override)
+
+        # повторная генерация с галочкой — обе карточки утверждены
+        wizard2 = self._make_wizard()
+        wizard2.source_batch_id = batch2
+        wizard2.start_date = self.WEEK1_MONDAY
+        wizard2.end_date = '2026-11-22'
+        wizard2.action_import_last_week()
+        action2 = wizard2.act_gen_time_table()
+        confirm2 = self.env['generate.time.table.confirm'].browse(
+            action2['res_id'])
+        confirm2.auto_approve_faculty = True
+        confirm2.action_apply()
+        pe_all = self.env['op.session'].search([
+            ('subject_id', '=', subj_pe.id),
+            ('timing_id', '=', self.timing.id)])
+        self.assertEqual(len(pe_all), 2)
+        self.assertTrue(all(s.conflict_override for s in pe_all),
+                        'обе карточки пары должны быть утверждены')
+        self.assertFalse(
+            any(s.has_conflict and not s.conflict_override for s in pe_all))
 

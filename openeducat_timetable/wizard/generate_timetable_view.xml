@@ -48,6 +48,14 @@
                     <label for="auto_approve"
                         string="Утвердить конфликты автоматически"
                         invisible="(mode != 'add' and not has_parallel_conflicts) or not has_soft_conflicts" />
+                    <field name="stat_faculty" invisible="1" />
+                    <field name="auto_approve_faculty" widget="boolean_toggle"
+                        invisible="not stat_faculty" />
+                    <label for="auto_approve_faculty"
+                        string="Утвердить и конфликты учителей"
+                        invisible="not stat_faculty" />
+                    <field name="faculty_conflicts_html" widget="html" readonly="1"
+                        nolabel="1" invisible="not stat_faculty" />
                     <div class="alert alert-info py-2 px-3" role="status" invisible="not empty_period">
                         Расписание на этот период свободно. Просто нажмите «Применить».
                     </div>
