@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Дублирующие меню модуля contract: визарды ручного выставления
+         счетов открывают тот же функционал, что кнопка в форме договора,
+         но называются так же, как сам список («Договоры»).
+         Меню «Договоры» у Поставщиков оставляем: школа может покупать
+         по подписке. -->
+    <record id="contract.sale_contract_manually_create_invoice_menu" model="ir.ui.menu">
+        <field name="active" eval="False"/>
+    </record>
+    <record id="contract.purchase_contract_manually_create_invoice_menu" model="ir.ui.menu">
+        <field name="active" eval="False"/>
+    </record>
+    <record id="contract.menu_contract_contract_supplier" model="ir.ui.menu">
+        <field name="active" eval="True"/>
+    </record>
+</odoo>

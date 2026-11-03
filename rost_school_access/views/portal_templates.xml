@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Портал «Details» (/my/account): ученику имя и email только на чтение.
+         Работает в паре с серверным гейтом в models/res_partner.py: здесь мы
+         убираем саму возможность правки из UI, а гейт в write() остаётся
+         страховкой (readonly снимается в браузере одним Delete — но тогда
+         ответит AccessError).
+
+         Почему readonly, а не disabled: disabled-поле не уходит в POST, и
+         штатная валидация портала (_get_mandatory_fields: name, email...) —
+         отдаёт ошибку «missing». readonly-поле сабмитится со тем же
+         значением, гейт видит «не изменилось» и пропускает — поэтому правка
+         адреса/телефона на той же странице продолжает работать.
+
+         Значение берём из вычисляемого res.users.rost_self_edit_locked
+         (depends_context uid) — под родителем оно False, под учеником True. -->
+    <template id="portal_my_details_fields_rost_self_edit" inherit_id="portal.portal_my_details_fields">
+        <xpath expr="//input[@name='name']" position="attributes">
+            <attribute name="t-att-readonly">'readonly' if request.env.user.rost_self_edit_locked else None</attribute>
+        </xpath>
+        <xpath expr="//input[@name='name']" position="after">
+            <small t-if="request.env.user.rost_self_edit_locked" class="form-text text-muted">
+                Имя меняет администратор школы — обратитесь к классному руководителю.
+            </small>
+        </xpath>
+        <xpath expr="//input[@name='email']" position="attributes">
+            <attribute name="t-att-readonly">'readonly' if request.env.user.rost_self_edit_locked else None</attribute>
+        </xpath>
+        <xpath expr="//input[@name='email']" position="after">
+            <small t-if="request.env.user.rost_self_edit_locked" class="form-text text-muted">
+                Email меняет администратор школы — обратитесь к классному руководителю.
+            </small>
+        </xpath>
+    </template>
+</odoo>

@@ -1,6 +1,6 @@
 {
     'name': 'OpenEduCat Core',
-    'version': '18.0.1.1.2',
+    'version': '18.0.1.1.4',
     'license': 'LGPL-3',
     'category': 'Education',
     "sequence": 1,
@@ -12,6 +12,7 @@
     'data': [
         'security/op_security.xml',
         'security/ir.model.access.csv',
+        'data/default_user_groups.xml',
         'report/report_menu.xml',
         'report/external_layout_rost.xml',
         'data/paperformat_a4_rost_portret.xml',

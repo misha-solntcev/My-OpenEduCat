@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="contract_contract_form_view_student" model="ir.ui.view">
+        <field name="name">contract.contract.form.student</field>
+        <field name="model">contract.contract</field>
+        <field name="inherit_id" ref="contract.contract_contract_form_view"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='partner_id']" position="after">
+                <field name="student_id"/>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="contract_contract_form_view_schedule" model="ir.ui.view">
+        <field name="name">contract.contract.form.schedule</field>
+        <field name="model">contract.contract</field>
+        <field name="inherit_id" ref="contract.contract_contract_form_view"/>
+        <field name="arch" type="xml">
+            <xpath expr="//notebook" position="inside">
+                <page string="График платежей" name="payment_schedule">
+                    <field name="payment_schedule_html" nolabel="1"
+                           readonly="1"/>
+                </page>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="contract_contract_tree_view_student" model="ir.ui.view">
+        <field name="name">contract.contract.tree.student</field>
+        <field name="model">contract.contract</field>
+        <field name="inherit_id" ref="contract.contract_contract_tree_view"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='partner_id']" position="after">
+                <field name="student_id" optional="show"/>
+            </xpath>
+        </field>
+    </record>
+</odoo>

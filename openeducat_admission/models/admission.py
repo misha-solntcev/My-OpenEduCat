@@ -349,11 +349,34 @@ class OpAdmission(models.Model):
             if not record.student_id:
                 vals = record.get_student_vals()
                 if vals:
+                    # Заявитель (родитель из воронки/приёмки) — сохранить
+                    # до того, как партнёр приёмки будет перезаписан
+                    # партнёром ученика ниже.
+                    applicant = record.partner_id
                     record.student_id = student_id = self.env[\
                         'op.student'].create(vals).id
                     # Устанавливаем статус "Обучается" сразу после создания ученика
                     self.env['op.student'].browse(student_id).write({
                         'state': 'studying'})
+                    # Привязка родителя к ученику: без неё в карточке
+                    # ученика нет родителя и биллинг считает плательщиком
+                    # самого ученика.
+                    student = record.student_id
+                    if applicant and applicant != student.partner_id \
+                            and not student.parent_ids:
+                        parent = self.env['op.parent'].search(
+                            [('name', '=', applicant.id)], limit=1)
+                        if not parent:
+                            rel = self.env['op.parent.relationship'].search(
+                                [], limit=1)
+                            if not rel:
+                                rel = self.env[
+                                    'op.parent.relationship'].create(
+                                    {'name': _('Другое')})
+                            parent = self.env['op.parent'].create({
+                                'name': applicant.id,
+                                'relationship_id': rel.id})
+                        parent.student_ids = [(4, student.id)]
                     record.partner_id = record.student_id.partner_id.id \
                         if record else False
 

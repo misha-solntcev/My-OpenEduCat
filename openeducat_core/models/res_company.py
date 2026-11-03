@@ -49,6 +49,11 @@ class ResUsers(models.Model):
                                       default=_department_count)
 
     def create_user(self, records, user_group=None):
+        """Создать пользователя сотруднику. Группы задаются явно: без этого
+        новый пользователь наследует base.default_user (и любые права,
+        настроенные в шаблоне)."""
+        base_user = self.env.ref('base.group_user', raise_if_not_found=False)
+        explicit = base_user or user_group
         for rec in records:
             if not rec.user_id:
                 user_vals = {
@@ -58,6 +63,12 @@ class ResUsers(models.Model):
                     'dept_id': rec.main_department_id.id,
                     'department_ids': rec.allowed_department_ids.ids
                 }
+                if explicit:
+                    cmds = [fields.Command.clear()]
+                    for grp in (base_user, user_group):
+                        if grp:
+                            cmds.append(fields.Command.link(grp.id))
+                    user_vals['groups_id'] = cmds
                 user_id = self.create(user_vals)
                 rec.user_id = user_id
                 if user_group:

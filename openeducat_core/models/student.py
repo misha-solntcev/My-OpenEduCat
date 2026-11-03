@@ -234,8 +234,16 @@ class OpStudent(models.Model):
     def create_student_user(self):
         """Создает системного пользователя для ученика."""
         user_group = self.env.ref("openeducat_core.group_op_students", raise_if_not_found=False)
+        base_user = self.env.ref("base.group_user", raise_if_not_found=False)
         for record in self.filtered(lambda s: not s.user_id and s.email):
-            group_commands = [fields.Command.link(user_group.id)] if user_group else []
+            # Группы задаём явно и одинаково с зачислением из приёмки:
+            # base.group_user + группа ученика. Пустой groups_id означал бы
+            # наследование шаблона base.default_user (и любых прав из него).
+            group_commands = [fields.Command.clear()]
+            if base_user:
+                group_commands.append(fields.Command.link(base_user.id))
+            if user_group:
+                group_commands.append(fields.Command.link(user_group.id))
             record.user_id = self.env["res.users"].create({
                 "name": record.name,
                 "partner_id": record.partner_id.id,

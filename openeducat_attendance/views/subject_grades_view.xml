@@ -14,16 +14,70 @@
                 <field name="subject_id" optional="show" />
                 <field name="faculty_id" string="Учитель" optional="show" />
                 <field name="batch_id" optional="show" />
-                <field name="q1_average_mark" string="Средняя Q1" avg="1" optional="show" />
-                <field name="q1_final_grade" optional="show" />
-                <field name="q2_average_mark" string="Средняя Q2" avg="1" optional="hide" />
-                <field name="q2_final_grade" optional="hide" />
-                <field name="q3_average_mark" string="Средняя Q3" avg="1" optional="hide" />
-                <field name="q3_final_grade" optional="hide" />
-                <field name="q4_average_mark" string="Средняя Q4" avg="1" optional="hide" />
-                <field name="q4_final_grade" optional="hide" />
-                <field name="average_mark" string="Средний балл" avg="1" optional="hide" />
-                <field name="final_quarter_grade" string="Годовая" optional="hide" />
+                <!-- Раскраска ячеек (вариант B из design/grades-list-color-variants.html):
+                     итог — цветом оценки, средняя — порогом. decoration-* на field
+                     красит ТОЛЬКО ячейку (list_renderer.js), строка нейтральна.
+                     Н/а встречается в трёх написаниях — гасим в серый все. -->
+                <field name="q1_average_mark" string="Средняя Q1" avg="1" optional="show" decoration-bf="1"
+                    decoration-success="q1_average_mark &gt;= 4.5"
+                    decoration-info="q1_average_mark &gt;= 3.5 and q1_average_mark &lt; 4.5"
+                    decoration-warning="q1_average_mark &gt;= 2.5 and q1_average_mark &lt; 3.5"
+                    decoration-danger="q1_average_mark &gt; 0 and q1_average_mark &lt; 2.5"
+                    decoration-muted="q1_average_mark == 0" />
+                <field name="q1_final_grade" optional="show" decoration-bf="1"
+                    decoration-success="q1_final_grade == '5'"
+                    decoration-info="q1_final_grade == '4'"
+                    decoration-warning="q1_final_grade == '3'"
+                    decoration-danger="q1_final_grade == '2'"
+                    decoration-muted="q1_final_grade in ('н/а', 'Н/а', 'Н/А')" />
+                <field name="q2_average_mark" string="Средняя Q2" avg="1" optional="hide" decoration-bf="1"
+                    decoration-success="q2_average_mark &gt;= 4.5"
+                    decoration-info="q2_average_mark &gt;= 3.5 and q2_average_mark &lt; 4.5"
+                    decoration-warning="q2_average_mark &gt;= 2.5 and q2_average_mark &lt; 3.5"
+                    decoration-danger="q2_average_mark &gt; 0 and q2_average_mark &lt; 2.5"
+                    decoration-muted="q2_average_mark == 0" />
+                <field name="q2_final_grade" optional="hide" decoration-bf="1"
+                    decoration-success="q2_final_grade == '5'"
+                    decoration-info="q2_final_grade == '4'"
+                    decoration-warning="q2_final_grade == '3'"
+                    decoration-danger="q2_final_grade == '2'"
+                    decoration-muted="q2_final_grade in ('н/а', 'Н/а', 'Н/А')" />
+                <field name="q3_average_mark" string="Средняя Q3" avg="1" optional="hide" decoration-bf="1"
+                    decoration-success="q3_average_mark &gt;= 4.5"
+                    decoration-info="q3_average_mark &gt;= 3.5 and q3_average_mark &lt; 4.5"
+                    decoration-warning="q3_average_mark &gt;= 2.5 and q3_average_mark &lt; 3.5"
+                    decoration-danger="q3_average_mark &gt; 0 and q3_average_mark &lt; 2.5"
+                    decoration-muted="q3_average_mark == 0" />
+                <field name="q3_final_grade" optional="hide" decoration-bf="1"
+                    decoration-success="q3_final_grade == '5'"
+                    decoration-info="q3_final_grade == '4'"
+                    decoration-warning="q3_final_grade == '3'"
+                    decoration-danger="q3_final_grade == '2'"
+                    decoration-muted="q3_final_grade in ('н/а', 'Н/а', 'Н/А')" />
+                <field name="q4_average_mark" string="Средняя Q4" avg="1" optional="hide" decoration-bf="1"
+                    decoration-success="q4_average_mark &gt;= 4.5"
+                    decoration-info="q4_average_mark &gt;= 3.5 and q4_average_mark &lt; 4.5"
+                    decoration-warning="q4_average_mark &gt;= 2.5 and q4_average_mark &lt; 3.5"
+                    decoration-danger="q4_average_mark &gt; 0 and q4_average_mark &lt; 2.5"
+                    decoration-muted="q4_average_mark == 0" />
+                <field name="q4_final_grade" optional="hide" decoration-bf="1"
+                    decoration-success="q4_final_grade == '5'"
+                    decoration-info="q4_final_grade == '4'"
+                    decoration-warning="q4_final_grade == '3'"
+                    decoration-danger="q4_final_grade == '2'"
+                    decoration-muted="q4_final_grade in ('н/а', 'Н/а', 'Н/А')" />
+                <field name="average_mark" string="Средний балл" avg="1" optional="hide" decoration-bf="1"
+                    decoration-success="average_mark &gt;= 4.5"
+                    decoration-info="average_mark &gt;= 3.5 and average_mark &lt; 4.5"
+                    decoration-warning="average_mark &gt;= 2.5 and average_mark &lt; 3.5"
+                    decoration-danger="average_mark &gt; 0 and average_mark &lt; 2.5"
+                    decoration-muted="average_mark == 0" />
+                <field name="final_quarter_grade" string="Годовая" optional="hide" decoration-bf="1"
+                    decoration-success="final_quarter_grade == '5'"
+                    decoration-info="final_quarter_grade == '4'"
+                    decoration-warning="final_quarter_grade == '3'"
+                    decoration-danger="final_quarter_grade == '2'"
+                    decoration-muted="final_quarter_grade in ('н/а', 'Н/а', 'Н/А')" />
             </list>
         </field>
     </record>
@@ -669,6 +723,34 @@
                         ('batch_id.end_date', '&gt;=', (context_today() + relativedelta(months=-(((context_today().month) - 9) % 12), day=1)).strftime('%Y-%m-%d')),
                         ('batch_id.start_date', '&lt;=', (context_today() + relativedelta(months=-(((context_today().month) - 9) % 12), day=1, years=1, days=-1)).strftime('%Y-%m-%d'))]" />
 
+                <!-- СОВМЕСТНЫЕ ФИЛЬТРЫ «ЧЕТВЕРТЬ × ОЦЕНКА»: блок «Четверть»
+                     НЕ фильтрует сам — кладёт grades_quarter в контекст
+                     (context-only); блок «Оценки» ищет по non-stored полю
+                     grades_mark_filter, чей search-метод строит домен по
+                     строкам выбранной четверти (механика: контексты активных
+                     фильтров веб-клиент склеивает в контекст запроса, ORM
+                     зовёт search-метод поля с этим контекстом). Разные
+                     <group> => AND. «Год» = контекст не ставит, поиск по
+                     всем четвертям. -->
+                <group string="quarter_scope">
+                    <filter string="1 четверть" name="quarter_q1"
+                        domain="[('q1_has_grades', '=', True)]"
+                        context="{'grades_quarter': 'q1'}" />
+                    <filter string="2 четверть" name="quarter_q2"
+                        domain="[('q2_has_grades', '=', True)]"
+                        context="{'grades_quarter': 'q2'}" />
+                    <filter string="3 четверть" name="quarter_q3"
+                        domain="[('q3_has_grades', '=', True)]"
+                        context="{'grades_quarter': 'q3'}" />
+                    <filter string="4 четверть" name="quarter_q4"
+                        domain="[('q4_has_grades', '=', True)]"
+                        context="{'grades_quarter': 'q4'}" />
+                    <filter string="Год" name="quarter_year"
+                        domain="[('average_mark', '&gt;', 0)]" />
+                </group>
+
+                <separator />
+
                 <!-- Статус ученика: группа = OR между собой, AND с прочими
                      фильтрами. Замена старого «Без отчисленных»: тот домен
                      не был про год и при сбросе дефолта «Текущий год»
@@ -692,6 +774,21 @@
                 <separator />
 
                 <!-- Блок фильтров по баллам -->
+                <!-- СОВМЕСТНЫЕ ФИЛЬТРЫ, блок «Оценки» — механика выше,
+                     у блока «Четверть» (сразу после «Текущий год»). -->
+                <group string="marks_block">
+                    <filter string="❗ Есть 2" name="mark_2"
+                        domain="[('grades_mark_filter', '=', '2')]" />
+                    <filter string="❗ Есть 3" name="mark_3"
+                        domain="[('grades_mark_filter', '=', '3')]" />
+                    <filter string="Есть 4" name="mark_4"
+                        domain="[('grades_mark_filter', '=', '4')]" />
+                    <filter string="Есть 5" name="mark_5"
+                        domain="[('grades_mark_filter', '=', '5')]" />
+                    <filter string="Нет оценок" name="mark_none"
+                        domain="[('grades_mark_filter', '=', 'none')]" />
+                </group>
+
                 <filter string="⭐ Отличники (>= 4.5)" name="high_performers"
                     domain="[('average_mark', '>=', 4.5)]" />
 
