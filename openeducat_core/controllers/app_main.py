@@ -21,6 +21,7 @@
 import werkzeug.utils
 from odoo import http
 from odoo.addons.portal.controllers.web import Home as home
+from odoo.addons.web.controllers.utils import is_user_internal
 from odoo.http import request
 
 
@@ -30,7 +31,11 @@ class OpeneducatHome(home):
     def web_login(self, redirect=None, *args, **kw):
         response = super(OpeneducatHome, self).web_login(
             redirect=redirect, *args, **kw)
-        if not redirect and request.params['login_success']:
+        # При включённой 2FA сессия не авторизуется сразу: Odoo кладёт uid в
+        # session.pre_uid, а request.uid остаётся пустым, и super() уже вернул
+        # редирект на страницу ввода кода (/web/login/totp). Обращаться к
+        # browse(request.uid) в этот момент нельзя — пустой recordset.
+        if not redirect and request.params['login_success'] and request.uid:
             if request.env['res.users'].browse(request.uid).has_group(
                     'base.group_user'):
                 redirect = '/web?' + request.httprequest.query_string.decode('utf-8')
@@ -43,7 +48,9 @@ class OpeneducatHome(home):
         return response
 
     def _login_redirect(self, uid, redirect=None):
-        if redirect:
+        # внутренние пользователи — штатный путь ядра (бэкенд), портал — в кабинет;
+        # иначе после ввода кода 2FA сотрудник попадает на /my вместо бэкенда
+        if redirect or is_user_internal(uid):
             return super(OpeneducatHome, self)._login_redirect(uid, redirect)
         if request.env.user.is_parent:
             return '/my/child'
