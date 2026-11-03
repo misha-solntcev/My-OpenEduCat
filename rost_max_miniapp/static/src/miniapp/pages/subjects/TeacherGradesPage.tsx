@@ -16,7 +16,7 @@
 import React from 'react';
 import {
   Panel, PanelHeader, PanelHeaderBack, PanelHeaderContent, Div, Spinner, Button,
-  Caption, Text, Box, SegmentedControl,
+  Caption, Text, Box,
 } from '@vkontakte/vkui';
 import { apiGet } from '@/shared/lib/api';
 import { useToast } from '@/shared/components/Toast';
@@ -32,24 +32,6 @@ import type {
 } from '@/shared/lib/types';
 
 type View = 'pairs' | 'students' | 'student';
-
-/** Переключатель четверти — как у ученика (SegmentedControl). */
-const QuarterBar: React.FC<{
-  quarters: { q: number; name: string }[];
-  value: number;
-  onChange: (q: number) => void;
-}> = ({ quarters, value, onChange }) => {
-  if (quarters.length < 2) return null;
-  return (
-    <Box padding="m" style={{ paddingBottom: 0 }}>
-      <SegmentedControl
-        value={String(value)}
-        onChange={v => onChange(Number(v))}
-        options={quarters.map(q => ({ value: String(q.q), label: q.name }))}
-      />
-    </Box>
-  );
-};
 
 const Loading: React.FC = () => (
   <Div style={{ display: 'flex', justifyContent: 'center', padding: 40 }}>
@@ -110,6 +92,13 @@ export const TeacherGradesPage: React.FC<{
     // Секция «Кого смотрим» — ПЕРВАЯ (решение 2026-10-14), без фасетов:
     // список пар от режима не зависит.
     return [
+      // Четверть — ПЕРВАЯ секция шторки (решение 2026-11), затем ось.
+      ...((data?.quarters?.length ?? 0) > 1 ? [{
+        key: 'quarter', header: 'Четверть', single: true,
+        options: (data?.quarters ?? []).map(qq => ({
+          value: String(qq.q), label: `${qq.q} четверть`,
+        })),
+      }] : []),
       ...(axis ? [{ ...axis.section }] : []),
       ...KEYS.map(key => {
         const source = pairs.filter(p => KEYS
@@ -138,7 +127,9 @@ export const TeacherGradesPage: React.FC<{
     ? ['batches', 'subjects', 'faculties']
     : ['batches', 'subjects'];
   const filterActive = chipKeys.some(k => (filters[k]?.size ?? 0) > 0)
-    || Boolean(axis?.nonDefault);
+    || Boolean(axis?.nonDefault)
+    || Boolean(quarter != null && data?.current_quarter != null
+      && quarter !== data.current_quarter);
 
   const filteredPairs = React.useMemo(() => {
     const pairs = data?.pairs ?? [];
@@ -337,6 +328,7 @@ export const TeacherGradesPage: React.FC<{
                 onClick={() => {
                   setSheetDraft({
                     viewer: axis ? new Set([axis.value]) : new Set(),
+                    quarter: new Set(quarter != null ? [String(quarter)] : []),
                     ...filters,
                   });
                   setFiltersOpen(true);
@@ -350,6 +342,9 @@ export const TeacherGradesPage: React.FC<{
             <Div style={{ padding: '0 16px 4px' }}>
               <FilterChipRow
                 chips={[
+                  ...(quarter != null
+                    ? [{ kind: 'quarter', v: `${quarter} четверть`, removable: false }]
+                    : []),
                   ...(axis ? viewerChips(axis) : []),
                   ...chipKeys.flatMap(k =>
                     [...(filters[k] ?? [])].map(v => ({ kind: k, v }))),
@@ -361,16 +356,10 @@ export const TeacherGradesPage: React.FC<{
                 onReset={() => {
                   resetFilters();
                   if (axis) axis.apply('school');
+                  if (data?.current_quarter) setQuarter(data.current_quarter);
                 }}
               />
             </Div>
-          )}
-          {data && (
-            <QuarterBar
-              quarters={data.quarters}
-              value={quarter ?? data.quarter}
-              onChange={setQuarter}
-            />
           )}
         </>
       )}
@@ -414,6 +403,8 @@ export const TeacherGradesPage: React.FC<{
             faculties: f.faculties ?? new Set<string>(),
           });
           setFiltersOpen(false);
+          const qv = Number([...(f.quarter ?? new Set<string>())][0]);
+          if (qv && qv !== quarter) setQuarter(qv);  // эффект перезагрузит пары
         }}
       />
     </Panel>

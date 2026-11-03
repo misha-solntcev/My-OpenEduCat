@@ -1464,7 +1464,8 @@ class RostMaxTimetableController(http.Controller):
         })
 
     @http.route("/rost_max/api/dashboard_info", type="http", auth="public", methods=["GET"])
-    def api_dashboard_info(self, date=None, child_id=None, scope=None, **kw):
+    def api_dashboard_info(self, date=None, child_id=None, scope=None,
+                           quarter=None, **kw):
         """API: сбор статистики для дашборда с умным поиском даты.
 
         child_id (режим «ребёнок»): вся главная — данные ребёнка
@@ -1623,13 +1624,13 @@ class RostMaxTimetableController(http.Controller):
             **self._dashboard_feed(user, is_admin, faculty, student, sessions,
                                    date_val, child=child,
                                    force_role='teacher' if scope == 'mine'
-                                   else None),
+                                   else None, quarter=quarter),
         })
 
     # --- ЛЕНТА ДНЯ (вариант A) ---------------------------------------------
 
     def _dashboard_feed(self, user, is_admin, faculty, student, sessions,
-                        date_val, child=None, force_role=None):
+                        date_val, child=None, force_role=None, quarter=None):
         """Лента дня: уроки с бейджами + роль-специфичные блоки.
 
         Общий агрегат для ученика/родителя, учителя и админа (макеты
@@ -1650,6 +1651,9 @@ class RostMaxTimetableController(http.Controller):
             role, own_students = 'student', child
         elif force_role == 'teacher':
             role, own_students = 'teacher', request.env['op.student'].browse()
+        # Четверть главной: та же, что на экране «Задания» (текущая, а в
+        # каникулы — предыдущая). Один дефолт на все экраны.
+        q_map, current_q, home_q, home_term = self._hw_quarter_scope(quarter)
         avatar_map = self._faculty_avatar_map(sessions) if request.session.uid else {}
 
         # --- Лента уроков (все роли) ---
@@ -1717,7 +1721,10 @@ class RostMaxTimetableController(http.Controller):
                 if len(grades_today) >= 5:
                     break
             feed["grades_today"] = grades_today
-            feed["homework"] = self._student_homework_feed(own_students, now)
+            # Главная живёт в той же четверти, что и «Задания»: текущая,
+            # а в каникулы — предыдущая (единый дефолт для всех экранов).
+            feed["homework"] = self._student_homework_feed(
+                own_students, now, quarter=home_q)
 
         # --- Учитель/админ: задано моими уроками -------------------------
         # Админ (Макарова) не имеет faculty — role 'admin' из _get_user_students.
@@ -1749,6 +1756,11 @@ class RostMaxTimetableController(http.Controller):
                 hw_domain.append(('faculty_id', '=', faculty.id))
             my_asgs = request.env['op.assignment'].sudo().search(
                 hw_domain, order='submission_date asc')
+            # Та же четверть, что на вкладке «Задания» (см. выше home_q).
+            if home_term:
+                _numbers = self._hw_quarter_numbers(my_asgs, q_map)
+                my_asgs = my_asgs.filtered(
+                    lambda a, n=_numbers: n.get(a.id) == home_q)
             # Счётчики сдач — поля на задании (assignment_hw_stats.py),
             # единая формула с ПК-списком; раньше здесь были три read_group.
             feed["my_homework"] = [{
@@ -1782,6 +1794,10 @@ class RostMaxTimetableController(http.Controller):
             if role == 'teacher':
                 asg_domain.append(('faculty_id', '=', faculty.id))
             hw_asgs = request.env['op.assignment'].sudo().search(asg_domain)
+            if home_term:
+                _sum_numbers = self._hw_quarter_numbers(hw_asgs, q_map)
+                hw_asgs = hw_asgs.filtered(
+                    lambda a, n=_sum_numbers: n.get(a.id) == home_q)
             # Точная сегментация вкладки «Задания» (TeacherHomeworkPage) —
             # теперь по полю x_hw_state (assignment_hw_stats.py): формула
             # сегментации живёт в модели, одной и той же и для миниаппа, и
@@ -1822,6 +1838,12 @@ class RostMaxTimetableController(http.Controller):
             }
             feed["alerts"] = alerts
 
+        # Мета четвертей для шторки фильтров главной — тот же контракт,
+        # что у «Заданий» и «Оценок».
+        feed["quarter"] = home_q
+        feed["current_quarter"] = current_q
+        feed["quarters"] = [{"q": i, "name": q_map[i].name}
+                            for i in sorted(q_map)]
         return feed
 
     def _hw_quarter_scope(self, quarter=None):

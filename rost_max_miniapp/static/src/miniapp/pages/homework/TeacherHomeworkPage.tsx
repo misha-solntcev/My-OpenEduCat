@@ -695,6 +695,7 @@ export const TeacherHomeworkPage: React.FC<{
   // передан) — как на экранах «Оценок». Четверть задания — из журнала
   // урока (term_id), иначе по сроку сдачи.
   const [quarter, setQuarter] = React.useState<number | null>(null);
+  const [currentQuarter, setCurrentQuarter] = React.useState<number | null>(null);
   const [quarters, setQuarters] = React.useState<{ q: number; name: string }[]>([]);
 
   // Вход из журнала урока: фильтр ставится РОВНО на каждое новое значение
@@ -741,6 +742,7 @@ export const TeacherHomeworkPage: React.FC<{
       setItems(res.homework || []);
       setQuarters(res.quarters || []);
       setQuarter(res.quarter ?? qn ?? null);
+      setCurrentQuarter(res.current_quarter ?? null);
     } catch {
       addToast('Не удалось загрузить задания', 'error');
     } finally {
@@ -749,13 +751,6 @@ export const TeacherHomeworkPage: React.FC<{
   }, [addToast, fromLessonEntry]);
 
   React.useEffect(() => { load(); }, [load]);
-
-  const changeQuarter = React.useCallback((v: string) => {
-    const n = Number(v);
-    if (!n || n === quarter) return;
-    setQuarter(n);
-    load(n);
-  }, [load, quarter]);
 
   const groups = React.useMemo(() => {
     const all = items || [];
@@ -773,7 +768,8 @@ export const TeacherHomeworkPage: React.FC<{
   }, [items, filters]);
 
   const filterActive = filters.batches.size > 0 || filters.subjects.size > 0
-    || Boolean(axis?.nonDefault);
+    || Boolean(axis?.nonDefault)
+    || Boolean(quarter != null && currentQuarter != null && quarter !== currentQuarter);
 
   // Секции шторки: «Кого смотрим» ПЕРВОЙ (решение 2026-10-14), потом
   // Классы/Предметы с фасетным сужением (опции секции — по заданиям,
@@ -790,11 +786,18 @@ export const TeacherHomeworkPage: React.FC<{
     const secSubjects = itemsAll.filter(h =>
       !sheetDraft.batches?.size || sheetDraft.batches.has(h.batch));
     return [
+      // Четверть — ПЕРВАЯ секция (решение 2026-11), затем «Кого смотрим».
+      ...(quarters.length > 1 && !fromLessonEntry ? [{
+        key: 'quarter', header: 'Четверть', single: true,
+        options: quarters.map(qq => ({
+          value: String(qq.q), label: `${qq.q} четверть`,
+        })),
+      }] : []),
       ...(axis ? [{ ...axis.section }] : []),
       { key: 'batches', header: 'Классы', options: opts(secBatches.map(h => h.batch), sheetDraft.batches) },
       { key: 'subjects', header: 'Предметы', options: opts(secSubjects.map(h => h.subject), sheetDraft.subjects) },
     ];
-  }, [items, sheetDraft, axis]);
+  }, [items, sheetDraft, axis, quarters, fromLessonEntry]);
 
   // Выбор стартового сегмента при входе из урока — ПОСЛЕ того как список
   // загрузился и groups посчитан. Логика: кнопка «Проверить ДЗ» ведёт
@@ -905,6 +908,7 @@ export const TeacherHomeworkPage: React.FC<{
                         viewer: axis ? new Set([axis.value]) : new Set(),
                         batches: filters.batches,
                         subjects: filters.subjects,
+                        quarter: new Set(quarter != null ? [String(quarter)] : []),
                       });
                       setFiltersOpen(true);
                     }}
@@ -943,21 +947,6 @@ export const TeacherHomeworkPage: React.FC<{
               )}
 
               <Box paddingInline={12} paddingBlockStart={4} paddingBlockEnd={22}>
-                {/* Четверти: по умолчанию открыта текущая (как в «Оценках»).
-                    При входе из журнала урока контрол не рисуем — там
-                    список по ДЗ урока, четверть не ограничивает. */}
-                {quarters.length > 1 && !fromLessonEntry && (
-                  <div style={{ paddingTop: 4 }}>
-                    <AccentSegmentedControl
-                      aria-label="Четверть"
-                      value={String(quarter ?? '')}
-                      onChange={changeQuarter}
-                      options={quarters.map(qq => ({
-                        value: String(qq.q), title: `${qq.q} четверть`,
-                      }))}
-                    />
-                  </div>
-                )}
                 {/* сегмент-контрол статусов (общий AccentSegmentedControl). */}
                 <div style={{ paddingTop: 4, paddingBottom: 10 }}>
                   <AccentSegmentedControl
@@ -1004,6 +993,11 @@ export const TeacherHomeworkPage: React.FC<{
             subjects: f.subjects ?? new Set<string>(),
           });
           setFiltersOpen(false);
+          const qv = Number([...(f.quarter ?? new Set<string>())][0]);
+          if (qv && qv !== quarter) {
+            setQuarter(qv);
+            load(qv);
+          }
         }}
       />
     </Panel>

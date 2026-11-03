@@ -17,6 +17,7 @@ import type { HomeworkItem, HomeworkListResponse } from '@/shared/lib/types';
 import { TabHeader } from '@/shared/components/TabHeader';
 import { useViewerAxis, viewerChips, viewerFromDraft } from '@/shared/lib/viewerAxis';
 import { ChipFilterModal, FilterChipRow, FilterIconButton } from '@/shared/components/ChipFilterModal';
+import type { ChipFilterSection } from '@/shared/components/ChipFilterModal';
 
 interface HomeworkPageProps {
   id: string;
@@ -66,15 +67,17 @@ export const HomeworkPage: React.FC<HomeworkPageProps> = ({ id, canSubmit = true
   // Ось «Кого смотрим» (свитч удалён — решение 2026-10-14): только у
   // родителя 2+ и staff-родителя — у чистого ученика оси нет.
   const axis = useViewerAxis();
-  const [viewerOpen, setViewerOpen] = React.useState(false);
+  const [filtersOpen, setFiltersOpen] = React.useState(false);
   const selectedChildId = useAppStore(s => s.selectedChildId);
   const [items, setItems] = React.useState<HomeworkItem[] | null>(null);
   const [loading, setLoading] = React.useState(false);
   // Активный сегмент статуса (сегмент-контрол как у учителя/ReviewQueue).
   const [status, setStatus] = React.useState<StatusKey>('fresh');
   // Четверть: по умолчанию текущая (сервер её же и возвращает, если номер
-  // не передан) — как на экранах «Оценок». quarters — список года.
+  // не передан; в каникулы — предыдущая). Выбор живёт в шторке фильтров
+  // ПЕРВОЙ секцией — единый паттерн с «Оценками» и учительскими экранами.
   const [quarter, setQuarter] = React.useState<number | null>(null);
+  const [currentQuarter, setCurrentQuarter] = React.useState<number | null>(null);
   const [quarters, setQuarters] = React.useState<{ q: number; name: string }[]>([]);
 
   // q: номер четверти; null/undefined — спросить сервер (он отдаст текущую).
@@ -92,6 +95,7 @@ export const HomeworkPage: React.FC<HomeworkPageProps> = ({ id, canSubmit = true
       setItems(res.homework || []);
       setQuarters(res.quarters || []);
       setQuarter(res.quarter ?? qn ?? null);
+      setCurrentQuarter(res.current_quarter ?? null);
     } catch {
       addToast('Не удалось загрузить задания', 'error');
     } finally {
@@ -101,12 +105,24 @@ export const HomeworkPage: React.FC<HomeworkPageProps> = ({ id, canSubmit = true
 
   React.useEffect(() => { load(); }, [load]);
 
-  const changeQuarter = React.useCallback((v: string) => {
-    const n = Number(v);
-    if (!n || n === quarter) return;
-    setQuarter(n);
-    load(n);
-  }, [load, quarter]);
+  // Четверть — ПЕРВАЯ секция шторки фильтров (решение 2026-11): значение
+  // одно (singe), по умолчанию текущая; в каникулы сервер отдаёт предыдущую.
+  const sheetSections: ChipFilterSection[] = React.useMemo(() => ([
+    ...(quarters.length > 1 ? [{
+      key: 'quarter',
+      header: 'Четверть',
+      single: true,
+      options: quarters.map(qq => ({
+        value: String(qq.q), label: `${qq.q} четверть`,
+      })),
+    }] : []),
+    ...(axis ? [axis.section] : []),
+  ]), [quarters, axis]);
+
+  const filterActive = Boolean(
+    (quarter != null && currentQuarter != null && quarter !== currentQuarter)
+    || axis?.nonDefault,
+  );
 
   const submitHomework = async (
     assignmentId: number,
@@ -162,33 +178,28 @@ export const HomeworkPage: React.FC<HomeworkPageProps> = ({ id, canSubmit = true
       <TabHeader
         title="Задания"
         onOpenProfile={onOpenProfile}
-        after={axis ? (
+        after={(
           <FilterIconButton
-            active={axis.nonDefault}
-            expanded={viewerOpen}
-            onClick={() => setViewerOpen(true)}
+            active={filterActive}
+            expanded={filtersOpen}
+            onClick={() => setFiltersOpen(true)}
           />
-        ) : undefined}
+        )}
       />
-      {axis && (
+      {(quarter != null || axis) && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '0 16px 4px' }}>
           <FilterChipRow
-            chips={viewerChips(axis)}
-            onRemove={() => axis.apply('school')}
-          />
-        </div>
-      )}
-      {/* Четверти: по умолчанию открыта текущая. Список года приходит с
-          сервера; одна четверть — контрол не рисуем. */}
-      {quarters.length > 1 && (
-        <div style={{ paddingInline: 12, paddingTop: 10 }}>
-          <AccentSegmentedControl
-            aria-label="Четверть"
-            value={String(quarter ?? '')}
-            onChange={changeQuarter}
-            options={quarters.map(qq => ({
-              value: String(qq.q), title: `${qq.q} четверть`,
-            }))}
+            chips={[
+              ...(quarter != null
+                ? [{ kind: 'quarter', v: `${quarter} четверть`, removable: false }]
+                : []),
+              ...(axis ? viewerChips(axis) : []),
+            ]}
+            onRemove={() => axis?.apply('school')}
+            onReset={() => {
+              if (axis) axis.apply('school');
+              load(currentQuarter ?? undefined);
+            }}
           />
         </div>
       )}
@@ -235,22 +246,28 @@ export const HomeworkPage: React.FC<HomeworkPageProps> = ({ id, canSubmit = true
           )}
         </>
       )}
-      {/* Шторка «Кого смотрим» — ось режима (решение 2026-10-14).
-          GUARD обязателен: у ученика axis=null. */}
-      {axis && (
+      {/* Шторка фильтров: четверть ПЕРВОЙ секцией, дальше ось «Кого
+          смотрим» (у чистого ученика её нет). */}
       <ChipFilterModal
-        open={viewerOpen}
-        id="homework-viewer"
-        sections={[axis.section]}
-        value={{ viewer: new Set([axis.value]) }}
+        open={filtersOpen}
+        id="homework-filters"
+        sections={sheetSections}
+        value={{
+          quarter: new Set(quarter != null ? [String(quarter)] : []),
+          viewer: new Set(axis ? [axis.value] : []),
+        }}
         footerOrder="cancel-first"
-        onClose={() => setViewerOpen(false)}
+        onClose={() => setFiltersOpen(false)}
         onApply={f => {
-          axis.apply(viewerFromDraft(f.viewer, axis));
-          setViewerOpen(false);
+          const qv = Number([...(f.quarter ?? new Set<string>())][0]);
+          if (axis) axis.apply(viewerFromDraft(f.viewer, axis));
+          setFiltersOpen(false);
+          if (qv && qv !== quarter) {
+            setQuarter(qv);
+            load(qv);
+          }
         }}
       />
-      )}
     </Panel>
   );
 };

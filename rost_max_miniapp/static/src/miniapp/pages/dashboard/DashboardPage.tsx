@@ -142,7 +142,12 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
   const addToast = useToast();
   // Ось «Кого смотрим» (свитч удалён — решение 2026-10-14).
   const axis = useViewerAxis();
-  const [viewerOpen, setViewerOpen] = React.useState(false);
+  const [filtersOpen, setFiltersOpen] = React.useState(false);
+  // Четверть блоков ДЗ главной: та же, что на экране «Задания» (текущая,
+  // а в каникулы — предыдущая). Выбор — в шторке фильтров ПЕРВОЙ секцией.
+  const [quarter, setQuarter] = React.useState<number | null>(null);
+  const [currentQuarter, setCurrentQuarter] = React.useState<number | null>(null);
+  const [quarters, setQuarters] = React.useState<{ q: number; name: string }[]>([]);
 
   const [data, setData] = React.useState<DashboardInfoResponse | null>(null);
   const [loading, setLoading] = React.useState(false);
@@ -151,12 +156,17 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
   // навигации по расписанию. Дата фиксируется на монтирование.
   const [feedDate] = React.useState(today);
 
-  const load = React.useCallback(async () => {
+  const load = React.useCallback(async (q?: number | null) => {
+    const qn = typeof q === 'number' ? q : null;
     setLoading(true);
     try {
       const res = await apiGet<DashboardInfoResponse>(
-        `/rost_max/api/dashboard_info?date=${feedDate}${scopeQuery()}${childQuery()}`);
+        `/rost_max/api/dashboard_info?date=${feedDate}${scopeQuery()}${childQuery()}`
+        + (qn ? `&quarter=${qn}` : ''));
       setData(res);
+      setQuarter(res.quarter ?? qn ?? null);
+      setCurrentQuarter(res.current_quarter ?? null);
+      setQuarters(res.quarters ?? []);
     } catch {
       addToast('Не удалось загрузить главную', 'error');
     } finally {
@@ -192,7 +202,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
         </Div>
       ) : !data ? (
         <Div>
-          <Button mode="outline" stretched onClick={load}>Повторить</Button>
+          <Button mode="outline" stretched onClick={() => load()}>Повторить</Button>
         </Div>
       ) : (
         <>
@@ -202,37 +212,67 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
             avatar={userInfo?.avatar}
             short={!isStaffAccount}
             onOpenProfile={onOpenProfile}
-            after={axis ? (
+            after={(
               <FilterIconButton
-                active={axis.nonDefault}
-                expanded={viewerOpen}
-                onClick={() => setViewerOpen(true)}
+                active={Boolean(
+                  (quarter != null && currentQuarter != null && quarter !== currentQuarter)
+                  || axis?.nonDefault,
+                )}
+                expanded={filtersOpen}
+                onClick={() => setFiltersOpen(true)}
               />
-            ) : undefined}
+            )}
           />
 
           {/* Ось «Кого смотрим» (решение Миши 2026-10-14, свитч удалён):
               чип режима над лентой, кнопка фильтра — в строке аватарки
               (решение Миши 2026-10-14); смена — в шторке.
               Рисуем по АККАУНТУ: у родителя чип без ×. */}
-          {axis && (
+          {(quarter != null || axis) && (
             <>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '0 16px 0' }}>
                 <FilterChipRow
-                  chips={viewerChips(axis)}
-                  onRemove={() => axis.apply('school')}
+                  chips={[
+                    ...(quarter != null
+                      ? [{ kind: 'quarter', v: `${quarter} четверть`, removable: false }]
+                      : []),
+                    ...(axis ? viewerChips(axis) : []),
+                  ]}
+                  onRemove={() => axis?.apply('school')}
+                  onReset={() => {
+                    if (axis) axis.apply('school');
+                    load(currentQuarter ?? undefined);
+                  }}
                 />
               </div>
               <ChipFilterModal
-                open={viewerOpen}
-                id="dashboard-viewer"
-                sections={[axis.section]}
-                value={{ viewer: new Set([axis.value]) }}
+                open={filtersOpen}
+                id="dashboard-filters"
+                sections={[
+                  ...(quarters.length > 1 ? [{
+                    key: 'quarter',
+                    header: 'Четверть',
+                    single: true,
+                    options: quarters.map(qq => ({
+                      value: String(qq.q), label: `${qq.q} четверть`,
+                    })),
+                  }] : []),
+                  ...(axis ? [axis.section] : []),
+                ]}
+                value={{
+                  quarter: new Set(quarter != null ? [String(quarter)] : []),
+                  viewer: new Set(axis ? [axis.value] : []),
+                }}
                 footerOrder="cancel-first"
-                onClose={() => setViewerOpen(false)}
+                onClose={() => setFiltersOpen(false)}
                 onApply={f => {
-                  axis.apply(viewerFromDraft(f.viewer, axis));
-                  setViewerOpen(false);
+                  const qv = Number([...(f.quarter ?? new Set<string>())][0]);
+                  if (axis) axis.apply(viewerFromDraft(f.viewer, axis));
+                  setFiltersOpen(false);
+                  if (qv && qv !== quarter) {
+                    setQuarter(qv);
+                    load(qv);
+                  }
                 }}
               />
             </>

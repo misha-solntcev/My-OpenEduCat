@@ -401,6 +401,10 @@ export interface DashboardInfoResponse {
   alerts?: { kind: string; count: number; morning_passed: number }[];
   /** Учитель/админ: сводка ДЗ для табло (детали — на вкладке «Задания»). */
   hw_summary?: { to_review: number; issued: number; checked: number };
+  /** Четверть блоков ДЗ главной (по умолчанию — текущая). */
+  quarter?: number;
+  current_quarter?: number;
+  quarters?: { q: number; name: string }[];
   metrics: Record<string, unknown>;
   next_lesson: unknown;
 }

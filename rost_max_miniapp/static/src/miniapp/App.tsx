@@ -99,7 +99,10 @@ export default function App() {
       ? savedNav.subjectsHistory.slice(0, savedNav.subjectsHistory.indexOf('assignment-panel'))
       : savedNav.subjectsHistory?.length ? savedNav.subjectsHistory : ['subjects-panel']
   );
-  const [selectedSubject, setSelectedSubject] = React.useState<{ id: number; name: string } | null>(
+  // quarter — четверть, выбранная в фильтре списка «Оценок»: детализация
+  // предмета открывается в той же четверти.
+  const [selectedSubject, setSelectedSubject] = React.useState<
+    { id: number; name: string; quarter?: number } | null>(
     savedNav.selectedSubject ?? null
   );
 
@@ -137,8 +140,10 @@ export default function App() {
   // экраны по child_id, журналы/свои ДЗ остаются в «Моих уроках».
   const childMode = Boolean(userInfo && selectedChildId != null);
 
-  const handleOpenSubject = (subjectId: number, subjectName: string) => {
-    setSelectedSubject({ id: subjectId, name: subjectName });
+  const handleOpenSubject = (subjectId: number, subjectName: string, quarter?: number) => {
+    // Четверть прокидываем из списка: выбранная в фильтре должна совпадать
+    // с той, что откроется в детализации предмета.
+    setSelectedSubject({ id: subjectId, name: subjectName, quarter });
     setSubjectsHistory(h => [...h, 'subject-grades-panel']);
   };
 
@@ -449,6 +454,7 @@ export default function App() {
                 id="subject-grades-panel"
                 subjectId={selectedSubject?.id ?? 0}
                 subjectName={selectedSubject?.name ?? ''}
+                quarter={selectedSubject?.quarter}
                 onBack={handleSubjectsBack}
                 onOpenAssignment={handleOpenAssignmentFromGrades}
               />
