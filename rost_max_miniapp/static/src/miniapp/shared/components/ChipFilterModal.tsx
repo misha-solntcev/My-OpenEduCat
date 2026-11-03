@@ -85,8 +85,21 @@ export const FilterChipRow: React.FC<{
           removable={removable && Boolean(onRemove)}
           onRemove={removable && onRemove ? () => onRemove(kind, v) : undefined}
           aria-label={removable ? `Убрать фильтр: ${v}` : undefined}
+          // Тот же вид, что у выбранного чипа в шторке фильтров: акцентный
+          // фон, белый текст 600 и белый крестик (иконки VKUI наследуют
+          // currentColor, поэтому color на чипе красит и ×).
+          style={{
+            background: 'var(--vkui--color_background_accent)',
+            border: '1px solid var(--vkui--color_background_accent)',
+            color: 'var(--vkui--color_text_contrast)',
+            '--vkui--icon_primary': 'var(--vkui--color_text_contrast)',
+          } as React.CSSProperties}
         >
-          {v}
+          <span style={{
+            color: 'var(--vkui--color_text_contrast)', fontWeight: 600,
+          }}>
+            {v}
+          </span>
         </Chip>
       ))}
       {onRemove && onReset && (
