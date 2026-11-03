@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Новый пользователь, созданный без явного groups_id, наследует группы
+         шаблона base.default_user (res.users._default_groups). В базе шаблон
+         был настроен с правами Продаж и Выставления счетов, из-за чего любой
+         сотрудник/ученик, заведённый «по умолчанию», получал доступ к CRM,
+         Продажам и счетам. Оставляем в шаблоне только внутреннего
+         пользователя: остальные права выдаются явно (adm/manager). -->
+    <record id="base.default_user" model="res.users">
+        <field name="groups_id" eval="[(6, 0, [ref('base.group_user')])]"/>
+    </record>
+</odoo>
