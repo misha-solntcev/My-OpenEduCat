@@ -694,7 +694,9 @@ export const TeacherHomeworkPage: React.FC<{
   // Четверть: по умолчанию текущая (сервер отдаёт её же, если номер не
   // передан) — как на экранах «Оценок». Четверть задания — из журнала
   // урока (term_id), иначе по сроку сдачи.
-  const [quarter, setQuarter] = React.useState<number | null>(null);
+  const quarterPref = useAppStore(s => s.quarterPref);
+  const setQuarterPref = useAppStore(s => s.setQuarterPref);
+  const [appliedQuarter, setAppliedQuarter] = React.useState<number | null>(null);
   const [currentQuarter, setCurrentQuarter] = React.useState<number | null>(null);
   const [quarters, setQuarters] = React.useState<{ q: number; name: string }[]>([]);
 
@@ -741,7 +743,7 @@ export const TeacherHomeworkPage: React.FC<{
         `/rost_max/api/teacher_homework${qs}`);
       setItems(res.homework || []);
       setQuarters(res.quarters || []);
-      setQuarter(res.quarter ?? qn ?? null);
+      setAppliedQuarter(res.quarter ?? qn ?? null);
       setCurrentQuarter(res.current_quarter ?? null);
     } catch {
       addToast('Не удалось загрузить задания', 'error');
@@ -750,7 +752,7 @@ export const TeacherHomeworkPage: React.FC<{
     }
   }, [addToast, fromLessonEntry]);
 
-  React.useEffect(() => { load(); }, [load]);
+  React.useEffect(() => { load(quarterPref); }, [load, quarterPref]);
 
   const groups = React.useMemo(() => {
     const all = items || [];
@@ -769,7 +771,7 @@ export const TeacherHomeworkPage: React.FC<{
 
   const filterActive = filters.batches.size > 0 || filters.subjects.size > 0
     || Boolean(axis?.nonDefault)
-    || Boolean(quarter != null && currentQuarter != null && quarter !== currentQuarter);
+    || quarterPref != null;
 
   // Секции шторки: «Кого смотрим» ПЕРВОЙ (решение 2026-10-14), потом
   // Классы/Предметы с фасетным сужением (опции секции — по заданиям,
@@ -908,7 +910,7 @@ export const TeacherHomeworkPage: React.FC<{
                         viewer: axis ? new Set([axis.value]) : new Set(),
                         batches: filters.batches,
                         subjects: filters.subjects,
-                        quarter: new Set(quarter != null ? [String(quarter)] : []),
+                        quarter: new Set(appliedQuarter != null ? [String(appliedQuarter)] : []),
                       });
                       setFiltersOpen(true);
                     }}
@@ -930,6 +932,9 @@ export const TeacherHomeworkPage: React.FC<{
                 <Div style={{ padding: '4px 16px 0' }}>
                   <FilterChipRow
                     chips={[
+                      ...(appliedQuarter != null && !fromLessonEntry
+                        ? [{ kind: 'quarter', v: `${appliedQuarter} четверть`, removable: false }]
+                        : []),
                       ...(axis ? viewerChips(axis) : []),
                       ...[...filters.batches].map(v => ({ kind: 'batch' as const, v })),
                       ...[...filters.subjects].map(v => ({ kind: 'subject' as const, v })),
@@ -941,6 +946,7 @@ export const TeacherHomeworkPage: React.FC<{
                     onReset={() => {
                       resetFilters();
                       if (axis) axis.apply('school');
+                      setQuarterPref(null);   // «авто»: текущая четверть
                     }}
                   />
                 </Div>
@@ -994,10 +1000,8 @@ export const TeacherHomeworkPage: React.FC<{
           });
           setFiltersOpen(false);
           const qv = Number([...(f.quarter ?? new Set<string>())][0]);
-          if (qv && qv !== quarter) {
-            setQuarter(qv);
-            load(qv);
-          }
+          // Общий стор: выбор четверти действует на всех экранах.
+          if (qv && qv !== appliedQuarter) setQuarterPref(qv);
         }}
       />
     </Panel>

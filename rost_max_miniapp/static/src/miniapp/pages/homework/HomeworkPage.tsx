@@ -76,7 +76,9 @@ export const HomeworkPage: React.FC<HomeworkPageProps> = ({ id, canSubmit = true
   // Четверть: по умолчанию текущая (сервер её же и возвращает, если номер
   // не передан; в каникулы — предыдущая). Выбор живёт в шторке фильтров
   // ПЕРВОЙ секцией — единый паттерн с «Оценками» и учительскими экранами.
-  const [quarter, setQuarter] = React.useState<number | null>(null);
+  const quarterPref = useAppStore(s => s.quarterPref);
+  const setQuarterPref = useAppStore(s => s.setQuarterPref);
+  const [appliedQuarter, setAppliedQuarter] = React.useState<number | null>(null);
   const [currentQuarter, setCurrentQuarter] = React.useState<number | null>(null);
   const [quarters, setQuarters] = React.useState<{ q: number; name: string }[]>([]);
 
@@ -94,7 +96,7 @@ export const HomeworkPage: React.FC<HomeworkPageProps> = ({ id, canSubmit = true
         `/rost_max/api/homework${qs}`);
       setItems(res.homework || []);
       setQuarters(res.quarters || []);
-      setQuarter(res.quarter ?? qn ?? null);
+      setAppliedQuarter(res.quarter ?? qn ?? null);
       setCurrentQuarter(res.current_quarter ?? null);
     } catch {
       addToast('Не удалось загрузить задания', 'error');
@@ -103,7 +105,7 @@ export const HomeworkPage: React.FC<HomeworkPageProps> = ({ id, canSubmit = true
     }
   }, [addToast, selectedChildId]);
 
-  React.useEffect(() => { load(); }, [load]);
+  React.useEffect(() => { load(quarterPref); }, [load, quarterPref]);
 
   // Четверть — ПЕРВАЯ секция шторки фильтров (решение 2026-11): значение
   // одно (singe), по умолчанию текущая; в каникулы сервер отдаёт предыдущую.
@@ -119,10 +121,7 @@ export const HomeworkPage: React.FC<HomeworkPageProps> = ({ id, canSubmit = true
     ...(axis ? [axis.section] : []),
   ]), [quarters, axis]);
 
-  const filterActive = Boolean(
-    (quarter != null && currentQuarter != null && quarter !== currentQuarter)
-    || axis?.nonDefault,
-  );
+  const filterActive = Boolean(quarterPref != null || axis?.nonDefault);
 
   const submitHomework = async (
     assignmentId: number,
@@ -186,19 +185,19 @@ export const HomeworkPage: React.FC<HomeworkPageProps> = ({ id, canSubmit = true
           />
         )}
       />
-      {(quarter != null || axis) && (
+      {(appliedQuarter != null || axis) && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '0 16px 4px' }}>
           <FilterChipRow
             chips={[
-              ...(quarter != null
-                ? [{ kind: 'quarter', v: `${quarter} четверть`, removable: false }]
+              ...(appliedQuarter != null
+                ? [{ kind: 'quarter', v: `${appliedQuarter} четверть`, removable: false }]
                 : []),
               ...(axis ? viewerChips(axis) : []),
             ]}
             onRemove={() => axis?.apply('school')}
             onReset={() => {
               if (axis) axis.apply('school');
-              load(currentQuarter ?? undefined);
+              setQuarterPref(null);   // «авто»: текущая четверть
             }}
           />
         </div>
@@ -253,7 +252,7 @@ export const HomeworkPage: React.FC<HomeworkPageProps> = ({ id, canSubmit = true
         id="homework-filters"
         sections={sheetSections}
         value={{
-          quarter: new Set(quarter != null ? [String(quarter)] : []),
+          quarter: new Set(appliedQuarter != null ? [String(appliedQuarter)] : []),
           viewer: new Set(axis ? [axis.value] : []),
         }}
         footerOrder="cancel-first"
@@ -262,10 +261,9 @@ export const HomeworkPage: React.FC<HomeworkPageProps> = ({ id, canSubmit = true
           const qv = Number([...(f.quarter ?? new Set<string>())][0]);
           if (axis) axis.apply(viewerFromDraft(f.viewer, axis));
           setFiltersOpen(false);
-          if (qv && qv !== quarter) {
-            setQuarter(qv);
-            load(qv);
-          }
+          // Пишем в общий стор: эффект перезагрузит экран, и та же
+          // четверть станет выбранной на «Главной» и в «Оценках».
+          if (qv && qv !== appliedQuarter) setQuarterPref(qv);
         }}
       />
     </Panel>

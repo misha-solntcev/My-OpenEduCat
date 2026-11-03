@@ -97,6 +97,13 @@ interface AppState {
   // Режим «Школа» (свитч админа-родителя): false — «Мои уроки» (дефолт).
   schoolMode: boolean;
   setSchoolMode: (on: boolean) => void;
+
+  // Выбранная четверть на всех экранах («Главная», «Задания», «Оценки»):
+  // null — «авто» (текущая четверть по календарю, в каникулы предыдущая).
+  // Живёт в сторе, чтобы выбор в шторке одного экрана действовал на всех;
+  // НЕ пишется в sessionStorage — при перезапуске стартуем с текущей.
+  quarterPref: number | null;
+  setQuarterPref: (q: number | null) => void;
 }
 
 // Хранилище (создаём сначала)
@@ -124,6 +131,8 @@ const useAppStore = create<AppState>((set, get) => ({
     saveSchoolMode(on);
     set({ schoolMode: on });
   },
+  quarterPref: null,
+  setQuarterPref: (q: number | null) => set({ quarterPref: q }),
   loadUserInfo: async () => {
     const { userInfo } = get();
     if (userInfo) return;

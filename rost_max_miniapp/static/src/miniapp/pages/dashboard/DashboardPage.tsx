@@ -145,7 +145,9 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
   const [filtersOpen, setFiltersOpen] = React.useState(false);
   // Четверть блоков ДЗ главной: та же, что на экране «Задания» (текущая,
   // а в каникулы — предыдущая). Выбор — в шторке фильтров ПЕРВОЙ секцией.
-  const [quarter, setQuarter] = React.useState<number | null>(null);
+  const quarterPref = useAppStore(s => s.quarterPref);
+  const setQuarterPref = useAppStore(s => s.setQuarterPref);
+  const [appliedQuarter, setAppliedQuarter] = React.useState<number | null>(null);
   const [currentQuarter, setCurrentQuarter] = React.useState<number | null>(null);
   const [quarters, setQuarters] = React.useState<{ q: number; name: string }[]>([]);
 
@@ -164,7 +166,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
         `/rost_max/api/dashboard_info?date=${feedDate}${scopeQuery()}${childQuery()}`
         + (qn ? `&quarter=${qn}` : ''));
       setData(res);
-      setQuarter(res.quarter ?? qn ?? null);
+      setAppliedQuarter(res.quarter ?? qn ?? null);
       setCurrentQuarter(res.current_quarter ?? null);
       setQuarters(res.quarters ?? []);
     } catch {
@@ -174,7 +176,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
     }
   }, [feedDate, selectedChildId, schoolMode, addToast]);
 
-  React.useEffect(() => { load(); }, [load]);
+  React.useEffect(() => { load(quarterPref); }, [load, quarterPref]);
 
   const userName = userInfo?.user_name ?? '';
   const isAdmin = Boolean(data?.is_admin);
@@ -214,10 +216,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
             onOpenProfile={onOpenProfile}
             after={(
               <FilterIconButton
-                active={Boolean(
-                  (quarter != null && currentQuarter != null && quarter !== currentQuarter)
-                  || axis?.nonDefault,
-                )}
+                active={Boolean(quarterPref != null || axis?.nonDefault)}
                 expanded={filtersOpen}
                 onClick={() => setFiltersOpen(true)}
               />
@@ -228,20 +227,20 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
               чип режима над лентой, кнопка фильтра — в строке аватарки
               (решение Миши 2026-10-14); смена — в шторке.
               Рисуем по АККАУНТУ: у родителя чип без ×. */}
-          {(quarter != null || axis) && (
+          {(appliedQuarter != null || axis) && (
             <>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '0 16px 0' }}>
                 <FilterChipRow
                   chips={[
-                    ...(quarter != null
-                      ? [{ kind: 'quarter', v: `${quarter} четверть`, removable: false }]
+                    ...(appliedQuarter != null
+                      ? [{ kind: 'quarter', v: `${appliedQuarter} четверть`, removable: false }]
                       : []),
                     ...(axis ? viewerChips(axis) : []),
                   ]}
                   onRemove={() => axis?.apply('school')}
                   onReset={() => {
                     if (axis) axis.apply('school');
-                    load(currentQuarter ?? undefined);
+                    setQuarterPref(null);   // «авто»: текущая четверть
                   }}
                 />
               </div>
@@ -260,7 +259,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                   ...(axis ? [axis.section] : []),
                 ]}
                 value={{
-                  quarter: new Set(quarter != null ? [String(quarter)] : []),
+                  quarter: new Set(appliedQuarter != null ? [String(appliedQuarter)] : []),
                   viewer: new Set(axis ? [axis.value] : []),
                 }}
                 footerOrder="cancel-first"
@@ -269,10 +268,9 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                   const qv = Number([...(f.quarter ?? new Set<string>())][0]);
                   if (axis) axis.apply(viewerFromDraft(f.viewer, axis));
                   setFiltersOpen(false);
-                  if (qv && qv !== quarter) {
-                    setQuarter(qv);
-                    load(qv);
-                  }
+                  // Общий стор: та же четверть станет выбранной и в
+                  // «Заданиях», и в «Оценках».
+                  if (qv && qv !== appliedQuarter) setQuarterPref(qv);
                 }}
               />
             </>

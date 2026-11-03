@@ -21,6 +21,7 @@ import {
 import { apiGet } from '@/shared/lib/api';
 import { useToast } from '@/shared/components/Toast';
 import { useViewerAxis, viewerChips, viewerFromDraft } from '@/shared/lib/viewerAxis';
+import { useAppStore } from '@/shared/lib/store';
 import { TabHeader } from '@/shared/components/TabHeader';
 import { SubjectAvatar } from '@/shared/components/SubjectIcon';
 import { ChipFilterModal, FilterChipRow, FilterIconButton } from '@/shared/components/ChipFilterModal';
@@ -53,7 +54,11 @@ export const TeacherGradesPage: React.FC<{
   // Пара, из которой пришли к ученику: пригодятся, когда ученик вернётся
   // на экран 2 по прямой ссылке (например, из «назад» в детализации).
   const [, setLastPair] = React.useState<TeacherPair | null>(null);
-  const [quarter, setQuarter] = React.useState<number | null>(null);
+  // Четверть — из ОБЩЕГО стора (как ось «Кого смотрим»): выбор в шторке
+  // любого экрана действует и здесь. null — «авто» (текущая).
+  const quarterPref = useAppStore(s => s.quarterPref);
+  const setQuarterPref = useAppStore(s => s.setQuarterPref);
+  const [appliedQuarter, setAppliedQuarter] = React.useState<number | null>(null);
   const [data, setData] = React.useState<TeacherPairsResponse | null>(null);
   const [detail, setDetail] = React.useState<TeacherPairStudentsResponse | null>(null);
   const [student, setStudent] = React.useState<TeacherStudentResponse | null>(null);
@@ -128,8 +133,7 @@ export const TeacherGradesPage: React.FC<{
     : ['batches', 'subjects'];
   const filterActive = chipKeys.some(k => (filters[k]?.size ?? 0) > 0)
     || Boolean(axis?.nonDefault)
-    || Boolean(quarter != null && data?.current_quarter != null
-      && quarter !== data.current_quarter);
+    || quarterPref != null;
 
   const filteredPairs = React.useMemo(() => {
     const pairs = data?.pairs ?? [];
@@ -154,7 +158,7 @@ export const TeacherGradesPage: React.FC<{
       const res = await apiGet<TeacherPairsResponse>(
         q ? `/rost_max/api/teacher/grades?quarter=${q}` : '/rost_max/api/teacher/grades');
       setData(res);
-      setQuarter(res.quarter);
+      setAppliedQuarter(res.quarter);
     } catch {
       setData(null);
       addToast('Не удалось загрузить оценки', 'error');
@@ -194,7 +198,7 @@ export const TeacherGradesPage: React.FC<{
     }
   }, [addToast]);
 
-  React.useEffect(() => { loadPairs(quarter); }, [loadPairs, quarter]);
+  React.useEffect(() => { loadPairs(quarterPref); }, [loadPairs, quarterPref]);
 
   // --- содержимое --------------------------------------------------------
   const body = (() => {
@@ -204,7 +208,7 @@ export const TeacherGradesPage: React.FC<{
       if (!data) {
         return (
           <Div style={{ padding: 12 }}>
-            <Button mode="outline" stretched onClick={() => loadPairs(quarter)}>Повторить</Button>
+            <Button mode="outline" stretched onClick={() => loadPairs(quarterPref)}>Повторить</Button>
           </Div>
         );
       }
@@ -232,7 +236,7 @@ export const TeacherGradesPage: React.FC<{
             <PairCard
               key={`${pair.batch_id}-${pair.subject_id}`}
               pair={pair}
-              onOpen={() => quarter && loadStudents(quarter, pair)}
+              onOpen={() => appliedQuarter && loadStudents(appliedQuarter, pair)}
             />
           ))}
         </Box>
@@ -275,7 +279,7 @@ export const TeacherGradesPage: React.FC<{
               student={st}
               onOpen={() => {
                 setView('student');
-                quarter && loadStudent(quarter, st.id);
+                appliedQuarter && loadStudent(appliedQuarter, st.id);
               }}
             />
           ))}
@@ -328,7 +332,7 @@ export const TeacherGradesPage: React.FC<{
                 onClick={() => {
                   setSheetDraft({
                     viewer: axis ? new Set([axis.value]) : new Set(),
-                    quarter: new Set(quarter != null ? [String(quarter)] : []),
+                    quarter: new Set(appliedQuarter != null ? [String(appliedQuarter)] : []),
                     ...filters,
                   });
                   setFiltersOpen(true);
@@ -342,8 +346,8 @@ export const TeacherGradesPage: React.FC<{
             <Div style={{ padding: '0 16px 4px' }}>
               <FilterChipRow
                 chips={[
-                  ...(quarter != null
-                    ? [{ kind: 'quarter', v: `${quarter} четверть`, removable: false }]
+                  ...(appliedQuarter != null
+                    ? [{ kind: 'quarter', v: `${appliedQuarter} четверть`, removable: false }]
                     : []),
                   ...(axis ? viewerChips(axis) : []),
                   ...chipKeys.flatMap(k =>
@@ -356,7 +360,7 @@ export const TeacherGradesPage: React.FC<{
                 onReset={() => {
                   resetFilters();
                   if (axis) axis.apply('school');
-                  if (data?.current_quarter) setQuarter(data.current_quarter);
+                  setQuarterPref(null);   // «авто»: текущая четверть
                 }}
               />
             </Div>
@@ -404,7 +408,8 @@ export const TeacherGradesPage: React.FC<{
           });
           setFiltersOpen(false);
           const qv = Number([...(f.quarter ?? new Set<string>())][0]);
-          if (qv && qv !== quarter) setQuarter(qv);  // эффект перезагрузит пары
+          // Общий стор: эффект перезагрузит пары в выбранной четверти.
+          if (qv && qv !== appliedQuarter) setQuarterPref(qv);
         }}
       />
     </Panel>

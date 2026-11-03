@@ -68,7 +68,9 @@ export const SubjectsPage: React.FC<SubjectsPageProps> = ({ id, onOpenSubject, o
   const selectedChildId = useAppStore(s => s.selectedChildId);
   const [data, setData] = React.useState<MySubjectsResponse | null>(null);
   const [loading, setLoading] = React.useState(true);
-  const [quarter, setQuarter] = React.useState<number | null>(null);
+  const quarterPref = useAppStore(s => s.quarterPref);
+  const setQuarterPref = useAppStore(s => s.setQuarterPref);
+  const [appliedQuarter, setAppliedQuarter] = React.useState<number | null>(null);
   const [currentQuarter, setCurrentQuarter] = React.useState<number | null>(null);
 
   const load = React.useCallback(async (q: number | null) => {
@@ -83,7 +85,7 @@ export const SubjectsPage: React.FC<SubjectsPageProps> = ({ id, onOpenSubject, o
       const res = await apiGet<MySubjectsResponse>(
         `/rost_max/api/my/subjects${params.length ? '?' + params.join('&') : ''}`);
       setData(res);
-      setQuarter(res.quarter);
+      setAppliedQuarter(res.quarter);
       setCurrentQuarter(res.current_quarter ?? null);
     } catch {
       setData(null);
@@ -93,7 +95,7 @@ export const SubjectsPage: React.FC<SubjectsPageProps> = ({ id, onOpenSubject, o
     }
   }, [addToast, selectedChildId]);
 
-  React.useEffect(() => { load(quarter); }, [load]);
+  React.useEffect(() => { load(quarterPref); }, [load, quarterPref]);
 
   const subjects: SubjectSummary[] = data?.students[0]?.subjects ?? [];
 
@@ -111,10 +113,7 @@ export const SubjectsPage: React.FC<SubjectsPageProps> = ({ id, onOpenSubject, o
     ...(axis ? [axis.section] : []),
   ]), [data?.quarters, axis]);
 
-  const filterActive = Boolean(
-    (quarter != null && currentQuarter != null && quarter !== currentQuarter)
-    || axis?.nonDefault,
-  );
+  const filterActive = Boolean(quarterPref != null || axis?.nonDefault);
 
   return (
     <Panel id={id}>
@@ -132,19 +131,19 @@ export const SubjectsPage: React.FC<SubjectsPageProps> = ({ id, onOpenSubject, o
             />
           )}
         />
-        {(quarter != null || axis) && (
+        {(appliedQuarter != null || axis) && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '0 0 4px' }}>
             <FilterChipRow
               chips={[
-                ...(quarter != null
-                  ? [{ kind: 'quarter', v: `${quarter} четверть`, removable: false }]
+                ...(appliedQuarter != null
+                  ? [{ kind: 'quarter', v: `${appliedQuarter} четверть`, removable: false }]
                   : []),
                 ...(axis ? viewerChips(axis) : []),
               ]}
               onRemove={() => axis?.apply('school')}
               onReset={() => {
                 if (axis) axis.apply('school');
-                load(currentQuarter);
+                setQuarterPref(null);   // «авто»: текущая четверть
               }}
             />
           </div>
@@ -166,7 +165,7 @@ export const SubjectsPage: React.FC<SubjectsPageProps> = ({ id, onOpenSubject, o
               </Flex>
             </VkCard>
             <Div>
-              {subjects.map(subject => <SubjectGradeCard key={subject.subject_id} subject={subject} onClick={() => onOpenSubject(subject.subject_id, subject.name, quarter ?? undefined)} />)}
+              {subjects.map(subject => <SubjectGradeCard key={subject.subject_id} subject={subject} onClick={() => onOpenSubject(subject.subject_id, subject.name, appliedQuarter ?? undefined)} />)}
             </Div>
           </>
         )}
@@ -178,7 +177,7 @@ export const SubjectsPage: React.FC<SubjectsPageProps> = ({ id, onOpenSubject, o
         id="subjects-filters"
         sections={sheetSections}
         value={{
-          quarter: new Set(quarter != null ? [String(quarter)] : []),
+          quarter: new Set(appliedQuarter != null ? [String(appliedQuarter)] : []),
           viewer: new Set(axis ? [axis.value] : []),
         }}
         footerOrder="cancel-first"
@@ -187,7 +186,8 @@ export const SubjectsPage: React.FC<SubjectsPageProps> = ({ id, onOpenSubject, o
           const qv = Number([...(f.quarter ?? new Set<string>())][0]);
           if (axis) axis.apply(viewerFromDraft(f.viewer, axis));
           setFiltersOpen(false);
-          if (qv && qv !== quarter) load(qv);
+          // Общий стор: четверть синхронна с «Главной» и «Заданиями».
+          if (qv && qv !== appliedQuarter) setQuarterPref(qv);
         }}
       />
     </Panel>
