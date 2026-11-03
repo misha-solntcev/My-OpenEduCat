@@ -691,6 +691,11 @@ export const TeacherHomeworkPage: React.FC<{
   const [sheetDraft, setSheetDraft] = React.useState<ChipFilters>({});
   // Активный сегмент статуса (сегмент-контрол как в ReviewQueue).
   const [status, setStatus] = React.useState<StatusKey>('review');
+  // Четверть: по умолчанию текущая (сервер отдаёт её же, если номер не
+  // передан) — как на экранах «Оценок». Четверть задания — из журнала
+  // урока (term_id), иначе по сроку сдачи.
+  const [quarter, setQuarter] = React.useState<number | null>(null);
+  const [quarters, setQuarters] = React.useState<{ q: number; name: string }[]>([]);
 
   // Вход из журнала урока: фильтр ставится РОВНО на каждое новое значение
   // initialFilter. Отдельно держим lastApplied — без него эффект не отличил бы
@@ -716,20 +721,41 @@ export const TeacherHomeworkPage: React.FC<{
     pendingLessonSegmentRef.current = true;
   }, [initialFilter?.batch, initialFilter?.subject]);
 
-  const load = React.useCallback(async () => {
+  // Вход именно из журнала урока (в пропе пришли класс и предмет) — на
+  // момент загрузки фильтры ещё могут быть не применены, поэтому считаем
+  // по пропу, а не по filters.
+  const fromLessonEntry = Boolean(initialFilter?.batch && initialFilter?.subject);
+
+  const load = React.useCallback(async (q?: number | null) => {
+    const qn = typeof q === 'number' ? q : null;
     setLoading(true);
     try {
+      // Вход из журнала урока (задан фильтр класс+предмет): четверть НЕ
+      // фильтруем — ДЗ этого урока может быть в прошлой четверти, и
+      // список оказался бы пустым. Контрол четвертей тогда скрыт.
+      const qs = fromLessonEntry
+        ? '?quarter=all'
+        : (qn ? `?quarter=${qn}` : '');
       const res = await apiGet<TeacherHomeworkResponse>(
-        '/rost_max/api/teacher_homework');
+        `/rost_max/api/teacher_homework${qs}`);
       setItems(res.homework || []);
+      setQuarters(res.quarters || []);
+      setQuarter(res.quarter ?? qn ?? null);
     } catch {
       addToast('Не удалось загрузить задания', 'error');
     } finally {
       setLoading(false);
     }
-  }, [addToast]);
+  }, [addToast, fromLessonEntry]);
 
   React.useEffect(() => { load(); }, [load]);
+
+  const changeQuarter = React.useCallback((v: string) => {
+    const n = Number(v);
+    if (!n || n === quarter) return;
+    setQuarter(n);
+    load(n);
+  }, [load, quarter]);
 
   const groups = React.useMemo(() => {
     const all = items || [];
@@ -854,7 +880,7 @@ export const TeacherHomeworkPage: React.FC<{
             </Div>
           ) : !items ? (
             <Div>
-              <Button mode="outline" stretched onClick={load}>Повторить</Button>
+              <Button mode="outline" stretched onClick={() => load()}>Повторить</Button>
             </Div>
           ) : (
             <>
@@ -917,6 +943,21 @@ export const TeacherHomeworkPage: React.FC<{
               )}
 
               <Box paddingInline={12} paddingBlockStart={4} paddingBlockEnd={22}>
+                {/* Четверти: по умолчанию открыта текущая (как в «Оценках»).
+                    При входе из журнала урока контрол не рисуем — там
+                    список по ДЗ урока, четверть не ограничивает. */}
+                {quarters.length > 1 && !fromLessonEntry && (
+                  <div style={{ paddingTop: 4 }}>
+                    <AccentSegmentedControl
+                      aria-label="Четверть"
+                      value={String(quarter ?? '')}
+                      onChange={changeQuarter}
+                      options={quarters.map(qq => ({
+                        value: String(qq.q), title: `${qq.q} четверть`,
+                      }))}
+                    />
+                  </div>
+                )}
                 {/* сегмент-контрол статусов (общий AccentSegmentedControl). */}
                 <div style={{ paddingTop: 4, paddingBottom: 10 }}>
                   <AccentSegmentedControl

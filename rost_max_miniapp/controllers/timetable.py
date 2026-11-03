@@ -1824,11 +1824,80 @@ class RostMaxTimetableController(http.Controller):
 
         return feed
 
-    def _student_homework_feed(self, own_students, now):
+    def _hw_quarter_scope(self, quarter=None):
+        """(q_map, current_q, chosen_q, term) для ленты заданий.
+
+        q_map — {1..4: op.academic.term} текущего учебного года (логика
+        _get_quarter_terms). quarter=None/'': берём текущую четверть (как в
+        «Оценках»). Мусорное/чужое значение тоже сводим к текущей.
+        """
+        q_map = self._get_quarter_terms()
+        if not q_map:
+            return {}, None, None, None
+        current_q = self._get_current_quarter(q_map)
+        # 'all' — явный запрос «без фильтра по четверти» (вход в список из
+        # журнала урока: ДЗ урока может быть в прошлой четверти).
+        if quarter in ('all', '0'):
+            return q_map, current_q, None, None
+        try:
+            chosen = int(quarter) if quarter not in (None, '') else current_q
+        except (TypeError, ValueError):
+            chosen = current_q
+        if chosen not in q_map:
+            chosen = current_q
+        return q_map, current_q, chosen, q_map[chosen]
+
+    def _hw_quarter_numbers(self, asgs, q_map, sheets=None):
+        """{assignment.id: номер четверти или None}.
+
+        Основной источник — четверть листа журнала (term_id), из которого
+        задание выдано. Задания, созданные вне журнала (ПК-форма), размечаем
+        по сроку сдачи; если срок попал в каникулы между четвертями — по
+        дате создания.
+        """
+        if not asgs:
+            return {}
+        if sheets is None:
+            sheets = request.env['op.attendance.sheet'].sudo().search(
+                [('homework_assignment_id', 'in', asgs.ids)])
+        term_to_q = {term.id: q for q, term in q_map.items()}
+        sheet_q = {}
+        for sheet in sheets:
+            if sheet.term_id and sheet.term_id.id in term_to_q:
+                sheet_q.setdefault(
+                    sheet.homework_assignment_id.id, term_to_q[sheet.term_id.id])
+        numbers = {}
+        for a in asgs:
+            if a.id in sheet_q:
+                numbers[a.id] = sheet_q[a.id]
+                continue
+            ref = a.submission_date or a.create_date
+            if not ref:
+                numbers[a.id] = None
+                continue
+            d = ref.date()
+            q = next(
+                (q for q, term in q_map.items()
+                 if term.term_start_date <= d <= term.term_end_date), None)
+            if q is None:
+                # Каникулы между четвертями (и всё, что после последней):
+                # относим к последней НАЧАВШЕЙСЯ — иначе задание не видно
+                # ни в одной четверти. Логика как в _get_current_quarter.
+                started = [n for n, term in q_map.items()
+                           if term.term_start_date <= d]
+                q = max(started) if started else min(q_map)
+            numbers[a.id] = q
+        return numbers
+
+    def _student_homework_feed(self, own_students, now, quarter=None):
         """ДЗ ученика/родителя: опубликованные задания его классов с
         состоянием сдачи. Используется в ленте главной и вкладке «Задания».
         Без временного окна (решено 2026-09-19): лента фильтруется по смыслу
         статуса, а не по дате — несданное висит, пока не сдано.
+
+        quarter — номер четверти (1..4): вкладка «Задания» открывается на
+        текущей четверти (фильтр с 2026-11). None = без фильтра (лента
+        главной показывает всё, как раньше).
 
         now — школьный момент (naive datetime).
         """
@@ -1842,6 +1911,18 @@ class RostMaxTimetableController(http.Controller):
         ]
         asgs = request.env['op.assignment'].sudo().search(
             domain, order='submission_date asc')
+        # Журналы нужны дважды: для четверти задания и для темы урока.
+        sheets = request.env['op.attendance.sheet'].sudo().search([
+            ('homework_assignment_id', 'in', asgs.ids)])
+        if quarter:
+            q_map, _current_q, chosen_q, term = self._hw_quarter_scope(quarter)
+        else:
+            q_map, chosen_q, term = {}, None, None
+        if term:
+            numbers = self._hw_quarter_numbers(asgs, q_map, sheets)
+            asgs = asgs.filtered(lambda a, n=numbers: n.get(a.id) == chosen_q)
+            sheets = sheets.filtered(
+                lambda s: s.homework_assignment_id in asgs)
         subs = request.env['op.assignment.sub.line'].sudo().search([
             ('assignment_id', 'in', asgs.ids),
             ('student_id', 'in', own_students.ids),
@@ -1896,12 +1977,15 @@ class RostMaxTimetableController(http.Controller):
         }
 
     @http.route("/rost_max/api/homework", type="http", auth="public", methods=["GET"])
-    def api_homework_list(self, child_id=None, **kw):
+    def api_homework_list(self, child_id=None, quarter=None, **kw):
         """API: вкладка «Задания» — ученику/родителю его ДЗ со статусами
         сдачи (тот же формат элементов, что homework в ленте главной).
 
         child_id (режим «ребёнок»): ДЗ выбранного ребёнка; доступно и
         учителю-родителю.
+
+        quarter: номер четверти; без параметра открывается текущая
+        (фильтр по четвертям на экране «Задания»).
         """
         restore_session_if_needed()
         if not request.session.uid:
@@ -1918,9 +2002,14 @@ class RostMaxTimetableController(http.Controller):
             return request.make_json_response(
                 {"error": "Доступно только ученику и родителю"}, status=403)
 
+        q_map, current_q, chosen_q, _term = self._hw_quarter_scope(quarter)
         return request.make_json_response({
             "homework": self._student_homework_feed(
-                own_students, _school_now()),
+                own_students, _school_now(), quarter=chosen_q),
+            "quarter": chosen_q,
+            "current_quarter": current_q,
+            "quarters": [{"q": i, "name": q_map[i].name}
+                         for i in sorted(q_map)],
         })
 
     @http.route("/rost_max/api/homework/<int:assignment_id>",
@@ -2769,11 +2858,14 @@ class RostMaxTimetableController(http.Controller):
 
     @http.route("/rost_max/api/teacher_homework", type="http",
                 auth="public", methods=["GET"])
-    def api_teacher_homework(self, **kw):
+    def api_teacher_homework(self, quarter=None, **kw):
         """API: вкладка «Задания» учителя/админа — ПОЛНЫЙ список своих
         заданий (админ — все задания школы) без временного окна, со
         статусами publish/finish. Фильтрация по статусу — на фронте
-        (сегменты «К проверке / Активные / Завершённые»)."""
+        (сегменты «К проверке / Активные / Завершённые»).
+
+        quarter: номер четверти, без параметра — текущая. Четверть задания
+        берётся из листа журнала (term_id), иначе по сроку сдачи."""
         restore_session_if_needed()
         if not request.session.uid:
             return request.make_json_response(
@@ -2803,8 +2895,15 @@ class RostMaxTimetableController(http.Controller):
         # submission_date в UTC — просрочка по UTC now, не по Moscow-naive.
         now = fields.Datetime.now()
         # Тема урока: журналы, создавшие задания (один батч-поиск).
-        hw_sheets = request.env['op.attendance.sheet'].sudo().search([
-            ('homework_assignment_id', 'in', asgs.ids)])
+        hw_sheets = request.env['op.attendance.sheet'].sudo().search(
+            [('homework_assignment_id', 'in', asgs.ids)])
+        # Фильтр по четверти: вкладка открывается на текущей.
+        q_map, current_q, chosen_q, term = self._hw_quarter_scope(quarter)
+        if term:
+            numbers = self._hw_quarter_numbers(asgs, q_map, hw_sheets)
+            asgs = asgs.filtered(lambda a, n=numbers: n.get(a.id) == chosen_q)
+            hw_sheets = hw_sheets.filtered(
+                lambda s: s.homework_assignment_id in asgs)
         topic_map = {s.homework_assignment_id.id: s.lesson_topic
                      for s in hw_sheets}
         return request.make_json_response({"homework": [{
@@ -2834,7 +2933,11 @@ class RostMaxTimetableController(http.Controller):
                 ('homework_assignment_id', '=', a.id)], limit=1).id or None,
             # Админ: имя преподавателя (чей журнал породил задание).
             "faculty": self._faculty_name(a.faculty_id),
-        } for a in asgs]})
+        } for a in asgs],
+            "quarter": chosen_q,
+            "current_quarter": current_q,
+            "quarters": [{"q": i, "name": q_map[i].name}
+                         for i in sorted(q_map)]})
 
     @http.route("/rost_max/api/homework/<int:assignment_id>/edit",
                 type="http", auth="public", methods=["POST"], cors="*",

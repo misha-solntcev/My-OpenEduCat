@@ -72,14 +72,26 @@ export const HomeworkPage: React.FC<HomeworkPageProps> = ({ id, canSubmit = true
   const [loading, setLoading] = React.useState(false);
   // Активный сегмент статуса (сегмент-контрол как у учителя/ReviewQueue).
   const [status, setStatus] = React.useState<StatusKey>('fresh');
+  // Четверть: по умолчанию текущая (сервер её же и возвращает, если номер
+  // не передан) — как на экранах «Оценок». quarters — список года.
+  const [quarter, setQuarter] = React.useState<number | null>(null);
+  const [quarters, setQuarters] = React.useState<{ q: number; name: string }[]>([]);
 
-  const load = React.useCallback(async () => {
+  // q: номер четверти; null/undefined — спросить сервер (он отдаст текущую).
+  const load = React.useCallback(async (q?: number | null) => {
+    const qn = typeof q === 'number' ? q : null;
     setLoading(true);
     try {
       const cq = childQuery();
+      const parts: string[] = [];
+      if (cq) parts.push(cq.replace(/^[?&]/, ''));
+      if (qn) parts.push(`quarter=${qn}`);
+      const qs = parts.length ? `?${parts.join('&')}` : '';
       const res = await apiGet<HomeworkListResponse>(
-        `/rost_max/api/homework${cq ? '?' + cq.slice(1) : ''}`);
+        `/rost_max/api/homework${qs}`);
       setItems(res.homework || []);
+      setQuarters(res.quarters || []);
+      setQuarter(res.quarter ?? qn ?? null);
     } catch {
       addToast('Не удалось загрузить задания', 'error');
     } finally {
@@ -88,6 +100,13 @@ export const HomeworkPage: React.FC<HomeworkPageProps> = ({ id, canSubmit = true
   }, [addToast, selectedChildId]);
 
   React.useEffect(() => { load(); }, [load]);
+
+  const changeQuarter = React.useCallback((v: string) => {
+    const n = Number(v);
+    if (!n || n === quarter) return;
+    setQuarter(n);
+    load(n);
+  }, [load, quarter]);
 
   const submitHomework = async (
     assignmentId: number,
@@ -159,13 +178,27 @@ export const HomeworkPage: React.FC<HomeworkPageProps> = ({ id, canSubmit = true
           />
         </div>
       )}
+      {/* Четверти: по умолчанию открыта текущая. Список года приходит с
+          сервера; одна четверть — контрол не рисуем. */}
+      {quarters.length > 1 && (
+        <div style={{ paddingInline: 12, paddingTop: 10 }}>
+          <AccentSegmentedControl
+            aria-label="Четверть"
+            value={String(quarter ?? '')}
+            onChange={changeQuarter}
+            options={quarters.map(qq => ({
+              value: String(qq.q), title: `${qq.q} четверть`,
+            }))}
+          />
+        </div>
+      )}
       {loading && !items ? (
         <Div style={{ display: 'flex', justifyContent: 'center', padding: 40 }}>
           <Spinner size="l" />
         </Div>
       ) : !items ? (
         <Div>
-          <Button mode="outline" stretched onClick={load}>Повторить</Button>
+          <Button mode="outline" stretched onClick={() => load()}>Повторить</Button>
         </Div>
       ) : items.length === 0 ? (
         <Placeholder icon={<Icon56DocumentOutline />} title="Заданий нет">

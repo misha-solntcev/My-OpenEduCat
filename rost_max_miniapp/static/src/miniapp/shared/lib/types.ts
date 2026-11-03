@@ -375,6 +375,10 @@ export interface TeacherHomeworkItem {
 
 export interface TeacherHomeworkResponse {
   homework: TeacherHomeworkItem[];
+  /** Четверть, за которую отдан список (по умолчанию — текущая). */
+  quarter?: number;
+  current_quarter?: number;
+  quarters?: { q: number; name: string }[];
 }
 
 export interface AdminStats {
@@ -405,6 +409,10 @@ export interface DashboardInfoResponse {
 
 export interface HomeworkListResponse {
   homework: HomeworkItem[];
+  /** Четверть, за которую отдан список (по умолчанию — текущая). */
+  quarter?: number;
+  current_quarter?: number;
+  quarters?: { q: number; name: string }[];
 }
 
 // --- ОЦЕНКИ УЧИТЕЛЯ (/api/teacher/grades) ---------------------------
