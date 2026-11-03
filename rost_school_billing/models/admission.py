@@ -57,25 +57,44 @@ class OpAdmission(models.Model):
             raise UserError(_(
                 'КП ещё не подтверждено — завершите его в Продажах, '
                 'затем создайте подписку.'))
+        self._create_entry_fee_invoice(order_line_required=True)
         return self.student_id.action_create_subscription(
             start_date=self.fees_start_date,
             partner=self.billing_partner_id or None,
             order=self.sale_order_id or None)
 
     def action_create_entry_fee_invoice(self):
+        """Догенерация счёта за взнос вручную. Кнопка из формы убрана:
+        счёт создаётся автоматически вместе с подпиской."""
+        self.ensure_one()
+        invoice = self._create_entry_fee_invoice()
+        if not invoice:
+            return False
+        return {
+            'type': 'ir.actions.act_window',
+            'res_model': 'account.move',
+            'res_id': invoice.id,
+            'view_mode': 'form',
+            'target': 'current',
+        }
+
+    def _create_entry_fee_invoice(self, order_line_required=False):
+        """Черновик счёта за вступительный взнос (идемпотентно).
+
+        order_line_required=True — авто-режим (вместе с подпиской):
+        счёт создаётся, только если в КП есть строка с флагом
+        «Взнос при поступлении», иначе не выставляем ничего.
+        """
         self.ensure_one()
         if not self.student_id:
             raise UserError(_('Ученик ещё не создан.'))
         if self.entry_fee_invoice_id:
-            return {
-                'type': 'ir.actions.act_window',
-                'res_model': 'account.move',
-                'res_id': self.entry_fee_invoice_id.id,
-                'view_mode': 'form',
-                'target': 'current',
-            }
+            return self.entry_fee_invoice_id
         fee_line = self.sale_order_id.order_line.filtered(
-            'charge_at_start')[:1] if self.sale_order_id else False
+            'charge_at_start')[:1] if self.sale_order_id else self.env[
+                'sale.order.line']
+        if order_line_required and not fee_line:
+            return self.env['account.move']
         product = fee_line.product_id if fee_line else self.env[
             'product.product'].search(
             [('name', 'ilike', 'Вступительный взнос')], limit=1)
@@ -95,9 +114,12 @@ class OpAdmission(models.Model):
             pricelist._get_product_price(
                 product, 1, date=fields.Date.context_today(self))
             if pricelist else product.lst_price or 0.0)
+        discount = fee_line.discount if fee_line else 0.0
         invoice = self.env['account.move'].create({
             'move_type': 'out_invoice',
             'partner_id': partner.id,
+            'invoice_date': (self.admission_date
+                             or fields.Date.context_today(self)),
             'ref': _('Вступительный взнос — %s') % self.student_id.name,
             'invoice_line_ids': [(0, 0, {
                 'name': _('Вступительный взнос — %s')
@@ -105,14 +127,9 @@ class OpAdmission(models.Model):
                 'product_id': product.id,
                 'quantity': 1.0,
                 'price_unit': price,
+                'discount': discount,
                 'account_id': account.id,
             })],
         })
         self.entry_fee_invoice_id = invoice.id
-        return {
-            'type': 'ir.actions.act_window',
-            'res_model': 'account.move',
-            'res_id': invoice.id,
-            'view_mode': 'form',
-            'target': 'current',
-        }
+        return invoice

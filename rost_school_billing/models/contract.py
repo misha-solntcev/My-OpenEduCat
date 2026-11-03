@@ -29,7 +29,8 @@ class ContractContract(models.Model):
                     order='invoice_date, id')
                 idx = 0
                 while (not line.date_end or d <= line.date_end) and guard < 60:
-                    amount = line.quantity * line.price_unit
+                    amount = (line.quantity * line.price_unit
+                              * (1 - (line.discount or 0.0) / 100.0))
                     total += amount
                     invoice = invoices[idx] if idx < len(invoices) else None
                     if invoice:

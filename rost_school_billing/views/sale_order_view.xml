@@ -10,6 +10,16 @@
                         string="Поступление" class="btn-primary"
                         invisible="not sale_order_template_id"/>
             </xpath>
+            <!-- Флаг взноса обязан быть в подвидах строк: иначе onchange
+                 шаблона вернёт его, но веб-клиент отбросит значение при
+                 сохранении, и строка взноса попадёт в подписку как
+                 учебный месяц (сдвиг всего графика на месяц). -->
+            <xpath expr="//field[@name='order_line']//list" position="inside">
+                <field name="charge_at_start" column_invisible="1"/>
+            </xpath>
+            <xpath expr="//field[@name='order_line']//form" position="inside">
+                <field name="charge_at_start" invisible="1"/>
+            </xpath>
         </field>
     </record>
 </odoo>

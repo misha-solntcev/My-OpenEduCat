@@ -9,9 +9,6 @@
                 <button name="action_create_subscription" type="object"
                         string="Создать подписку" class="btn-primary"
                         invisible="state != 'done' or contract_count"/>
-                <button name="action_create_entry_fee_invoice" type="object"
-                        string="Счёт: вступительный взнос"
-                        invisible="state != 'done'"/>
             </xpath>
             <xpath expr="//field[@name='fees_term_id']" position="attributes">
                 <attribute name="invisible">1</attribute>
@@ -21,8 +18,10 @@
                     <group>
                         <div colspan="2" class="text-muted"
                              invisible="state == 'done'">
-                            Подписка создаётся кнопкой «Создать подписку»
-                            в шапке после подтверждения приёмки.
+                            После подтверждения приёмки кнопка «Создать
+                            подписку» в шапке создаёт подписку с графиком
+                            платежей и — если в КП есть взнос — черновик
+                            счёта за вступительный взнос.
                         </div>
                         <field name="billing_partner_id"/>
                         <field name="sale_order_id" readonly="1"

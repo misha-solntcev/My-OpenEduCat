@@ -91,9 +91,11 @@ class OpStudent(models.Model):
                 months = int(src.product_uom_qty)
                 if order:
                     price = src.price_unit
+                    discount = src.discount
                 else:
                     price = pricelist._get_product_price(
                         src.product_id, 1, date=start)
+                    discount = 0.0
                 for i in range(months):
                     m_start = year_start + relativedelta(
                         months=month_cursor + i)
@@ -107,6 +109,7 @@ class OpStudent(models.Model):
                         'quantity': 1,
                         'uom_id': src.product_id.uom_id.id,
                         'price_unit': price,
+                        'discount': discount,
                         'automatic_price': False,
                         'date_start': max(m_start, start),
                         'date_end': m_end,
@@ -139,6 +142,12 @@ class OpStudent(models.Model):
             created |= contract
         if not created:
             return None
+        # Черновики за просроченные (и наступившие) месяцы — сразу в момент
+        # создания подписки: один счёт на подписку со всеми линиями, у которых
+        # recurring_next_date <= сегодня, invoice_date = сегодня. Будущие
+        # месяцы (включая летние по 1-м числам) остаются за дневным cron.
+        created._recurring_create_invoice(
+            date_ref=fields.Date.context_today(self))
         if len(created) == 1:
             return {
                 'type': 'ir.actions.act_window',
