@@ -18,8 +18,8 @@ import { SubjectAvatar } from '@/shared/components/SubjectIcon';
 import { GradeChip } from '@/shared/components/JournalButton';
 import type { MySubjectsResponse, SubjectSummary } from '@/shared/lib/types';
 import { TabHeader } from '@/shared/components/TabHeader';
-import { useViewerAxis, viewerChips, viewerFromDraft } from '@/shared/lib/viewerAxis';
-import { ChipFilterModal, FilterChipRow, FilterIconButton } from '@/shared/components/ChipFilterModal';
+import { useViewerAxis, viewerFromDraft } from '@/shared/lib/viewerAxis';
+import { ChipFilterModal, FilterChipBar, FilterIconButton, quarterFilterSection } from '@/shared/components/ChipFilterModal';
 import type { ChipFilterSection } from '@/shared/components/ChipFilterModal';
 
 interface SubjectsPageProps {
@@ -71,7 +71,7 @@ export const SubjectsPage: React.FC<SubjectsPageProps> = ({ id, onOpenSubject, o
   const quarterPref = useAppStore(s => s.quarterPref);
   const setQuarterPref = useAppStore(s => s.setQuarterPref);
   const [appliedQuarter, setAppliedQuarter] = React.useState<number | null>(null);
-  const [currentQuarter, setCurrentQuarter] = React.useState<number | null>(null);
+  const [_currentQuarter, setCurrentQuarter] = React.useState<number | null>(null);
 
   const load = React.useCallback(async (q: number | null) => {
     setLoading(true);
@@ -102,16 +102,8 @@ export const SubjectsPage: React.FC<SubjectsPageProps> = ({ id, onOpenSubject, o
   // Четверть — ПЕРВАЯ секция шторки фильтров (решение 2026-11): одно
   // значение, по умолчанию текущая; в каникулы сервер отдаёт предыдущую.
   const sheetSections: ChipFilterSection[] = React.useMemo(() => ([
-    ...((data?.quarters?.length ?? 0) > 1 ? [{
-      key: 'quarter',
-      header: 'Четверть',
-      single: true,
-      options: (data?.quarters ?? []).map(qq => ({
-        value: String(qq.q), label: `${qq.q} четверть`,
-      })),
-    }] : []),
-    ...(axis ? [axis.section] : []),
-  ]), [data?.quarters, axis]);
+    quarterFilterSection(data?.quarters ?? []), axis?.section,
+  ].filter(Boolean) as ChipFilterSection[]), [data?.quarters, axis]);
 
   const filterActive = Boolean(quarterPref != null || axis?.nonDefault);
 
@@ -131,23 +123,9 @@ export const SubjectsPage: React.FC<SubjectsPageProps> = ({ id, onOpenSubject, o
             />
           )}
         />
-        {(appliedQuarter != null || axis) && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '0 0 4px' }}>
-            <FilterChipRow
-              chips={[
-                ...(appliedQuarter != null
-                  ? [{ kind: 'quarter', v: `${appliedQuarter} четверть`, removable: false }]
-                  : []),
-                ...(axis ? viewerChips(axis) : []),
-              ]}
-              onRemove={() => axis?.apply('school')}
-              onReset={() => {
-                if (axis) axis.apply('school');
-                setQuarterPref(null);   // «авто»: текущая четверть
-              }}
-            />
-          </div>
-        )}
+        {/* Строка чипов — общий FilterChipBar; inset 8, потому что
+            страница уже внутри Box и добирает до общих 16 от края. */}
+        <FilterChipBar quarter={appliedQuarter} axis={axis} inset={8} />
         {loading ? (
           <Flex padding="xl" align="center" justify="center"><Spinner size="l" /></Flex>
         ) : !data || subjects.length === 0 ? (

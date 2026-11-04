@@ -4,10 +4,11 @@ import { useAppStore, childQuery, scopeQuery } from '@/shared/lib/store';
 import { apiGet } from '@/shared/lib/api';
 import { useToast } from '@/shared/components/Toast';
 import { today } from '@/shared/lib/date';
-import { useViewerAxis, viewerChips, viewerFromDraft } from '@/shared/lib/viewerAxis';
+import { useViewerAxis, viewerFromDraft } from '@/shared/lib/viewerAxis';
 import {
-  ChipFilterModal, FilterChipRow, FilterIconButton,
+  ChipFilterModal, FilterChipBar, FilterIconButton, quarterFilterSection,
 } from '@/shared/components/ChipFilterModal';
+import type { ChipFilterSection } from '@/shared/components/ChipFilterModal';
 import type { DashboardInfoResponse } from '@/shared/lib/types';
 import {
   Greeting,
@@ -148,8 +149,15 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
   const quarterPref = useAppStore(s => s.quarterPref);
   const setQuarterPref = useAppStore(s => s.setQuarterPref);
   const [appliedQuarter, setAppliedQuarter] = React.useState<number | null>(null);
-  const [currentQuarter, setCurrentQuarter] = React.useState<number | null>(null);
+  const [_currentQuarter, setCurrentQuarter] = React.useState<number | null>(null);
   const [quarters, setQuarters] = React.useState<{ q: number; name: string }[]>([]);
+
+  // Секции шторки: четверть ПЕРВОЙ (решение 2026-11), затем ось «Кого
+  // смотрим». Собираем общими хелперами — набор и порядок одинаковы
+  // на всех экранах.
+  const sheetSections: ChipFilterSection[] = React.useMemo(() => ([
+    quarterFilterSection(quarters), axis?.section,
+  ].filter(Boolean) as ChipFilterSection[]), [quarters, axis]);
 
   const [data, setData] = React.useState<DashboardInfoResponse | null>(null);
   const [loading, setLoading] = React.useState(false);
@@ -226,55 +234,28 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
           {/* Ось «Кого смотрим» (решение Миши 2026-10-14, свитч удалён):
               чип режима над лентой, кнопка фильтра — в строке аватарки
               (решение Миши 2026-10-14); смена — в шторке.
-              Рисуем по АККАУНТУ: у родителя чип без ×. */}
-          {(appliedQuarter != null || axis) && (
-            <>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '0 16px 0' }}>
-                <FilterChipRow
-                  chips={[
-                    ...(appliedQuarter != null
-                      ? [{ kind: 'quarter', v: `${appliedQuarter} четверть`, removable: false }]
-                      : []),
-                    ...(axis ? viewerChips(axis) : []),
-                  ]}
-                  onRemove={() => axis?.apply('school')}
-                  onReset={() => {
-                    if (axis) axis.apply('school');
-                    setQuarterPref(null);   // «авто»: текущая четверть
-                  }}
-                />
-              </div>
-              <ChipFilterModal
-                open={filtersOpen}
-                id="dashboard-filters"
-                sections={[
-                  ...(quarters.length > 1 ? [{
-                    key: 'quarter',
-                    header: 'Четверть',
-                    single: true,
-                    options: quarters.map(qq => ({
-                      value: String(qq.q), label: `${qq.q} четверть`,
-                    })),
-                  }] : []),
-                  ...(axis ? [axis.section] : []),
-                ]}
-                value={{
-                  quarter: new Set(appliedQuarter != null ? [String(appliedQuarter)] : []),
-                  viewer: new Set(axis ? [axis.value] : []),
-                }}
-                footerOrder="cancel-first"
-                onClose={() => setFiltersOpen(false)}
-                onApply={f => {
-                  const qv = Number([...(f.quarter ?? new Set<string>())][0]);
-                  if (axis) axis.apply(viewerFromDraft(f.viewer, axis));
-                  setFiltersOpen(false);
-                  // Общий стор: та же четверть станет выбранной и в
-                  // «Заданиях», и в «Оценках».
-                  if (qv && qv !== appliedQuarter) setQuarterPref(qv);
-                }}
-              />
-            </>
-          )}
+              Рисуем по АККАУНТУ: у родителя чип без ×.
+              Сама строка чипов и её отступы — общий FilterChipBar. */}
+          <FilterChipBar quarter={appliedQuarter} axis={axis} />
+          <ChipFilterModal
+            open={filtersOpen}
+            id="dashboard-filters"
+            sections={sheetSections}
+            value={{
+              quarter: new Set(appliedQuarter != null ? [String(appliedQuarter)] : []),
+              viewer: new Set(axis ? [axis.value] : []),
+            }}
+            footerOrder="cancel-first"
+            onClose={() => setFiltersOpen(false)}
+            onApply={f => {
+              const qv = Number([...(f.quarter ?? new Set<string>())][0]);
+              if (axis) axis.apply(viewerFromDraft(f.viewer, axis));
+              setFiltersOpen(false);
+              // Общий стор: та же четверть станет выбранной и в
+              // «Заданиях», и в «Оценках».
+              if (qv && qv !== appliedQuarter) setQuarterPref(qv);
+            }}
+          />
 
           {/* Админ: полоса цифр + требует внимания */}
           {isAdmin && data.admin_stats && (

@@ -26,7 +26,7 @@ import { useAppStore } from '@/shared/lib/store';
 import { useToast } from '@/shared/components/Toast';
 import { SaveBar } from '@/shared/components/SaveBar';
 import { ExitBanner } from '@/shared/components/ExitBanner';
-import { useViewerAxis, viewerChips, viewerFromDraft } from '@/shared/lib/viewerAxis';
+import { useViewerAxis, viewerFromDraft } from '@/shared/lib/viewerAxis';
 import { TabHeader } from '@/shared/components/TabHeader';
 import { MaterialsEditor } from '@/shared/components/MaterialsEditor';
 import { AttachField, HW_MAX_HEIGHT } from '@/shared/components/AttachField';
@@ -34,7 +34,7 @@ import { ReviewQueue } from '@/shared/components/ReviewQueue';
 import { BulkReviewSheet } from '@/shared/components/BulkReviewSheet';
 import { SubjectAvatar } from '@/shared/components/SubjectIcon';
 import {
-  ChipFilterModal, FilterChipRow, FilterIconButton,
+  ChipFilterModal, FilterChipBar, FilterIconButton, quarterFilterSection,
 } from '@/shared/components/ChipFilterModal';
 import type { ChipFilters, ChipFilterSection } from '@/shared/components/ChipFilterModal';
 import { AccentSegmentedControl } from '@/shared/components/AccentSegmentedControl';
@@ -52,7 +52,7 @@ const SEGMENTS: { key: StatusKey; title: string; empty: string }[] = [
   { key: 'checked', title: 'Проверено', empty: 'Проверенных заданий пока нет' },
 ];
 
-// Строка чипов активного фильтра + «Сбросить» — общий FilterChipRow
+// Строка чипов активного фильтра + «Сбросить» — общий FilterChipBar
 // (мокап; ранее была локальной копией, вынесена для «Моих пар» Оценок).
 
 /** Загрузка файлов в скрепку поля «Текст задания». Отдельный хук от
@@ -697,7 +697,7 @@ export const TeacherHomeworkPage: React.FC<{
   const quarterPref = useAppStore(s => s.quarterPref);
   const setQuarterPref = useAppStore(s => s.setQuarterPref);
   const [appliedQuarter, setAppliedQuarter] = React.useState<number | null>(null);
-  const [currentQuarter, setCurrentQuarter] = React.useState<number | null>(null);
+  const [_currentQuarter, setCurrentQuarter] = React.useState<number | null>(null);
   const [quarters, setQuarters] = React.useState<{ q: number; name: string }[]>([]);
 
   // Вход из журнала урока: фильтр ставится РОВНО на каждое новое значение
@@ -787,14 +787,11 @@ export const TeacherHomeworkPage: React.FC<{
       !sheetDraft.subjects?.size || sheetDraft.subjects.has(h.subject));
     const secSubjects = itemsAll.filter(h =>
       !sheetDraft.batches?.size || sheetDraft.batches.has(h.batch));
+    const qSection = quarterFilterSection(quarters);
     return [
       // Четверть — ПЕРВАЯ секция (решение 2026-11), затем «Кого смотрим».
-      ...(quarters.length > 1 && !fromLessonEntry ? [{
-        key: 'quarter', header: 'Четверть', single: true,
-        options: quarters.map(qq => ({
-          value: String(qq.q), label: `${qq.q} четверть`,
-        })),
-      }] : []),
+      // Секция четверти — общий хелпер: одинаковый вид на всех экранах.
+      ...(qSection && !fromLessonEntry ? [qSection] : []),
       ...(axis ? [{ ...axis.section }] : []),
       { key: 'batches', header: 'Классы', options: opts(secBatches.map(h => h.batch), sheetDraft.batches) },
       { key: 'subjects', header: 'Предметы', options: opts(secSubjects.map(h => h.subject), sheetDraft.subjects) },
@@ -929,27 +926,16 @@ export const TeacherHomeworkPage: React.FC<{
               {/* Чипы над лентой: режим («Кого смотрим») всегда, класс/предмет —
                   при активном фильтре; «Сбросить» гасит всё, включая режим. */}
               {(filterActive || Boolean(axis)) && (
-                <Div style={{ padding: '4px 16px 0' }}>
-                  <FilterChipRow
-                    chips={[
-                      ...(appliedQuarter != null && !fromLessonEntry
-                        ? [{ kind: 'quarter', v: `${appliedQuarter} четверть`, removable: false }]
-                        : []),
-                      ...(axis ? viewerChips(axis) : []),
-                      ...[...filters.batches].map(v => ({ kind: 'batch' as const, v })),
-                      ...[...filters.subjects].map(v => ({ kind: 'subject' as const, v })),
-                    ]}
-                    onRemove={(kind, v) => {
-                      if (kind === 'viewer') { axis?.apply('school'); return; }
-                      removeFilter(kind as 'batch' | 'subject', v);
-                    }}
-                    onReset={() => {
-                      resetFilters();
-                      if (axis) axis.apply('school');
-                      setQuarterPref(null);   // «авто»: текущая четверть
-                    }}
-                  />
-                </Div>
+                <FilterChipBar
+                  quarter={fromLessonEntry ? null : appliedQuarter}
+                  axis={axis}
+                  extraChips={[
+                    ...[...filters.batches].map(v => ({ kind: 'batch', v })),
+                    ...[...filters.subjects].map(v => ({ kind: 'subject', v })),
+                  ]}
+                  onRemoveExtra={(kind, v) => removeFilter(kind as 'batch' | 'subject', v)}
+                  onResetExtra={resetFilters}
+                />
               )}
 
               <Box paddingInline={12} paddingBlockStart={4} paddingBlockEnd={22}>

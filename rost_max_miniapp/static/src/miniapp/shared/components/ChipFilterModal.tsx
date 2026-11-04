@@ -22,6 +22,8 @@ import {
   Button, ButtonGroup, Footnote, AppRootPortal, IconButton,
 } from '@vkontakte/vkui';
 import { Icon24Dismiss, Icon24Filter } from '@vkontakte/icons';
+import { useAppStore } from '@/shared/lib/store';
+import { viewerChips, type ViewerAxis } from '@/shared/lib/viewerAxis';
 
 /** Применённый фильтр: ключ секции -> выбранные значения (пустой Set = «все»). */
 export type ChipFilters = Record<string, Set<string>>;
@@ -67,17 +69,29 @@ interface Props {
 
 /** Строка чипов применённого фильтра над лентой + «Сбросить» справа
  *  (общая для всех табов — kind непрозрачен для вызывающего).
- *  removable=false — чип-индикатор без × (чип ребёнка у родителя). */
+ *  removable=false — чип-индикатор без × (чип ребёнка у родителя).
+ *  Вертикальный ритм строки задаётся ЗДЕСЬ и только здесь: снизу 8 —
+ *  шаг карточек ленты (CardBlock margin 0 8px 8px). Экранам обёртки со
+ *  своим padding ставить нельзя, иначе отступы разъезжаются по табам
+ *  (прецедент: на «Главной» стояло 0 и чипы липли к «Расписанию»). */
 export const FilterChipRow: React.FC<{
   chips: { kind: string; v: string; removable?: boolean }[];
   onRemove?: (kind: string, v: string) => void;
   onReset?: () => void;
-}> = ({ chips, onRemove, onReset }) => {
+  /** Горизонтальный отступ строки. 0 — когда родитель уже даёт свои 16
+   *  (страница внутри Box padding="m", как «Оценки»). */
+  inset?: number;
+}> = ({ chips, onRemove, onReset, inset = 16 }) => {
   if (chips.length === 0) return null;
   return (
     <div style={{
       display: 'flex', flexWrap: 'wrap', alignItems: 'center',
-      gap: 6, minWidth: 0, flex: 1,
+      gap: 6, minWidth: 0,
+      // width/boxSizing обязательны: строка рисуется прямо в колонке
+      // экрана (без обёртки), и без явной ширины flex-родитель
+      // растягивал её по высоте.
+      width: '100%', boxSizing: 'border-box',
+      padding: `0 ${inset}px 8px`,
     }}>
       {chips.map(({ kind, v, removable = true }) => (
         <Chip
@@ -113,6 +127,65 @@ export const FilterChipRow: React.FC<{
         </Button>
       )}
     </div>
+  );
+};
+
+/** Секция «Четверть» для шторки — единый вид на всех экранах (первая
+ *  секция, single-select). null — когда четвертей меньше двух. */
+export const quarterFilterSection = (
+  quarters: { q: number; name: string }[],
+): ChipFilterSection | null => (quarters.length > 1 ? {
+  key: 'quarter',
+  header: 'Четверть',
+  single: true,
+  options: quarters.map(qq => ({ value: String(qq.q), label: `${qq.q} четверть` })),
+} : null);
+
+/** Строка чипов над лентой — единственное место, где собирается состав
+ *  «четверть + кого смотрим + фильтры экрана» и живут её отступы.
+ *  Экраны НЕ оборачивают её в свои div: раньше в шести местах стояли
+ *  разные padding (0 и 4 снизу), и на «Главной» чипы липли к карточке
+ *  «Расписание на сегодня». «Сбросить» снимает всё: доп. фильтры
+ *  экрана, ось «Кого смотрим» и четверть (в «авто» — текущая). */
+export const FilterChipBar: React.FC<{
+  /** Применённая четверть; null — чипа нет (экран не про периоды). */
+  quarter?: number | null;
+  /** Ось «Кого смотрим» (useViewerAxis); у ученика null. */
+  axis?: ViewerAxis | null;
+  /** Снимаемые чипы доп. фильтров экрана (класс, предмет, учитель). */
+  extraChips?: { kind: string; v: string }[];
+  onRemoveExtra?: (kind: string, v: string) => void;
+  /** «Сбросить» для доп. фильтров экрана. */
+  onResetExtra?: () => void;
+  /** 0..8 — когда родитель уже даёт горизонтальный отступ (Box). */
+  inset?: number;
+}> = ({
+  quarter = null, axis = null, extraChips = [],
+  onRemoveExtra, onResetExtra, inset,
+}) => {
+  const setQuarterPref = useAppStore(s => s.setQuarterPref);
+  const chips = [
+    ...(quarter != null
+      ? [{ kind: 'quarter', v: `${quarter} четверть`, removable: false }]
+      : []),
+    ...(axis ? viewerChips(axis) : []),
+    ...extraChips.map(c => ({ kind: c.kind, v: c.v, removable: true })),
+  ];
+  if (chips.length === 0) return null;
+  return (
+    <FilterChipRow
+      chips={chips}
+      inset={inset}
+      onRemove={(kind, v) => {
+        if (kind === 'viewer') { axis?.apply('school'); return; }
+        onRemoveExtra?.(kind, v);
+      }}
+      onReset={() => {
+        if (axis) axis.apply('school');
+        setQuarterPref(null);   // «авто»: текущая четверть
+        onResetExtra?.();
+      }}
+    />
   );
 };
 

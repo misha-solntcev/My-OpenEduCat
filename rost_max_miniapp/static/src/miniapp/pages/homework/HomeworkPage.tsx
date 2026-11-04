@@ -15,8 +15,8 @@ import { AccentSegmentedControl } from '@/shared/components/AccentSegmentedContr
 import type { HomeworkItem, HomeworkListResponse } from '@/shared/lib/types';
 
 import { TabHeader } from '@/shared/components/TabHeader';
-import { useViewerAxis, viewerChips, viewerFromDraft } from '@/shared/lib/viewerAxis';
-import { ChipFilterModal, FilterChipRow, FilterIconButton } from '@/shared/components/ChipFilterModal';
+import { useViewerAxis, viewerFromDraft } from '@/shared/lib/viewerAxis';
+import { ChipFilterModal, FilterChipBar, FilterIconButton, quarterFilterSection } from '@/shared/components/ChipFilterModal';
 import type { ChipFilterSection } from '@/shared/components/ChipFilterModal';
 
 interface HomeworkPageProps {
@@ -79,7 +79,7 @@ export const HomeworkPage: React.FC<HomeworkPageProps> = ({ id, canSubmit = true
   const quarterPref = useAppStore(s => s.quarterPref);
   const setQuarterPref = useAppStore(s => s.setQuarterPref);
   const [appliedQuarter, setAppliedQuarter] = React.useState<number | null>(null);
-  const [currentQuarter, setCurrentQuarter] = React.useState<number | null>(null);
+  const [_currentQuarter, setCurrentQuarter] = React.useState<number | null>(null);
   const [quarters, setQuarters] = React.useState<{ q: number; name: string }[]>([]);
 
   // q: номер четверти; null/undefined — спросить сервер (он отдаст текущую).
@@ -109,17 +109,11 @@ export const HomeworkPage: React.FC<HomeworkPageProps> = ({ id, canSubmit = true
 
   // Четверть — ПЕРВАЯ секция шторки фильтров (решение 2026-11): значение
   // одно (singe), по умолчанию текущая; в каникулы сервер отдаёт предыдущую.
+  // Секции шторки: четверть ПЕРВОЙ, затем ось «Кого смотрим» (общий вид
+  // на всех экранах — хелперы из ChipFilterModal).
   const sheetSections: ChipFilterSection[] = React.useMemo(() => ([
-    ...(quarters.length > 1 ? [{
-      key: 'quarter',
-      header: 'Четверть',
-      single: true,
-      options: quarters.map(qq => ({
-        value: String(qq.q), label: `${qq.q} четверть`,
-      })),
-    }] : []),
-    ...(axis ? [axis.section] : []),
-  ]), [quarters, axis]);
+    quarterFilterSection(quarters), axis?.section,
+  ].filter(Boolean) as ChipFilterSection[]), [quarters, axis]);
 
   const filterActive = Boolean(quarterPref != null || axis?.nonDefault);
 
@@ -185,23 +179,7 @@ export const HomeworkPage: React.FC<HomeworkPageProps> = ({ id, canSubmit = true
           />
         )}
       />
-      {(appliedQuarter != null || axis) && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '0 16px 4px' }}>
-          <FilterChipRow
-            chips={[
-              ...(appliedQuarter != null
-                ? [{ kind: 'quarter', v: `${appliedQuarter} четверть`, removable: false }]
-                : []),
-              ...(axis ? viewerChips(axis) : []),
-            ]}
-            onRemove={() => axis?.apply('school')}
-            onReset={() => {
-              if (axis) axis.apply('school');
-              setQuarterPref(null);   // «авто»: текущая четверть
-            }}
-          />
-        </div>
-      )}
+      <FilterChipBar quarter={appliedQuarter} axis={axis} />
       {loading && !items ? (
         <Div style={{ display: 'flex', justifyContent: 'center', padding: 40 }}>
           <Spinner size="l" />

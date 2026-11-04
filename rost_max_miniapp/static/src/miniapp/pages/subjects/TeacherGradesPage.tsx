@@ -20,11 +20,11 @@ import {
 } from '@vkontakte/vkui';
 import { apiGet } from '@/shared/lib/api';
 import { useToast } from '@/shared/components/Toast';
-import { useViewerAxis, viewerChips, viewerFromDraft } from '@/shared/lib/viewerAxis';
+import { useViewerAxis, viewerFromDraft } from '@/shared/lib/viewerAxis';
 import { useAppStore } from '@/shared/lib/store';
 import { TabHeader } from '@/shared/components/TabHeader';
 import { SubjectAvatar } from '@/shared/components/SubjectIcon';
-import { ChipFilterModal, FilterChipRow, FilterIconButton } from '@/shared/components/ChipFilterModal';
+import { ChipFilterModal, FilterChipBar, FilterIconButton, quarterFilterSection } from '@/shared/components/ChipFilterModal';
 import type { ChipFilters, ChipFilterSection } from '@/shared/components/ChipFilterModal';
 import { PairCard, StudentRow, SubjectCard, fmtAvg } from '@/shared/components/TeacherGradeCards';
 import type {
@@ -96,14 +96,11 @@ export const TeacherGradesPage: React.FC<{
     };
     // Секция «Кого смотрим» — ПЕРВАЯ (решение 2026-10-14), без фасетов:
     // список пар от режима не зависит.
+    // Секция четверти — общий хелпер: одинаковый вид на всех экранах.
+    const qSection = quarterFilterSection(data?.quarters ?? []);
     return [
       // Четверть — ПЕРВАЯ секция шторки (решение 2026-11), затем ось.
-      ...((data?.quarters?.length ?? 0) > 1 ? [{
-        key: 'quarter', header: 'Четверть', single: true,
-        options: (data?.quarters ?? []).map(qq => ({
-          value: String(qq.q), label: `${qq.q} четверть`,
-        })),
-      }] : []),
+      ...(qSection ? [qSection] : []),
       ...(axis ? [{ ...axis.section }] : []),
       ...KEYS.map(key => {
         const source = pairs.filter(p => KEYS
@@ -342,29 +339,14 @@ export const TeacherGradesPage: React.FC<{
           />
           {/* Чипы над лентой: режим всегда (у кого есть ось), класс/предмет/
               учитель — при активном фильтре; «Сбросить» гасит всё. */}
-          {(filterActive || Boolean(axis)) && (
-            <Div style={{ padding: '0 16px 4px' }}>
-              <FilterChipRow
-                chips={[
-                  ...(appliedQuarter != null
-                    ? [{ kind: 'quarter', v: `${appliedQuarter} четверть`, removable: false }]
-                    : []),
-                  ...(axis ? viewerChips(axis) : []),
-                  ...chipKeys.flatMap(k =>
-                    [...(filters[k] ?? [])].map(v => ({ kind: k, v }))),
-                ]}
-                onRemove={(kind, v) => {
-                  if (kind === 'viewer') { axis?.apply('school'); return; }
-                  removeFilter(kind, v);
-                }}
-                onReset={() => {
-                  resetFilters();
-                  if (axis) axis.apply('school');
-                  setQuarterPref(null);   // «авто»: текущая четверть
-                }}
-              />
-            </Div>
-          )}
+          <FilterChipBar
+            quarter={appliedQuarter}
+            axis={axis}
+            extraChips={chipKeys.flatMap(k =>
+              [...(filters[k] ?? [])].map(v => ({ kind: k, v })))}
+            onRemoveExtra={removeFilter}
+            onResetExtra={resetFilters}
+          />
         </>
       )}
       {view === 'students' && detail && (

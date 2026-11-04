@@ -26,8 +26,8 @@ import {
 import { toISO, today, schoolTodayISO, startOfWeek, SHORT_WEEKDAYS } from '@/shared/lib/date';
 
 import { TabHeader } from '@/shared/components/TabHeader';
-import { useViewerAxis, viewerChips, viewerFromDraft } from '@/shared/lib/viewerAxis';
-import { ChipFilterModal, FilterChipRow, FilterIconButton } from '@/shared/components/ChipFilterModal';
+import { useViewerAxis, viewerFromDraft } from '@/shared/lib/viewerAxis';
+import { ChipFilterModal, FilterChipBar, FilterIconButton } from '@/shared/components/ChipFilterModal';
 import type { Lesson, Faculty, Batch, TimetableResponse, FacultiesResponse, BatchesResponse } from '@/shared/lib/types';
 
 interface TimetablePageProps {
@@ -400,22 +400,12 @@ export const TimetablePage: React.FC<TimetablePageProps> = ({ id, onOpenLesson, 
             />
           ) : undefined}
         />
-        {(axis || classBatches.length > 0) && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '0 16px 4px' }}>
-            <FilterChipRow
-              chips={[
-                ...(axis ? viewerChips(axis) : []),
-                ...classBatches.map(id => ({
-                  kind: 'class' as const, v: homeroomName(id), removable: true,
-                })),
-              ]}
-              onRemove={(kind, v) => {
-                if (kind === 'viewer') axis?.apply('school');
-                else setClassBatches(b => b.filter(id => homeroomName(id) !== v));
-              }}
-            />
-          </div>
-        )}
+        <FilterChipBar
+          axis={axis}
+          extraChips={classBatches.map(id => ({ kind: 'class', v: homeroomName(id) }))}
+          onRemoveExtra={(_kind, v) =>
+            setClassBatches(b => b.filter(id => homeroomName(id) !== v))}
+        />
 
         {/* Лента дат пн-вс + переключение недель. Стрелки — крупные
             тапабельные зоны (44px) со своим отступом от края экрана. */}
