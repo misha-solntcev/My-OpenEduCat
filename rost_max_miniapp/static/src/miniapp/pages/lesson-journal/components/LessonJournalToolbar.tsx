@@ -1,5 +1,4 @@
 import React from 'react';
-import { Caption } from '@vkontakte/vkui';
 import { ExitBanner } from '@/shared/components/ExitBanner';
 import { LessonHeader } from './LessonHeader';
 
@@ -19,11 +18,10 @@ interface LessonJournalToolbarProps {
   saving: boolean;
 }
 
-/** Тулбар журнала: хедер + строка контекста урока + SaveBar + ExitBanner.
- *  Строка контекста («09:30 - 10:10 · 2 четверть») — статичный индикатор, НЕ
- *  фильтр: в журнале один урок одного класса, фильтровать нечего. Класс
- *  остался подзаголовком в шапке, предмет — её заголовком, поэтому здесь
- *  только то, чего в шапке не было: время и четверть. */
+/** Тулбар журнала: хедер + SaveBar + ExitBanner.
+ *  Строка контекста («5 А · 12:20 - 13:00 · 1 четверть») теперь часть
+ *  хедера (LessonHeader) — отдельной строкой она висела в пустой полосе
+ *  между шапкой и карточкой «Тема · ДЗ». */
 export const LessonJournalToolbar: React.FC<LessonJournalToolbarProps> = ({
   lesson,
   showExitBanner,
@@ -44,28 +42,9 @@ export const LessonJournalToolbar: React.FC<LessonJournalToolbarProps> = ({
     />
   );
 
-  const contextLine = lesson
-    ? [
-        lesson.timing,
-        lesson.quarter != null ? `${lesson.quarter} четверть` : '',
-      ].filter(Boolean).join(' · ')
-    : '';
-
   return (
     <>
       {header}
-      {contextLine && (
-        <Caption
-          level="1"
-          style={{
-            display: 'block',
-            padding: '0 16px 6px',
-            color: 'var(--vkui--color_text_secondary)',
-          }}
-        >
-          {contextLine}
-        </Caption>
-      )}
       <ExitBanner
         visible={showExitBanner}
         onClose={() => setShowExitBanner(false)}

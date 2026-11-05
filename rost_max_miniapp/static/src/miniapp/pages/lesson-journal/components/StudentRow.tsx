@@ -22,7 +22,10 @@ interface StudentRowProps {
   onRemarkChange?: (student: Student, remark: string) => void;
 }
 
-/** Пункт.меню-подобный ввод примечания: компактное поле под кнопками. */
+/** Пункт.меню-подобный ввод примечания: компактное поле под кнопками.
+ *  minWidth: 0 обязателен: у нативного input своя минимальная ширина
+ *  (~20 символов), и без него строка ученика раздувала страницу шире
+ *  экрана — карточки уезжали за правый край. */
 const RemarkInput: React.FC<{
   value: string;
   onChange: (v: string) => void;
@@ -32,7 +35,7 @@ const RemarkInput: React.FC<{
     onChange={e => onChange(e.target.value)}
     placeholder="Примечание"
     aria-label="Примечание"
-    style={{ marginTop: 8 }}
+    style={{ marginTop: 8, minWidth: 0, width: '100%', boxSizing: 'border-box' }}
   />
 );
 
@@ -49,7 +52,7 @@ export const StudentRow: React.FC<StudentRowProps> = ({
   // Карточка с тенью и скруглением, как в мокапе (радиус — токен карточек VKUI,
   // elevation1 темизируется сам).
   <Box padding="m" style={{ backgroundColor: 'var(--vkui--color_background_content)', borderRadius: 'var(--vkui--size_card_border_radius--regular)', boxShadow: 'var(--vkui--elevation2)' }}>
-    <Flex align="center" gap={12}>
+    <Flex align="center" gap={12} noWrap>
       {/* Как учителя в расписании: без /WxH на бэкенде, квадрат режет браузер
           через objectPosition='center top' (иначе серверный кроп срезает лоб). */}
       <Avatar

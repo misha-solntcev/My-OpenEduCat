@@ -221,15 +221,16 @@ export const TopicHomeworkCard: React.FC<TopicHomeworkCardProps> = ({
      действие («Выдать» в черновике, «Отмена» в правке). Counter: contrast
      для primary (белым по синему), inherit для secondary — иначе на
      тинт-фоне не читается. */
-  const renderCheckButton = (primary: boolean) => (canCheck ? (
+  const renderCheckButton = (primary: boolean, compact = false) => (canCheck ? (
     <Button
-      size="l"
+      size={compact ? 's' : 'l'}
       mode={primary ? 'primary' : 'secondary'}
       appearance="accent"
       aria-label="Проверить задания по этому предмету и классу"
+      style={compact ? { flexShrink: 0 } : undefined}
       onClick={e => { e.stopPropagation(); onCheckHomework!(); }}
     >
-      <Flex align="center" gap={8}>
+      <Flex align="center" gap={compact ? 5 : 8}>
         <span>Проверить</span>
         <Counter size="s" mode={primary ? 'contrast' : 'inherit'}>{toReview}</Counter>
       </Flex>
@@ -271,21 +272,22 @@ export const TopicHomeworkCard: React.FC<TopicHomeworkCardProps> = ({
            края. Кнопка не растянута, поэтому текст превью ужимается эллипсом,
            а не выталкивает её за экран (minWidth: 0 у колонки превью —
            иначе flex не даёт сжать текст). */
-        <Flex align="center" gap={10}>
+        <Flex align="center" gap={10} noWrap>
           <Text weight="2" style={{ flexShrink: 0 }}>📘</Text>
-          <Flex direction="column" style={{ flexGrow: 1, minWidth: 0 }}>
-            <Text weight="2" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          <Flex direction="column" style={{ flexGrow: 1, flexBasis: 0, width: 0, minWidth: 0 }} noWrap>
+            <Text weight="2" style={{ display: 'block', width: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {previewTopic}
             </Text>
             <Caption level="1" style={{
+              display: 'block', width: '100%',
               color: 'var(--vkui--color_text_secondary)',
               overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
             }}>
               {previewHw}
             </Caption>
           </Flex>
+          {renderCheckButton(false, true)}
           <Icon24ChevronDown style={{ flexShrink: 0, color: 'var(--vkui--color_icon_secondary)' }} />
-          {renderCheckButton(true)}
         </Flex>
       ) : (
         <Flex direction="column" gap={12} onClick={e => e.stopPropagation()}>
