@@ -19,6 +19,10 @@ export interface LessonHomeworkFilter {
   batch: string;
   /** Название предмета (op.subject.name). */
   subject: string;
+  /** Четверть урока (номер 1..4). Вход в «Задания» открывает фильтр
+   *  четверти на ней: ДЗ урока могло быть выдано в прошлой четверти, и
+   *  текущая по календарю отсекла бы его — лента оказалась бы пустой. */
+  quarter?: number | null;
 }
 
 interface LessonJournalPageProps {
@@ -73,6 +77,9 @@ export const LessonJournalPage: React.FC<LessonJournalPageProps> = ({ id, lesson
     onOpenHomework({
       batch: shortBatchName(lesson.batch),
       subject: lesson.subject,
+      // Четверть урока: фильтр на «Заданиях» откроется на ней, а не на
+      // текущей по календарю (иначе ДЗ прошлой четверти отсекалось бы).
+      quarter: lesson.quarter ?? null,
     });
   };
 

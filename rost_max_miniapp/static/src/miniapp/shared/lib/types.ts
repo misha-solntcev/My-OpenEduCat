@@ -94,6 +94,10 @@ export interface LessonInfo {
   batch: string;
   date: string;
   timing: string;
+  /** Номер четверти урока (по term_id листа журнала, иначе по дате урока).
+   *  Нужен входу в «Задания»: фильтр четверти должен открываться на
+   *  четверти урока, а не на текущей по календарю. */
+  quarter?: number | null;
   can_edit?: boolean;
   /** Тема урока (op.attendance.sheet.lesson_topic). */
   topic: string;

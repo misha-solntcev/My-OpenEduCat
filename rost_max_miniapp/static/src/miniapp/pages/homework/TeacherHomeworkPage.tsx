@@ -659,6 +659,10 @@ const AssignmentDetail: React.FC<{
 export interface TeacherHomeworkInitialFilter {
   batch: string;
   subject: string;
+  /** Четверть урока (номер 1..4). Вход из журнала открывает «Задания» на
+   *  четверти урока: ДЗ могло быть выдано в прошлой четверти, и текущая по
+   *  календарю отсекла бы его — лента оказалась бы пустой. */
+  quarter?: number | null;
 }
 
 export const TeacherHomeworkPage: React.FC<{
@@ -714,7 +718,7 @@ export const TeacherHomeworkPage: React.FC<{
   React.useEffect(() => {
     const f = initialFilter;
     if (!f || !f.batch || !f.subject) return;
-    const key = `${f.batch}|${f.subject}`;
+    const key = `${f.batch}|${f.subject}|${f.quarter ?? ''}`;
     if (lastAppliedRef.current === key) return;
     lastAppliedRef.current = key;
     setFilters({
@@ -722,7 +726,12 @@ export const TeacherHomeworkPage: React.FC<{
       subjects: new Set([f.subject]),
     });
     pendingLessonSegmentRef.current = true;
-  }, [initialFilter?.batch, initialFilter?.subject]);
+    // Четверть урока — в тот же общий стор, что и на остальных экранах
+    // (решение 2026-11: четверть одна на всё приложение). Без этого вход
+    // из журнала открывался на текущей по календарю четверти, а фильтра
+    // четверти на экране не было вовсе.
+    if (f.quarter != null) setQuarterPref(f.quarter);
+  }, [initialFilter?.batch, initialFilter?.subject, initialFilter?.quarter, setQuarterPref]);
 
   // Вход именно из журнала урока (в пропе пришли класс и предмет) — на
   // момент загрузки фильтры ещё могут быть не применены, поэтому считаем
@@ -733,10 +742,11 @@ export const TeacherHomeworkPage: React.FC<{
     const qn = typeof q === 'number' ? q : null;
     setLoading(true);
     try {
-      // Вход из журнала урока (задан фильтр класс+предмет): четверть НЕ
-      // фильтруем — ДЗ этого урока может быть в прошлой четверти, и
-      // список оказался бы пустым. Контрол четвертей тогда скрыт.
-      const qs = fromLessonEntry
+      // Четверть — из общего стора (её выставляет вход из журнала урока по
+      // четверти урока). 'quarter=all' остаётся запасным путём: если четверть
+      // урока определить не удалось, лента показывается без фильтра, а не
+      // пустой.
+      const qs = fromLessonEntry && initialFilter?.quarter == null
         ? '?quarter=all'
         : (qn ? `?quarter=${qn}` : '');
       const res = await apiGet<TeacherHomeworkResponse>(
@@ -750,7 +760,7 @@ export const TeacherHomeworkPage: React.FC<{
     } finally {
       setLoading(false);
     }
-  }, [addToast, fromLessonEntry]);
+  }, [addToast, fromLessonEntry, initialFilter?.quarter]);
 
   React.useEffect(() => { load(quarterPref); }, [load, quarterPref]);
 
@@ -791,7 +801,9 @@ export const TeacherHomeworkPage: React.FC<{
     return [
       // Четверть — ПЕРВАЯ секция (решение 2026-11), затем «Кого смотрим».
       // Секция четверти — общий хелпер: одинаковый вид на всех экранах.
-      ...(qSection && !fromLessonEntry ? [qSection] : []),
+      // Вход из журнала урока — не исключение: четверть там есть (четверть
+      // урока), и учитель должен видеть, по какому периоду смотрит.
+      ...(qSection ? [qSection] : []),
       ...(axis ? [{ ...axis.section }] : []),
       { key: 'batches', header: 'Классы', options: opts(secBatches.map(h => h.batch), sheetDraft.batches) },
       { key: 'subjects', header: 'Предметы', options: opts(secSubjects.map(h => h.subject), sheetDraft.subjects) },
@@ -927,7 +939,7 @@ export const TeacherHomeworkPage: React.FC<{
                   при активном фильтре; «Сбросить» гасит всё, включая режим. */}
               {(filterActive || Boolean(axis)) && (
                 <FilterChipBar
-                  quarter={fromLessonEntry ? null : appliedQuarter}
+                  quarter={appliedQuarter}
                   axis={axis}
                   extraChips={[
                     ...[...filters.batches].map(v => ({ kind: 'batch', v })),

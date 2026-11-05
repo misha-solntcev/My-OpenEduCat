@@ -1001,6 +1001,9 @@ class RostMaxTimetableController(http.Controller):
             "batch": sheet.batch_id.name if sheet.batch_id else '',
             "date": str(sheet.attendance_date) if sheet.attendance_date else '',
             "timing": sheet.timing or '',
+            # Четверть урока — вход в «Задания» («Проверить») открывает
+            # фильтр четверти на ней, а не на текущей по календарю.
+            "quarter": self._sheet_quarter(sheet),
             # Тема урока и ДЗ (rost_lesson_homework). ДЗ пишем в sheet —
             # write() модуля сам создаст/обновит op.assignment (см. /save).
             # rost_lesson_homework может быть не установлен — getattr.
@@ -3264,6 +3267,36 @@ class RostMaxTimetableController(http.Controller):
                 return i
         started = [i for i in sorted(q_map) if q_map[i].term_start_date <= today]
         return started[-1] if started else 1
+
+    def _sheet_quarter(self, sheet, q_map=None):
+        """Номер четверти листа журнала (1..4) или None.
+
+        Источник тот же, что у _hw_quarter_numbers: term_id листа (журнал
+        ведётся в четверти), иначе дата урока; каникулы между четвертями
+        относим к последней начавшейся — иначе урок не попал бы ни в одну.
+
+        Зачем: кнопка «Проверить» в журнале ведёт в «Задания», и фильтр
+        четверти там должен открываться на четверти ЭТОГО урока. Раньше вход
+        шёл с quarter=all и секция четверти была скрыта — учитель не видел,
+        по какому периоду смотрит.
+        """
+        if q_map is None:
+            q_map = self._get_quarter_terms()
+        if not q_map:
+            return None
+        term_to_q = {term.id: q for q, term in q_map.items()}
+        term = sheet.term_id
+        if term and term.id in term_to_q:
+            return term_to_q[term.id]
+        d = sheet.attendance_date
+        if not d:
+            return None
+        q = next((n for n, t in q_map.items()
+                  if t.term_start_date <= d <= t.term_end_date), None)
+        if q is None:
+            started = [n for n, t in q_map.items() if t.term_start_date <= d]
+            q = max(started) if started else min(q_map)
+        return q
 
     @staticmethod
     def _line_payload(ln):
