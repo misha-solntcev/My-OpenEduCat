@@ -17,9 +17,10 @@ export const LessonHeader: React.FC<LessonHeaderProps> = ({
   onOpenColumnsSettings,
 }) => {
   const headerTitle = lesson ? (lesson.subject || 'Журнал оценок') : 'Журнал оценок';
-  const headerSubtitle = lesson
-    ? [lesson.batch, lesson.timing].filter(Boolean).join(' · ')
-    : '';
+  // Класс — подзаголовок шапки. Время и четверть ушли в строку контекста
+  // под шапкой (LessonJournalToolbar): в одной строке шапки они уже не
+  // помещались и дублировались.
+  const headerSubtitle = lesson ? (lesson.batch || '') : '';
 
   return (
     <PanelHeader

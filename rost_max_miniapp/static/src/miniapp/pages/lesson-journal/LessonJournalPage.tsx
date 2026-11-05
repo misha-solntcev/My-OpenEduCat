@@ -148,7 +148,11 @@ export const LessonJournalPage: React.FC<LessonJournalPageProps> = ({ id, lesson
         <Box
           flexGrow={1}
           overflowBlock="auto"
-          padding="xl"
+          /* Верхний отступ был «xl» (24) — между строкой контекста урока и
+             карточкой «Тема · ДЗ» висела пустая полоса. Теперь контекст
+             сам отделяет шапку от карточки, поэтому сверху достаточно «s». */
+          paddingInline="xl"
+          paddingBlockStart="s"
           paddingBlockEnd={canEdit && dirty ? 84 : 24}
         >
           {lesson && (
