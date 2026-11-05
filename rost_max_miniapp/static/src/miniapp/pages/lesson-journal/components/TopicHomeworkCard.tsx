@@ -155,7 +155,12 @@ export const TopicHomeworkCard: React.FC<TopicHomeworkCardProps> = ({
   // Поле ввода показываем в черновике, когда задания ещё нет, и в режиме
   // правки выданного. В выданном состоянии — только чтение.
   const showHwEditor = canEdit && (!isPublished || editing);
-  const canCheck = Boolean(onCheckHomework) && isPublished;
+  /* «Проверить» — вход в задания этого предмета и класса, а НЕ проверка
+     конкретно этого урока: счётчик на бэкенде считается по
+     faculty + subject + batch (все уроки пары), поэтому кнопка имеет смысл
+     и на уроке без выданного ДЗ — учителю нужно добраться до старых
+     заданий. Поэтому единственное условие — право на журнал. */
+  const canCheck = Boolean(onCheckHomework);
   const toReview = lesson.hw_to_review ?? 0;
   const dueText = formatDue(lesson.homework_due || '');
 
@@ -206,24 +211,30 @@ export const TopicHomeworkCard: React.FC<TopicHomeworkCardProps> = ({
 
   /* Проверка ДЗ: оценки за ДЗ в журнале не ставятся — они живут в задании,
      поэтому отсюда один вход на готовый экран «Заданий», отфильтрованный по
-     этому уроку (предмет + класс). Показываем только у ВЫДАННОГО задания:
-     в черновике сдач быть не может, «Проверить 0» был бы шумом. Счётчик —
-     внутри кнопки, поэтому содержимое обёрнуто в Flex: vkuiCounter__host
-     это display:flex, и рядом с инлайновым текстом он роняет строку.
-     mode="contrast" — белым по синему, иначе не читается. */
-  const checkButton = canCheck ? (
+     предмету и классу урока. Показываем ВСЕГДА (право на журнал есть):
+     открыть старые задания можно с любого урока пары, не только с того, где
+     ДЗ выдано. Счётчик — внутри кнопки, поэтому содержимое обёрнуто в Flex:
+     vkuiCounter__host это display:flex, и рядом с инлайновым текстом он
+     роняет строку.
+     Два веса: primary — когда проверка главное действие карточки (выданное
+     ДЗ в режиме чтения); secondary — когда рядом есть другое главное
+     действие («Выдать» в черновике, «Отмена» в правке). Counter: contrast
+     для primary (белым по синему), inherit для secondary — иначе на
+     тинт-фоне не читается. */
+  const renderCheckButton = (primary: boolean) => (canCheck ? (
     <Button
       size="l"
-      mode="primary"
+      mode={primary ? 'primary' : 'secondary'}
       appearance="accent"
+      aria-label="Проверить задания по этому предмету и классу"
       onClick={e => { e.stopPropagation(); onCheckHomework!(); }}
     >
       <Flex align="center" gap={8}>
         <span>Проверить</span>
-        <Counter size="s" mode="contrast">{toReview}</Counter>
+        <Counter size="s" mode={primary ? 'contrast' : 'inherit'}>{toReview}</Counter>
       </Flex>
     </Button>
-  ) : null;
+  ) : null);
 
   const hasContent = Boolean(lesson.topic || lesson.homework || lesson.homework_assignment_id);
   const previewTopic = lesson.topic || 'Тема не указана';
@@ -274,7 +285,7 @@ export const TopicHomeworkCard: React.FC<TopicHomeworkCardProps> = ({
             </Caption>
           </Flex>
           <Icon24ChevronDown style={{ flexShrink: 0, color: 'var(--vkui--color_icon_secondary)' }} />
-          {checkButton}
+          {renderCheckButton(true)}
         </Flex>
       ) : (
         <Flex direction="column" gap={12} onClick={e => e.stopPropagation()}>
@@ -388,10 +399,10 @@ export const TopicHomeworkCard: React.FC<TopicHomeworkCardProps> = ({
               одним полем формы.
 
               Раскладка по режимам: пара «Редактировать» + «Проверить N» — по
-              центру рядом (Миша), это единственный режим с двумя кнопками
-              разного веса, и space-between раздвигал их по краям карточки.
-              Остальное — «Выдать» слева, «Отмена» рядом с ним: единственная
-              кнопка в ряду, центрировать её незачем. */}
+              центру рядом (Миша), это два действия равного веса, и
+              space-between раздвигал их по краям карточки. Черновик и правка
+              выданного — «Выдать»/«Отмена» слева и «Проверить N» тише рядом
+              с ними: главное действие в этих режимах одно. */}
           <Flex
             align="center"
             gap={8}
@@ -422,7 +433,11 @@ export const TopicHomeworkCard: React.FC<TopicHomeworkCardProps> = ({
                 Редактировать
               </Button>
             )}
-            {isPublished && !editing && checkButton}
+            {isPublished && !editing && renderCheckButton(true)}
+            {/* Черновик и правка выданного: «Проверить» тише — главное
+                действие здесь «Выдать» / «Отмена», но уйти в старые задания
+                можно и отсюда. */}
+            {!(isPublished && !editing) && renderCheckButton(false)}
           </Flex>
         </Flex>
       )}
