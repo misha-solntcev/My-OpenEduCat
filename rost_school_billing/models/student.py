@@ -78,12 +78,13 @@ class OpStudent(models.Model):
                         'биллинга (карточка курса, раздел «Биллинг»).')
                         % course.name)
                 src_lines = template.sale_order_template_line_ids
-            # Линии подписки = учебные месяцы, привязанные к календарю
-            # учебного года (якорь — 1 сентября), а не к годовщине даты
-            # старта: зачисленный в середине года ученик получает
-            # оставшиеся месяцы года по 1-м числам, месяцы до поступления
-            # не оплачиваются. qty товара — число учебных месяцев.
-            year_start = date(start.year, 9, 1)
+            # Линии подписки = календарные месяцы по 1-м числам, отсчитанные
+            # подряд от месяца даты начала оплаты (fees_start_date):
+            # пакет «N месяцев» даёт ровно N месяцев занятий от поступления
+            # (пришла 5.11 на 3 мес → ноя, дек, янв); задним числом
+            # (старт 1.09, годовой шаблон) график ложится сент..август, а
+            # черновик за наступившие месяцы создаётся сразу — доначисление.
+            anchor = date(start.year, start.month, 1)
             for src in src_lines:
                 if src.display_type or src.charge_at_start \
                         or not src.product_uom_qty:
@@ -97,12 +98,10 @@ class OpStudent(models.Model):
                         src.product_id, 1, date=start)
                     discount = 0.0
                 for i in range(months):
-                    m_start = year_start + relativedelta(
+                    m_start = anchor + relativedelta(
                         months=month_cursor + i)
                     m_end = (m_start + relativedelta(months=1)
                              - relativedelta(days=1))
-                    if m_end < start:
-                        continue  # месяц прошёл до поступления
                     line_vals.append((0, 0, {
                         'name': src.product_id.display_name,
                         'product_id': src.product_id.id,
