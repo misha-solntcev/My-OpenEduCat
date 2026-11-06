@@ -535,7 +535,15 @@ class RostMaxTimetableController(http.Controller):
 
                 request.session['is_timetable_user'] = True
                 user = request.env['res.users'].browse(auth_info['uid'])
-                is_admin = user.has_group('base.group_system')
+                # with_user: на момент логина env запроса ещё публичный
+                # (session.uid был None при старте запроса, authenticate()
+                # env не пересобирает), а guard has_group() в Odoo 18 кидает
+                # AccessError на browse-записи другого юзера. Свежий логин
+                # (мёртвая/истёкшая сессия) падал 500 «Ошибка аутентификации»
+                # ПОСЛЕ успешной проверки пароля. with_user(user) подставляет
+                # самого юзера в env — guard пропускает. Тот же фикс на
+                # TOTP-шаге ниже (login_totp).
+                is_admin = user.with_user(user).has_group('base.group_system')
 
                 # Проверяем 2FA
                 if user.totp_enabled:
@@ -663,7 +671,9 @@ class RostMaxTimetableController(http.Controller):
         request.session['is_timetable_user'] = True
         request.session.pop('pre_uid', None)
 
-        is_admin = user.has_group('base.group_system')
+        # with_user — см. коммент в login_page: env запроса ещё публичный,
+        # guard has_group() в Odoo 18 кидает AccessError без подмены юзера.
+        is_admin = user.with_user(user).has_group('base.group_system')
 
         response_data = {
             "success": True,
