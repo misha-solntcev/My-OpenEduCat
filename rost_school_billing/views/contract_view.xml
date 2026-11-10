@@ -25,6 +25,42 @@
         </field>
     </record>
 
+    <record id="contract_contract_form_view_doc" model="ir.ui.view">
+        <field name="name">contract.contract.form.doc</field>
+        <field name="model">contract.contract</field>
+        <field name="inherit_id" ref="contract.contract_contract_form_view"/>
+        <field name="arch" type="xml">
+            <xpath expr="//header" position="inside">
+                <button name="action_generate_doc" type="object"
+                        string="Сгенерировать документ"
+                        icon="fa-file-word-o"
+                        groups="openeducat_admission.group_op_admission_user,base.group_system"/>
+            </xpath>
+            <xpath expr="//notebook" position="inside">
+                <page string="Договор" name="rost_doc"
+                      groups="openeducat_admission.group_op_admission_user,base.group_system">
+                    <group>
+                        <group string="Реквизиты договора"
+                               name="rost_doc_requisites">
+                            <field name="doc_number"/>
+                            <field name="doc_date"/>
+                            <field name="doc_clause35"/>
+                        </group>
+                    </group>
+                    <field name="doc_file_ids" nolabel="1" readonly="1"
+                           string="Сгенерированные файлы и сканы">
+                        <list>
+                            <field name="name" string="Файл"/>
+                            <field name="create_date" string="Создан"/>
+                            <field name="datas" filename="name"
+                                   string="Скачать"/>
+                        </list>
+                    </field>
+                </page>
+            </xpath>
+        </field>
+    </record>
+
     <record id="contract_contract_tree_view_student" model="ir.ui.view">
         <field name="name">contract.contract.tree.student</field>
         <field name="model">contract.contract</field>

@@ -22,4 +22,19 @@
             </xpath>
         </field>
     </record>
+
+    <record id="sale_order_view_form_doc35" model="ir.ui.view">
+        <field name="name">sale.order.form.doc35 (rost_school_billing)</field>
+        <field name="model">sale.order</field>
+        <field name="inherit_id" ref="sale.view_order_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//notebook" position="inside">
+                <page string="Договор" name="rost_doc35"
+                      invisible="not sale_order_template_id">
+                    <field name="doc_clause35"
+                           placeholder="Условия п. 3.5 договора — из шаблона КП; здесь можно поправить в этом КП."/>
+                </page>
+            </xpath>
+        </field>
+    </record>
 </odoo>

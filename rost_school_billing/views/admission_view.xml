@@ -9,6 +9,11 @@
                 <button name="action_create_subscription" type="object"
                         string="Создать подписку" class="btn-primary"
                         invisible="state != 'done' or contract_count"/>
+                <button name="action_generate_doc" type="object"
+                        string="Сгенерировать документ"
+                        icon="fa-file-word-o"
+                        invisible="state != 'done' or not student_id"
+                        groups="openeducat_admission.group_op_admission_user,base.group_system"/>
             </xpath>
             <xpath expr="//field[@name='fees_term_id']" position="attributes">
                 <attribute name="invisible">1</attribute>

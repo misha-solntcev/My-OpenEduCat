@@ -4,9 +4,16 @@ from dateutil.relativedelta import relativedelta
 from odoo import _, fields, models
 from odoo.exceptions import UserError
 
+from . import doc_engine
+
 
 class OpStudent(models.Model):
     _inherit = 'op.student'
+
+    action_generate_doc = doc_engine.action_generate_doc
+    _rost_company_ctx = doc_engine._rost_company_ctx
+    _rost_student_ctx = doc_engine._rost_student_ctx
+    _rost_parent_ctx = doc_engine._rost_parent_ctx
 
     contract_ids = fields.One2many(
         'contract.contract', 'student_id', string='Подписки на обучение')
@@ -36,6 +43,17 @@ class OpStudent(models.Model):
             lambda c: c.academic_years_id.start_date <= today
             <= c.academic_years_id.end_date)
         return current[:1] or running[:1] or self.course_detail_ids[:1]
+
+    def _rost_doc_context(self):
+        """Контекст токенов ученика: company_*, student_*, parent_*."""
+        self.ensure_one()
+        ctx = self._rost_company_ctx()
+        ctx.update(self._rost_student_ctx(self))
+        parent = self.parent_ids[:1]
+        ctx.update(self._rost_parent_ctx(
+            parent.name if parent else None,
+            parent.relationship_id.name if parent else ''))
+        return ctx
 
     def action_create_subscription(self, start_date=None, partner=None,
                                    order=None):
@@ -127,6 +145,9 @@ class OpStudent(models.Model):
                         % (student.name, course.name),
                 'partner_id': billing_partner.id,
                 'student_id': student.id,
+                'doc_clause35': (order.doc_clause35 if order
+                                 else (template.doc_clause35 if template
+                                       else '')),
                 'contract_type': 'sale',
                 'generation_type': 'invoice',
                 'date_start': start,

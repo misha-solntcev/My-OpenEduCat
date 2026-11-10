@@ -1,11 +1,24 @@
 from datetime import date
 
-from odoo import _, fields, models
+from odoo import _, api, fields, models
 from odoo.exceptions import UserError
 
 
 class SaleOrder(models.Model):
     _inherit = 'sale.order'
+
+    doc_clause35 = fields.Text(
+        'Условия п. 3.5 договора',
+        compute='_compute_doc_clause35', store=True, readonly=False,
+        help="Из шаблона КП; правится в этом КП — попадёт в подписку "
+             "и в договор.")
+
+    @api.depends('sale_order_template_id')
+    def _compute_doc_clause35(self):
+        for order in self:
+            if order.sale_order_template_id:
+                order.doc_clause35 = \
+                    order.sale_order_template_id.doc_clause35 or ''
 
     def _school_course_from_template(self):
         self.ensure_one()

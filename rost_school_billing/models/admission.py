@@ -2,9 +2,16 @@ from odoo import _, api, fields, models
 from odoo.exceptions import UserError
 from markupsafe import Markup
 
+from . import doc_engine
+
 
 class OpAdmission(models.Model):
     _inherit = 'op.admission'
+
+    action_generate_doc = doc_engine.action_generate_doc
+    _rost_company_ctx = doc_engine._rost_company_ctx
+    _rost_student_ctx = doc_engine._rost_student_ctx
+    _rost_parent_ctx = doc_engine._rost_parent_ctx
 
     billing_partner_id = fields.Many2one(
         'res.partner', 'Плательщик',
@@ -37,6 +44,18 @@ class OpAdmission(models.Model):
         for admission in self:
             admission.contract_ids = admission.student_id.contract_ids
             admission.contract_count = len(admission.contract_ids)
+
+    def _rost_doc_context(self):
+        """Контекст токенов приёмки: company_*, student_*, parent_*."""
+        self.ensure_one()
+        ctx = self._rost_company_ctx()
+        student = self.student_id
+        ctx.update(self._rost_student_ctx(student))
+        parent = (student.parent_ids[:1] if student else None)
+        ctx.update(self._rost_parent_ctx(
+            parent.name if parent else (self.billing_partner_id or None),
+            parent.relationship_id.name if parent else ''))
+        return ctx
 
     @api.depends('student_id', 'student_id.contract_ids',
                  'student_id.contract_ids.payment_schedule_html')
