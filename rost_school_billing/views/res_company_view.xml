@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_company_form_rost_docs" model="ir.ui.view">
+        <field name="name">res.company.form.rost.docs</field>
+        <field name="model">res.company</field>
+        <field name="inherit_id" ref="base.view_company_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//sheet" position="inside">
+                <group string="Подписант договоров (школа)"
+                       name="rost_doc_signer">
+                    <group>
+                        <field name="rost_director_name"/>
+                        <field name="rost_director_short"/>
+                        <field name="rost_director_basis"/>
+                    </group>
+                </group>
+            </xpath>
+        </field>
+    </record>
+</odoo>

@@ -1,0 +1,5 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_rost_doc_template_system,rost.doc.template.system,model_rost_doc_template,base.group_system,1,1,1,1
+access_rost_doc_template_admission,rost.doc.template.admission,model_rost_doc_template,openeducat_admission.group_op_admission_user,1,0,0,0
+access_rost_doc_generate_wizard_admission,rost.doc.generate.wizard.admission,model_rost_doc_generate_wizard,openeducat_admission.group_op_admission_user,1,1,1,1
+access_rost_doc_generate_wizard_system,rost.doc.generate.wizard.system,model_rost_doc_generate_wizard,base.group_system,1,1,1,1

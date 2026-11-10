@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- noupdate: повторное обновление модуля не сбрасывает нумерацию на 49 -->
+<odoo noupdate="1">
+    <record id="seq_rost_doc_number" model="ir.sequence">
+        <field name="name">Номера договоров школы</field>
+        <field name="code">rost_school_billing.doc_number</field>
+        <field name="implementation">no_gap</field>
+        <field name="padding">1</field>
+        <field name="number_next_actual">49</field>
+        <field name="company_id" eval="False"/>
+    </record>
+</odoo>

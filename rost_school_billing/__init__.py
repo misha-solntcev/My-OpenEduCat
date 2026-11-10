@@ -1,4 +1,5 @@
 from . import models
+from . import wizard
 
 FORM_FIELDS = (
     'child_name', 'child_gender', 'child_birth_date', 'child_course_id',

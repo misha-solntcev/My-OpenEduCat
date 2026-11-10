@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_rost_doc_template_tree" model="ir.ui.view">
+        <field name="name">rost.doc.template.tree</field>
+        <field name="model">rost.doc.template</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="sequence" widget="handle"/>
+                <field name="name"/>
+                <field name="code"/>
+                <field name="res_model"/>
+                <field name="template_filename"/>
+                <field name="active" widget="boolean_toggle"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_rost_doc_template_form" model="ir.ui.view">
+        <field name="name">rost.doc.template.form</field>
+        <field name="model">rost.doc.template</field>
+        <field name="arch" type="xml">
+            <form string="Шаблон документа">
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="name"/>
+                            <field name="code"/>
+                            <field name="res_model"/>
+                            <field name="sequence"/>
+                            <field name="active"/>
+                        </group>
+                        <group>
+                            <field name="template_file"
+                                   filename="template_filename"/>
+                            <field name="template_filename"/>
+                            <field name="filename_pattern"/>
+                        </group>
+                    </group>
+                    <field name="note" nolabel="1" colspan="2"/>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_rost_doc_template" model="ir.actions.act_window">
+        <field name="name">Шаблоны документов</field>
+        <field name="res_model">rost.doc.template</field>
+        <field name="view_mode">list,form</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Шаблонов пока нет</p>
+            <p>Добавьте .docx с токенами {{student_name}},
+            {{parent_passport}}, {{contract_month_main_fmt}}... —
+            он появится в мастере «Сгенерировать документ» на подписках,
+            учениках и приёмках.</p>
+        </field>
+    </record>
+
+    <menuitem id="menu_rost_doc_template"
+              name="Шаблоны документов"
+              parent="account.menu_finance_receivables"
+              action="action_rost_doc_template"
+              sequence="100"/>
+
+    <record id="view_rost_doc_generate_wizard_form" model="ir.ui.view">
+        <field name="name">rost.doc.generate.wizard.form</field>
+        <field name="model">rost.doc.generate.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Сгенерировать документ">
+                <group>
+                    <field name="res_model" invisible="1"/>
+                    <field name="res_id" invisible="1"/>
+                    <field name="target_display" readonly="1"/>
+                    <field name="template_id"/>
+                </group>
+                <footer>
+                    <button name="action_generate" type="object"
+                            string="Сгенерировать" class="btn-primary"
+                            data-hotkey="q"/>
+                    <button string="Отмена" class="btn-secondary"
+                            special="cancel" data-hotkey="x"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+</odoo>
