@@ -43,3 +43,4 @@ __pycache__/
 # Мокапы дизайна — только для локальной работы, на прод не нужны
 rost_max_miniapp/design/
 rost_lesson_homework/design/
+openeducat_attendance/design/
