@@ -67,10 +67,10 @@
                     }
                     table.pa-table th, table.pa-table td {
                         border: 0.5pt solid black !important;
-                        padding: 2pt 1pt;
+                        padding: 3pt 1pt;
                         vertical-align: middle;
                         font-size: 12pt;
-                        line-height: 1.15;
+                        line-height: 1.25;
                     }
                     table.pa-table thead th {
                         background-color: #f2f2f2 !important;
@@ -93,6 +93,12 @@
                        вертикального текста, как в Дневник.ру, и не дают
                        длинным названиям вылезать из ячейки. */
                     th.pa-vh { height: 100pt; padding: 0 !important; position: relative; }
+                    /* Перенос длинных классов: повтор thead в wkhtmltopdf
+                       пересобирается с потерей высот th — вертикальные
+                       подписи (absolute) наезжают на строки продолжения.
+                       Лекарство: thead как обычная группа строк — шапка
+                       НЕ повторяется, страница 2 = чистые строки данных. */
+                    table.pa-table thead { display: table-row-group; }
                     /* Вертикальные шапки: каждая строка названия — отдельный
                        абсолютный бокс шириной = высоте ячейки (100pt),
                        отцентрованный в точке центра ячейки и повёрнутый
