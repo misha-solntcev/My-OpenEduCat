@@ -328,6 +328,13 @@ class ReportPerformanceAnalysis(models.AbstractModel):
                 * 100.0) if with_marks else '—',
         }
 
+        # Ширины колонок в pt (A4 landscape ~794pt контента): фиксированные
+        # №/ФИО/Проп/Ср/Рей + равные доли на предметы. Один colgroup для
+        # матрицы и таблицы статистики — колонки совпадают пиксель-в-пиксель.
+        fixed_w = 20 + 100 + 26 + 30 + 26
+        subj_w = (794 - fixed_w) // len(subject_ids)
+        col_widths = [20, 100] + [subj_w] * len(subject_ids) + [26, 30, 26]
+
         return {
             'batch_name': batch.name,
             'year_name': year.name if year else '',
@@ -335,6 +342,7 @@ class ReportPerformanceAnalysis(models.AbstractModel):
             'subjects': [{'name': subject_names.get(sid) or 'Без названия',
                           'lines': list(zip(*_label_lines(subject_names.get(sid) or 'Без названия')))}
                          for sid in subject_ids],
+            'col_widths': col_widths,
             'rows': rows,
             'footer': footer,
             'groups': groups,

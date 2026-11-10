@@ -80,11 +80,11 @@
                     table.pa-table tbody tr:nth-child(even) {
                         background-color: #f9f9f9 !important;
                     }
-                    th.pa-no { width: 20pt; }
-                    th.pa-fio { width: 100pt; text-align: left !important; }
-                    th.pa-miss { width: 26pt; }
-                    th.pa-avg { width: 30pt; }
-                    th.pa-rank { width: 26pt; }
+                    th.pa-no { }
+                    th.pa-fio { text-align: left !important; }
+                    th.pa-miss { }
+                    th.pa-avg { }
+                    th.pa-rank { }
                     /* Вертикальные шапки предметов.
                        ВАЖНО: wkhtmltopdf НЕ поддерживает writing-mode,
                        а QtWebKit понимает поворот только с префиксом
@@ -99,6 +99,20 @@
                        Лекарство: thead как обычная группа строк — шапка
                        НЕ повторяется, страница 2 = чистые строки данных. */
                     table.pa-table thead { display: table-row-group; }
+                    /* Статистика (Средний балл/% кач/СОУ) — обычные строки в
+                       конце tbody: обычные строки НЕ дублируются при разрыве
+                       таблицы (в отличие от tfoot, который qtwebkit повторяет
+                       на каждой странице — задвоение «Среднего балла»), и не
+                       рвутся внутри себя. Если класс длинный, блок статистики
+                       может целиком уехать на следующую страницу — норма. */
+                    table.pa-table tr.pa-foot td {
+                        background-color: #f2f2f2 !important;
+                        font-weight: bold;
+                        text-align: center;
+                        font-size: 12pt;
+                        line-height: 1.25;
+                    }
+                    table.pa-table tr.pa-foot td.pa-fl { text-align: left; font-weight: normal; }
                     /* Вертикальные шапки: каждая строка названия — отдельный
                        абсолютный бокс шириной = высоте ячейки (100pt),
                        отцентрованный в точке центра ячейки и повёрнутый
@@ -184,6 +198,11 @@
                         </div>
 
                         <table class="pa-table">
+                            <colgroup>
+                                <t t-foreach="g['col_widths']" t-as="cw">
+                                    <col t-att-style="'width:%spt' % cw"/>
+                                </t>
+                            </colgroup>
                             <thead>
                                 <tr>
                                     <th class="pa-no">№</th>
@@ -211,8 +230,6 @@
                                     </tr>
                                     <t t-set="i" t-value="i + 1"/>
                                 </t>
-                            </tbody>
-                            <tfoot>
                                 <tr class="pa-foot">
                                     <td class="pa-fl" colspan="2">Средний балл</td>
                                     <t t-foreach="g['footer']" t-as="f">
@@ -234,7 +251,7 @@
                                     </t>
                                     <td/><td/><td/>
                                 </tr>
-                            </tfoot>
+                            </tbody>
                         </table>
 
                         <table class="pa-groups">
