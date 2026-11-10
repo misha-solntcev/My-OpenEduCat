@@ -27,8 +27,10 @@
         'wizards/student_report_wizard_view.xml', # Визард "Итоговые оценки"
         'report/student_report_template.xml',    # Шаблон печати "Итоговые оценки"
         'wizards/current_grades_report_wizard_view.xml',
+        'wizards/performance_report_wizard_view.xml',       # Визард «Успеваемость класса»
         'wizards/register_generation_wizard_view.xml',
         'report/current_grades_report_template.xml',
+        'report/performance_analysis_template.xml',         # Отчёт «Успеваемость класса»
     ],
     'demo': [
         'demo/attendance_register_demo.xml',

@@ -1,0 +1,270 @@
+<odoo>
+    <!-- A4 landscape: 11 предметов + служебные колонки в портрет не влезают -->
+    <record id="paperformat_performance_analysis" model="report.paperformat">
+        <field name="name">Успеваемость класса A4 Landscape</field>
+        <field name="format">A4</field>
+        <field name="orientation">Landscape</field>
+        <field name="margin_top">10</field>
+        <field name="margin_bottom">10</field>
+        <field name="margin_left">8</field>
+        <field name="margin_right">8</field>
+        <field name="header_line" eval="False"/>
+        <field name="header_spacing">4</field>
+        <field name="dpi">90</field>
+    </record>
+
+    <record id="action_report_performance_analysis" model="ir.actions.report">
+        <field name="name">Успеваемость по классам</field>
+        <field name="model">performance.report.wizard</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">openeducat_attendance.performance_analysis_template</field>
+        <field name="report_file">openeducat_attendance.performance_analysis_template</field>
+        <field name="paperformat_id" ref="paperformat_performance_analysis"/>
+        <field name="print_report_name">
+            'Успеваемость %s %s' % (
+                ('_'.join(object.batch_ids.mapped('name')) if object.batch_ids else 'все классы'),
+                ('_'.join(object.term_ids.mapped('name')) if object.term_ids else 'все четверти')
+            )
+        </field>
+    </record>
+
+    <template id="performance_analysis_template">
+        <t t-call="web.html_container">
+            <t t-call="web.basic_layout">
+                <style>
+                    /* Стиль существующих отчётов школы: Times New Roman,
+                       зебра, тонкие рамки (см. student_summary_report_template) */
+                    .pa-page, .pa-title, .pa-sub, .pa-summary, table, div, span {
+                        font-family: "Times New Roman", Times, serif !important;
+                        color: black !important;
+                    }
+                    .pa-page { font-size: 10.5pt; }
+                    .pa-title {
+                        text-align: center;
+                        font-weight: bold !important;
+                        font-size: 16pt;
+                        margin: 0 0 4pt !important;
+                    }
+                    .pa-sub {
+                        text-align: center;
+                        color: #333 !important;
+                        font-size: 11pt;
+                        margin: 0 0 8pt !important;
+                    }
+                    .pa-summary {
+                        font-size: 11pt;
+                        border: 0.5pt solid #999;
+                        background: #f7f7f7;
+                        padding: 4pt 7pt;
+                        margin: 0 0 8pt !important;
+                    }
+                    .pa-summary b { font-weight: bold; }
+
+                    table.pa-table {
+                        width: 100%;
+                        border-collapse: collapse !important;
+                        table-layout: fixed;
+                    }
+                    table.pa-table th, table.pa-table td {
+                        border: 0.5pt solid black !important;
+                        padding: 2pt 1pt;
+                        vertical-align: middle;
+                        font-size: 12pt;
+                        line-height: 1.15;
+                    }
+                    table.pa-table thead th {
+                        background-color: #f2f2f2 !important;
+                        text-align: center;
+                        font-weight: bold;
+                    }
+                    table.pa-table tbody tr:nth-child(even) {
+                        background-color: #f9f9f9 !important;
+                    }
+                    th.pa-no { width: 20pt; }
+                    th.pa-fio { width: 100pt; text-align: left !important; }
+                    th.pa-miss { width: 26pt; }
+                    th.pa-avg { width: 30pt; }
+                    th.pa-rank { width: 26pt; }
+                    /* Вертикальные шапки предметов.
+                       ВАЖНО: wkhtmltopdf НЕ поддерживает writing-mode,
+                       а QtWebKit понимает поворот только с префиксом
+                       -webkit-transform. Название разбито на 1-2 строки
+                       (_label_lines): строки stacking'ом дают две колонки
+                       вертикального текста, как в Дневник.ру, и не дают
+                       длинным названиям вылезать из ячейки. */
+                    th.pa-vh { height: 100pt; padding: 0 !important; position: relative; }
+                    /* Вертикальные шапки: каждая строка названия — отдельный
+                       абсолютный бокс шириной = высоте ячейки (100pt),
+                       отцентрованный в точке центра ячейки и повёрнутый
+                       вокруг своего центра. Текст короче бокса, поэтому
+                       text-align: center работает всегда — центрирование не
+                       зависит от ширины колонки и числа предметов.
+                       Смещения pa-l1/pa-l2 раскладывают строки пары по
+                       сторонам от центра (после поворота — лево/право). */
+                    .pa-vl {
+                        position: absolute;
+                        left: 50%;
+                        top: 50%;
+                        width: 100pt;
+                        height: 13pt;
+                        margin-top: -6.5pt;    /* вертикальный центр строки в якоре */
+                        margin-left: -50pt;    /* горизонтальный центр строки в якоре */
+                        white-space: nowrap;
+                        text-align: center;
+                        font-size: 12pt;
+                        font-weight: bold;
+                        line-height: 13pt;
+                        -webkit-transform: rotate(-90deg);
+                        transform: rotate(-90deg);
+                    }
+                    /* QtWebKit применяет margin ПОСЛЕ поворота, в экранных осях:
+                       развилка строк пары — по margin-left (лево/право),
+                       margin-top у обеих строк одинаковый — вертикальный центр. */
+                    .pa-l1 { margin-left: -56pt; }  /* левая строка пары */
+                    .pa-l2 { margin-left: -44pt; }  /* правая строка пары */
+                    td.pa-c { text-align: center; }
+                    td.pa-fio-c { white-space: nowrap; }
+                    td.pa-m { font-weight: bold; }
+                    td.pa-avgc { font-weight: bold; }
+                    tr.pa-foot td {
+                        background-color: #f2f2f2 !important;
+                        font-weight: bold;
+                        text-align: center;
+                        font-size: 12pt;
+                    }
+                    tr.pa-foot td.pa-fl { text-align: left; font-weight: normal; }
+
+                    /* Группы */
+                    table.pa-groups {
+                        width: 100%;
+                        border-collapse: collapse !important;
+                        margin-top: 8pt;
+                        table-layout: fixed;
+                        page-break-inside: avoid;
+                    }
+                    table.pa-groups td {
+                        border: 0.5pt solid black !important;
+                        padding: 4pt 5pt;
+                        vertical-align: top;
+                        font-size: 11pt;
+                        width: 25%;
+                    }
+                    .pa-gtitle { font-weight: bold; }
+                    .pa-glist { margin: 2pt 0 0; padding-left: 12pt; }
+                    .pa-gsub { color: #333 !important; font-size: 10pt; margin-top: 2pt; }
+                </style>
+
+                <div class="pa-page">
+                    <t t-foreach="grouped_data" t-as="g">
+                        <t t-if="not g_first">
+                            <p style="page-break-before: always;"/>
+                        </t>
+
+                        <h2 class="pa-title">Успеваемость класса <t t-out="g['batch_name']"/></h2>
+                        <div class="pa-sub">
+                            <t t-out="g['year_name']"/> уч.год ·
+                            Период: <t t-out="g['period_label']"/> ·
+                            Источник: <t t-out="source_label"/>
+                        </div>
+
+                        <div class="pa-summary">
+                            Общий средний балл класса: <b><t t-out="g['summary']['avg_str']"/></b> ·
+                            Общий % кач. зн. по предметам: <b><t t-out="g['summary']['kach_subj_str']"/></b> ·
+                            Общий СОУ по предметам (%): <b><t t-out="g['summary']['sou_subj_str']"/></b> ·
+                            Общий % успеваемости класса: <b><t t-out="g['summary']['usp_class_str']"/></b> ·
+                            Общий % кач. зн. класса: <b><t t-out="g['summary']['kach_class_str']"/></b> ·
+                            На конец периода: <b><t t-out="g['summary']['total']"/></b> ·
+                            Нет оценок: <b><t t-out="g['summary']['no_marks']"/></b>
+                        </div>
+
+                        <table class="pa-table">
+                            <thead>
+                                <tr>
+                                    <th class="pa-no">№</th>
+                                    <th class="pa-fio">Фамилия, Имя</th>
+                                    <t t-foreach="g['subjects']" t-as="sub">
+                                        <th class="pa-vh"><t t-foreach="sub['lines']" t-as="ln"><div t-att-class="'pa-vl ' + (ln[1] or '')"><t t-out="ln[0]"/></div></t></th>
+                                    </t>
+                                    <th class="pa-vh"><div class="pa-vl">Пропущено</div></th>
+                                    <th class="pa-vh"><div class="pa-vl pa-l1">Средний</div><div class="pa-vl pa-l2">балл</div></th>
+                                    <th class="pa-vh"><div class="pa-vl">Рейтинг</div></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <t t-set="i" t-value="1"/>
+                                <t t-foreach="g['rows']" t-as="r">
+                                    <tr>
+                                        <td class="pa-c"><t t-out="i"/></td>
+                                        <td class="pa-fio-c"><t t-out="r['name']"/></td>
+                                        <t t-foreach="r['cell_strs']" t-as="cv">
+                                            <td class="pa-c pa-m"><t t-out="cv"/></td>
+                                        </t>
+                                        <td class="pa-c"><t t-out="r['missed']"/></td>
+                                        <td class="pa-c pa-avgc"><t t-out="r['avg_str']"/></td>
+                                        <td class="pa-c"><t t-out="r['rank_str']"/></td>
+                                    </tr>
+                                    <t t-set="i" t-value="i + 1"/>
+                                </t>
+                            </tbody>
+                            <tfoot>
+                                <tr class="pa-foot">
+                                    <td class="pa-fl" colspan="2">Средний балл</td>
+                                    <t t-foreach="g['footer']" t-as="f">
+                                        <td><t t-out="f['avg_str']"/></td>
+                                    </t>
+                                    <td/><td/><td/>
+                                </tr>
+                                <tr class="pa-foot">
+                                    <td class="pa-fl" colspan="2">% кач. зн.</td>
+                                    <t t-foreach="g['footer']" t-as="f">
+                                        <td><t t-out="f['kach_str']"/></td>
+                                    </t>
+                                    <td/><td/><td/>
+                                </tr>
+                                <tr class="pa-foot">
+                                    <td class="pa-fl" colspan="2">СОУ (%)</td>
+                                    <t t-foreach="g['footer']" t-as="f">
+                                        <td><t t-out="f['sou_str']"/></td>
+                                    </t>
+                                    <td/><td/><td/>
+                                </tr>
+                            </tfoot>
+                        </table>
+
+                        <table class="pa-groups">
+                            <tr>
+                                <td>
+                                    <span class="pa-gtitle">Отличники</span><br/>
+                                    <t t-out="len(g['groups']['otl'])"/> ·
+                                    <t t-out="('%.2f' % (100.0 * len(g['groups']['otl']) / g['summary']['total'] if g['summary']['total'] else 0)).replace('.', ',')"/>%
+                                    <div class="pa-gsub">все оценки «5»</div>
+                                    <div class="pa-glist"><t t-out="', '.join(g['groups']['otl']) or '— нет —'"/></div>
+                                </td>
+                                <td>
+                                    <span class="pa-gtitle">Хорошисты</span><br/>
+                                    Всего <t t-out="len(g['groups']['hor'])"/> ·
+                                    <t t-out="('%.2f' % (100.0 * len(g['groups']['hor']) / g['summary']['total'] if g['summary']['total'] else 0)).replace('.', ',')"/>%
+                                    <div class="pa-glist"><t t-out="', '.join(g['groups']['hor']) or '— нет —'"/></div>
+                                    <div class="pa-gsub">в т.ч. с одной «4»: <t t-out="len(g['groups']['hor_one4'])"/> — <t t-out="', '.join(g['groups']['hor_one4']) or '—'"/></div>
+                                </td>
+                                <td>
+                                    <span class="pa-gtitle">Успевающие</span><br/>
+                                    Всего <t t-out="len(g['groups']['usp'])"/> ·
+                                    <t t-out="('%.2f' % (100.0 * len(g['groups']['usp']) / g['summary']['total'] if g['summary']['total'] else 0)).replace('.', ',')"/>%
+                                    <div class="pa-glist"><t t-out="', '.join(g['groups']['usp']) or '— нет —'"/></div>
+                                    <div class="pa-gsub">в т.ч. с одной «3»: <t t-out="len(g['groups']['usp_one3'])"/> — <t t-out="', '.join(g['groups']['usp_one3']) or '—'"/></div>
+                                </td>
+                                <td>
+                                    <span class="pa-gtitle">Неуспевающие</span><br/>
+                                    <t t-out="len(g['groups']['neusp'])"/> ·
+                                    <t t-out="('%.2f' % (100.0 * len(g['groups']['neusp']) / g['summary']['total'] if g['summary']['total'] else 0)).replace('.', ',')"/>%
+                                    <div class="pa-glist"><t t-out="', '.join(g['groups']['neusp']) or '— нет —'"/></div>
+                                </td>
+                            </tr>
+                        </table>
+                    </t>
+                </div>
+            </t>
+        </t>
+    </template>
+</odoo>

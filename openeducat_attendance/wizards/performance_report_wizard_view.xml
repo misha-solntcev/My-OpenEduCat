@@ -1,0 +1,54 @@
+<odoo>
+    <record id="view_performance_report_wizard_form" model="ir.ui.view">
+        <field name="name">performance.report.wizard.form</field>
+        <field name="model">performance.report.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Успеваемость класса">
+                <group>
+                    <group>
+                        <field name="academic_year_id" options="{'no_create': True}"
+                            placeholder="Все годы"/>
+                        <field name="batch_ids" widget="many2many_tags"
+                            options="{'no_create': True}"
+                            domain="[('id', 'in', available_batch_ids)]"
+                            placeholder="Все классы"/>
+                    </group>
+                    <group>
+                        <field name="term_ids" widget="many2many_tags"
+                            options="{'no_create': True}"
+                            domain="[('id', 'in', available_term_ids)]"
+                            placeholder="Все четверти"/>
+                        <field name="source" widget="radio"/>
+                        <field name="hide_empty_subjects"/>
+                    </group>
+                </group>
+                <group>
+                    <div colspan="2" class="text-muted">
+                        Пустой выбор = всё: не выбран год — все годы, классы — все классы,
+                        четверти — все четверти года каждого класса. Один класс на страницу.
+                    </div>
+                    <field name="available_term_ids" invisible="1"/>
+                    <field name="available_batch_ids" invisible="1"/>
+                </group>
+                <footer>
+                    <button name="action_print_report" string="Печать PDF" type="object" class="btn-primary"/>
+                    <button string="Отмена" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_performance_report_wizard" model="ir.actions.act_window">
+        <field name="name">Успеваемость по классам</field>
+        <field name="res_model">performance.report.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+
+    <menuitem id="menu_performance_report"
+              name="Успеваемость по классам"
+              parent="openeducat_attendance.menu_op_attendance_reports"
+              action="action_performance_report_wizard"
+              sequence="20"
+              groups="openeducat_attendance.group_op_attendance_user,openeducat_attendance.group_op_attendance_manager"/>
+</odoo>
