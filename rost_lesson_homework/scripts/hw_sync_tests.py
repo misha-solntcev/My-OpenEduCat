@@ -22,7 +22,9 @@ rost_lesson_homework держит три копии согласованными
         --max-cron-threads=0 < rost_lesson_homework/scripts/hw_sync_tests.py
 """
 import traceback
+from datetime import timedelta
 
+from odoo import fields
 from odoo.tools import html2plaintext
 from odoo.exceptions import AccessError, UserError
 
@@ -296,55 +298,144 @@ def hw_inverse_test_duplicate_text_guard():
                'сообщений=%d' % n1b)
 
 
-def hw_due_rule_test_second_lesson_end():
-    """Срок сдачи — НАЧАЛО урока, следующего за ближайшим.
+def _due_sessions(sheet):
+    """Будущие сессии по домену правила (свой урок исключён) — для ожиданий.
 
-    Правило (2026-10-02): ДЗ выдаётся на ближайшем уроке, проверяется в
-    начале следующего. Живой пример: история 7А, урок 06.10 08:10 UTC
-    (11:10 МСК) — на нём выдают; следующий 08.10 11:10 UTC (14:10 МСК),
-    срок сдачи = его начало.
+    Тест считает ожидание САМ, по своему поиску, а не вызовом
+    _next_lesson_datetime: иначе проверка была бы тавтологией.
+    """
+    return env['op.session'].sudo().search([
+        ('faculty_id', '=', sheet.session_id.faculty_id.id),
+        ('subject_id', '=', sheet.subject_id.id),
+        ('batch_id', '=', sheet.batch_id.id),
+        ('id', '!=', sheet.session_id.id),
+        ('start_datetime', '>',
+         max(sheet.session_id.start_datetime, fields.Datetime.now())),
+        ('state', '!=', 'cancel'),
+    ], order='start_datetime asc', limit=5)
 
-    Раньше бралась ПЕРВАЯ сессия и её start_datetime, то есть срок был
-    06.10 08:10 — момент, когда ДЗ ещё только выдают, сдать его к этому
-    моменту ученик не мог.
+
+def _future_dt(days_ahead, hour, minute):
+    """Наивный UTC-момент в будущем: today + days, фиксированное время."""
+    base = fields.Datetime.now() + timedelta(days=days_ahead)
+    return base.replace(hour=hour, minute=minute, second=0, microsecond=0)
+
+
+def hw_due_rule_test_next_lesson_start():
+    """Срок = начало СЛЕДУЮЩЕГО урока, а не урока через один.
+
+    Регрессия off-by-one (жалобы учителей 10.11.2026): правка 02.10 брала
+    sessions[-1] из limit=2, и срок уезжал на второй урок вперёд —
+    Литература 6А: выдали 09.11, срок 12.11 вместо 10.11. Домен
+    `start_datetime > max(start, now)` и так исключает собственный урок,
+    поэтому «следующий урок» — это sessions[0] (не тот же день).
     """
     sheet = _fresh_lesson()
     if not sheet:
         print('   НЕТ СТЕНДА')
         return
-    sessions = env['op.session'].sudo().search([
-        ('faculty_id', '=', sheet.session_id.faculty_id.id),
-        ('subject_id', '=', sheet.subject_id.id),
-        ('batch_id', '=', sheet.batch_id.id),
-        ('start_datetime', '>', sheet.start_datetime),
-        ('state', '!=', 'cancel'),
-    ], order='start_datetime asc', limit=3)
-    print('   лист %s, предмет %s, класс %s, впереди уроков: %d'
-          % (sheet.id, sheet.subject_id.name, sheet.batch_id.name,
-             len(sessions)))
+    sessions = _due_sessions(sheet)
+    lesson_day = sheet.session_id.start_datetime.date()
+    expected = next(
+        (s for s in sessions if s.start_datetime.date() != lesson_day), None)
+    print('   лист %s, предмет %s, класс %s, урок %s' % (
+        sheet.id, sheet.subject_id.name, sheet.batch_id.name,
+        sheet.session_id.start_datetime))
     for s in sessions[:3]:
-        print('     %s %s -> %s' % (s.timetable_date, s.start_datetime,
-                                     s.end_datetime))
-    check_true('впереди минимум два урока (иначе сценарий не проверяет '
-               'правило)', len(sessions) >= 2, 'n=%d' % len(sessions))
-    if len(sessions) < 2:
+        print('     %s -> %s' % (s.start_datetime, s.end_datetime))
+    check_true('впереди есть урок не в день текущего (иначе сценарий не '
+               'проверяет правило)', bool(expected),
+               'впереди n=%d' % len(sessions))
+    if not expected:
         return
 
     due = sheet._next_lesson_datetime()
-    expected = sessions[1].start_datetime
-    check('срок = начало ВТОРОГО урока', due, expected)
-    check_true('срок НЕ позже конца второго урока (начало, не конец)',
-               due <= (sessions[1].end_datetime or sessions[1].start_datetime),
-               'срок %s, конец урока %s'
-               % (due, sessions[1].end_datetime))
-    check_true('срок не равен началу ближайшего урока',
-               due != sessions[0].start_datetime,
-               'ближайший %s, срок %s' % (sessions[0].start_datetime, due))
-    check_true('срок позже ближайшего урока',
-               due > sessions[0].start_datetime,
-               '%s > %s' % (due, sessions[0].start_datetime))
-    check_true('срок НЕ равен началу ближайшего (старый баг)',
-               due != sessions[0].start_datetime)
+    check('срок = первый урок не в день текущего', due,
+          expected.start_datetime)
+    if len(sessions) >= 2 and \
+            sessions[0].start_datetime.date() != lesson_day:
+        check_true('срок НЕ второй урок вперёд (старый баг sessions[-1])',
+                   due != sessions[1].start_datetime,
+                   'срок %s, второй %s' % (due, sessions[1].start_datetime))
+    check_true('срок позже начала текущего урока',
+               due > sheet.session_id.start_datetime,
+               '%s > %s' % (due, sheet.session_id.start_datetime))
+
+
+def hw_due_rule_test_same_day_double():
+    """Сдвоенный урок: вторая пара того же дня — НЕ «следующий урок».
+
+    Прецедент: Геометрия 10А, пары 10.11 08:10 и 09:20 подряд. ДЗ,
+    выданное на первой паре, сдаётся к следующему учебному дню, а не к
+    09:20 того же утра. Сценарий сдвигает стендовый урок в будущее,
+    ставит вторую пару тем же днём и урок назавтра; всё в savepoint,
+    откатывается. Заодно проверяет исключение собственного урока по id
+    (журнал, открытый заранее, раньше ломал порядок первой строкой).
+    """
+    sheet = _fresh_lesson()
+    if not sheet:
+        print('   НЕТ СТЕНДА')
+        return
+    session = sheet.session_id
+    lesson_dt = _future_dt(3, 8, 10)
+    session.write({
+        'start_datetime': lesson_dt,
+        'end_datetime': lesson_dt + timedelta(minutes=40),
+    })
+    env.flush_all()
+    # Реальные будущие сессии класса/предмета убираем из поиска отменой
+    # (savepoint всё откатит): иначе они вклиниваются между синтетическими
+    # парами и ожидание перестаёт быть детерминированным.
+    env['op.session'].sudo().search([
+        ('faculty_id', '=', session.faculty_id.id),
+        ('subject_id', '=', session.subject_id.id),
+        ('batch_id', '=', session.batch_id.id),
+        ('id', '!=', session.id),
+        ('start_datetime', '>', fields.Datetime.now()),
+        ('state', '!=', 'cancel'),
+    ]).write({'state': 'cancel'})
+    partner = session.copy(default={
+        'start_datetime': lesson_dt + timedelta(hours=1),
+        'end_datetime': lesson_dt + timedelta(hours=1, minutes=40),
+    })
+    tomorrow = session.copy(default={
+        'start_datetime': lesson_dt + timedelta(days=1),
+        'end_datetime': lesson_dt + timedelta(days=1, minutes=40),
+    })
+    env.flush_all()
+    print('   стенд: урок %s, вторая пара %s, назавтра %s' % (
+        lesson_dt, partner.start_datetime, tomorrow.start_datetime))
+
+    due = sheet._next_lesson_datetime()
+    check('срок = урок назавтра, не вторая пара', due, tomorrow.start_datetime)
+    check_true('срок не вторая пара того же дня',
+               due != partner.start_datetime)
+
+    # Журнал открыт заранее: sheet.start раньше начала урока. Домен без
+    # исключения по id сделал бы собственный урок первой строкой поиска
+    # (исходная жалоба задания 231, 02.10).
+    sheet.write({'start_datetime': lesson_dt - timedelta(hours=1)})
+    env.flush_all()
+    due = sheet._next_lesson_datetime()
+    check('журнал открыт заранее: срок всё равно урок назавтра',
+          due, tomorrow.start_datetime)
+
+    # Назавтра урока нет (перенос/отмена) — осталась только вторая пара:
+    # конкретная дата лучше +7 дней.
+    tomorrow.unlink()
+    env.flush_all()
+    due = sheet._next_lesson_datetime()
+    check('впереди только вторая пара: срок на неё', due,
+          partner.start_datetime)
+
+    # Сессий нет вовсе — плюс неделя.
+    partner.unlink()
+    env.flush_all()
+    due = sheet._next_lesson_datetime()
+    check_true('сессий нет: срок примерно +7 дней',
+               due.date() == (fields.Datetime.now()
+                              + timedelta(days=7)).date(),
+               str(due))
 
 
 def hw_due_rule_test_publish_recalc():
@@ -918,7 +1009,8 @@ SCENARIOS = [
     hw_inverse_test_text_escaping,
     hw_inverse_test_assignment_edit_syncs_back,
     hw_inverse_test_duplicate_text_guard,
-    hw_due_rule_test_second_lesson_end,
+    hw_due_rule_test_next_lesson_start,
+    hw_due_rule_test_same_day_double,
     hw_due_rule_test_publish_recalc,
     hw_pc_test_assignment_counters,
     hw_pc_test_reset_requires_flag,
