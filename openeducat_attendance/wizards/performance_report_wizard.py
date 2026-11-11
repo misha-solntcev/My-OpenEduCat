@@ -11,22 +11,21 @@ class PerformanceReportWizard(models.TransientModel):
     academic_year_id = fields.Many2one('op.academic.year', string='Учебный год',
         default=lambda self: self._get_default_year())
 
-    batch_ids = fields.Many2many('op.batch', string='Классы')
+    batch_ids = fields.Many2many('op.batch', string='Класс')
 
-    term_ids = fields.Many2many('op.academic.term', string='Четверти')
+    term_ids = fields.Many2many('op.academic.term', string='Четверть')
 
     source = fields.Selection([
         ('final', 'Итоговые оценки'),
         ('current', 'Текущие средние'),
-    ], string='Источник ячеек', default='final', required=True,
+    ], string='Источник данных', default='final', required=True,
         help='Итоговые оценки — оценка за четверть из ведомости. '
              'Текущие средние — средний балл текущих оценок за период.')
 
     hide_empty_subjects = fields.Boolean(
-        string='Скрывать предметы без оценок', default=True,
-        help='Не показывать предметы, по которым за выбранный период нет ни '
-             'одной оценки. Выключите, чтобы увидеть предметы без итогов — '
-             '«кто из учителей ещё не сдал».')
+        string='Скрывать пустые', default=True,
+        help='Не показывать пустые строки и столбцы. Снимите галочку, чтобы '
+             'увидеть незаполненные данные.')
 
     # Служебные поля: списки годов/классов/четвертей для доменов полей
     # (год необязателен, поэтому домен через compute, а не по academic_year_id).

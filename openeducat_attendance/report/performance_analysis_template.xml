@@ -286,6 +286,15 @@
                             </tr>
                         </table>
                     </t>
+                    <t t-if="not grouped_data">
+                        <h2 class="pa-title">Успеваемость по классам</h2>
+                        <div class="pa-sub">
+                            Источник: <t t-out="source_label"/>
+                        </div>
+                        <p style="margin-top:16pt; font-size:12pt;">
+                            Нет данных за выбранный период: в выбранных классах нет ни одной оценки.
+                        </p>
+                    </t>
                 </div>
             </t>
         </t>

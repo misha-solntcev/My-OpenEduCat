@@ -42,5 +42,6 @@
               name="Текущие оценки"
               parent="openeducat_attendance.menu_op_attendance_reports"
               action="action_current_grades_wizard"
-              sequence="15"/>
+              sequence="15"
+              groups="openeducat_attendance.group_op_attendance_manager,openeducat_attendance.group_teacher_attendance"/>
 </odoo>

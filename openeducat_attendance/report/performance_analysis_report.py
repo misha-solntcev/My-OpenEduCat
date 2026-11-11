@@ -302,6 +302,12 @@ class ReportPerformanceAnalysis(models.AbstractModel):
                 r['cells'] = [r['cells'][i] for i in keep]
                 r['cell_strs'] = [r['cell_strs'][i] for i in keep]
 
+        # Класс без единой оценки за период (галка «Скрывать пустые» убрала
+        # все колонки) — страницы для него нет, как для классов без учеников.
+        # Если пустым вышел весь отчёт, шаблон печатает «Нет данных».
+        if not subject_ids:
+            return None
+
         # --- Группы ---
         groups = self._classify(rows)
 

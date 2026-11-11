@@ -30,14 +30,8 @@
     <menuitem id="menu_op_attendance_reports"
               name="Reports"
               parent="menu_op_attendance_root"
-              sequence="40"/> 
-              
-    <menuitem id="menu_student_summary_report"
-              name="Итоговые оценки (PDF)"
-              parent="menu_op_attendance_reports"
-              action="action_student_report_wizard"
-              sequence="10"
-              groups="openeducat_attendance.group_op_attendance_user,openeducat_attendance.group_op_attendance_manager"/>
+              sequence="40"
+              groups="openeducat_attendance.group_op_attendance_manager,openeducat_attendance.group_teacher_attendance"/>
 
     <menuitem id="menu_op_attendance_config"
               name="Configuration"

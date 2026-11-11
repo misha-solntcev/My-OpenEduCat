@@ -43,9 +43,9 @@
     </record>
 
     <menuitem id="menu_student_summary_report"
-              name="Итоговые  оценки"
+              name="Итоговые оценки"
               parent="openeducat_attendance.menu_op_attendance_reports"
               action="action_student_report_wizard"
               sequence="30"
-              groups="openeducat_attendance.group_op_attendance_user,openeducat_attendance.group_op_attendance_manager"/>
+              groups="openeducat_attendance.group_op_attendance_manager,openeducat_attendance.group_teacher_attendance"/>
 </odoo>
