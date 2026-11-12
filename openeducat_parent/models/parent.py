@@ -139,6 +139,11 @@ class OpStudent(models.Model):
                     user_id.child_ids = [(6, 0, child_ids)]
         if vals.get('user_id', False):
             for parent_id in self.parent_ids:
+                if not parent_id.user_id:
+                    # У родителя может не быть аккаунта (режим «один
+                    # аккаунт родителя», решение 12.11.2026) — обновлять
+                    # child_ids не у кого.
+                    continue
                 child_ids = parent_id.user_id.child_ids.ids
                 child_ids.append(vals['user_id'])
                 parent_id.name.user_id.child_ids = [(6, 0, child_ids)]
