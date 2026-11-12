@@ -178,6 +178,11 @@
                                                readonly="state == 'done'"/>
                                         <field name="email" placeholder="Email"
                                                readonly="state == 'done'"/>
+                                        <field name="child_email"
+                                               placeholder="Email ученика (если есть)"
+                                               readonly="state == 'done'"/>
+                                        <field name="single_parent_account"
+                                               readonly="state == 'done'"/>
                                     </group>
                                     <group>
                                         <field name="birth_date"

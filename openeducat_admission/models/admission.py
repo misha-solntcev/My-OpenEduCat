@@ -47,6 +47,15 @@ class OpAdmission(models.Model):
         'Mobile', size=16)
     email = fields.Char(
         'Email', size=256, required=True)
+    child_email = fields.Char(
+        'Email ученика', size=256,
+        help='Собственная почта ребёнка. Пусто (начальная школа) — '
+             'аккаунт будет один, родительский.')
+    single_parent_account = fields.Boolean(
+        'Только аккаунт родителя', default=True,
+        help='Один аккаунт — на почте родителя, пользуется родитель. '
+             'Снимается автоматически, когда заполнен email ученика: '
+             'тогда создаются два аккаунта.')
     city = fields.Char('City', size=64)
     zip = fields.Char('Zip', size=8)
     state_id = fields.Many2one(
@@ -240,12 +249,53 @@ class OpAdmission(models.Model):
         course = batch.course_id or student.course_id
         return course.subject_ids or self.env['op.subject']
 
+    @api.onchange('child_email')
+    def _onchange_child_email(self):
+        # Галочка «Только аккаунт родителя» живёт сама: почта ребёнка
+        # заполнена — два аккаунта, пусто — один родительский.
+        self.single_parent_account = not (self.child_email or '').strip()
+
+    @api.constrains('single_parent_account', 'child_email')
+    def _check_single_parent_account(self):
+        for record in self:
+            if not record.single_parent_account \
+                    and not (record.child_email or '').strip():
+                raise ValidationError(_(
+                    'Без email ученика аккаунт можно создать только один '
+                    '(родительский): поставьте галочку '
+                    '«Только аккаунт родителя» или укажите email ученика.'))
+
+    @api.constrains('child_email', 'email')
+    def _check_child_email_distinct(self):
+        for record in self:
+            child = (record.child_email or '').strip().lower()
+            parent = (record.email or '').strip().lower()
+            if child and parent and child == parent:
+                raise ValidationError(_(
+                    'Почта ученика совпадает с почтой родителя. Запросите '
+                    'у семьи второй адрес или очистите email ученика — '
+                    'тогда аккаунт будет один, родительский.'))
+
     def get_student_vals(self):
         enable_create_student_user = self.env['ir.config_parameter'].get_param(
             'openeducat_admission.enable_create_student_user')
         for student in self:
             student_user = False
-            if enable_create_student_user:
+            # Собственная почта ребёнка (решение 12.11.2026). Пусто
+            # (режим А, начальная школа) — юзер ученика не создаётся,
+            # аккаунт в семье один, родительский (его заводит
+            # enroll_student на почте родителя).
+            child_email = (student.child_email or '').strip() or False
+            if enable_create_student_user and child_email:
+                # Guard: логин = почта ребёнка не должна быть занята, даже
+                # архивным юзером (unique в БД не смотрит на active; кейс
+                # egarbst@gmail.com — падение зачисления на втором ребёнке).
+                taken = self.env['res.users']._rost_login_taken(child_email)
+                if taken:
+                    raise UserError(_(
+                        'Логин «%s» уже занят (пользователь «%s»). '
+                        'Запросите у семьи другой адрес.')
+                        % (child_email, taken.name))
                 # sudo(): create res.users внутри дергает
                 # _inverse_notification_type -> write в только что
                 # созданного юзера. Без sudo этот write проходит проверку
@@ -254,13 +304,11 @@ class OpAdmission(models.Model):
                 # (AccessError при enroll_student, prod 2026-08-31).
                 student_user = self.env['res.users'].sudo().create({
                     'name': student.name,
-                    'login': student.email if student.email else student.application_number,  # noqa
-                    # email обязателен уже на create: приглашение
-                    # (action_reset_password ниже) шлётся на partner.email,
-                    # а он до сих пор пуст. Раньше письмо слалось ДО записи
-                    # details в партнёра -> «нет адреса электронной почты».
-                    'email': student.email or False,
-                    'image_1920': self.image or False,
+                    'login': child_email,
+                    # Режим Б: почта обязательна на create — приглашение
+                    # шлётся на неё же (см. _rost_send_invite ниже).
+                    'email': child_email,
+                    'image_1920': student.image or False,
                     'is_student': True,
                     'company_id': self.company_id.id,
                     # Ученик = INTERNAL user (матрица 2026-08-23).
@@ -278,15 +326,20 @@ class OpAdmission(models.Model):
                           self.env.ref('openeducat_core.group_op_students').id])]
                 })
                 # Приглашение ученику: одноразовый signup-токен и письмо
-                # со ссылкой /web/signup для самостоятельной установки
-                # пароля (вместо ручной отправки приглашения).
-                if student.email:
-                    student_user.sudo().action_reset_password()
+                # «Аккаунт ученика» — наш шаблон вместо ядрового
+                # «Сброса пароля» (res_users._rost_send_invite). Сбой
+                # SMTP зачисление не роняет: аккаунт уже создан, письмо
+                # уходит кнопкой «Отправить приглашение повторно».
+                student_user.sudo()._rost_send_invite(
+                    'student', raise_failure=False)
             details = {
                 'name': student.name,
                 'phone': student.phone,
                 'mobile': student.mobile,
-                'email': student.email,
+                # Почта на партнёре ученика: своя, а без неё — родителя
+                # (уведомления о младшем ученике идут маме). В op.student
+                # пишем только собственную (см. details.update ниже).
+                'email': child_email or student.email,
                 'street': student.street,
                 'street2': student.street2,
                 'city': student.city,
@@ -296,8 +349,18 @@ class OpAdmission(models.Model):
                 'image_1920': student.image,
                 'zip': student.zip,
             }
-            if enable_create_student_user:
-                student_user.partner_id.write(details)
+            if student_user:
+                student_partner = student_user.partner_id
+                student_partner.write(details)
+            else:
+                # Режим А (или мастер-параметр выключен): юзера нет, но
+                # op.student._inherits res.partner требует партнёра —
+                # создаём напрямую с контактами семьи.
+                partner_vals = dict(details)
+                partner_vals['company_id'] = student.company_id.id
+                partner_vals['image_1920'] = student.image or False
+                student_partner = self.env['res.partner'].sudo().create(
+                    partner_vals)
             details.update({
                 'title': student.title and student.title.id or False,
                 'first_name': student.first_name,
@@ -330,13 +393,18 @@ class OpAdmission(models.Model):
                     'subject_ids': [(6, 0, self._default_student_subjects(
                         student).ids)],
                 }]],
+                'email': child_email or False,
+                # op.student.email — собственная почта ребёнка (логин),
+                # в режиме А пустая; контакт семьи живёт на партнёре.
                 'user_id': student_user.id if student_user else False,
-                'partner_id': student_user.partner_id.id if student_user else False,
+                'partner_id': student_partner.id,
                 'company_id': self.company_id.id
             })
             return details
 
     def enroll_student(self):
+        enable_create_student_user = self.env['ir.config_parameter'].get_param(
+            'openeducat_admission.enable_create_student_user')
         for record in self:
             if record.register_id.max_count:
                 total_admission = self.env['op.admission'].search_count(
@@ -377,23 +445,69 @@ class OpAdmission(models.Model):
                                 'name': applicant.id,
                                 'relationship_id': rel.id})
                         parent.student_ids = [(4, student.id)]
+                        # Родительский аккаунт — один на семью (решение
+                        # 12.11.2026): нет юзера → create_parent_user и
+                        # письмо «Аккаунт родителя»; есть (второй ребёнок,
+                        # повторное зачисление) → переиспользуем молча.
+                        # Без email у родителя аккаунт невозможен —
+                        # пропускаем (ручное заведение без воронки).
+                        if enable_create_student_user and parent.name.email \
+                                and not parent.name.user_id:
+                            parent.create_parent_user()
+                            parent.name.user_id.sudo()._rost_send_invite(
+                                'parent', raise_failure=False)
                     record.partner_id = record.student_id.partner_id.id \
                         if record else False
 
             else:
                 student_id = record.student_id.id
-                record.student_id.write({
-                    'course_detail_ids': [[0, False, {
-                        'course_id':
-                            record.course_id and record.course_id.id or False,
-                        'batch_id':
-                            record.batch_id and record.batch_id.id or False,
-                        'fees_term_id': record.fees_term_id.id,
-                        'fees_start_date': record.fees_start_date,
-                        'product_id': record.register_id.product_id.id,
-                        'state': 'running',
-                    }]],
-                })
+                # Идемпотентность «Завершена»: повторный запуск по той же
+                # приёмке (или пере-зачисление на тот же курс+батч) не
+                # должен дублировать course_detail — unique-констрейнт
+                # op_student_course_unique_name_roll_number_student_id
+                # роняет enroll (проверено на test4 12.11.2026).
+                duplicate = record.student_id.course_detail_ids.filtered(
+                    lambda d: d.course_id.id == record.course_id.id
+                    and d.batch_id.id == record.batch_id.id)
+                if not duplicate:
+                    record.student_id.write({
+                        'course_detail_ids': [[0, False, {
+                            'course_id':
+                                record.course_id and record.course_id.id
+                                or False,
+                            'batch_id':
+                                record.batch_id and record.batch_id.id
+                                or False,
+                            # Учебный год обязателен (NOT NULL на
+                            # op_student_course): без него пере-зачисление
+                            # роняло enroll NotNullViolation — апстрим
+                            # писал год только в ветке нового ученика.
+                            'academic_years_id':
+                                record.register_id.academic_years_id.id
+                                or False,
+                            'academic_term_id':
+                                record.register_id.academic_term_id.id
+                                or False,
+                            'fees_term_id': record.fees_term_id.id,
+                            'fees_start_date': record.fees_start_date,
+                            'product_id': record.register_id.product_id.id,
+                            'state': 'running',
+                            # Предметы — как у нового ученика: без них
+                            # пере-зачисление не попадает в предметные
+                            # каналы Discuss и не получает ДЗ.
+                            'subject_ids': [(6, 0,
+                                self._default_student_subjects(record).ids)],
+                        }]],
+                    })
+                # Транзишн (решение 12.11.2026): пере-зачисление уже
+                # существующего ученика с указанной почтой — юзер ученика
+                # создаём сразу, это тот же механизм кнопки «Создать
+                # аккаунт» на карточке ученика. Не зависит от дубликата
+                # course_detail выше.
+                if enable_create_student_user and record.child_email \
+                        and not record.student_id.user_id:
+                    record.student_id._rost_create_student_user(
+                        record.child_email, send_invite=True)
             if record.fees_term_id.fees_terms in ['fixed_days', 'fixed_date']:
                 val = []
                 product_id = record.register_id.product_id.id

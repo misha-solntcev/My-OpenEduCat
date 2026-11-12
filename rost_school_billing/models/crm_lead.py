@@ -5,6 +5,10 @@ class CrmLead(models.Model):
     _inherit = 'crm.lead'
 
     child_name = fields.Char('ФИО ребёнка')
+    child_email = fields.Char(
+        'Email ученика',
+        help='Собственная почта ребёнка (не родителя!). Пусто — при '
+             'зачислении будет один аккаунт, родительский.')
     child_birth_date = fields.Date('Дата рождения ребёнка')
     child_gender = fields.Selection([
         ('m', 'Мужской'),

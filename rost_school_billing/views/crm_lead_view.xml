@@ -10,6 +10,7 @@
                     <group>
                         <group string="Ребёнок (новый ученик)">
                             <field name="child_name"/>
+                            <field name="child_email"/>
                             <field name="child_birth_date"/>
                             <field name="child_gender"/>
                             <field name="child_course_id"/>

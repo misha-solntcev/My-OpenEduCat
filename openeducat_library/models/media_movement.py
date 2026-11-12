@@ -108,7 +108,10 @@ class OpMediaMovement(models.Model):
         if self.type == 'student':
             self.student_id = self.library_card_id.student_id.id
             self.partner_id = self.student_id.partner_id.id
-            self.user_id = self.student_id.user_id.id
+            # У ученика может не быть аккаунта (режим «один аккаунт
+            # родителя», решение 12.11.2026) — не ронять onchange.
+            self.user_id = self.student_id.user_id.id \
+                if self.student_id.user_id else False
         else:
             self.faculty_id = self.library_card_id.faculty_id.id
             self.partner_id = self.faculty_id.partner_id.id
