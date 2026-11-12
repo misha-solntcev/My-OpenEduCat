@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_op_student_form_rost_account" model="ir.ui.view">
+        <field name="name">op.student.form.rost.account</field>
+        <field name="model">op.student</field>
+        <field name="inherit_id" ref="openeducat_core.view_op_student_form"/>
+        <field name="priority" eval="14"/>
+        <field name="arch" type="xml">
+            <xpath expr="//header" position="inside">
+                <button name="action_rost_create_account" type="object"
+                        string="Создать аккаунт и отправить приглашение"
+                        icon="fa-user-plus"
+                        invisible="user_id or not email"
+                        groups="openeducat_admission.group_op_admission_user,base.group_system"/>
+                <button name="action_rost_resend_invite" type="object"
+                        string="Отправить приглашение повторно"
+                        icon="fa-envelope-o"
+                        groups="openeducat_admission.group_op_admission_user,base.group_system"/>
+            </xpath>
+            <xpath expr="//sheet" position="before">
+                <field name="rost_no_email_alert" invisible="1"/>
+                <div class="alert alert-warning" role="alert"
+                     invisible="not rost_no_email_alert">
+                    У ученика старших классов не заполнен «Email ученика» —
+                    аккаунт создать нельзя. Запросите почту у семьи,
+                    заполните поле и нажмите «Создать аккаунт и отправить
+                    приглашение».
+                </div>
+            </xpath>
+        </field>
+    </record>
+</odoo>
