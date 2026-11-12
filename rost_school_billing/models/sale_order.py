@@ -104,6 +104,12 @@ class SaleOrder(models.Model):
         if not email:
             raise UserError(_(
                 'У родителя %s не указан e-mail.') % self.partner_id.name)
+        child_email = (lead.child_email or '').strip()
+        if child_email and child_email.lower() == email.strip().lower():
+            raise UserError(_(
+                'Почта ученика в анкете совпадает с почтой родителя (%s). '
+                'Запросите у семьи второй адрес или очистите «Email ученика» '
+                'в лиде — тогда будет один аккаунт, родительский.') % email)
         words = child_name.split()
         vals = {
             'name': child_name,
@@ -113,6 +119,8 @@ class SaleOrder(models.Model):
             'birth_date': lead.child_birth_date,
             'gender': lead.child_gender or 'm',
             'email': email,
+            'child_email': child_email or False,
+            'single_parent_account': not child_email,
             'course_id': course.id,
             'register_id': self._school_find_register(course).id,
             'batch_id': self._school_find_batch(course).id,
