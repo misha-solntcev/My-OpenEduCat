@@ -1,0 +1,4 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_rost_parent_op_parent,rost_parent_op_parent,openeducat_parent.model_op_parent,group_op_parent_rost,1,0,0,0
+access_rost_parent_account_move,rost_parent_account_move,account.model_account_move,group_op_parent_rost,1,0,0,0
+access_rost_parent_account_move_line,rost_parent_account_move_line,account.model_account_move_line,group_op_parent_rost,1,0,0,0

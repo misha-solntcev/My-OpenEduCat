@@ -112,7 +112,6 @@ class OpParent(models.Model):
         return super(OpParent, self).unlink()
 
     def create_parent_user(self):
-        template = self.env.ref('openeducat_parent.parent_template_user')
         users_res = self.env['res.users']
         for record in self:
             if not record.name.email:
@@ -121,14 +120,17 @@ class OpParent(models.Model):
             # (name.user_ids) — именно так, а не по name.user_id
             # (это менеджер продаж, см. _onchange_name).
             if not record.name.user_ids:
-                # Матрица ROST: родитель = internal user с группой Родитель
-                # (наследует Student). Шаблон portal не используем.
+                # Матрица ROST: родитель = ВНУТРЕННИЙ пользователь с группой
+                # «Родитель» (наследует Student). Портал-тип (share) не
+                # используется; счета родитель смотрит на /my/invoices —
+                # доступ к своим счетам дают ACL+правила группы в
+                # rost_school_access (см. op_security.xml).
+                groups_id = [(4, self.env.ref('base.group_user').id)]
                 parent_group = self.env.ref(
                     'rost_school_access.group_op_parent_rost',
                     raise_if_not_found=False)
-                groups_id = (
-                    [(4, parent_group.id)] if parent_group
-                    else template and template.groups_id or False)
+                if parent_group:
+                    groups_id.append((4, parent_group.id))
                 user_ids = [
                     parent.user_id.id for
                     parent in record.student_ids if parent.user_id]

@@ -226,6 +226,49 @@
         <field name="perm_unlink" eval="False"/>
     </record>
 
+    <!-- Своя карточка родителя: read только своей записи op.parent
+         (своя — где он указан юзером, либо где контакт = его партнёр:
+         старые записи могли создать без аккаунта). -->
+    <record model="ir.rule" id="parent_op_parent_own_only">
+        <field name="name">Parents: Own Parent Record Only</field>
+        <field name="model_id" ref="openeducat_parent.model_op_parent"/>
+        <field name="groups" eval="[(4, ref('group_op_parent_rost'))]"/>
+        <field name="domain_force">['|', ('user_id', '=', user.id), ('name', '=', user.partner_id.id)]</field>
+        <field name="perm_read" eval="True"/>
+        <field name="perm_write" eval="False"/>
+        <field name="perm_create" eval="False"/>
+        <field name="perm_unlink" eval="False"/>
+    </record>
+
+    <!-- Счета в портале (/my/invoices) для ВНУТРЕННЕГО родителя.
+         Портал берёт свои счета по ACL группы base.group_portal и правилу
+         «Portal Personal Account Invoices», а внутренний родитель этой
+         группы иметь не может (тип пользователя один: internal ИЛИ portal).
+         Поэтому повторяем то же самое для группы «Родитель»: read-ACL в
+         security/ir_model_access.csv + эти два правила (только проведённые
+         счета своих партнёров). -->
+    <record model="ir.rule" id="parent_invoice_own_read">
+        <field name="name">Parents: Own Invoices Only</field>
+        <field name="model_id" ref="account.model_account_move"/>
+        <field name="groups" eval="[(4, ref('group_op_parent_rost'))]"/>
+        <field name="domain_force">[('state', 'not in', ('cancel', 'draft')), ('move_type', 'in', ('out_invoice', 'out_refund')), ('message_partner_ids', 'child_of', [user.commercial_partner_id.id])]</field>
+        <field name="perm_read" eval="True"/>
+        <field name="perm_write" eval="False"/>
+        <field name="perm_create" eval="False"/>
+        <field name="perm_unlink" eval="False"/>
+    </record>
+
+    <record model="ir.rule" id="parent_invoice_line_own_read">
+        <field name="name">Parents: Own Invoice Lines Only</field>
+        <field name="model_id" ref="account.model_account_move_line"/>
+        <field name="groups" eval="[(4, ref('group_op_parent_rost'))]"/>
+        <field name="domain_force">[('parent_state', 'not in', ('cancel', 'draft')), ('move_id.move_type', 'in', ('out_invoice', 'out_refund')), ('move_id.message_partner_ids', 'child_of', [user.commercial_partner_id.id])]</field>
+        <field name="perm_read" eval="True"/>
+        <field name="perm_write" eval="False"/>
+        <field name="perm_create" eval="False"/>
+        <field name="perm_unlink" eval="False"/>
+    </record>
+
     <!-- ==================== СИСТЕМНЫЕ МЕНЮ ODOO ==================== -->
     <!-- Убираем "Внутренний пользователь" из групп меню и оставляем
          только группы, которых у учеников нет. -->

@@ -22,6 +22,7 @@
     ],
     'data': [
         'security/op_security.xml',
+        'security/ir.model.access.csv',
         'views/custom_views.xml',
         'views/portal_templates.xml',
         'menu/menu.xml',
