@@ -160,17 +160,34 @@ def _rost_student_ctx(self, student):
     }
 
 
-def _rost_parent_ctx(self, partner, relationship=''):
-    """Токены parent_* + род фраз (именуемый/ая, являющийся/аяся)."""
-    if partner:
-        ctx = partner.sudo()._rost_partner_ctx()
+def _rost_parent_ctx(self, parent, relationship=''):
+    """Токены parent_* + род фраз (именуемый/ая, являющийся/аяся).
+
+    parent — запись op.parent: личные данные в SIS (решение 12.11.2026),
+    телефон/почта — стандартные поля контакта. None -> пустые токены.
+    """
+    keys = ['parent_name', 'parent_short', 'parent_birth_iso',
+            'parent_passport', 'parent_passport_issued_by',
+            'parent_passport_issue_iso', 'parent_passport_dept_code',
+            'parent_address_home', 'parent_address_reg',
+            'parent_phone', 'parent_email']
+    if parent:
+        partner = parent.name
+        ctx = {
+            'parent_name': partner.name or '',
+            'parent_short': fio_short(partner.name),
+            'parent_birth_iso': date_iso(parent.birth_date),
+            'parent_passport': parent.passport_number or '',
+            'parent_passport_issued_by': parent.passport_issued_by or '',
+            'parent_passport_issue_iso': date_iso(parent.passport_issue_date),
+            'parent_passport_dept_code': parent.passport_dept_code or '',
+            'parent_address_home': parent.address_home or '',
+            'parent_address_reg': parent.address_reg or '',
+            'parent_phone': partner.mobile or partner.phone or '',
+            'parent_email': partner.email or '',
+        }
     else:
-        ctx = dict.fromkeys(
-            ['parent_name', 'parent_short', 'parent_birth_iso',
-             'parent_passport', 'parent_passport_issued_by',
-             'parent_passport_issue_iso', 'parent_passport_dept_code',
-             'parent_address_home', 'parent_address_reg',
-             'parent_phone', 'parent_email'], '')
+        ctx = dict.fromkeys(keys, '')
     rel = (relationship or '').lower()
     female = not rel.startswith('отец')
     ctx['parent_relationship'] = relationship or ''

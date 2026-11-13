@@ -51,7 +51,7 @@ class OpStudent(models.Model):
         ctx.update(self._rost_student_ctx(self))
         parent = self.parent_ids[:1]
         ctx.update(self._rost_parent_ctx(
-            parent.name if parent else None,
+            parent,
             parent.relationship_id.name if parent else ''))
         return ctx
 

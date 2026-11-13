@@ -68,14 +68,13 @@ class ContractContract(models.Model):
         self.ensure_one()
         ctx = self._rost_company_ctx()
         student = self.student_id
-        parent_partner = self.partner_id
+        op_parent = None
         relationship = ''
         if student and student.parent_ids:
             op_parent = student.parent_ids[:1]
-            parent_partner = op_parent.name
             relationship = op_parent.relationship_id.name or ''
         ctx.update(self._rost_student_ctx(student))
-        ctx.update(self._rost_parent_ctx(parent_partner, relationship))
+        ctx.update(self._rost_parent_ctx(op_parent, relationship))
         ctx.update(self._rost_contract_ctx())
         return ctx
 
