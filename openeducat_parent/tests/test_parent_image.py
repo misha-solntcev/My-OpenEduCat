@@ -1,11 +1,15 @@
 # -*- coding: utf-8 -*-
 """Регрессия на /web/image для op.parent.
 
-У op.parent поле ``name`` — many2one, и база по умолчанию берёт из него
-имя файла для потока, падая на recordset.replace() → 500 на любом
-/web/image/op.parent/<id>/<field>. Фикс — ir_binary в этом модуле;
-тест закрепляет поведение, чтобы «убрать костыль» можно было только
-сознательно.
+Исторически поле ``name`` у op.parent было many2one на res.partner, и база
+при отдаче картинки брала из него имя файла, падая на recordset.replace()
+→ 500 на любом /web/image/op.parent/<id>/<field> (обходилось патчем
+ir.binary, 13.11.2026). Теперь связь называется partner_id, а name —
+related-строка (store=True), поэтому /web/image работает нативно.
+
+Тест держит это поведение: если кто-то вернёт m2o с именем ``name``
+(или иначе сломает имя файла), он покраснеет — молча аватары канбана
+не отключатся.
 """
 from odoo.tests import HttpCase, tagged
 
