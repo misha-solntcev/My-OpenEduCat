@@ -20,14 +20,31 @@ class OpStudent(models.Model):
     rost_no_email_alert = fields.Boolean(
         'Старшие классы без email (предупреждение)',
         compute='_compute_rost_no_email_alert')
+    rost_email_in_contact = fields.Boolean(
+        'Почта только в контакте (подсказка)',
+        compute='_compute_rost_no_email_alert')
 
-    @api.depends('email', 'course_detail_ids')
+    @api.depends('email', 'user_id', 'partner_id.email', 'course_detail_ids')
     def _compute_rost_no_email_alert(self):
+        """Предупреждать только тогда, когда аккаунт ДЕЙСТВИТЕЛЬНО не создать.
+
+        Почты может не быть в op.student.email, но быть в контакте
+        (res.partner) — апстрим держит на op.student собственное поле
+        Email, а у учеников старше 13.11.2026 почта лежит в контакте.
+        Раньше условие смотрело только на своё поле и не смотрело на
+        user_id: баннер «аккаунт создать нельзя» показывался 107 ученикам,
+        у которых аккаунт уже был (13.11.2026, Барановская Т.).
+        """
         for student in self:
             grade = student._rost_grade_number()
+            senior = bool(grade and grade >= 5)
+            own = (student.email or '').strip()
+            contact = (student.partner_id.email or '').strip()
+            no_account = not student.user_id
             student.rost_no_email_alert = bool(
-                grade and grade >= 5
-                and not (student.email or '').strip())
+                senior and no_account and not own and not contact)
+            student.rost_email_in_contact = bool(
+                senior and no_account and not own and contact)
 
     def _rost_grade_number(self):
         """Номер параллели из имени батча/курса зачисления

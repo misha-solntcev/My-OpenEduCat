@@ -19,12 +19,21 @@
             </xpath>
             <xpath expr="//sheet" position="before">
                 <field name="rost_no_email_alert" invisible="1"/>
+                <field name="rost_email_in_contact" invisible="1"/>
                 <div class="alert alert-warning" role="alert"
                      invisible="not rost_no_email_alert">
                     У ученика старших классов не заполнен «Email ученика» —
                     аккаунт создать нельзя. Запросите почту у семьи,
                     заполните поле и нажмите «Создать аккаунт и отправить
                     приглашение».
+                </div>
+                <div class="alert alert-info" role="alert"
+                     invisible="not rost_email_in_contact">
+                    Своей почты ученика нет — почта есть в контакте.
+                    Если это почта ученика, перенесите её в поле «Email» и
+                    нажмите «Создать аккаунт и отправить приглашение».
+                    Если это почта родителя, отдельный аккаунт ученика не
+                    нужен: семья входит аккаунтом родителя и видит ребёнка.
                 </div>
             </xpath>
         </field>
