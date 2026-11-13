@@ -384,4 +384,66 @@
         </field>
     </record>
 
+    <!-- ==================== ОБРАЩЕНИЕ (title) не используется ====================
+         В России «Мистер/Мисс/Мадам» не применяется: на форме приёмки поле
+         скрыто с 12.11.2026, но в карточках контактов (и в шапках
+         ученика/учителя, где title стоит отдельным inline-полем перед
+         фамилией) оно оставалось видимым вместе со старыми значениями.
+         Прячем во всех местах школьного UI: в списках — optional="hide"
+         (колонку можно вернуть через выпадашку), в формах — invisible. -->
+    <record id="view_partner_form_hide_title" model="ir.ui.view">
+        <field name="name">res.partner.form.rost.hide.title</field>
+        <field name="model">res.partner</field>
+        <field name="inherit_id" ref="base.view_partner_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='title']" position="attributes">
+                <attribute name="invisible">1</attribute>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="view_op_student_form_hide_title" model="ir.ui.view">
+        <field name="name">op.student.form.rost.hide.title</field>
+        <field name="model">op.student</field>
+        <field name="inherit_id" ref="openeducat_core.view_op_student_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='title']" position="attributes">
+                <attribute name="invisible">1</attribute>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="view_op_student_tree_hide_title" model="ir.ui.view">
+        <field name="name">op.student.list.rost.hide.title</field>
+        <field name="model">op.student</field>
+        <field name="inherit_id" ref="openeducat_core.view_op_student_tree"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='title']" position="attributes">
+                <attribute name="optional">hide</attribute>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="view_op_faculty_form_hide_title" model="ir.ui.view">
+        <field name="name">op.faculty.form.rost.hide.title</field>
+        <field name="model">op.faculty</field>
+        <field name="inherit_id" ref="openeducat_core.view_op_faculty_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='title']" position="attributes">
+                <attribute name="invisible">1</attribute>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="view_op_faculty_tree_hide_title" model="ir.ui.view">
+        <field name="name">op.faculty.list.rost.hide.title</field>
+        <field name="model">op.faculty</field>
+        <field name="inherit_id" ref="openeducat_core.view_op_faculty_tree"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='title']" position="attributes">
+                <attribute name="optional">hide</attribute>
+            </xpath>
+        </field>
+    </record>
+
 </odoo>
