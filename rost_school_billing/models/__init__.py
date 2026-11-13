@@ -2,6 +2,8 @@ from . import course
 from . import contract
 from . import doc_engine
 from . import doc_template
+from . import ir_binary
+from . import parent
 from . import res_partner
 from . import res_company
 from . import sale_order_template

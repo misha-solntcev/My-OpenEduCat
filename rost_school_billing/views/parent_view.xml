@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_op_parent_form_rost" model="ir.ui.view">
+        <field name="name">op.parent.form.rost.docs</field>
+        <field name="model">op.parent</field>
+        <field name="inherit_id" ref="openeducat_parent.view_op_parent_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//separator[@colspan='4']" position="before">
+                <separator colspan="4" string="Паспорт и адреса (для договора)"/>
+                <group>
+                    <group>
+                        <field name="birth_date"/>
+                        <field name="passport_number"/>
+                        <field name="passport_issue_date"/>
+                        <field name="passport_dept_code"/>
+                    </group>
+                    <group>
+                        <field name="passport_issued_by"/>
+                        <field name="address_reg"/>
+                        <field name="address_home"/>
+                    </group>
+                </group>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- Канбан родителей — в стиле канбана учеников -->
+    <record id="kanban_view_op_parent" model="ir.ui.view">
+        <field name="name">op.parent.kanban.rost</field>
+        <field name="model">op.parent</field>
+        <field name="arch" type="xml">
+            <!-- default_order: m2o name ORM разворачивает по имени партнёра, а не по id -->
+            <kanban default_order="name">
+                <field name="image_1920"/>
+                <field name="avatar_128"/>
+                <field name="relationship_id"/>
+                <field name="mobile"/>
+                <field name="student_count"/>
+                <field name="active"/>
+                <templates>
+                    <t t-name="card" class="flex-row">
+                        <widget name="web_ribbon" title="Archived"
+                                bg_color="text-bg-danger"
+                                invisible="active"/>
+                        <aside class="o_kanban_aside_full">
+                            <div class="o_kanban_image_fill position-relative w-100">
+                                <field name="avatar_128" alt="Родитель"
+                                       class="h-100" widget="image"
+                                       options="{'img_class': 'object-fit-cover'}"/>
+                            </div>
+                        </aside>
+                        <main class="ml16 ps-2 ps-md-0">
+                            <div class="mb-1">
+                                <field name="name" class="mb-0 fw-bold fs-5"/>
+                            </div>
+                            <div>
+                                <field name="relationship_id"
+                                       options="{'no_open': True}"/>
+                            </div>
+                            <div t-if="record.mobile.raw_value" class="text-muted">
+                                <field name="mobile"/>
+                            </div>
+                            <div>
+                                Детей: <field name="student_count"/>
+                            </div>
+                        </main>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
+
+    <!-- Канбан — первым видом в меню «Родители».
+         Строки view_ids (seq 10 list / 20 form) всегда идут первыми в computed views,
+         view_mode лишь дописывает недостающие режимы в конец — поэтому нужен
+         отдельный view_ids-ряд для kanban с sequence < 10. -->
+    <record id="openeducat_parent.act_open_op_parent_view" model="ir.actions.act_window">
+        <field name="view_mode">kanban,list,form</field>
+    </record>
+
+    <record model="ir.actions.act_window.view" id="act_open_op_parent_view_kanban_rost">
+        <field name="act_window_id" ref="openeducat_parent.act_open_op_parent_view"/>
+        <field name="sequence" eval="5"/>
+        <field name="view_mode">kanban</field>
+        <field name="view_id" ref="kanban_view_op_parent"/>
+    </record>
+</odoo>

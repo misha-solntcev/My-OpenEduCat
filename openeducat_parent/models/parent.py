@@ -25,6 +25,7 @@ from odoo.exceptions import ValidationError
 class OpParent(models.Model):
     _name = "op.parent"
     _description = "Parent"
+    _order = "name"
 
     name = fields.Many2one('res.partner', 'Name', required=True)
     user_id = fields.Many2one('res.users', string='User', store=True)
