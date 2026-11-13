@@ -53,7 +53,12 @@
                                 invisible="active == True"/>
                         <group>
                             <group>
-                                <field name="name" placeholder="Parent Name"/>
+                                <!-- Контакт — владелец имени/телефона/фото.
+                                     name — related-строка, нужна во вьюхе,
+                                     чтобы заголовок записи обновлялся без
+                                     перезагрузки. -->
+                                <field name="partner_id" placeholder="Контакт"/>
+                                <field name="name" readonly="1" invisible="1"/>
                                 <field name="mobile" required="1"/>
                             </group>
                             <group>
@@ -145,8 +150,8 @@
             <field name="name">op.parent.kanban.rost</field>
             <field name="model">op.parent</field>
             <field name="arch" type="xml">
-                <!-- default_order: m2o name ORM разворачивает по имени партнёра,
-                     а не по id -->
+                <!-- default_order: name — related-строка (store=True), в SQL
+                     это обычное текстовое поле, алфавит по имени контакта -->
                 <kanban default_order="name">
                     <field name="image_1920"/>
                     <field name="avatar_128"/>

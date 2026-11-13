@@ -26,11 +26,21 @@ class OpParent(models.Model):
     _name = "op.parent"
     _description = "Parent"
     _order = "name"
+    _rec_name = "name"
 
-    name = fields.Many2one('res.partner', 'Name', required=True)
+    # Связь с контактом называется partner_id, а не name (13.11.2026).
+    # Причина: база при отдаче изображения берёт имя файла из поля ``name``,
+    # считая его Char (ir.binary._get_filename_from_record); m2o с именем
+    # name роняет /web/image/op.parent/... в 500 на recordset.replace().
+    # name ниже — related-строка: код, вьюхи и поиск работают как раньше
+    # (как у op.student/op.faculty, где name — Char), а фото остаётся
+    # фото контакта — второй копии байтов нет.
+    partner_id = fields.Many2one(
+        'res.partner', 'Контакт', required=True, ondelete='restrict')
+    name = fields.Char(related='partner_id.name', store=True, index=True)
     user_id = fields.Many2one('res.users', string='User', store=True)
     student_ids = fields.Many2many('op.student', string='Student(s)')
-    mobile = fields.Char(string='Mobile', related='name.mobile')
+    mobile = fields.Char(string='Mobile', related='partner_id.mobile')
     active = fields.Boolean(default=True)
     relationship_id = fields.Many2one('op.parent.relationship',
                                       'Relation with Student', required=True)
@@ -59,8 +69,8 @@ class OpParent(models.Model):
     # и учителя, которые наследуют res.partner через _inherits).
     # Поля related, а не stored: partner.image_1920 — несторовый
     # compute (avatar_mixin), store молча не сохранится.
-    image_1920 = fields.Image(related='name.image_1920')
-    avatar_128 = fields.Image(related='name.avatar_128')
+    image_1920 = fields.Image(related='partner_id.image_1920')
+    avatar_128 = fields.Image(related='partner_id.avatar_128')
     student_count = fields.Integer(
         'Детей', compute='_compute_student_count')
 
@@ -70,18 +80,18 @@ class OpParent(models.Model):
 
     _sql_constraints = [(
         'unique_parent',
-        'unique(name)',
+        'unique(partner_id)',
         'Can not create parent multiple times.!'
     )]
 
-    @api.onchange('name')
-    def _onchange_name(self):
+    @api.onchange('partner_id')
+    def _onchange_partner_id(self):
         # user_id — АККАУНТ родителя (res.users, у которого
         # partner_id = name). res.partner.user_id — другое поле: менеджер
         # продаж, его CRM заполняет при создании контакта из лида, и
         # брать его за «у родителя есть аккаунт» нельзя (13.11.2026:
         # из-за этого родителям из воронки аккаунт не создавался вовсе).
-        self.user_id = self.name.user_ids[:1]
+        self.user_id = self.partner_id.user_ids[:1]
 
     @api.model_create_multi
     def create(self, vals_list):
@@ -114,12 +124,12 @@ class OpParent(models.Model):
     def create_parent_user(self):
         users_res = self.env['res.users']
         for record in self:
-            if not record.name.email:
+            if not record.partner_id.email:
                 raise ValidationError(_('Update parent email id first.'))
             # Аккаунт уже есть, если у контакта есть пользователи
-            # (name.user_ids) — именно так, а не по name.user_id
-            # (это менеджер продаж, см. _onchange_name).
-            if not record.name.user_ids:
+            # (partner_id.user_ids) — именно так, а не по partner_id.user_id
+            # (это менеджер продаж, см. _onchange_partner_id).
+            if not record.partner_id.user_ids:
                 # Матрица ROST: родитель = ВНУТРЕННИЙ пользователь с группой
                 # «Родитель» (наследует Student). Портал-тип (share) не
                 # используется; счета родитель смотрит на /my/invoices —
@@ -135,9 +145,9 @@ class OpParent(models.Model):
                     parent.user_id.id for
                     parent in record.student_ids if parent.user_id]
                 user_id = users_res.create({
-                    'name': record.name.name,
-                    'partner_id': record.name.id,
-                    'login': record.name.email,
+                    'name': record.partner_id.name,
+                    'partner_id': record.partner_id.id,
+                    'login': record.partner_id.email,
                     'is_parent': True,
                     'tz': self._context.get('tz'),
                     'groups_id': groups_id,
