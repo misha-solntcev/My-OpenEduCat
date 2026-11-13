@@ -158,7 +158,7 @@ def _get_user_students(user):
     if student:
         return 'student', student
     parent = request.env['op.parent'].sudo().search([
-        ('name', '=', user.partner_id.id)
+        ('partner_id', '=', user.partner_id.id)
     ], limit=1)
     if parent:
         return 'parent', parent.student_ids
@@ -170,12 +170,12 @@ def _get_user_children(user):
 
     Источник тот же, что в правиле «свои дети» rost_school_access
     (op_security.xml: «свои дети» = student.user_id in user.child_ids):
-    op.parent(name=user.partner_id).student_ids, fallback — юзеры детей
+    op.parent(partner_id=user.partner_id).student_ids, fallback — юзеры детей
     в user.child_ids (родительскую связь заводит openeducat_parent).
     Роль не важна: учитель-родитель получает своих детей тем же путём.
     """
     parent = request.env['op.parent'].sudo().search([
-        ('name', '=', user.partner_id.id)
+        ('partner_id', '=', user.partner_id.id)
     ], limit=1)
     children = parent.student_ids if parent \
         else request.env['op.student'].browse()
@@ -1425,7 +1425,7 @@ class RostMaxTimetableController(http.Controller):
         ], limit=1))
 
         is_parent = bool(request.env['op.parent'].sudo().search([
-            ('name', '=', user.partner_id.id)
+            ('partner_id', '=', user.partner_id.id)
         ], limit=1))
 
         # Аватар: своя фотка из профиля роли (faculty/student), URL только

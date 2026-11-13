@@ -233,7 +233,7 @@
         <field name="name">Parents: Own Parent Record Only</field>
         <field name="model_id" ref="openeducat_parent.model_op_parent"/>
         <field name="groups" eval="[(4, ref('group_op_parent_rost'))]"/>
-        <field name="domain_force">['|', ('user_id', '=', user.id), ('name', '=', user.partner_id.id)]</field>
+        <field name="domain_force">['|', ('user_id', '=', user.id), ('partner_id', '=', user.partner_id.id)]</field>
         <field name="perm_read" eval="True"/>
         <field name="perm_write" eval="False"/>
         <field name="perm_create" eval="False"/>

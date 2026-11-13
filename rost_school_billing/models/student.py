@@ -71,7 +71,7 @@ class OpStudent(models.Model):
                     'У ученика %s не указан курс.') % student.name)
             start = (start_date or detail.fees_start_date
                      or fields.Date.context_today(self))
-            billing_partner = partner or student.parent_ids[:1].name \
+            billing_partner = partner or student.parent_ids[:1].partner_id \
                 or student.partner_id
             if not billing_partner:
                 raise UserError(_(

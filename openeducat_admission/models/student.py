@@ -69,8 +69,8 @@ class OpStudent(models.Model):
                 'Логин «%s» уже занят (пользователь «%s»). '
                 'Запросите у семьи другой адрес.') % (email, taken.name))
         parent = self.parent_ids[:1]
-        if parent and parent.name and parent.name.email \
-                and not parent.user_id and not parent.name.user_ids:
+        if parent and parent.partner_id and parent.partner_id.email \
+                and not parent.user_id and not parent.partner_id.user_ids:
             parent.create_parent_user()
             if send_invite:
                 parent.user_id.sudo()._rost_send_invite(

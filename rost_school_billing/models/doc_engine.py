@@ -172,7 +172,7 @@ def _rost_parent_ctx(self, parent, relationship=''):
             'parent_address_home', 'parent_address_reg',
             'parent_phone', 'parent_email']
     if parent:
-        partner = parent.name
+        partner = parent.partner_id
         ctx = {
             'parent_name': partner.name or '',
             'parent_short': fio_short(partner.name),

@@ -98,7 +98,7 @@ class OpAdmission(models.Model):
         подтянуть данные заявителя из SIS, чтобы не вводить паспорт заново."""
         for admission in self:
             parent = self.env['op.parent'].search(
-                [('name', '=', admission.partner_id.id)], limit=1)
+                [('partner_id', '=', admission.partner_id.id)], limit=1)
             if parent:
                 for adm_field, parent_field in \
                         admission.PARENT_DATA_FIELDS.items():
@@ -489,7 +489,7 @@ class OpAdmission(models.Model):
                     if applicant and applicant != student.partner_id \
                             and not student.parent_ids:
                         parent = self.env['op.parent'].search(
-                            [('name', '=', applicant.id)], limit=1)
+                            [('partner_id', '=', applicant.id)], limit=1)
                         if not parent:
                             # Степень родства — из приёмки (приходит из
                             # анкеты сайта), не «первая запись» наугад
@@ -502,7 +502,7 @@ class OpAdmission(models.Model):
                                     'op.parent.relationship'].create(
                                     {'name': _('Другое')})
                             parent = self.env['op.parent'].create({
-                                'name': applicant.id,
+                                'partner_id': applicant.id,
                                 'relationship_id': rel.id})
                         # Личные данные заявителя из вкладки «Заявитель»
                         # приёмки → в SIS (op.parent). Пишем только
@@ -518,9 +518,9 @@ class OpAdmission(models.Model):
                         # повторное зачисление) → переиспользуем молча.
                         # Без email у родителя аккаунт невозможен —
                         # пропускаем (ручное заведение без воронки).
-                        if enable_create_student_user and parent.name.email \
+                        if enable_create_student_user and parent.partner_id.email \
                                 and not parent.user_id \
-                                and not parent.name.user_ids:
+                                and not parent.partner_id.user_ids:
                             parent.create_parent_user()
                             parent.user_id.sudo()._rost_send_invite(
                                 'parent', raise_failure=False)

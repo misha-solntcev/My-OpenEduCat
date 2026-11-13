@@ -37,10 +37,11 @@ class OpAdmission(models.Model):
         'График платежей', compute='_compute_billing_schedule_html')
 
     @api.depends('student_id', 'student_id.parent_ids',
+                 'student_id.parent_ids.partner_id',
                  'student_id.partner_id')
     def _compute_billing_partner(self):
         for admission in self:
-            parent = admission.student_id.parent_ids[:1].name
+            parent = admission.student_id.parent_ids[:1].partner_id
             admission.billing_partner_id = (
                 parent or admission.student_id.partner_id)
 
