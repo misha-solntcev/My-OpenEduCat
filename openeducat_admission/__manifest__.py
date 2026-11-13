@@ -30,7 +30,10 @@
     'website': 'https://www.openeducat.org',
     'depends': [
         'openeducat_core',
-        'openeducat_fees'
+        'openeducat_fees',
+        # РОСТ: зачисление пишет op.parent (личные данные заявителя),
+        # поэтому зависимость объявлена явно, а не «оно и так стоит».
+        'openeducat_parent',
     ],
     'data': [
         'security/op_admission_security.xml',
@@ -40,6 +43,7 @@
         'data/invite_templates.xml',
         'views/admission_register_view.xml',
         'views/admission_view.xml',
+        'views/admission_parent_view.xml',
         'views/student_view.xml',
         'report/report_admission_analysis.xml',
         'report/report_menu.xml',

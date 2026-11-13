@@ -35,6 +35,39 @@ class OpParent(models.Model):
     relationship_id = fields.Many2one('op.parent.relationship',
                                       'Relation with Student', required=True)
 
+    # ---- РОСТ: личные данные родителя (решение 12.11.2026) ----
+    # Живут в SIS (op.parent), не в контактах: контакты остаются по
+    # стандарту Odoo — имя, телефон, email. Источник токенов parent_*
+    # для договоров — эти поля.
+    birth_date = fields.Date('Дата рождения')
+    passport_number = fields.Char(
+        'Паспорт: серия и номер',
+        help="Как в договоре, одним полем: «40 20 781577».")
+    passport_issued_by = fields.Char('Паспорт: кем выдан')
+    passport_issue_date = fields.Date('Паспорт: дата выдачи')
+    passport_dept_code = fields.Char(
+        'Паспорт: код подразделения',
+        help="«780-006».")
+    address_reg = fields.Char(
+        'Адрес регистрации',
+        help="Адрес регистрации по паспорту — для договора.")
+    address_home = fields.Char(
+        'Адрес фактического проживания',
+        help="Домашний адрес — для договора.")
+
+    # Канбан: аватар — фото контакта (одна точка правды, как у ученика
+    # и учителя, которые наследуют res.partner через _inherits).
+    # Поля related, а не stored: partner.image_1920 — несторовый
+    # compute (avatar_mixin), store молча не сохранится.
+    image_1920 = fields.Image(related='name.image_1920')
+    avatar_128 = fields.Image(related='name.avatar_128')
+    student_count = fields.Integer(
+        'Детей', compute='_compute_student_count')
+
+    def _compute_student_count(self):
+        for parent in self:
+            parent.student_count = len(parent.student_ids)
+
     _sql_constraints = [(
         'unique_parent',
         'unique(name)',

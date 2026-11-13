@@ -19,7 +19,6 @@
         'views/sale_order_view.xml',
         'views/admission_view.xml',
         'views/student_view.xml',
-        'views/parent_view.xml',
         'views/res_company_view.xml',
         'views/doc_template_views.xml',
         'views/hide_menus.xml',

@@ -18,5 +18,6 @@
 #
 ##############################################################################
 
+from . import ir_binary
 from . import parent
 from . import parent_relationship
