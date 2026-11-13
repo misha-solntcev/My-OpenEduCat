@@ -519,9 +519,10 @@ class OpAdmission(models.Model):
                         # Без email у родителя аккаунт невозможен —
                         # пропускаем (ручное заведение без воронки).
                         if enable_create_student_user and parent.name.email \
-                                and not parent.name.user_id:
+                                and not parent.user_id \
+                                and not parent.name.user_ids:
                             parent.create_parent_user()
-                            parent.name.user_id.sudo()._rost_send_invite(
+                            parent.user_id.sudo()._rost_send_invite(
                                 'parent', raise_failure=False)
                     record.partner_id = record.student_id.partner_id.id \
                         if record else False

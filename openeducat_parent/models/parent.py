@@ -76,35 +76,40 @@ class OpParent(models.Model):
 
     @api.onchange('name')
     def _onchange_name(self):
-        self.user_id = self.name.user_id and self.name.user_id.id or False
+        # user_id — АККАУНТ родителя (res.users, у которого
+        # partner_id = name). res.partner.user_id — другое поле: менеджер
+        # продаж, его CRM заполняет при создании контакта из лида, и
+        # брать его за «у родителя есть аккаунт» нельзя (13.11.2026:
+        # из-за этого родителям из воронки аккаунт не создавался вовсе).
+        self.user_id = self.name.user_ids[:1]
 
     @api.model_create_multi
     def create(self, vals_list):
         res = super(OpParent, self).create(vals_list)
-        for vals in vals_list:
-            if vals.get('student_ids', False) and res.name.user_id:
-                student_ids = self.student_ids.browse(res.student_ids.ids)
-                user_ids = [student_id.user_id.id for student_id in student_ids
+        for vals, rec in zip(vals_list, res):
+            if vals.get('student_ids', False) and rec.user_id:
+                user_ids = [student_id.user_id.id
+                            for student_id in rec.student_ids
                             if student_id.user_id]
-                res.user_id.child_ids = [(6, 0, user_ids)]
+                rec.user_id.child_ids = [(6, 0, user_ids)]
         return res
 
     def write(self, vals):
+        res = super(OpParent, self).write(vals)
         for rec in self:
-            res = super(OpParent, self).write(vals)
-            if vals.get('student_ids', False) and rec.name.user_id:
-                student_ids = rec.student_ids.browse(rec.student_ids.ids)
-                usr_ids = [student_id.user_id.id for student_id in student_ids
+            if vals.get('student_ids', False) and rec.user_id:
+                usr_ids = [student_id.user_id.id
+                           for student_id in rec.student_ids
                            if student_id.user_id]
                 rec.user_id.child_ids = [(6, 0, usr_ids)]
-            rec.env.registry.clear_cache()
-            return res
+        self.env.registry.clear_cache()
+        return res
 
     def unlink(self):
         for record in self:
-            if record.name.user_id:
+            if record.user_id:
                 record.user_id.child_ids = [(6, 0, [])]
-            return super(OpParent, self).unlink()
+        return super(OpParent, self).unlink()
 
     def create_parent_user(self):
         template = self.env.ref('openeducat_parent.parent_template_user')
@@ -112,7 +117,10 @@ class OpParent(models.Model):
         for record in self:
             if not record.name.email:
                 raise ValidationError(_('Update parent email id first.'))
-            if not record.name.user_id:
+            # Аккаунт уже есть, если у контакта есть пользователи
+            # (name.user_ids) — именно так, а не по name.user_id
+            # (это менеджер продаж, см. _onchange_name).
+            if not record.name.user_ids:
                 # Матрица ROST: родитель = internal user с группой Родитель
                 # (наследует Student). Шаблон portal не используем.
                 parent_group = self.env.ref(
@@ -133,8 +141,9 @@ class OpParent(models.Model):
                     'groups_id': groups_id,
                     'child_ids': [(6, 0, user_ids)]
                 })
+                # res.partner.user_id (менеджер продаж) НЕ трогаем:
+                # связь «родитель ↔ аккаунт» живёт в op.parent.user_id.
                 record.user_id = user_id
-                record.name.user_id = user_id
 
 
 class OpStudent(models.Model):
@@ -180,7 +189,7 @@ class OpStudent(models.Model):
                     continue
                 child_ids = parent_id.user_id.child_ids.ids
                 child_ids.append(vals['user_id'])
-                parent_id.name.user_id.child_ids = [(6, 0, child_ids)]
+                parent_id.user_id.child_ids = [(6, 0, child_ids)]
         self.env.registry.clear_cache()
         return res
 
@@ -190,7 +199,7 @@ class OpStudent(models.Model):
                 for parent_id in record.parent_ids:
                     child_ids = parent_id.user_id.child_ids.ids
                     child_ids.remove(record.user_id.id)
-                    parent_id.name.user_id.child_ids = [(6, 0, child_ids)]
+                    parent_id.user_id.child_ids = [(6, 0, child_ids)]
         return super(OpStudent, self).unlink()
 
     def get_parent(self):

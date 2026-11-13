@@ -137,9 +137,13 @@ class OpStudent(models.Model):
                     }))
                 month_cursor += months
             if not line_vals:
+                where = (_('заказе %s', order.name) if order
+                         else _('шаблоне «%s»',
+                                template.name if template else ''))
                 raise UserError(_(
-                    'В шаблоне «%s» нет строк для подписки.')
-                    % template.name)
+                    'Нет строк для подписки: в %s нет ни одной позиции '
+                    'с количеством месяцев (взнос и разделы пропускаются).')
+                    % where)
             contract = self.env['contract.contract'].create({
                 'name': _('Обучение: %s (%s)')
                         % (student.name, course.name),

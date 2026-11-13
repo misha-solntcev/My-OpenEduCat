@@ -70,10 +70,10 @@ class OpStudent(models.Model):
                 'Запросите у семьи другой адрес.') % (email, taken.name))
         parent = self.parent_ids[:1]
         if parent and parent.name and parent.name.email \
-                and not parent.name.user_id:
+                and not parent.user_id and not parent.name.user_ids:
             parent.create_parent_user()
             if send_invite:
-                parent.name.user_id.sudo()._rost_send_invite(
+                parent.user_id.sudo()._rost_send_invite(
                     'parent', raise_failure=not invite_raise)
         user = self.env['res.users'].sudo().create({
             'name': self.name,
@@ -120,7 +120,7 @@ class OpStudent(models.Model):
             kind = 'student'
         else:
             parent = self.parent_ids[:1]
-            target = parent.name.user_id if parent and parent.name else False
+            target = parent.user_id if parent else False
             if not target:
                 raise UserError(_(
                     'Нечего отправлять: у ученика нет аккаунта, '
