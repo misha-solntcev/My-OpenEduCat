@@ -125,6 +125,7 @@ class SaleOrder(models.Model):
             'register_id': self._school_find_register(course).id,
             'batch_id': self._school_find_batch(course).id,
             'prev_institute_id': lead.child_current_school or '',
+            'relationship_id': lead.child_parent_relationship_id or False,
             'application_date': fields.Date.context_today(self),
             'fees_start_date': self._school_default_fees_start(),
             'partner_id': self.partner_id.id,

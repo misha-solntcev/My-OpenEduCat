@@ -4,6 +4,11 @@ from odoo import fields, models
 class CrmLead(models.Model):
     _inherit = 'crm.lead'
 
+    child_parent_relationship_id = fields.Many2one(
+        'op.parent.relationship', 'Степень родства заявителя',
+        help='Кем заявитель приходится ребёнку. Выпадающий список из '
+             'справочника (как «класс»); при создании приёмки уезжает '
+             'в op.parent автоматически.')
     child_name = fields.Char('ФИО ребёнка')
     child_email = fields.Char(
         'Email ученика',

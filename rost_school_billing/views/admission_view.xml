@@ -1,10 +1,46 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
+    <!-- Форма приёмки «шлюз», раскладка A (решение 12.11.2026):
+         вкладки Поступление / Ученик / Заявитель / Биллинг.
+         Личные данные семьи собираются в приёмке и при зачислении
+         пишутся в SIS (op.parent, меню «Родители»); контакты
+         res.partner остаются по стандарту Odoo. -->
     <record id="view_op_admission_form_billing" model="ir.ui.view">
         <field name="name">op.admission.form.billing</field>
         <field name="model">op.admission</field>
         <field name="inherit_id" ref="openeducat_admission.view_op_admission_form"/>
         <field name="arch" type="xml">
+
+            <!-- Кнопки шапки — по-русски -->
+            <xpath expr="//header/button[@name='submit_form']" position="attributes">
+                <attribute name="string">Подать</attribute>
+            </xpath>
+            <xpath expr="//header/button[@name='confirm_in_progress']" position="attributes">
+                <attribute name="string">Подтвердить</attribute>
+            </xpath>
+            <xpath expr="//header/button[@name='admission_confirm']" position="attributes">
+                <attribute name="string">Допустить</attribute>
+            </xpath>
+            <xpath expr="//header/button[@name='enroll_student']" position="attributes">
+                <attribute name="string">Зачислить</attribute>
+            </xpath>
+            <xpath expr="//header/button[@name='confirm_rejected']" position="attributes">
+                <attribute name="string">Отклонить</attribute>
+            </xpath>
+            <xpath expr="//header/button[@name='confirm_pending']" position="attributes">
+                <attribute name="string">Ожидание</attribute>
+            </xpath>
+            <xpath expr="//header/button[@name='confirm_cancel']" position="attributes">
+                <attribute name="string">Отмена</attribute>
+            </xpath>
+            <xpath expr="//header/button[@name='confirm_to_draft']" position="attributes">
+                <attribute name="string">Вернуть в черновик</attribute>
+            </xpath>
+            <xpath expr="//header/button[@name='open_student']" position="attributes">
+                <attribute name="string">Открыть ученика</attribute>
+            </xpath>
+
+            <!-- Кнопки биллинга -->
             <xpath expr="//header" position="inside">
                 <button name="action_create_subscription" type="object"
                         string="Создать подписку" class="btn-primary"
@@ -15,43 +51,141 @@
                         invisible="state != 'done' or not student_id"
                         groups="openeducat_admission.group_op_admission_user,base.group_system"/>
             </xpath>
+
+            <!-- Наследие en-US и старый движок оплаты: прячем -->
+            <xpath expr="//field[@name='title']" position="attributes">
+                <attribute name="invisible">1</attribute>
+            </xpath>
             <xpath expr="//field[@name='fees_term_id']" position="attributes">
                 <attribute name="invisible">1</attribute>
             </xpath>
-            <xpath expr="//sheet" position="inside">
-                <group string="Биллинг" name="billing">
+            <xpath expr="//field[@name='discount']" position="attributes">
+                <attribute name="invisible">1</attribute>
+            </xpath>
+            <xpath expr="//field[@name='due_date']" position="attributes">
+                <attribute name="invisible">1</attribute>
+            </xpath>
+            <xpath expr="//field[@name='fees']" position="attributes">
+                <attribute name="invisible">1</attribute>
+            </xpath>
+            <xpath expr="//field[@name='prev_result']" position="attributes">
+                <attribute name="invisible">1</attribute>
+            </xpath>
+            <xpath expr="//field[@name='prev_course_id']" position="attributes">
+                <attribute name="invisible">1</attribute>
+            </xpath>
+            <xpath expr="//field[@name='family_business']" position="attributes">
+                <attribute name="invisible">1</attribute>
+            </xpath>
+            <xpath expr="//field[@name='family_income']" position="attributes">
+                <attribute name="invisible">1</attribute>
+            </xpath>
+            <xpath expr="//label[@for='street']" position="attributes">
+                <attribute name="invisible">1</attribute>
+            </xpath>
+            <xpath expr="//div[./div/field[@name='street']]" position="attributes">
+                <attribute name="invisible">1</attribute>
+            </xpath>
+
+            <!-- Вкладка 1: Поступление (данные ребёнка и семьи уходят
+                 на свои вкладки, here — организация приёмки) -->
+            <xpath expr="//page[@name='admission_detail']" position="attributes">
+                <attribute name="string">Поступление</attribute>
+            </xpath>
+
+            <!-- Вкладка 2: Ученик (бывшая Educational Detail) -->
+            <xpath expr="//page[@name='educational_detail']" position="attributes">
+                <attribute name="string">Ученик</attribute>
+            </xpath>
+            <xpath expr="//page[@name='educational_detail']//field[@name='prev_institute_id']" position="attributes">
+                <attribute name="string">Предыдущая школа</attribute>
+            </xpath>
+            <xpath expr="//page[@name='educational_detail']//group[1]" position="inside">
+                <field name="gender" position="move"/>
+                <field name="birth_date" position="move"/>
+                <field name="child_email" position="move"/>
+                <field name="single_parent_account" position="move"/>
+            </xpath>
+
+            <!-- Вкладка 3: Заявитель (бывшая Personal Detail):
+                 контакт + родство + паспорт/адреса для договора -->
+            <xpath expr="//page[@name='personal_detail']" position="attributes">
+                <attribute name="string">Заявитель</attribute>
+            </xpath>
+            <xpath expr="//page[@name='personal_detail']//group[1]//group[1]" position="inside">
+                <field name="partner_id" position="move"/>
+            </xpath>
+            <xpath expr="//page[@name='personal_detail']//field[@name='partner_id']" position="after">
+                <field name="relationship_id"/>
+            </xpath>
+            <xpath expr="//page[@name='personal_detail']//field[@name='email']" position="attributes">
+                <attribute name="string">Email семьи</attribute>
+            </xpath>
+            <xpath expr="//page[@name='personal_detail']//field[@name='phone']" position="attributes">
+                <attribute name="string">Телефон семьи</attribute>
+            </xpath>
+            <xpath expr="//page[@name='personal_detail']//field[@name='mobile']" position="attributes">
+                <attribute name="string">Мобильный семьи</attribute>
+            </xpath>
+            <xpath expr="//page[@name='personal_detail']" position="inside">
+                <group string="Паспорт и адреса (для договора)" name="parent_docs">
                     <group>
-                        <div colspan="2" class="text-muted"
-                             invisible="state == 'done'">
-                            После подтверждения приёмки кнопка «Создать
-                            подписку» в шапке создаёт подписку с графиком
-                            платежей и — если в КП есть взнос — черновик
-                            счёта за вступительный взнос.
-                        </div>
-                        <field name="billing_partner_id"/>
-                        <field name="sale_order_id" readonly="1"
-                               invisible="not sale_order_id"/>
-                        <field name="contract_count" invisible="1"/>
-                        <field name="entry_fee_invoice_id"
-                               invisible="not entry_fee_invoice_id"/>
+                        <field name="parent_birth_date"/>
+                        <field name="parent_passport_number"/>
+                        <field name="parent_passport_issue_date"/>
+                        <field name="parent_passport_dept_code"/>
                     </group>
-                    <field name="contract_ids" nolabel="1" colspan="2"
-                           readonly="1">
-                        <list>
-                            <field name="name" string="Подписка"/>
-                            <field name="partner_id" string="Плательщик"/>
-                            <field name="date_start" string="Начало"/>
-                            <field name="date_end" string="Окончание"/>
-                            <field name="recurring_next_date"
-                                   string="Следующий счёт"/>
-                            <field name="last_date_invoiced"
-                                   string="Последний счёт"/>
-                        </list>
-                    </field>
-                    <field name="billing_schedule_html" nolabel="1"
-                           colspan="2" readonly="1"
-                           invisible="not contract_ids"/>
+                    <group>
+                        <field name="parent_passport_issued_by"/>
+                        <field name="parent_address_reg"/>
+                        <field name="parent_address_home"/>
+                    </group>
                 </group>
+                <div class="text-muted">
+                    Данные заполняются один раз на семью: при зачислении
+                    переносятся в SIS («Родители») и переиспользуются для
+                    следующих детей. После зачисления править в карточке
+                    родителя.
+                </div>
+            </xpath>
+
+            <!-- Вкладка 4: Биллинг -->
+            <xpath expr="//notebook" position="inside">
+                <page name="billing_rost" string="Биллинг">
+                    <group name="billing">
+                        <group>
+                            <div colspan="2" class="text-muted"
+                                 invisible="state == 'done'">
+                                После подтверждения приёмки кнопка «Создать
+                                подписку» в шапке создаёт подписку с графиком
+                                платежей и — если в КП есть взнос — черновик
+                                счёта за вступительный взнос.
+                            </div>
+                            <field name="billing_partner_id"/>
+                            <field name="sale_order_id" readonly="1"
+                                   invisible="not sale_order_id"/>
+                            <field name="contract_count" invisible="1"/>
+                            <field name="entry_fee_invoice_id"
+                                   invisible="not entry_fee_invoice_id"/>
+                        </group>
+                        <field name="contract_ids" nolabel="1" colspan="2"
+                               readonly="1">
+                            <list>
+                                <field name="name" string="Подписка"/>
+                                <field name="partner_id" string="Плательщик"/>
+                                <field name="date_start" string="Начало"/>
+                                <field name="date_end" string="Окончание"/>
+                                <field name="recurring_next_date"
+                                       string="Следующий счёт"/>
+                                <field name="last_date_invoiced"
+                                       string="Последний счёт"/>
+                            </list>
+                        </field>
+                        <field name="billing_schedule_html" nolabel="1"
+                               colspan="2" readonly="1"
+                               invisible="not contract_ids"/>
+                    </group>
+                </page>
             </xpath>
         </field>
     </record>

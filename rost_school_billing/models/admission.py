@@ -18,6 +18,62 @@ class OpAdmission(models.Model):
         compute='_compute_billing_partner', store=True, readonly=False,
         help="Родитель из карточки ученика; если не указан — партнёр "
              "ученика.")
+
+    # Степень родства и личные данные заявителя (решение 12.11.2026):
+    # собираются во вкладке «Заявитель» приёмки, при зачислении
+    # пишутся в op.parent (SIS). Контакты res.partner остаются
+    # стандартными — только имя/телефон/email.
+    relationship_id = fields.Many2one(
+        'op.parent.relationship', 'Степень родства',
+        help="Кем заявитель приходится ребёнку. Приходит из анкеты "
+             "на сайте, можно поправить до зачисления.")
+    parent_birth_date = fields.Date('Заявитель: дата рождения')
+    parent_passport_number = fields.Char(
+        'Заявитель: паспорт (серия и номер)',
+        help="Как в договоре, одним полем: «40 20 781577».")
+    parent_passport_issued_by = fields.Char('Заявитель: паспорт кем выдан')
+    parent_passport_issue_date = fields.Date('Заявитель: паспорт дата выдачи')
+    parent_passport_dept_code = fields.Char(
+        'Заявитель: код подразделения', help="«780-006».")
+    parent_address_reg = fields.Char(
+        'Заявитель: адрес регистрации',
+        help="По паспорту — для договора.")
+    parent_address_home = fields.Char(
+        'Заявитель: адрес фактического проживания',
+        help="Домашний адрес — для договора.")
+
+    # имя поля на op.admission -> имя поля на op.parent (SIS)
+    PARENT_DATA_FIELDS = {
+        'relationship_id': 'relationship_id',
+        'parent_birth_date': 'birth_date',
+        'parent_passport_number': 'passport_number',
+        'parent_passport_issued_by': 'passport_issued_by',
+        'parent_passport_issue_date': 'passport_issue_date',
+        'parent_passport_dept_code': 'passport_dept_code',
+        'parent_address_reg': 'address_reg',
+        'parent_address_home': 'address_home',
+    }
+
+    @api.onchange('partner_id')
+    def _onchange_partner_id_parent_data(self):
+        """Повторная семья (второй ребёнок, повторное поступление):
+        подтянуть данные заявителя из SIS, чтобы не вводить паспорт заново."""
+        for admission in self:
+            parent = self.env['op.parent'].search(
+                [('name', '=', admission.partner_id.id)], limit=1)
+            if parent:
+                for adm_field, parent_field in \
+                        admission.PARENT_DATA_FIELDS.items():
+                    admission[adm_field] = parent[parent_field]
+
+    def _parent_data_vals(self):
+        """Непустые личные данные заявителя с приёмки — для записи в
+        op.parent (ключи — имена полей op.parent)."""
+        self.ensure_one()
+        return {parent_field: self[adm_field]
+                for adm_field, parent_field in self.PARENT_DATA_FIELDS.items()
+                if self[adm_field]}
+
     entry_fee_invoice_id = fields.Many2one(
         'account.move', 'Счёт за вступительный взнос', copy=False)
     sale_order_id = fields.Many2one(
@@ -53,7 +109,7 @@ class OpAdmission(models.Model):
         ctx.update(self._rost_student_ctx(student))
         parent = (student.parent_ids[:1] if student else None)
         ctx.update(self._rost_parent_ctx(
-            parent.name if parent else (self.billing_partner_id or None),
+            parent,
             parent.relationship_id.name if parent else ''))
         return ctx
 

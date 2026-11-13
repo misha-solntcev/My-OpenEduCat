@@ -435,8 +435,12 @@ class OpAdmission(models.Model):
                         parent = self.env['op.parent'].search(
                             [('name', '=', applicant.id)], limit=1)
                         if not parent:
-                            rel = self.env['op.parent.relationship'].search(
-                                [], limit=1)
+                            # Степень родства — из приёмки (приходит из
+                            # анкеты сайта), не «первая запись» наугад
+                            # (решение 12.11.2026).
+                            rel = record.relationship_id \
+                                or self.env['op.parent.relationship'].search(
+                                    [], limit=1)
                             if not rel:
                                 rel = self.env[
                                     'op.parent.relationship'].create(
@@ -444,6 +448,13 @@ class OpAdmission(models.Model):
                             parent = self.env['op.parent'].create({
                                 'name': applicant.id,
                                 'relationship_id': rel.id})
+                        # Личные данные заявителя из вкладки «Заявитель»
+                        # приёмки → в SIS (op.parent). Пишем только
+                        # заполненное: старые приёмки без данных не должны
+                        # затирать карточку существующего родителя.
+                        parent_vals = record._parent_data_vals()
+                        if parent_vals:
+                            parent.write(parent_vals)
                         parent.student_ids = [(4, student.id)]
                         # Родительский аккаунт — один на семью (решение
                         # 12.11.2026): нет юзера → create_parent_user и

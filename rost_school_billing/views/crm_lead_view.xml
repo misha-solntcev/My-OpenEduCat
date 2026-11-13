@@ -19,6 +19,7 @@
                             <field name="child_medical"/>
                         </group>
                         <group string="Семья и согласия">
+                            <field name="child_parent_relationship_id"/>
                             <field name="child_address"/>
                             <field name="personal_data_consent"/>
                             <field name="existing_student_id"/>
