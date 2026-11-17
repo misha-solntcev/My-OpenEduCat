@@ -549,8 +549,18 @@ class RostMaxTimetableController(http.Controller):
                 if user.totp_enabled:
                     # Проверяем доверенное устройство
                     if _check_trusted_device(user):
-                        # Устройство доверено - пропускаем 2FA
-                        pass
+                        # Устройство доверено — завершаем 2FA без кода.
+                        # authenticate() при totp_enabled НЕ авторизует
+                        # сессию (uid уходит в pre_uid, см. finalize в
+                        # odoo/http.py); без finalize ответ success:true
+                        # уходил с пустым session.uid, user/info отвечал
+                        # 401 и фронт вечно выбрасывал на форму входа
+                        # (прецедент inbox@, 17.11.2026). Набор — как в
+                        # login_totp после проверки кода.
+                        request.session.finalize(request.env)
+                        request.session.should_rotate = False
+                        request.session.uid = user.id
+                        request.session.pop('pre_uid', None)
                     else:
                         # Нужно 2FA - сохраняем pre_uid и возвращаем challenge
                         request.session.pre_uid = auth_info['uid']
