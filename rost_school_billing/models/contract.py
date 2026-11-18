@@ -35,8 +35,8 @@ class ContractContract(models.Model):
              "(бумажный журнал), дубли не допускаются.")
     doc_date = fields.Date('Дата договора', copy=False)
     doc_clause35 = fields.Text(
-        'Условия п. 3.5',
-        help="Текст пункта 3.5 договора: взнос/скидки. Заполняется из "
+        'Условия п. 3.7',
+        help="Текст пункта 3.7 договора: взнос/скидки. Заполняется из "
              "КП при создании подписки, перед генерацией можно поправить.")
     doc_file_ids = fields.Many2many(
         'ir.attachment', compute='_compute_doc_file_ids',

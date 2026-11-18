@@ -8,7 +8,7 @@ class SaleOrder(models.Model):
     _inherit = 'sale.order'
 
     doc_clause35 = fields.Text(
-        'Условия п. 3.5 договора',
+        'Условия п. 3.7 договора',
         compute='_compute_doc_clause35', store=True, readonly=False,
         help="Из шаблона КП; правится в этом КП — попадёт в подписку "
              "и в договор.")
