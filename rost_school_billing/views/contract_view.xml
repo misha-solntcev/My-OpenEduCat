@@ -54,6 +54,11 @@
                             <field name="create_date" string="Создан"/>
                             <field name="datas" filename="name"
                                    string="Скачать"/>
+                            <button name="rost_unlink_document"
+                                    type="object" icon="fa-trash-o"
+                                    title="Удалить документ"
+                                    confirm="Удалить документ безвозвратно?"
+                                    groups="base.group_system"/>
                         </list>
                     </field>
                 </page>
