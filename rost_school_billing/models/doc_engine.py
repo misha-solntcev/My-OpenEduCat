@@ -138,7 +138,9 @@ def action_generate_doc(self):
 
 
 def _rost_company_ctx(self):
-    company = self.env.company
+    # Реквизиты — из компании записи (договор, приёмка), а не из текущей
+    # компании пользователя: иначе в мультикомпании печатается чужая шапка.
+    company = getattr(self, 'company_id', False) or self.env.company
     director = company.rost_director_name or ''
     return {
         'company_name': company.name or '',
