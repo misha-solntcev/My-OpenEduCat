@@ -22,6 +22,8 @@ class IrAttachment(models.Model):
             raise AccessError(_(
                 'Удалять сгенерированные документы может только Администратор.'))
         self.unlink()
-        # reload: список файлов — несторовый compute на форме договора,
-        # без перезагрузки удалённая строка остаётся висеть до F5.
-        return {'type': 'ir.actions.client', 'tag': 'reload'}
+        # soft_reload: список файлов — несторовый compute на форме договора,
+        # без перечитывания записи удалённая строка висит до F5.
+        # Полный reload перезагружал страницу браузера; soft_reload
+        # перечитывает только текущую запись — строка исчезает на месте.
+        return {'type': 'ir.actions.client', 'tag': 'soft_reload'}
