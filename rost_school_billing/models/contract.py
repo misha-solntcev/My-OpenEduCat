@@ -68,13 +68,22 @@ class ContractContract(models.Model):
         self.ensure_one()
         ctx = self._rost_company_ctx()
         student = self.student_id
-        op_parent = None
-        relationship = ''
-        if student and student.parent_ids:
-            op_parent = student.parent_ids[:1]
-            relationship = op_parent.relationship_id.name or ''
+        # Заказчик — сторона договора (partner_id), а не «первый родитель»
+        # из карточки ученика: иначе договор/допсоглашение называют
+        # представителем не того человека, с кем заключён договор.
+        partner = self.partner_id
+        op_parent_model = self.env['op.parent']
+        # 13.11.2026 контакт в op.parent переехал из name в partner_id;
+        # поддерживаем обе схемы, пока ветки не сведены.
+        contact_field = ('partner_id' if 'partner_id' in op_parent_model._fields
+                         else 'name')
+        op_parent = (op_parent_model.search(
+            [(contact_field, '=', partner.id)], limit=1) if partner
+            else op_parent_model)
+        relationship = op_parent.relationship_id.name or ''
         ctx.update(self._rost_student_ctx(student))
-        ctx.update(self._rost_parent_ctx(op_parent, relationship))
+        ctx.update(self._rost_parent_ctx(
+            op_parent, relationship, partner=partner))
         ctx.update(self._rost_contract_ctx())
         return ctx
 

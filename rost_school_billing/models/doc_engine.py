@@ -171,22 +171,42 @@ def _rost_student_ctx(self, student):
     }
 
 
-def _rost_parent_ctx(self, parent, relationship=''):
+def _rost_parent_partner(parent):
+    """res.partner из op.parent в обеих схемах SIS.
+
+    Старая схема: op.parent.name — m2o на res.partner.
+    Новая (13.11.2026): op.parent.partner_id — m2o, а name — related-char
+    (нужно для /web/image и поиска). Возвращаем контакт в обоих случаях.
+    """
+    if not parent:
+        return None
+    if 'partner_id' in parent._fields:
+        return parent.partner_id or None
+    name = parent.name
+    field = parent._fields.get('name')
+    if name and field and field.type == 'many2one':
+        return name
+    return None
+
+
+def _rost_parent_ctx(self, parent, relationship='', partner=None):
     """Токены parent_* + род фраз (именуемый/ая, являющийся/аяся).
 
-    parent — запись op.parent: личные данные в SIS (решение 12.11.2026),
-    телефон/почта — стандартные поля контакта. None -> пустые токены.
+    parent — запись op.parent: личные данные в SIS (решение 12.11.2026).
+    partner — контакт заказчика; по умолчанию контакт из op.parent.
+    Для договора передаётся contract.partner_id: Заказчик — сторона
+    договора, даже если в карточке ученика первым записан другой родитель.
+    None -> пустые токены.
     """
     keys = ['parent_name', 'parent_short', 'parent_birth_iso',
             'parent_passport', 'parent_passport_issued_by',
             'parent_passport_issue_iso', 'parent_passport_dept_code',
             'parent_address_home', 'parent_address_reg',
             'parent_phone', 'parent_email']
+    partner = partner or _rost_parent_partner(parent)
+    ctx = dict.fromkeys(keys, '')
     if parent:
-        partner = parent.partner_id
-        ctx = {
-            'parent_name': partner.name or '',
-            'parent_short': fio_short(partner.name),
+        ctx.update({
             'parent_birth_iso': date_iso(parent.birth_date),
             'parent_passport': parent.passport_number or '',
             'parent_passport_issued_by': parent.passport_issued_by or '',
@@ -194,13 +214,21 @@ def _rost_parent_ctx(self, parent, relationship=''):
             'parent_passport_dept_code': parent.passport_dept_code or '',
             'parent_address_home': parent.address_home or '',
             'parent_address_reg': parent.address_reg or '',
+        })
+    if partner:
+        ctx.update({
+            'parent_name': partner.name or '',
+            'parent_short': fio_short(partner.name),
             'parent_phone': partner.mobile or partner.phone or '',
             'parent_email': partner.email or '',
-        }
-    else:
-        ctx = dict.fromkeys(keys, '')
+        })
     rel = (relationship or '').lower()
-    female = not rel.startswith('отец')
+    if rel:
+        female = not rel.startswith('отец')
+    elif partner:
+        female = _guess_gender(partner.name) == 'female'
+    else:
+        female = True
     ctx['parent_relationship'] = relationship or ''
     ctx['parent_named'] = 'именуемая' if female else 'именуемый'
     ctx['parent_being'] = 'являющаяся' if female else 'являющийся'
