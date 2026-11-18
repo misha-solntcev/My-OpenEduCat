@@ -118,6 +118,8 @@ class ContractContract(models.Model):
                      else None)
         summer_first = (fields.Date.to_date(summer[0].date_start) if summer
                         else None)
+        summer_last = (fields.Date.to_date(summer[-1].date_start) if summer
+                       else None)
         summer_names = {
             6: 'июнь', 7: 'июль', 8: 'август'}
         summer_list = (
@@ -144,6 +146,10 @@ class ContractContract(models.Model):
             'contract_month_main_words': amount_words(price_main),
             'contract_summer_months_n': str(len(summer)),
             'contract_summer_list': summer_list,
+            'contract_summer_range': (
+                f'с {month_year_gen(summer_first)} '
+                f'по {month_year_gen(summer_last)}'
+                if summer_first and summer_last else ''),
             'contract_month_summer_fmt': fmt_amount(price_summer),
             'contract_month_summer_words': amount_words(price_summer),
             'contract_clause35': self.doc_clause35 or '',
