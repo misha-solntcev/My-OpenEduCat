@@ -9,7 +9,7 @@ from odoo.exceptions import UserError
 from . import doc_engine
 from .doc_engine import (
     SUMMER_MONTHS, amount_words, date_iso, date_quoted, fmt_amount,
-    month_year_gen, fio_gen,
+    month_year_gen, month_year_acc, fio_gen,
 )
 
 
@@ -139,16 +139,16 @@ class ContractContract(models.Model):
             'contract_price_year_words': amount_words(total),
             'contract_main_months_n': str(len(main)),
             'contract_main_range': (
-                f'с {month_year_gen(main_first)} '
-                f'по {month_year_gen(main_last)}'
+                f'с {month_year_gen(main_first)} года '
+                f'по {month_year_acc(main_last)} года'
                 if main_first and main_last else ''),
             'contract_month_main_fmt': fmt_amount(price_main),
             'contract_month_main_words': amount_words(price_main),
             'contract_summer_months_n': str(len(summer)),
             'contract_summer_list': summer_list,
             'contract_summer_range': (
-                f'с {month_year_gen(summer_first)} '
-                f'по {month_year_gen(summer_last)}'
+                f'с {month_year_gen(summer_first)} года '
+                f'по {month_year_acc(summer_last)} года'
                 if summer_first and summer_last else ''),
             'contract_month_summer_fmt': fmt_amount(price_summer),
             'contract_month_summer_words': amount_words(price_summer),

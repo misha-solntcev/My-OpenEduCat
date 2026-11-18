@@ -40,6 +40,15 @@ def date_quoted(d):
     return f'«{d.day}» {MONTHS_GEN[d.month - 1]} {d.year} г.'
 
 
+MONTHS_ACC = ['январь', 'февраль', 'март', 'апрель', 'май', 'июнь',
+              'июль', 'август', 'сентябрь', 'октябрь', 'ноябрь', 'декабрь']
+
+
+def month_year_acc(d):
+    """date(2027, 5, 1) -> 'май 2027' — винительный для «по …»."""
+    return f'{MONTHS_ACC[d.month - 1]} {d.year}'
+
+
 def month_year_gen(d):
     """date(2026, 9, 1) -> 'сентября 2026'."""
     return f'{MONTHS_GEN[d.month - 1]} {d.year}'
