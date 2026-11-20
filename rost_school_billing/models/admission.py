@@ -36,6 +36,22 @@ class OpAdmission(models.Model):
     billing_schedule_html = fields.Html(
         'График платежей', compute='_compute_billing_schedule_html')
 
+    # Анкета-заявление живёт на лиде заказа; после зачисления её
+    # документы переезжают на ученика/родителя (rost_adopt_zayavlenie_
+    # documents). Отдельной анкеты в приёмке нет.
+
+    # Заявитель надо сохранить ДО вызова super(): enroll_student ядра
+    # перезаписывает partner_id приёмки партнёром ученика.
+    def enroll_student(self):
+        applicants = {a.id: a.partner_id for a in self}
+        res = super().enroll_student()
+        for admission in self:
+            lead = admission.sale_order_id.opportunity_id
+            if lead and admission.student_id:
+                admission.student_id.rost_adopt_zayavlenie_documents(
+                    lead, applicants[admission.id])
+        return res
+
     @api.depends('student_id', 'student_id.parent_ids',
                  'student_id.parent_ids.partner_id',
                  'student_id.partner_id')

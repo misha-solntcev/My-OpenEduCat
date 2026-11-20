@@ -55,6 +55,27 @@ class OpStudent(models.Model):
             parent.relationship_id.name if parent else ''))
         return ctx
 
+    def rost_adopt_zayavlenie_documents(self, lead, applicant):
+        """Перенести документы анкеты с лида к владельцам: документы
+        ученика (СНИЛС, полис, свидетельство, «другие») — себе,
+        родителя (паспорт, согласия) — родителю-заявителю. Вложения
+        переезжают (смена res_model/res_id), не копируются."""
+        self.ensure_one()
+        if not lead:
+            return
+        parent = (self.parent_ids.filtered(
+            lambda p: p.partner_id == applicant)[:1]
+            or self.parent_ids[:1])
+        for attachment in self.env['ir.attachment'].search(
+                lead._zayavlenie_attachment_domain()):
+            if attachment.rost_doc_type in ('passport', 'consent') \
+                    and parent:
+                attachment.write({'res_model': 'op.parent',
+                                  'res_id': parent.id})
+            else:
+                attachment.write({'res_model': 'op.student',
+                                  'res_id': self.id})
+
     def action_create_subscription(self, start_date=None, partner=None,
                                    order=None):
         """Подписка на обучение. Источник строк: подтверждённый заказ

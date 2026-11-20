@@ -5,12 +5,24 @@ ACL ядра даёт внутреннему пользователю полны
 (включая unlink), поэтому право на удаление документов школы срезается
 на методе кнопки: корзина доступна только Администратору.
 """
-from odoo import _, models
+from odoo import _, fields, models
 from odoo.exceptions import AccessError
 
 
 class IrAttachment(models.Model):
     _inherit = 'ir.attachment'
+
+    rost_doc_type = fields.Selection([
+        ('snils', 'СНИЛС'),
+        ('policy', 'Медицинский полис'),
+        ('birth_cert', 'Свидетельство о рождении'),
+        ('passport', 'Паспорт (скан)'),
+        ('consent', 'Согласие (скан)'),
+        ('other', 'Другой документ'),
+    ], 'Тип документа', copy=False,
+        help='Документ, загруженный родителем через анкету. При зачислении '
+             'документы ученика (СНИЛС, полис, свидетельство) переезжают на '
+             'op.student, родителя (паспорт, согласия) — на op.parent.')
 
     def rost_unlink_document(self):
         """Удалить сгенерированный документ (корзина во вкладке «Договор»).
