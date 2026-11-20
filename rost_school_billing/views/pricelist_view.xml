@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="product_pricelist_view_rost_billing" model="ir.ui.view">
+        <field name="name">product.pricelist.form.rost.billing</field>
+        <field name="model">product.pricelist</field>
+        <field name="inherit_id" ref="product.product_pricelist_view"/>
+        <field name="arch" type="xml">
+            <xpath expr="//group[@name='pricelist_settings']" position="inside">
+                <field name="rost_study_form"/>
+            </xpath>
+        </field>
+    </record>
+</odoo>

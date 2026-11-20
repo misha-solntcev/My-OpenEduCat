@@ -8,8 +8,8 @@ from odoo.exceptions import UserError
 
 from . import doc_engine
 from .doc_engine import (
-    SUMMER_MONTHS, amount_words, date_iso, date_quoted, fmt_amount,
-    month_year_gen, month_year_acc, fio_gen,
+    STUDY_FORM_PHRASES, SUMMER_MONTHS, amount_words, date_iso, date_quoted,
+    fmt_amount, month_year_gen, month_year_acc, fio_gen,
 )
 
 
@@ -38,6 +38,10 @@ class ContractContract(models.Model):
         'Условия п. 3.7',
         help="Текст пункта 3.7 договора: взнос/скидки. Заполняется из "
              "КП при создании подписки, перед генерацией можно поправить.")
+    rost_study_form = fields.Selection(
+        related='pricelist_id.rost_study_form', string='Форма обучения',
+        readonly=True,
+        help="Из прайс-листа подписки; печатается в п. 1.1 договора.")
     doc_file_ids = fields.Many2many(
         'ir.attachment', compute='_compute_doc_file_ids',
         string='Файлы договора')
@@ -144,6 +148,8 @@ class ContractContract(models.Model):
             'contract_date_quoted': date_quoted(doc_date),
             'contract_year': school_year,
             'contract_valid_until_quoted': valid_until,
+            'contract_study_form': STUDY_FORM_PHRASES.get(
+                self.pricelist_id.rost_study_form or 'regular', 'очная'),
             'contract_price_year_fmt': fmt_amount(total),
             'contract_price_year_words': amount_words(total),
             'contract_main_months_n': str(len(main)),

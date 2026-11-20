@@ -44,6 +44,7 @@
                                name="rost_doc_requisites">
                             <field name="doc_number"/>
                             <field name="doc_date"/>
+                            <field name="rost_study_form"/>
                             <field name="doc_clause35"/>
                         </group>
                     </group>

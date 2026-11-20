@@ -3,6 +3,7 @@ from . import contract
 from . import doc_engine
 from . import doc_template
 from . import ir_attachment
+from . import pricelist
 from . import res_company
 from . import sale_order_template
 from . import sale_order_line

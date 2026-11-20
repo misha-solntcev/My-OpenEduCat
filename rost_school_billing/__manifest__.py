@@ -13,6 +13,7 @@
         'data/ir_sequence.xml',
         'data/doc_template_data.xml',
         'views/course_view.xml',
+        'views/pricelist_view.xml',
         'views/contract_view.xml',
         'views/sale_template_view.xml',
         'views/crm_lead_view.xml',
