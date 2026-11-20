@@ -13,6 +13,19 @@ class SaleOrder(models.Model):
         help="Из шаблона КП; правится в этом КП — попадёт в подписку "
              "и в договор.")
 
+    # --- Анкета-заявление: после подтверждения заказа отправляем ---
+    # родителю ссылку; данные пишутся в лид (opportunity_id), UI
+    # анкеты живёт здесь, на заказе. Сам лид остаётся невидимым
+    # носителем этапа заявки.
+    zayavlenie_state = fields.Selection(
+        related='opportunity_id.zayavlenie_state', string='Статус анкеты')
+    zayavlenie_sent_date = fields.Datetime(
+        related='opportunity_id.zayavlenie_sent_date',
+        string='Анкета: ссылка выдана')
+    zayavlenie_filled_date = fields.Datetime(
+        related='opportunity_id.zayavlenie_filled_date',
+        string='Анкета: заполнена родителем')
+
     @api.depends('sale_order_template_id')
     def _compute_doc_clause35(self):
         for order in self:
@@ -73,6 +86,41 @@ class SaleOrder(models.Model):
                 '(с датами, охватывающими сегодняшнюю дату).')
                 % course.name)
         return current[-1]
+
+    def _zayavlenie_no_lead(self):
+        return {
+            'type': 'ir.actions.client',
+            'tag': 'display_notification',
+            'params': {
+                'title': _('Нет анкеты'),
+                'message': _('К заказу не привязан лид — анкета не '
+                             'отправлялась. Отправьте её после '
+                             'подтверждения заказа.'),
+                'type': 'warning',
+                'sticky': False,
+            },
+        }
+
+    def action_open_zayavlenie(self):
+        """Открыть анкету на сайте — как её видит родитель."""
+        self.ensure_one()
+        if not self.opportunity_id:
+            return self._zayavlenie_no_lead()
+        return self.opportunity_id.action_open_zayavlenie_form()
+
+    def action_zayavlenie_send(self):
+        """Отправить родителю письмо со ссылкой на анкету."""
+        self.ensure_one()
+        if not self.opportunity_id:
+            return self._zayavlenie_no_lead()
+        return self.opportunity_id.action_zayavlenie_send()
+
+    def action_zayavlenie_new_link(self):
+        """Перевыпустить ссылку на анкету (истекла или ушла не туда)."""
+        self.ensure_one()
+        if not self.opportunity_id:
+            return self._zayavlenie_no_lead()
+        return self.opportunity_id.action_zayavlenie_new_link()
 
     def action_open_admission(self):
         """Создать приёмку по результатам воронки (или открыть существующую).

@@ -5,6 +5,9 @@
         <field name="model">crm.lead</field>
         <field name="inherit_id" ref="crm.crm_lead_view_form"/>
         <field name="arch" type="xml">
+            <!-- Анкета-заявление: UI живёт на заказе (sale_order_view),
+                 лид — невидимый носитель данных этапа заявки. Здесь
+                 ничего не добавляем. -->
             <xpath expr="//notebook" position="inside">
                 <page name="student" string="Ученик">
                     <group>

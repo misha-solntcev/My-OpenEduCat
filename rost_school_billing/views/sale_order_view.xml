@@ -9,6 +9,35 @@
                 <button name="action_open_admission" type="object"
                         string="Поступление" class="btn-primary"
                         invisible="not sale_order_template_id"/>
+                <!-- Анкета: отправка после подтверждения заказа -->
+                <button name="action_zayavlenie_send" type="object"
+                        string="Отправить анкету" icon="fa-paper-plane"
+                        invisible="state != 'sale' or not opportunity_id or zayavlenie_state == 'filled'"/>
+                <button name="action_open_zayavlenie" type="object"
+                        string="Открыть анкету" icon="fa-external-link"
+                        invisible="not opportunity_id or zayavlenie_state in ('none', False)"/>
+                <button name="action_zayavlenie_new_link" type="object"
+                        string="Новая ссылка" icon="fa-refresh"
+                        invisible="state != 'sale' or not opportunity_id or zayavlenie_state in ('none', False)"/>
+            </xpath>
+            <!-- Статус анкеты полосой под шапкой: цвет = состояние,
+                 текст = что делать дальше. Появляется только у
+                 подтверждённого заказа (state = 'sale') -->
+            <xpath expr="//header" position="after">
+                <field name="zayavlenie_state" invisible="1"/>
+                <div role="status" class="alert alert-info py-1 px-2 mb-0 mt-2"
+                     invisible="not opportunity_id or state != 'sale' or zayavlenie_state != 'sent'">
+                    Анкета отправлена родителю — ждём заполнения.
+                </div>
+                <div role="status" class="alert alert-success py-1 px-2 mb-0 mt-2"
+                     invisible="not opportunity_id or state != 'sale' or zayavlenie_state != 'filled'">
+                    Анкета заполнена родителем — можно выполнять «Поступление».
+                </div>
+                <div role="status" class="alert alert-warning py-1 px-2 mb-0 mt-2"
+                     invisible="not opportunity_id or state != 'sale' or zayavlenie_state != 'expired'">
+                    Срок ссылки на анкету истёк — нажмите «Новая ссылка»
+                    и отправьте родителю заново.
+                </div>
             </xpath>
             <!-- Флаг взноса обязан быть в подвидах строк: иначе onchange
                  шаблона вернёт его, но веб-клиент отбросит значение при

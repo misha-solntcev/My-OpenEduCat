@@ -7,7 +7,7 @@
     'author': 'rostschoolspb',
     'website': 'https://rostschoolspb.ru',
     'depends': ['contract', 'openeducat_admission', 'openeducat_parent',
-                'sale_management', 'crm'],
+                'sale_management', 'sale_crm', 'crm', 'website'],
     'data': [
         'security/ir.model.access.csv',
         'data/ir_sequence.xml',
@@ -22,6 +22,7 @@
         'views/res_company_view.xml',
         'views/doc_template_views.xml',
         'views/hide_menus.xml',
+        'views/website_templates.xml',
         'data/ir_actions_server.xml',
     ],
     'installable': True,

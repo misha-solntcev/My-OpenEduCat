@@ -1,0 +1,412 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Страница анкеты-заявления по персональной ссылке.
+         Не регистрируется в website.page: доступ только по токену. -->
+    <template id="zayavlenie_page" name="Анкета-заявление">
+        <t t-call="website.layout">
+            <div id="wrap" class="oe_structure">
+                <section class="s_title_form o_cc o_cc2 pt64 pb48">
+                    <div class="o_container_small">
+                        <h2 class="text-center">Заявление о приёме</h2>
+                        <p class="text-center lead mb-0">
+                            Заполните данные ребёнка и приложите документы.
+                            Поля со звёздочкой обязательны.
+                        </p>
+                    </div>
+                </section>
+                <!-- Без класса s_website_form: он вешает на форму JS-виджет
+                     сниппета (AJAX-submit, resetForm), который рассчитан на
+                     разметку конструктора форм и падает на нашей. -->
+                <section class="pt16 pb48">
+                    <div class="container">
+                        <t t-if="success">
+                            <div class="alert alert-success col-lg-9 mx-auto">
+                                <h4 class="alert-heading">Заявление получено</h4>
+                                <p>Спасибо! Документы переданы в приёмную
+                                    комиссию.</p>
+                                <a t-attf-href="/zayavlenie/#{token}?edit=1"
+                                   class="btn btn-outline-primary">
+                                    Заменить документы
+                                </a>
+                            </div>
+                        </t>
+                        <t t-else="">
+                            <form t-attf-action="/zayavlenie/#{token}/submit"
+                                  method="post" enctype="multipart/form-data"
+                                  class="col-lg-9 mx-auto">
+                                <input type="hidden" name="csrf_token"
+                                       t-att-value="request.csrf_token()"/>
+
+                                <t t-if="errors">
+                                    <div class="alert alert-danger">
+                                        <ul class="mb-0">
+                                            <li t-foreach="errors" t-as="error">
+                                                <t t-esc="error"/>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                </t>
+
+                                <div class="card mb-3">
+                                    <div class="card-body">
+                                        <h4 class="mb-3">Данные ученика</h4>
+                                        <div class="mb-3">
+                                            <label class="form-label"
+                                                   for="child_name">
+                                                ФИО ребёнка *
+                                            </label>
+                                            <input class="form-control"
+                                                   type="text" required="required"
+                                                   id="child_name"
+                                                   name="child_name"
+                                                   t-att-value="values['child_name']"/>
+                                            <div class="form-text">
+                                                Фамилия, имя и отчество полностью.
+                                            </div>
+                                        </div>
+                                        <div class="row">
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label"
+                                                       for="child_birth_date">
+                                                    Дата рождения *
+                                                </label>
+                                                <input class="form-control"
+                                                       type="date"
+                                                       required="required"
+                                                       id="child_birth_date"
+                                                       name="child_birth_date"
+                                                       t-att-value="values['child_birth_date']"/>
+                                            </div>
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label">
+                                                    Пол *
+                                                </label>
+                                                <div class="form-check">
+                                                    <input class="form-check-input"
+                                                           type="radio"
+                                                           name="child_gender"
+                                                           value="m" id="gender_m"
+                                                           required="required"
+                                                           t-att-checked="values['child_gender'] == 'm'"/>
+                                                    <label class="form-check-label"
+                                                           for="gender_m">
+                                                        Мужской
+                                                    </label>
+                                                </div>
+                                                <div class="form-check">
+                                                    <input class="form-check-input"
+                                                           type="radio"
+                                                           name="child_gender"
+                                                           value="f" id="gender_f"
+                                                           t-att-checked="values['child_gender'] == 'f'"/>
+                                                    <label class="form-check-label"
+                                                           for="gender_f">
+                                                        Женский
+                                                    </label>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label"
+                                                   for="child_current_school">
+                                                Текущая школа
+                                            </label>
+                                            <input class="form-control"
+                                                   type="text"
+                                                   id="child_current_school"
+                                                   name="child_current_school"
+                                                   t-att-value="values['child_current_school']"/>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label"
+                                                   for="child_interests">
+                                                Интересы и увлечения
+                                            </label>
+                                            <textarea class="form-control"
+                                                      id="child_interests"
+                                                      name="child_interests"
+                                                      rows="2"><t t-esc="values['child_interests']"/></textarea>
+                                        </div>
+                                        <div class="mb-0">
+                                            <label class="form-label"
+                                                   for="child_medical">
+                                                Медицинские особенности
+                                            </label>
+                                            <textarea class="form-control"
+                                                      id="child_medical"
+                                                      name="child_medical"
+                                                      rows="2"><t t-esc="values['child_medical']"/></textarea>
+                                            <div class="form-text">
+                                                Указываются добровольно.
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="card mb-3">
+                                    <div class="card-body">
+                                        <h4 class="mb-3">Заявитель</h4>
+                                        <div class="mb-3">
+                                            <label class="form-label"
+                                                   for="contact_name">
+                                                ФИО заявителя *
+                                            </label>
+                                            <input class="form-control"
+                                                   type="text"
+                                                   required="required"
+                                                   id="contact_name"
+                                                   name="contact_name"
+                                                   t-att-value="values['contact_name']"/>
+                                            <div class="form-text">
+                                                На это лицо оформляется договор.
+                                            </div>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label"
+                                                   for="relationship_id">
+                                                Степень родства *
+                                            </label>
+                                            <select class="form-select"
+                                                    required="required"
+                                                    id="relationship_id"
+                                                    name="relationship_id">
+                                                <option value="">— выберите —</option>
+                                                <t t-foreach="relationships"
+                                                   t-as="relationship">
+                                                    <option t-att-value="relationship.id"
+                                                            t-att-selected="str(relationship.id) == str(values['relationship_id'])">
+                                                        <t t-esc="relationship.name"/>
+                                                    </option>
+                                                </t>
+                                            </select>
+                                        </div>
+                                        <div class="row">
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label"
+                                                       for="phone">Телефон *</label>
+                                                <input class="form-control"
+                                                       type="tel"
+                                                       required="required"
+                                                       id="phone" name="phone"
+                                                       placeholder="+7 (___) ___-__-__"
+                                                       t-att-value="values['phone']"/>
+                                            </div>
+                                            <div class="col-md-6 mb-3">
+                                                <label class="form-label"
+                                                       for="email">Email *</label>
+                                                <input class="form-control"
+                                                       type="email"
+                                                       required="required"
+                                                       id="email" name="email"
+                                                       t-att-value="values['email']"/>
+                                            </div>
+                                        </div>
+                                        <div class="mb-0">
+                                            <label class="form-label"
+                                                   for="child_address">
+                                                Адрес проживания
+                                            </label>
+                                            <textarea class="form-control"
+                                                      id="child_address"
+                                                      name="child_address"
+                                                      rows="2"><t t-esc="values['child_address']"/></textarea>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="card mb-3">
+                                    <div class="card-body">
+                                        <h4 class="mb-3">Документы</h4>
+                                        <p class="text-muted small">
+                                            PDF, JPG, PNG или HEIC, до 10 МБ
+                                            каждый файл.
+                                        </p>
+
+                                        <div class="mb-3">
+                                            <label class="form-label"
+                                                   for="snils">
+                                                СНИЛС *
+                                            </label>
+                                            <input class="form-control"
+                                                   type="file" id="snils"
+                                                   name="snils"
+                                                   accept=".pdf,.jpg,.jpeg,.png,.heic,.heif"
+                                                   t-att-required="not has_doc['snils']"/>
+                                            <div class="form-text"
+                                                 t-if="has_doc['snils']">
+                                                Файл уже загружен — новый заменит его.
+                                            </div>
+                                        </div>
+
+                                        <div class="mb-3">
+                                            <label class="form-label"
+                                                   for="policy">
+                                                Медицинский страховой полис *
+                                            </label>
+                                            <input class="form-control"
+                                                   type="file" id="policy"
+                                                   name="policy"
+                                                   accept=".pdf,.jpg,.jpeg,.png,.heic,.heif"
+                                                   t-att-required="not has_doc['policy']"/>
+                                            <div class="form-text"
+                                                 t-if="has_doc['policy']">
+                                                Файл уже загружен — новый заменит его.
+                                            </div>
+                                        </div>
+
+                                        <div class="mb-3">
+                                            <label class="form-label"
+                                                   for="other">
+                                                Другие документы
+                                            </label>
+                                            <input class="form-control"
+                                                   type="file" id="other"
+                                                   name="other" multiple="multiple"
+                                                   accept=".pdf,.jpg,.jpeg,.png,.heic,.heif"/>
+                                            <div class="form-text">
+                                                Можно приложить несколько файлов.
+                                            </div>
+                                        </div>
+
+                                        <t t-if="documents">
+                                            <div class="small">
+                                                <div class="fw-bold mb-1">
+                                                    Уже загружено:
+                                                </div>
+                                                <ul class="list-unstyled mb-0">
+                                                    <li t-foreach="documents"
+                                                        t-as="document">
+                                                        <a t-att-href="document['url']">
+                                                            <t t-esc="document['name']"/>
+                                                        </a>
+                                                        <span class="text-muted">
+                                                            — <t t-esc="document['label']"/>
+                                                        </span>
+                                                    </li>
+                                                </ul>
+                                            </div>
+                                        </t>
+                                    </div>
+                                </div>
+
+                                <div class="card mb-3">
+                                    <div class="card-body">
+                                        <h4 class="mb-3">Согласия</h4>
+
+                                        <div class="form-check mb-2">
+                                            <input class="form-check-input"
+                                                   type="checkbox"
+                                                   id="personal_data_consent"
+                                                   name="personal_data_consent"
+                                                   required="required"
+                                                   t-att-checked="values['personal_data_consent']"/>
+                                            <label class="form-check-label"
+                                                   for="personal_data_consent">
+                                                Согласен(на) на обработку
+                                                персональных данных *
+                                            </label>
+                                        </div>
+                                        <details class="small text-muted ms-4 mb-3">
+                                            <summary>Подробнее</summary>
+                                            <p class="mt-2 mb-0">
+                                                Я ознакомлен(а) с
+                                                <a href="/privacy">политикой
+                                                конфиденциальности</a> и даю
+                                                согласие на обработку моих
+                                                персональных данных и данных
+                                                ребёнка для рассмотрения
+                                                заявления и заключения договора.
+                                            </p>
+                                        </details>
+
+                                        <div class="form-check mb-2">
+                                            <input class="form-check-input"
+                                                   type="checkbox"
+                                                   id="consent_psych"
+                                                   name="consent_psych"
+                                                   required="required"
+                                                   t-att-checked="values['consent_psych']"/>
+                                            <label class="form-check-label"
+                                                   for="consent_psych">
+                                                Согласен(на) на психологическое
+                                                сопровождение ребёнка *
+                                            </label>
+                                        </div>
+                                        <details class="small text-muted ms-4 mb-3">
+                                            <summary>Подробнее</summary>
+                                            <p class="mt-2 mb-0">
+                                                Психологическое сопровождение
+                                                включает диагностику адаптации,
+                                                консультации и занятия по
+                                                запросу семьи.
+                                            </p>
+                                        </details>
+
+                                        <div class="form-check mb-2">
+                                            <input class="form-check-input"
+                                                   type="checkbox"
+                                                   id="consent_terms"
+                                                   name="consent_terms"
+                                                   required="required"
+                                                   t-att-checked="values['consent_terms']"/>
+                                            <label class="form-check-label"
+                                                   for="consent_terms">
+                                                Согласен(на) с условиями
+                                                договора *
+                                            </label>
+                                        </div>
+                                        <details class="small text-muted ms-4 mb-0">
+                                            <summary>Подробнее</summary>
+                                            <p class="mt-2 mb-0">
+                                                Текст согласия уточняется.
+                                                Здесь появятся условия
+                                                договора об оказании
+                                                образовательных услуг.
+                                            </p>
+                                        </details>
+                                    </div>
+                                </div>
+
+                                <div class="card mb-3">
+                                    <div class="card-body">
+                                        <label class="form-label"
+                                               for="description">
+                                            Дополнительная информация
+                                        </label>
+                                        <textarea class="form-control"
+                                                  id="description"
+                                                  name="description"
+                                                  rows="3"><t t-esc="values['description']"/></textarea>
+                                    </div>
+                                </div>
+
+                                <div class="text-end">
+                                    <button type="submit"
+                                            class="btn btn-primary btn-lg">
+                                        Отправить заявление
+                                    </button>
+                                </div>
+                            </form>
+                        </t>
+                    </div>
+                </section>
+            </div>
+        </t>
+    </template>
+
+    <template id="zayavlenie_invalid" name="Ссылка недействительна">
+        <t t-call="website.layout">
+            <div id="wrap" class="container py-5">
+                <div class="alert alert-warning">
+                    <h4 class="alert-heading">Ссылка недействительна</h4>
+                    <p class="mb-0">
+                        Возможно, срок действия ссылки истёк. Обратитесь в
+                        приёмную комиссию школы.
+                    </p>
+                </div>
+            </div>
+        </t>
+    </template>
+
+</odoo>
