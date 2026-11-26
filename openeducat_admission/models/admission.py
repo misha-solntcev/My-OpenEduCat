@@ -51,6 +51,16 @@ class OpAdmission(models.Model):
         'Email ученика', size=256,
         help='Собственная почта ребёнка. Пусто (начальная школа) — '
              'аккаунт будет один, родительский.')
+    child_phone = fields.Char(
+        'Телефон ученика', size=32,
+        help='Собственный телефон ребёнка (если есть). Пусто — '
+             'связь через родителя.')
+    child_snils = fields.Char(
+        'СНИЛС ученика', size=32,
+        help='Номер СНИЛС ребёнка для учёта: «123-456-789 00».')
+    child_inn = fields.Char(
+        'ИНН ученика', size=16,
+        help='ИНН ребёнка (если уже присвоен).')
     single_parent_account = fields.Boolean(
         'Только аккаунт родителя', default=True,
         help='Один аккаунт — на почте родителя, пользуется родитель. '
@@ -425,6 +435,11 @@ class OpAdmission(models.Model):
                 'birth_date': student.birth_date,
                 'gender': student.gender if student.gender else False,
                 'image_1920': student.image or False,
+                # Данные ребёнка из анкеты (СНИЛС/ИНН/свой телефон) —
+                # в собственные поля ученика, а не в контакт семьи.
+                'snils': student.child_snils or False,
+                'inn': student.child_inn or False,
+                'mobile': student.child_phone or student.mobile,
                 'course_detail_ids': [[0, False, {
                     'course_id':
                         student.course_id and student.course_id.id or False,

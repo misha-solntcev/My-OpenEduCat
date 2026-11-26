@@ -57,9 +57,11 @@ class OpStudent(models.Model):
 
     def rost_adopt_zayavlenie_documents(self, lead, applicant):
         """Перенести документы анкеты с лида к владельцам: документы
-        ученика (СНИЛС, полис, свидетельство, «другие») — себе,
+        ученика (СНИЛС, полис, свидетельство, паспорт, «другие») — себе,
         родителя (паспорт, согласия) — родителю-заявителю. Вложения
-        переезжают (смена res_model/res_id), не копируются."""
+        переезжают (смена res_model/res_id), не копируются. Фото из
+        анкеты становятся аватарами: ребёнка — ученику, родителя —
+        контакту заявителя (только если аватара ещё нет)."""
         self.ensure_one()
         if not lead:
             return
@@ -75,6 +77,11 @@ class OpStudent(models.Model):
             else:
                 attachment.write({'res_model': 'op.student',
                                   'res_id': self.id})
+        # Фото из анкеты: аватар ученика и аватара контакта заявителя.
+        if lead.child_photo and not self.image_1920:
+            self.image_1920 = lead.child_photo
+        if lead.parent_photo and applicant and not applicant.image_1920:
+            applicant.image_1920 = lead.parent_photo
 
     def action_create_subscription(self, start_date=None, partner=None,
                                    order=None):

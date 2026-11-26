@@ -17,6 +17,12 @@ from odoo.exceptions import UserError
 class OpStudent(models.Model):
     _inherit = 'op.student'
 
+    # Данные ребёнка для учёта (приходят из анкеты родителя через
+    # приёмку, get_student_vals).
+    snils = fields.Char(
+        'СНИЛС', size=32, help='Номер СНИЛС: «123-456-789 00».')
+    inn = fields.Char('ИНН', size=16)
+
     rost_no_email_alert = fields.Boolean(
         'Старшие классы без email (предупреждение)',
         compute='_compute_rost_no_email_alert')

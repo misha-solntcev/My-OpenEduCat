@@ -95,6 +95,9 @@
                 <field name="gender" position="move"/>
                 <field name="birth_date" position="move"/>
                 <field name="child_email" position="move"/>
+                <field name="child_phone"/>
+                <field name="child_snils"/>
+                <field name="child_inn"/>
                 <field name="single_parent_account" position="move"/>
             </xpath>
 

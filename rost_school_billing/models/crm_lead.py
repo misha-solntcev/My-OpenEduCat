@@ -21,6 +21,16 @@ class CrmLead(models.Model):
         'Email ученика',
         help='Собственная почта ребёнка (не родителя!). Пусто — при '
              'зачислении будет один аккаунт, родительский.')
+    child_phone = fields.Char(
+        'Телефон ученика',
+        help='Собственный телефон ребёнка (если есть).')
+    child_snils = fields.Char(
+        'СНИЛС ученика', help='«123-456-789 00».')
+    child_inn = fields.Char('ИНН ученика')
+    child_photo = fields.Image(
+        'Фото ученика', max_width=1024, max_height=1024,
+        help='Загружается в анкете; при зачислении становится аватаром '
+             'ученика.')
     child_birth_date = fields.Date('Дата рождения ребёнка')
     child_gender = fields.Selection([
         ('m', 'Мужской'),
@@ -68,6 +78,27 @@ class CrmLead(models.Model):
     consent_terms = fields.Boolean(
         'Согласие с условиями договора')
 
+    # --- Анкета: паспортные данные заявителя (для договора) ---
+    # Зеркало полей op.admission parent_*: анкета заполняет их на лиде,
+    # «Поступление» переносит в приёмку, зачисление — в op.parent.
+    parent_birth_date = fields.Date('Заявитель: дата рождения')
+    parent_passport_number = fields.Char(
+        'Заявитель: паспорт (серия и номер)',
+        help='Как в договоре, одним полем: «40 20 781577».')
+    parent_passport_issued_by = fields.Char('Заявитель: паспорт кем выдан')
+    parent_passport_issue_date = fields.Date(
+        'Заявитель: паспорт дата выдачи')
+    parent_passport_dept_code = fields.Char(
+        'Заявитель: код подразделения', help='«780-006».')
+    parent_address_reg = fields.Char(
+        'Заявитель: адрес регистрации', help='По паспорту — для договора.')
+    parent_address_home = fields.Char(
+        'Заявитель: адрес фактического проживания')
+    parent_photo = fields.Image(
+        'Фото заявителя', max_width=1024, max_height=1024,
+        help='Загружается в анкете; при зачислении становится аватаром '
+             'контакта родителя.')
+
     @api.depends('zayavlenie_token')
     def _compute_zayavlenie_url(self):
         base_url = self.env['ir.config_parameter'].sudo().get_param(
@@ -98,7 +129,8 @@ class CrmLead(models.Model):
             ('res_model', '=', 'crm.lead'),
             ('res_id', '=', self.id),
             ('rost_doc_type', 'in', ('snils', 'policy', 'birth_cert',
-                                     'passport', 'consent', 'other')),
+                                     'child_passport', 'passport', 'consent',
+                                     'other')),
         ]
 
     def _zayavlenie_expired(self):

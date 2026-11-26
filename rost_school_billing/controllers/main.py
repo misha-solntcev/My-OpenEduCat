@@ -1,4 +1,5 @@
 import base64
+import re
 
 from odoo import _, fields, http
 from odoo.http import content_disposition, request
@@ -8,31 +9,50 @@ MAX_FILE_SIZE = 10 * 1024 * 1024
 # Запас сверху на все файлы формы сразу: проверяем до чтения в память.
 MAX_TOTAL_SIZE = 50 * 1024 * 1024
 ALLOWED_EXT = {'pdf', 'jpg', 'jpeg', 'png', 'heic', 'heif'}
-# Что принимает форма: обязательные СНИЛС и полис + «другие».
+# Что принимает форма: обязательные СНИЛС и полис, свидетельство о
+# рождении / паспорт ребёнка, скан паспорта заявителя + «другие».
 DOC_TYPES = {
-    'snils': 'СНИЛС',
+    'snils': 'СНИЛС (скан)',
     'policy': 'Медицинский полис',
+    'birth_cert': 'Свидетельство о рождении',
+    'child_passport': 'Паспорт ребёнка (скан)',
+    'passport': 'Паспорт заявителя (скан)',
     'other': 'Другой документ',
 }
 # Все типы вложений анкеты (для показа уже загруженных файлов).
-DOC_LABELS = dict(DOC_TYPES,
-                  birth_cert='Свидетельство о рождении',
-                  passport='Паспорт (скан)',
-                  consent='Согласие (скан)')
+DOC_LABELS = dict(DOC_TYPES, consent='Согласие (скан)')
+# Фото анкеты: не вложения, а Image-поля лида — при зачислении
+# становятся аватарами ученика и родителя.
+PHOTO_FIELDS = {
+    'child_photo': 'Фото ученика',
+    'parent_photo': 'Фото заявителя',
+}
 REQUIRED_FIELDS = (
     ('child_name', 'ФИО ребёнка'),
     ('child_birth_date', 'Дата рождения'),
     ('child_gender', 'Пол'),
+    ('child_snils', 'СНИЛС ученика'),
     ('contact_name', 'ФИО заявителя'),
     ('relationship_id', 'Степень родства'),
     ('phone', 'Телефон'),
     ('email', 'Email'),
+    ('parent_birth_date', 'Дата рождения заявителя'),
+    ('parent_passport_number', 'Паспорт заявителя: серия и номер'),
+    ('parent_passport_issued_by', 'Паспорт заявителя: кем выдан'),
+    ('parent_passport_issue_date', 'Паспорт заявителя: дата выдачи'),
 )
+# Поля-даты: в форму и из формы ходят строкой ISO.
+DATE_FIELDS = ('child_birth_date', 'parent_birth_date',
+               'parent_passport_issue_date')
 CONSENTS = (
     ('personal_data_consent', 'Согласие на обработку персональных данных'),
     ('consent_psych', 'Согласие на психологическое сопровождение'),
     ('consent_terms', 'Согласие с условиями договора'),
 )
+
+
+def _digits(value):
+    return re.sub(r'\D', '', value or '')
 
 
 class ZayavlenieController(http.Controller):
@@ -52,12 +72,20 @@ class ZayavlenieController(http.Controller):
                 return post.get(key) or ''
             return default if default not in (None, False) else ''
 
+        def date_value(key, default):
+            if post is not None:
+                return post.get(key) or ''
+            return default and default.isoformat() or ''
+
         values = {
             'child_name': value('child_name', lead.child_name),
-            'child_birth_date': value(
-                'child_birth_date',
-                lead.child_birth_date and lead.child_birth_date.isoformat()),
+            'child_birth_date': date_value(
+                'child_birth_date', lead.child_birth_date),
             'child_gender': value('child_gender', lead.child_gender),
+            'child_email': value('child_email', lead.child_email),
+            'child_phone': value('child_phone', lead.child_phone),
+            'child_snils': value('child_snils', lead.child_snils),
+            'child_inn': value('child_inn', lead.child_inn),
             'child_current_school': value(
                 'child_current_school', lead.child_current_school),
             'child_interests': value(
@@ -71,6 +99,20 @@ class ZayavlenieController(http.Controller):
             'phone': value('phone', lead.phone),
             'email': value(
                 'email', lead.email_from or lead.partner_id.email),
+            'parent_birth_date': date_value(
+                'parent_birth_date', lead.parent_birth_date),
+            'parent_passport_number': value(
+                'parent_passport_number', lead.parent_passport_number),
+            'parent_passport_issued_by': value(
+                'parent_passport_issued_by', lead.parent_passport_issued_by),
+            'parent_passport_issue_date': date_value(
+                'parent_passport_issue_date', lead.parent_passport_issue_date),
+            'parent_passport_dept_code': value(
+                'parent_passport_dept_code', lead.parent_passport_dept_code),
+            'parent_address_reg': value(
+                'parent_address_reg', lead.parent_address_reg),
+            'parent_address_home': value(
+                'parent_address_home', lead.parent_address_home),
             'child_address': value('child_address', lead.child_address),
             'description': value('description', lead.description),
         }
@@ -91,12 +133,22 @@ class ZayavlenieController(http.Controller):
         } for attachment in request.env['ir.attachment'].sudo().search(
             lead._zayavlenie_attachment_domain())]
 
+    def _has_doc(self, documents, *doc_types):
+        return any(attachment.rost_doc_type in doc_types
+                   for attachment in documents)
+
     def _render(self, token, lead, values=None, errors=None, success=None):
         if success is None:
             success = (bool(lead.zayavlenie_filled_date)
                        and not request.params.get('edit'))
         documents = request.env['ir.attachment'].sudo().search(
             lead._zayavlenie_attachment_domain())
+        has_doc = {doc_type: self._has_doc(documents, doc_type)
+                   for doc_type in DOC_TYPES}
+        # Свидетельство о рождении и паспорт ребёнка взаимозаменяемы:
+        # нужен один из двух документов.
+        has_doc['child_id'] = self._has_doc(
+            documents, 'birth_cert', 'child_passport')
         return request.render('rost_school_billing.zayavlenie_page', {
             'token': token,
             'lead': lead,
@@ -106,9 +158,10 @@ class ZayavlenieController(http.Controller):
             'documents': self._documents(lead, token),
             'relationships': request.env['op.parent.relationship'].sudo(
             ).search([]),
-            'has_doc': {
-                'snils': any(a.rost_doc_type == 'snils' for a in documents),
-                'policy': any(a.rost_doc_type == 'policy' for a in documents),
+            'has_doc': has_doc,
+            'has_photo': {
+                'child': bool(lead.child_photo),
+                'parent': bool(lead.parent_photo),
             },
         })
 
@@ -142,6 +195,27 @@ class ZayavlenieController(http.Controller):
                 files[doc_type].append(
                     (upload.filename, upload.mimetype, data))
         return files
+
+    def _read_photos(self, errors):
+        """Фото из анкеты: {поле лида: base64} — Image-поля, не вложения."""
+        photos = {}
+        for field_name, label in PHOTO_FIELDS.items():
+            upload = request.httprequest.files.get(field_name)
+            if not upload or not upload.filename:
+                continue
+            ext = (upload.filename.rsplit('.', 1)[-1].lower()
+                   if '.' in upload.filename else '')
+            if ext not in ALLOWED_EXT:
+                errors.append(_(
+                    '«%s»: недопустимый формат файла. Можно PDF, JPG, '
+                    'PNG или HEIC.') % label)
+                continue
+            data = upload.read()
+            if len(data) > MAX_FILE_SIZE:
+                errors.append(_('«%s» больше 10 МБ.') % label)
+                continue
+            photos[field_name] = base64.b64encode(data)
+        return photos
 
     # --- routes ---
 
@@ -177,6 +251,22 @@ class ZayavlenieController(http.Controller):
         ]
         return request.make_response(data, headers)
 
+    @http.route('/zayavlenie/<string:token>/photo/<string:kind>', type='http',
+                auth='public', sitemap=False)
+    def zayavlenie_photo(self, token, kind, **kw):
+        """Превью фото из анкеты (см. zayavlenie_document)."""
+        lead = self._get_lead(token)
+        if not lead or kind not in ('child', 'parent'):
+            return request.not_found()
+        data = (lead.child_photo if kind == 'child'
+                else lead.parent_photo)
+        if not data:
+            return request.not_found()
+        return request.make_response(
+            base64.b64decode(data),
+            [('Content-Type', 'image/jpeg'),
+             ('Cache-Control', 'private, max-age=300')])
+
     @http.route('/zayavlenie/<string:token>/submit', type='http',
                 auth='public', website=True, methods=['POST'])
     def zayavlenie_submit(self, token, **post):
@@ -191,12 +281,43 @@ class ZayavlenieController(http.Controller):
                 errors.append(_('Заполните поле «%s».') % label)
         if values.get('child_gender') not in ('m', 'f'):
             errors.append(_('Укажите пол ребёнка.'))
-        birth_date = False
-        if values.get('child_birth_date'):
+
+        dates = {}
+        for key in DATE_FIELDS:
+            label = dict(REQUIRED_FIELDS).get(key, key)
+            raw = values.get(key)
+            if not raw:
+                dates[key] = False
+                continue
             try:
-                birth_date = fields.Date.to_date(values['child_birth_date'])
+                dates[key] = fields.Date.to_date(raw)
             except (TypeError, ValueError):
-                errors.append(_('Дата рождения указана неверно.'))
+                errors.append(_('«%s» указана неверно.') % label)
+                dates[key] = False
+        today = fields.Date.context_today(lead)
+        for key in ('child_birth_date', 'parent_birth_date'):
+            if dates.get(key) and dates[key] > today:
+                errors.append(_(
+                    '«Дата рождения» не может быть в будущем.'))
+        if dates.get('parent_passport_issue_date') \
+                and dates['parent_passport_issue_date'] > today:
+            errors.append(_(
+                '«Паспорт заявителя: дата выдачи» не может быть в будущем.'))
+        if dates.get('child_birth_date') \
+                and dates.get('parent_birth_date') \
+                and dates['parent_birth_date'] >= dates['child_birth_date']:
+            errors.append(_(
+                'Дата рождения заявителя должна быть раньше даты рождения '
+                'ребёнка.'))
+
+        snils = _digits(values.get('child_snils'))
+        if snils and len(snils) != 11:
+            errors.append(_(
+                'СНИЛС ученика — 11 цифр (например 123-456-789 00).'))
+        inn = _digits(values.get('child_inn'))
+        if inn and len(inn) not in (10, 12):
+            errors.append(_('ИНН ученика — 10 или 12 цифр.'))
+
         relationship_id = False
         if values.get('relationship_id'):
             try:
@@ -209,18 +330,36 @@ class ZayavlenieController(http.Controller):
                 errors.append(_('Выберите степень родства из списка.'))
         if values.get('email') and not email_normalize(values['email']):
             errors.append(_('Укажите корректный email.'))
+        if values.get('child_email'):
+            if not email_normalize(values['child_email']):
+                errors.append(_('Укажите корректный email ученика.'))
+            elif email_normalize(values['child_email']) \
+                    == email_normalize(values.get('email')):
+                errors.append(_(
+                    'Email ученика совпадает с email заявителя: аккаунт '
+                    'ученика не создать. Оставьте поле пустым или укажите '
+                    'второй адрес.'))
         for key, label in CONSENTS:
             if not values.get(key):
                 errors.append(_('Отметьте «%s».') % label)
 
         files = self._read_uploads(errors)
+        photos = self._read_photos(errors)
         existing = request.env['ir.attachment'].sudo().search(
             lead._zayavlenie_attachment_domain())
-        for doc_type, label in (('snils', 'СНИЛС'),
-                                ('policy', 'Медицинский полис')):
-            if not files.get(doc_type) and not existing.filtered(
-                    lambda a, t=doc_type: a.rost_doc_type == t):
+        for doc_type, label in (
+                ('snils', 'СНИЛС (скан)'),
+                ('policy', 'Медицинский полис'),
+                ('passport', 'Паспорт заявителя (скан)')):
+            if not files.get(doc_type) and not self._has_doc(
+                    existing, doc_type):
                 errors.append(_('Приложите файл «%s».') % label)
+        child_id_uploaded = bool(files.get('birth_cert')
+                                 or files.get('child_passport'))
+        if not child_id_uploaded and not self._has_doc(
+                existing, 'birth_cert', 'child_passport'):
+            errors.append(_(
+                'Приложите свидетельство о рождении или паспорт ребёнка.'))
 
         if errors:
             return self._render(
@@ -228,15 +367,32 @@ class ZayavlenieController(http.Controller):
 
         lead.write({
             'child_name': values['child_name'].strip(),
-            'child_birth_date': birth_date,
+            'child_birth_date': dates['child_birth_date'],
             'child_gender': values['child_gender'],
+            'child_email': values['child_email'].strip(),
+            'child_phone': values['child_phone'].strip(),
+            'child_snils': values['child_snils'].strip(),
+            'child_inn': values['child_inn'].strip(),
             'child_current_school': values['child_current_school'].strip(),
             'child_interests': values['child_interests'].strip(),
             'child_medical': values['child_medical'].strip(),
             'contact_name': values['contact_name'].strip(),
             'phone': values['phone'].strip(),
             'email_from': values['email'].strip(),
-            'child_address': values['child_address'].strip(),
+            'parent_birth_date': dates['parent_birth_date'],
+            'parent_passport_number': values['parent_passport_number'].strip(),
+            'parent_passport_issued_by': values[
+                'parent_passport_issued_by'].strip(),
+            'parent_passport_issue_date': dates['parent_passport_issue_date'],
+            'parent_passport_dept_code': values[
+                'parent_passport_dept_code'].strip(),
+            'parent_address_reg': values['parent_address_reg'].strip(),
+            'parent_address_home': values['parent_address_home'].strip(),
+            # Адрес семьи для контакта при приёмке: фактический, если он
+            # не заполнен — регистрации (раньше это поле формы
+            # «Адрес проживания», теперь вводится как адрес заявителя).
+            'child_address': (values['parent_address_home'].strip()
+                              or values['parent_address_reg'].strip()),
             'description': values['description'].strip(),
             'child_parent_relationship_id': relationship_id,
             'personal_data_consent': True,
@@ -244,6 +400,8 @@ class ZayavlenieController(http.Controller):
             'consent_terms': True,
             'zayavlenie_filled_date': fields.Datetime.now(),
         })
+        if photos:
+            lead.write(photos)
         self._save_uploads(lead, files)
         return request.redirect('/zayavlenie/%s' % token)
 

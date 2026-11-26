@@ -20,6 +20,11 @@
                         icon="fa-file-word-o"
                         groups="openeducat_admission.group_op_admission_user,base.group_system"/>
             </xpath>
+            <!-- Данные ребёнка из анкеты (СНИЛС/ИНН) — рядом с контактами -->
+            <xpath expr="//page[@name='personal_information']//field[@name='email']" position="after">
+                <field name="snils"/>
+                <field name="inn"/>
+            </xpath>
         </field>
     </record>
 </odoo>
