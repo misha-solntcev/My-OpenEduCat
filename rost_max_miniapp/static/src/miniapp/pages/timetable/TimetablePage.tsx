@@ -24,6 +24,7 @@ import {
   timingToMinutes,
 } from '@/shared/components/timelinePrimitives';
 import { toISO, today, schoolTodayISO, startOfWeek, SHORT_WEEKDAYS } from '@/shared/lib/date';
+import { daySlotNumbers } from '@/shared/lib/slots';
 
 import { TabHeader } from '@/shared/components/TabHeader';
 import { useViewerAxis, viewerFromDraft } from '@/shared/lib/viewerAxis';
@@ -233,6 +234,9 @@ const TimetableTimeline: React.FC<{
   }
 
   const items: React.ReactNode[] = [];
+  // Номер урока = номер слота: уроки в одном слоте (группы английского,
+  // элективы) делят номер — это один урок дня, а не два подряд.
+  const nums = daySlotNumbers(lessons);
   lessons.forEach((l, i) => {
     const range = timingToMinutes(l.timing);
     // Не-сегодняшняя дата: весь день нейтрален (future), без past/now.
@@ -243,7 +247,7 @@ const TimetableTimeline: React.FC<{
     items.push(
       <TimetableSlot
         key={l.id}
-        num={i + 1}
+        num={nums[i]}
         lesson={l}
         status={status}
         isLast={i === lessons.length - 1}
