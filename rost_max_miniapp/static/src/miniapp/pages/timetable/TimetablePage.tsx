@@ -6,6 +6,8 @@ import {
   Icon56CalendarOutline,
   Icon24CalendarOutline,
   Icon24Dismiss,
+  Icon16MoreHorizontal,
+  Icon16CheckCircleOutline,
 } from '@vkontakte/icons';
 import { Calendar } from '@vkontakte/vkui';
 import { apiGet } from '@/shared/lib/api';
@@ -21,11 +23,13 @@ import {
   ghostSlotStyle,
   AccentProgress,
   accentSlotStyle,
+  LiveCard,
   firstNamePatronymic,
   timingToMinutes,
 } from '@/shared/components/timelinePrimitives';
 import { toISO, today, schoolTodayISO, startOfWeek, SHORT_WEEKDAYS } from '@/shared/lib/date';
 import { buildDayRows, type BellSlot } from '@/shared/lib/slots';
+import { computeDayState } from '@/shared/lib/dayState';
 
 import { TabHeader } from '@/shared/components/TabHeader';
 import { useViewerAxis, viewerFromDraft } from '@/shared/lib/viewerAxis';
@@ -250,8 +254,10 @@ const TimetableGhostSlot: React.FC<{
   );
 };
 
-/** Таймлайн дня расписания: как на главной, но без акцентов-состояний
- *  для прошлых/будущих дат; на сегодня — live-card текущего слота. */
+/** Таймлайн дня расписания: как на главной — то же состояние дня
+ *  («до уроков» / «идёт урок» / «перемена» / «обед» / «всё завершено»).
+ *  До 26.11.2026 здесь было только «идёт урок», и в перемену на экране
+ *  не подсвечивалось ничего (главная в тот же момент показывала акцент). */
 const TimetableTimeline: React.FC<{
   lessons: Lesson[];
   /** Сетка звонков: по ней дорисовываются пустые слоты. */
@@ -263,6 +269,8 @@ const TimetableTimeline: React.FC<{
   const nowMin = useSchoolNowMinutes();
   // Уроки + пустые слоты: номер пары не сдвигается, если урока нет.
   const rows = buildDayRows(lessons, slots);
+  // Состояние дня — те же правила, что на главной (общий computeDayState).
+  const dayState = isToday ? computeDayState(rows, nowMin) : null;
 
   // Текущий слот только на сегодняшней дате.
   let nowIndex = -1;
@@ -276,7 +284,63 @@ const TimetableTimeline: React.FC<{
     });
   }
 
+  /** Акцент-карточка фазы дня. «Идёт урок» карточку не рисует: слот
+   *  вокруг уже синий и показывает предмет/время/прогресс. */
+  const dayCard = (() => {
+    if (!dayState) return null;
+    if (dayState.phase === 'before') {
+      const m = dayState.minutesLeft;
+      return (
+        <LiveCard
+          text={m >= 60
+            ? `Уроки начнутся через ${Math.floor(m / 60)} ч ${m % 60} мин`
+            : `Уроки начнутся через ${m} мин`}
+        />
+      );
+    }
+    if (dayState.phase === 'break') {
+      // Пустая пара идёт сейчас — её карточка уже синяя, второй акцент не ставим.
+      if (!rows[dayState.slotIndex]?.lesson) return null;
+      // Большой перерыв (≥30 мин) — обед (утверждено Мишей 2026-09-15).
+      const isLunch = dayState.breakTotal >= 30;
+      return (
+        <LiveCard
+          text={isLunch ? 'Обед' : 'Перемена'}
+          after={`${dayState.minutesLeft} минут`}
+          progress={dayState.breakTotal > 0
+            ? ((dayState.breakTotal - dayState.minutesLeft) / dayState.breakTotal) * 100
+            : undefined}
+        />
+      );
+    }
+    if (dayState.phase === 'after') return <LiveCard text="Все уроки завершены" />;
+    return null;
+  })();
+
+  /** Иконка в кружке акцента: dots на перемене, check после. У шапки
+   *  «до уроков» иконки нет (как на главной). */
+  const dayIcon = dayState
+    ? dayState.phase === 'break'
+      ? <Icon16MoreHorizontal width={14} height={14} fill="currentColor" />
+      : dayState.phase === 'after'
+        ? <Icon16CheckCircleOutline width={14} height={14} fill="currentColor" />
+        : null
+    : null;
+
   const items: React.ReactNode[] = [];
+
+  // Акцент в шапке рельсы (до уроков).
+  if (dayCard && dayState?.phase === 'before') {
+    items.push(
+      <div key="cap" style={{ padding: 10, paddingBottom: 0, display: 'flex', gap: 10 }}>
+        <div style={{ width: 24, flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          <RailNum tone="accent">{dayIcon}</RailNum>
+        </div>
+        <div style={{ flex: 1, paddingTop: 0 }}>{dayCard}</div>
+      </div>,
+    );
+  }
+
   rows.forEach((row, i) => {
     const range = timingToMinutes(row.timing);
     // Не-сегодняшняя дата: весь день нейтрален (future), без past/now.
@@ -295,25 +359,50 @@ const TimetableTimeline: React.FC<{
           isLast={isLast}
         />,
       );
-      return;
+    } else {
+      items.push(
+        <TimetableSlot
+          key={row.key}
+          num={row.num}
+          lesson={row.lesson}
+          status={status}
+          isLast={isLast}
+          // Слот текущего урока красится синим целиком, прогресс в хвосте.
+          nowProgress={i === nowIndex && range
+            ? ((nowMin - range[0]) / (range[1] - range[0])) * 100
+            : undefined}
+          showBatch={showBatch}
+          showFaculty
+          onOpenLesson={onOpenLesson}
+        />,
+      );
     }
-    items.push(
-      <TimetableSlot
-        key={row.key}
-        num={row.num}
-        lesson={row.lesson}
-        status={status}
-        isLast={isLast}
-        // Слот текущего урока красится синим целиком, прогресс в хвосте.
-        nowProgress={i === nowIndex && range
-          ? ((nowMin - range[0]) / (range[1] - range[0])) * 100
-          : undefined}
-        showBatch={showBatch}
-        showFaculty
-        onOpenLesson={onOpenLesson}
-      />,
-    );
+
+    // Перемена после слота i, если акцент именно здесь.
+    if (dayCard && dayState?.phase === 'break' && i === dayState.slotIndex - 1) {
+      items.push(
+        <div key={`break-${i}`} style={{ padding: 10, paddingTop: 0, paddingBottom: 10, display: 'flex', gap: 10 }}>
+          <div style={{ width: 24, flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+            <RailNum tone="accent">{dayIcon}</RailNum>
+            {!isLast && <RailLine />}
+          </div>
+          <div style={{ flex: 1 }}>{dayCard}</div>
+        </div>,
+      );
+    }
   });
+
+  // Акцент в футере рельсы (уроки завершены).
+  if (dayCard && dayState?.phase === 'after') {
+    items.push(
+      <div key="end" style={{ padding: 10, paddingTop: 0, display: 'flex', gap: 10 }}>
+        <div style={{ width: 24, flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          <RailNum tone="accent">{dayIcon}</RailNum>
+        </div>
+        <div style={{ flex: 1 }}>{dayCard}</div>
+      </div>,
+    );
+  }
 
   return <div>{items}</div>;
 };

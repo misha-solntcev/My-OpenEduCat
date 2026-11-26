@@ -32,59 +32,8 @@ import {
   timingToMinutes,
 } from '@/shared/components/timelinePrimitives';
 import type { FeedLesson } from '@/shared/lib/types';
-import { buildDayRows, type BellSlot, type DayRow } from '@/shared/lib/slots';
-
-type DayPhase = 'before' | 'lesson' | 'break' | 'after';
-
-interface DayState {
-  phase: DayPhase;
-  /** Индекс слота: текущего (lesson) или следующего (break). */
-  slotIndex: number;
-  /** Процент прошлого этапа прогресса (0..100). */
-  progress: number;
-  /** Минут до начала ближайшего события (перемена/до уроков). */
-  minutesLeft: number;
-  /** Длина перемены в минутах. */
-  breakTotal: number;
-}
-
-/** Состояние дня из строк рельса (уроки + пустые слоты): «перемена» и
- *  «сейчас» работают и на пустых парах. Пустой день — null. */
-const computeDayState = (rows: DayRow<FeedLesson>[], nowMin: number): DayState | null => {
-  const timed = rows
-    .map((r, i) => ({ i, isLesson: Boolean(r.lesson), range: timingToMinutes(r.timing) }))
-    .filter((s): s is { i: number; isLesson: boolean; range: [number, number] } => s.range != null);
-  if (!timed.length) return null;
-
-  for (let k = 0; k < timed.length; k++) {
-    const { i, isLesson, range } = timed[k];
-    const [start, end] = range;
-    if (nowMin < start) {
-      // До первого урока или перемена перед слотом.
-      if (k === 0) {
-        return {
-          phase: 'before', slotIndex: i, progress: 0,
-          minutesLeft: start - nowMin, breakTotal: 0,
-        };
-      }
-      const prevEnd = timed[k - 1].range[1];
-      const total = start - prevEnd;
-      return {
-        phase: 'break', slotIndex: i, progress: 0,
-        minutesLeft: start - nowMin, breakTotal: total,
-      };
-    }
-    if (nowMin < end) {
-      const progress = Math.round(((nowMin - start) / (end - start)) * 100);
-      // Пустой слот идёт сейчас — это не урок, а окно: показываем
-      // «перемену» с остатком до конца пары.
-      return isLesson
-        ? { phase: 'lesson', slotIndex: i, progress, minutesLeft: 0, breakTotal: 0 }
-        : { phase: 'break', slotIndex: i, progress, minutesLeft: end - nowMin, breakTotal: 0 };
-    }
-  }
-  return { phase: 'after', slotIndex: rows.length - 1, progress: 100, minutesLeft: 0, breakTotal: 0 };
-};
+import { buildDayRows, type BellSlot } from '@/shared/lib/slots';
+import { computeDayState } from '@/shared/lib/dayState';
 
 // --- Строка слота таймлайна --------------------------------------------------
 
