@@ -7,7 +7,7 @@
 import React from 'react';
 import { Accordion, Badge, Caption, Text } from '@vkontakte/vkui';
 import { LessonRow, lessonStatus, startTimeOf, type ChipTone, type LessonRowData } from '@/shared/components/LessonRow';
-import { schoolNowMinutes } from '@/shared/lib/date';
+import { useSchoolNowMinutes } from '@/shared/hooks/useSchoolNow';
 
 /** Группировка по таймингу (сохраняя порядок прихода с сервера). */
 export const groupByTiming = <T extends { timing: string }>(lessons: T[]): { timing: string; lessons: T[] }[] => {
@@ -43,6 +43,11 @@ export const TimedGroups: React.FC<{
   /** Ключ для reset'а раскрытия при смене дня/фильтров. */
   resetKey?: string;
 }> = ({ lessons, isToday, onOpenLesson, resetKey }) => {
+  // «Сейчас» с тиком 30 с: бейдж и авто-раскрытие слота двигаются сами.
+  // Раньше здесь стоял schoolNowMinutes() прямо в теле рендера — значение
+  // застывало на моменте открытия экрана (снимок): открыл расписание
+  // утром, к вечеру всё ещё «Идёт сейчас» на утренней паре.
+  const nowMin = useSchoolNowMinutes();
   // Дефолт раскрытия: слот «сейчас», а в его отсутствие (перемена, обед,
   // до первого урока) — ближайший будущий; когда все прошли — последний.
   // Бейдж объясняет, почему слот раскрыт, когда урока «сейчас» нет.
@@ -55,7 +60,6 @@ export const TimedGroups: React.FC<{
       const [h, m] = startTimeOf(timing).split(':').map(Number);
       return Number.isFinite(h) && Number.isFinite(m) ? h * 60 + m : -1;
     };
-    const nowMin = schoolNowMinutes();
     const nowIdx = groups.findIndex(g =>
       g.lessons.some(l => lessonStatus(l.timing, isToday) === 'now'));
     const nextIdx = nowIdx >= 0 ? nowIdx : groups.findIndex(g => starts(g.timing) > nowMin);
