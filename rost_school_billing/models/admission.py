@@ -134,6 +134,12 @@ class OpAdmission(models.Model):
         fee_line = self.sale_order_id.order_line.filtered(
             'charge_at_start')[:1] if self.sale_order_id else self.env[
                 'sale.order.line']
+        if not fee_line and self.sale_order_id:
+            # Флаг взноса мог потеряться при ручной правке КП. Строка
+            # взноса в заказе при этом есть — её и выставляем счётом,
+            # иначе она уедет месячной линией в конец подписки.
+            fee_line = self.sale_order_id.order_line.filtered(
+                lambda l: not l.display_type and l._is_entry_fee())[:1]
         if order_line_required and not fee_line:
             return self.env['account.move']
         product = fee_line.product_id if fee_line else self.env[

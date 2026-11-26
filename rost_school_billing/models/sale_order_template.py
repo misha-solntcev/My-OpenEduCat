@@ -9,6 +9,13 @@ class SaleOrderTemplateLine(models.Model):
         help="Разовый взнос: в подписку не попадает, выставляется "
              "отдельным счётом в приёмке.")
 
+    def _is_entry_fee(self):
+        """Строка взноса и в шаблоне КП — по товару/названию, на случай
+        что флаг не выставлен."""
+        self.ensure_one()
+        name = f'{self.product_id.display_name or ""} {self.name or ""}'.lower()
+        return 'вступительный взнос' in name
+
     def _prepare_order_line_values(self):
         """Нативное заполнение КП из шаблона: везём флаг взноса
         вместе со строкой, чтобы код подписки отличал её от месячных."""

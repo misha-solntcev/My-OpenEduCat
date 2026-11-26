@@ -8,8 +8,8 @@ from odoo.exceptions import UserError
 
 from . import doc_engine
 from .doc_engine import (
-    SUMMER_MONTHS, amount_words, date_iso, date_quoted, fmt_amount,
-    month_year_gen, month_year_acc, fio_gen,
+    MONTHS_GEN, SUMMER_MONTHS, amount_words, date_iso, date_quoted,
+    fmt_amount, month_year_gen, month_year_acc, fio_gen, plural_ru,
 )
 
 
@@ -91,19 +91,53 @@ class ContractContract(models.Model):
         """Токены contract_* из линий подписки (источник истины по ценам,
         тот же, по которому cron выставляет счета)."""
         self.ensure_one()
+
+        def amount(line):
+            return (line.quantity * line.price_unit
+                    * (1 - (line.discount or 0.0) / 100.0))
+
         lines = self.contract_line_ids.filtered(
             lambda l: not l.display_type and not l.is_canceled
             and l.date_start and l.price_unit).sorted('date_start')
-        main = lines.filtered(
+        # Вступительный взнос — разовый платёж, а не учебный месяц. В
+        # подписке он иногда оказывается отдельной линией (флаг
+        # charge_at_start теряется при ручной правке КП): в график
+        # п. 3.3 он не входит, его сумма печатается отдельно в п. 3.5.
+        fee_lines = lines.filtered(
+            lambda l: 'вступительный взнос' in (l.name or '').lower())
+        months = lines - fee_lines
+        main = months.filtered(
             lambda l: l.date_start.month not in SUMMER_MONTHS)
-        summer = lines - main
-        total = sum(l.quantity * l.price_unit
-                    * (1 - (l.discount or 0.0) / 100.0) for l in lines)
-        price_main = (Counter(l.price_unit for l in main).most_common(1)[0][0]
-                      if main else 0.0)
+        summer = months - main
+        # Первый месяц при поступлении не с 1-го числа — неполный: его
+        # сумма меньше месячной и в «N равных долей» не входит.
+        partial = main.filtered(lambda l: l.date_start.day != 1)
+        full = main - partial
+        if not full:
+            # Подписка из одного неполного месяца: описываем его как
+            # единственный платёж, отдельный абзац не нужен.
+            full = main
+            partial = main.browse()
+        total = sum(amount(l) for l in lines)
+        prices = Counter(round(amount(l), 2) for l in full)
+        price_main = prices.most_common(1)[0][0] if prices else 0.0
+        full_months = full.filtered(
+            lambda l: round(amount(l), 2) == price_main)
         price_summer = (Counter(
-            l.price_unit for l in summer).most_common(1)[0][0]
+            round(amount(l), 2) for l in summer).most_common(1)[0][0]
             if summer else price_main)
+        first_main = full_months or main
+        partial_line = partial[:1]
+        partial_amount = 0.0
+        partial_range = ''
+        if partial_line:
+            partial_amount = amount(partial_line)
+            p_start = fields.Date.to_date(partial_line.date_start)
+            p_end = fields.Date.to_date(partial_line.date_end or p_start)
+
+            def _long(d):
+                return (f'{d.day} {MONTHS_GEN[d.month - 1]} {d.year} года')
+            partial_range = f'с {_long(p_start)} по {_long(p_end)}'
         if lines:
             first = fields.Date.to_date(lines[0].date_start)
             school_year_start = (first.year if first.month >= 9
@@ -121,10 +155,10 @@ class ContractContract(models.Model):
             school_year, valid_until = '', ''
         doc_date = self.doc_date
         yy = f'{doc_date.year % 100:02d}' if doc_date else ''
-        main_first = (fields.Date.to_date(main[0].date_start) if main
-                      else None)
-        main_last = (fields.Date.to_date(main[-1].date_start) if main
-                     else None)
+        main_first = (fields.Date.to_date(first_main[0].date_start)
+                      if first_main else None)
+        main_last = (fields.Date.to_date(first_main[-1].date_start)
+                     if first_main else None)
         summer_first = (fields.Date.to_date(summer[0].date_start) if summer
                         else None)
         summer_last = (fields.Date.to_date(summer[-1].date_start) if summer
@@ -146,7 +180,9 @@ class ContractContract(models.Model):
             'contract_valid_until_quoted': valid_until,
             'contract_price_year_fmt': fmt_amount(total),
             'contract_price_year_words': amount_words(total),
-            'contract_main_months_n': str(len(main)),
+            'contract_main_months_n': str(len(full_months)),
+            'contract_main_months_word': plural_ru(
+                len(full_months), 'месяца', 'месяцев', 'месяцев'),
             'contract_main_range': (
                 f'с {month_year_gen(main_first)} года '
                 f'по {month_year_acc(main_last)} года'
@@ -154,6 +190,8 @@ class ContractContract(models.Model):
             'contract_month_main_fmt': fmt_amount(price_main),
             'contract_month_main_words': amount_words(price_main),
             'contract_summer_months_n': str(len(summer)),
+            'contract_summer_months_word': plural_ru(
+                len(summer), 'месяца', 'месяцев', 'месяцев'),
             'contract_summer_list': summer_list,
             'contract_summer_range': (
                 f'с {month_year_gen(summer_first)} года '
@@ -161,6 +199,13 @@ class ContractContract(models.Model):
                 if summer_first and summer_last else ''),
             'contract_month_summer_fmt': fmt_amount(price_summer),
             'contract_month_summer_words': amount_words(price_summer),
+            # Неполный первый месяц: пустые токены = блок в шаблоне
+            # исчезает целиком (docxtpl {%p if ... %}).
+            'contract_partial_range': partial_range,
+            'contract_partial_amount_fmt': (
+                fmt_amount(partial_amount) if partial_line else ''),
+            'contract_partial_amount_words': (
+                amount_words(partial_amount) if partial_line else ''),
             'contract_clause35': self.doc_clause35 or '',
             'doc_date_quoted': date_quoted(doc_date),
         }

@@ -133,7 +133,7 @@ class OpStudent(models.Model):
             anchor = date(start.year, start.month, 1)
             for src in src_lines:
                 if src.display_type or src.charge_at_start \
-                        or not src.product_uom_qty:
+                        or src._is_entry_fee() or not src.product_uom_qty:
                     continue
                 months = int(src.product_uom_qty)
                 if order:

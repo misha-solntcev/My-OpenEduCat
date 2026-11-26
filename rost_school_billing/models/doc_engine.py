@@ -23,6 +23,16 @@ def fmt_amount(value):
     return f'{int(round(value)):,}'.replace(',', ' ')
 
 
+def plural_ru(value, one, few, many):
+    """1 месяц / 2 месяца / 5 месяцев."""
+    n = abs(int(round(value)))
+    if n % 10 == 1 and n % 100 != 11:
+        return one
+    if 2 <= n % 10 <= 4 and not 12 <= n % 100 <= 14:
+        return few
+    return many
+
+
 def amount_words(value):
     """525000 -> 'пятьсот двадцать пять тысяч'."""
     from num2words import num2words
