@@ -109,6 +109,12 @@
             <xpath expr="//page[@name='personal_detail']//group[1]//group[1]" position="inside">
                 <field name="partner_id" position="move"/>
             </xpath>
+            <!-- Партнёр приёмки — это заявитель (родитель), не ученик:
+                 ядровое перезаписывание партнёра контактом ученика при
+                 зачислении снято (enroll_student). -->
+            <xpath expr="//page[@name='personal_detail']//field[@name='partner_id']" position="attributes">
+                <attribute name="string">Контакт заявителя</attribute>
+            </xpath>
             <xpath expr="//page[@name='personal_detail']//field[@name='partner_id']" position="after">
                 <field name="relationship_id"/>
                 <!-- LIN-13: телефон родителя — одно поле с контактом

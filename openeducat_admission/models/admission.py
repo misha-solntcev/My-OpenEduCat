@@ -102,12 +102,16 @@ class OpAdmission(models.Model):
              'из контакта заявителя.')
 
     def _rost_applicant_partner(self):
-        """Контакт заявителя: до зачисления — partner_id приёмки, после
-        зачисления ядро перезаписывает partner_id партнёром УЧЕНИКА,
-        поэтому берём родителя из op.parent."""
+        """Контакт заявителя (родителя) приёмки.
+
+        Обычно это partner_id. Legacy-записи содержат в partner_id
+        контакт УЧЕНИКА — ядро перезаписывало его при зачислении
+        (исправлено 26.11.2026); для них берём родителя из op.parent.
+        """
         self.ensure_one()
-        if self.student_id:
-            parent = self.student_id.parent_ids[:1]
+        student = self.student_id
+        if student and self.partner_id == student.partner_id:
+            parent = student.parent_ids[:1]
             return parent.partner_id or self.env['res.partner']
         return self.partner_id
 
@@ -572,8 +576,15 @@ class OpAdmission(models.Model):
                             parent.create_parent_user()
                             parent.user_id.sudo()._rost_send_invite(
                                 'parent', raise_failure=False)
-                    record.partner_id = record.student_id.partner_id.id \
-                        if record else False
+                    # Партнёр приёмки остаётся ЗАЯВИТЕЛЕМ (родителем):
+                    # контакт ученика — это student_id.partner_id, и
+                    # подменять им приёмку нельзя (вкладка «Заявитель»
+                    # показывала ребёнка, телефон и onchange родительских
+                    # данных искали не того человека).
+                    # Раньше здесь стояло record.partner_id =
+                    # record.student_id.partner_id.id — ядровое поведение
+                    # OpenEduCat; в этой базе его никто не потребляет
+                    # (счета и подписки идут от op.student/op.parent).
 
             else:
                 student_id = record.student_id.id
