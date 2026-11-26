@@ -207,11 +207,19 @@ class OpStudent(models.Model):
 
     def unlink(self):
         for record in self:
-            if record.parent_ids:
-                for parent_id in record.parent_ids:
-                    child_ids = parent_id.user_id.child_ids.ids
+            # У ученика может не быть аккаунта (режим «один аккаунт
+            # родителя») и у родителя тоже — тогда из child_ids убирать
+            # нечего; прежний remove() падал ValueError на удалении
+            # такого ученика (26.11.2026, ученик без user_id).
+            if not record.user_id:
+                continue
+            for parent in record.parent_ids:
+                if not parent.user_id:
+                    continue
+                child_ids = parent.user_id.child_ids.ids
+                if record.user_id.id in child_ids:
                     child_ids.remove(record.user_id.id)
-                    parent_id.user_id.child_ids = [(6, 0, child_ids)]
+                    parent.user_id.child_ids = [(6, 0, child_ids)]
         return super(OpStudent, self).unlink()
 
     def get_parent(self):

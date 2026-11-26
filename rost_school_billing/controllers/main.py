@@ -413,8 +413,52 @@ class ZayavlenieController(http.Controller):
         if applicant and parent_phone \
                 and (applicant.mobile or '').strip() != parent_phone:
             applicant.write({'mobile': parent_phone})
+        # Анкета может прийти после зачисления — тогда данные ребёнка
+        # (телефон, СНИЛС/ИНН, фото) переносим в карточку сами.
+        self._sync_enrolled_student(lead, values)
         self._save_uploads(lead, files)
         return request.redirect('/zayavlenie/%s' % token)
+
+    def _enrolled_student(self, lead):
+        """Ученик, если лид уже дошёл до зачисления (заказ → приёмка)."""
+        env = request.env
+        order = env['sale.order'].sudo().search(
+            [('opportunity_id', '=', lead.id)], limit=1)
+        if not order:
+            return env['op.student']
+        admission = env['op.admission'].sudo().search(
+            [('sale_order_id', '=', order.id),
+             ('student_id', '!=', False)], limit=1)
+        return admission.student_id
+
+    def _sync_enrolled_student(self, lead, values):
+        """Анкету могут заполнить ПОСЛЕ зачисления (семья получила ссылку
+        позже). Данные ребёнка тогда некому перенести: enroll_student уже
+        прошёл, get_student_vals больше не вызывается. Переносим сами:
+        телефон → Mobile контакта ученика, СНИЛС/ИНН и фото — в карточку.
+        Пустые значения не затирают заполненные."""
+        student = self._enrolled_student(lead)
+        if not student:
+            return student
+        vals = {}
+        child_phone = values['child_phone'].strip()
+        if child_phone and (student.partner_id.mobile or '') != child_phone:
+            vals['mobile'] = child_phone
+        snils = values['child_snils'].strip()
+        if snils and (student.snils or '') != snils:
+            vals['snils'] = snils
+        inn = values['child_inn'].strip()
+        if inn and (student.inn or '') != inn:
+            vals['inn'] = inn
+        if lead.child_photo and not student.image_1920:
+            vals['image_1920'] = lead.child_photo
+        if vals:
+            student.write(vals)
+        parent = student.parent_ids[:1]
+        if lead.parent_photo and parent.partner_id \
+                and not parent.partner_id.image_1920:
+            parent.partner_id.image_1920 = lead.parent_photo
+        return student
 
     def _save_uploads(self, lead, files):
         Attachment = request.env['ir.attachment'].sudo()
