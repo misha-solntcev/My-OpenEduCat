@@ -1,3 +1,5 @@
+import type { BellSlot } from './slots';
+
 export interface ChildInfo {
   /** id op.student выбранного ребёнка — параметр child_id во всех
    *  «ученических» эндпоинтах. */
@@ -54,6 +56,9 @@ export interface Lesson {
   subject: string;
   batch: string;
   timing: string;
+  /** Номер пары по сетке звонков (op.timing), с учётом пропусков в дне.
+   *  null/нет — не привязан к сетке, фронт нумерует по слотам. */
+  num?: number | null;
   /** ФИО учителя */
   faculty: string;
   /** URL аватара учителя (/web/image). Пусто — нет фото или гость. */
@@ -78,6 +83,8 @@ export interface Batch {
 
 export interface TimetableResponse {
   lessons: Lesson[];
+  /** Сетка звонков: [{num, timing}] — по ней рисуем пустые слоты. */
+  slots?: BellSlot[];
 }
 
 export interface FacultiesResponse {
@@ -218,6 +225,9 @@ export interface FeedLesson {
   /** Аватар учителя (путь к /web/image). Пусто — нет. */
   faculty_avatar?: string;
   timing: string;
+  /** Номер пары по сетке звонков (op.timing), с учётом пропусков в дне.
+   *  null/нет — не привязан к сетке, фронт нумерует по слотам. */
+  num?: number | null;
   /** Кабинет (op.classroom.name). Пусто — не задан. */
   room?: string;
   start: string;
@@ -397,6 +407,8 @@ export interface DashboardInfoResponse {
   is_student: boolean;
   date: string;
   lessons: FeedLesson[];
+  /** Сетка звонков: [{num, timing}] — по ней рисуем пустые слоты. */
+  slots?: BellSlot[];
   grades_today?: GradeToday[];
   homework?: HomeworkItem[];
   journals_to_fill?: JournalToFill[];

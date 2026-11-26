@@ -275,6 +275,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
           {/* Лента уроков дня; админу — слоты-аккордеоны (как в расписании) */}
           <TodayLessons
             lessons={data.lessons}
+            slots={data.slots}
             onOpenJournal={isAdmin || isTeacher ? onOpenLesson : undefined}
             onOpenTimetable={onOpenTimetable}
             showBatch={isAdmin || isTeacher}

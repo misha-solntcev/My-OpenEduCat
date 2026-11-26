@@ -14,7 +14,7 @@ import { Text, Caption } from '@vkontakte/vkui';
  *  наследует случайный цвет (на тёмной теме — чёрный на тёмном круге). */
 export const RailNum: React.FC<{
   children: React.ReactNode;
-  tone?: 'default' | 'past' | 'accent';
+  tone?: 'default' | 'past' | 'accent' | 'ghost';
 }> = ({ children, tone = 'default' }) => {
   const bg = tone === 'accent'
     ? 'var(--vkui--color_background_accent)'
@@ -24,6 +24,24 @@ export const RailNum: React.FC<{
     : tone === 'past'
       ? 'var(--vkui--color_text_secondary)'
       : 'var(--vkui--color_text_subhead)';
+  // ghost — номер пустого слота («Урока нет»): прозрачный кружок с
+  // пунктирной обводкой. Размер тот же, что у уроков, — номер пары
+  // остаётся на своём месте в рельсе.
+  if (tone === 'ghost') {
+    return (
+      <div style={{
+        width: 24, height: 24, borderRadius: '50%', flexShrink: 0,
+        background: 'transparent',
+        boxShadow: 'inset 0 0 0 1px var(--vkui--color_separator_primary)',
+        color: 'var(--vkui--color_text_secondary)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        fontSize: 12, fontWeight: 700,
+        zIndex: 2,
+      }}>
+        {children}
+      </div>
+    );
+  }
   return (
     <div style={{
       width: 24, height: 24, borderRadius: '50%', flexShrink: 0,
@@ -118,6 +136,14 @@ export const slotCardStyle: React.CSSProperties = {
   background: 'var(--vkui--color_background_content)',
   borderRadius: 12,
   boxShadow: 'var(--vkui--elevation3)',
+};
+
+/** Карточка пустого слота («Урока нет»): прозрачный фон и пунктирная
+ *  рамка — сразу видно, что урока нет, и нажимать нечего. */
+export const ghostSlotStyle: React.CSSProperties = {
+  background: 'transparent',
+  border: '1px dashed var(--vkui--color_separator_primary)',
+  borderRadius: 12,
 };
 
 /** Полоса прогресса (белая на синем) — хвост акцентного слота. */

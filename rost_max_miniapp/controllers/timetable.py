@@ -824,6 +824,57 @@ class RostMaxTimetableController(http.Controller):
             }
         return avatar_map
 
+    def _lesson_numbers(self, sessions):
+        """Номер урока (пары) по сетке звонков — с учётом пропусков.
+
+        Нумерация в школе привязана к сетке звонков (op.timing), а не к
+        порядку строк: если в этот день первого урока нет, урок в 10:20
+        остаётся ВТОРЫМ, а не становится первым (жалоба LIN-6 — миниапп
+        раньше нумеровал просто i + 1).
+
+        Возвращает {session.id: номер или None}. None — урок не привязан
+        к сетке и время не совпало ни с одной парой: фронт падает на
+        нумерацию по слотам дня.
+        """
+        if not sessions:
+            return {}
+        timings = request.env['op.timing'].sudo().search(
+            [], order='sequence, lesson_hour, lesson_minute, id')
+        by_id = {}
+        by_clock = {}
+        for num, t in enumerate(timings, 1):
+            by_id[t.id] = num
+            # Одна и та же пара может быть заведена дважды — берём первую.
+            by_clock.setdefault((t.lesson_hour, t.lesson_minute), num)
+        numbers = {}
+        for s in sessions:
+            num = by_id.get(s.timing_id.id) if s.timing_id else None
+            if num is None and s.start_datetime:
+                local = s._convert_to_local(s.start_datetime)
+                num = by_clock.get((local.hour, local.minute))
+            numbers[s.id] = num
+        return numbers
+
+    def _bell_slots(self):
+        """Сетка звонков: [{num, timing}] по порядку пар.
+
+        По ней фронт дорисовывает пустые слоты («Урока нет»): номер пары
+        остаётся на своём месте, даже если урока в этот день нет
+        (решение Миши 26.11.26, LIN-6).
+        """
+        timings = request.env['op.timing'].sudo().search(
+            [], order='sequence, lesson_hour, lesson_minute, id')
+        slots = []
+        for num, t in enumerate(timings, 1):
+            start = (t.lesson_hour or 0) * 60 + (t.lesson_minute or 0)
+            end = start + (t.duration or 0)
+            slots.append({
+                "num": num,
+                "timing": "%02d:%02d - %02d:%02d" % (
+                    start // 60, start % 60, end // 60, end % 60),
+            })
+        return slots
+
     @http.route("/rost_max/api/timetable", type="http", auth="public", methods=["GET"])
     def api_timetable(self, date=None, faculty_id=None, batch_id=None,
                       child_id=None, scope=None):
@@ -888,16 +939,22 @@ class RostMaxTimetableController(http.Controller):
         # Аватары учителей: URL на /web/image (Odoo ресайзит и кеширует,
         # плейсхолдер с первой буквой при отсутствии фото — как в журнале).
         avatar_map = self._faculty_avatar_map(lessons) if request.session.uid else {}
+        numbers = self._lesson_numbers(lessons)
 
         return request.make_json_response({
             "date": date_str,
             "is_admin": is_admin,
+            # Сетка звонков дня: по ней фронт рисует пустые слоты.
+            "slots": self._bell_slots(),
             "lessons": [
                 {
                     "id": l.id,
                     "subject": l.subject_id.name,
                     "batch": self._batch_short(l.batch_id.name),
                     "timing": l.timing or "",
+                    # Номер пары по сетке звонков (LIN-6): пропущенный
+                    # первый урок не сдвигает нумерацию.
+                    "num": numbers.get(l.id),
                     "state": l.state,
                     "faculty": f"{l.faculty_id.last_name or ''} {l.faculty_id.first_name or ''} {l.faculty_id.middle_name or ''}".strip(),
                     "faculty_avatar": avatar_map.get(l.faculty_id.id, ''),
@@ -1688,6 +1745,7 @@ class RostMaxTimetableController(http.Controller):
                     [('session_id', 'in', sessions.ids)])
             }
         lessons_feed = []
+        numbers = self._lesson_numbers(sessions)
         for l in sessions:
             sheet = sheets_map.get(l.id)
             unfilled = bool(sheet) and any(
@@ -1702,6 +1760,8 @@ class RostMaxTimetableController(http.Controller):
                 "faculty_avatar": avatar_map.get(l.faculty_id.id, ''),
                 "room": l.classroom_id.sudo().name if l.classroom_id else "",
                 "timing": l.timing or "",
+                # Номер пары по сетке звонков (LIN-6) — как в /api/timetable.
+                "num": numbers.get(l.id),
                 "start": str(l.start_datetime) if l.start_datetime else "",
                 "end": str(l.end_datetime) if l.end_datetime else "",
                 "is_now": bool(
@@ -1712,7 +1772,7 @@ class RostMaxTimetableController(http.Controller):
                 "homework": hw,
             })
 
-        feed = {"lessons": lessons_feed}
+        feed = {"lessons": lessons_feed, "slots": self._bell_slots()}
 
         # --- Ученик / родитель: последние оценки + ДЗ ---
         # Блок на главной называется «Последние оценки», поэтому берём

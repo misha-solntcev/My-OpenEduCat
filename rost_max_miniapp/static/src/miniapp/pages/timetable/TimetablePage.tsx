@@ -18,12 +18,14 @@ import {
   RailNum,
   RailLine,
   slotCardStyle,
+  ghostSlotStyle,
   AccentProgress,
   accentSlotStyle,
   firstNamePatronymic,
   timingToMinutes,
 } from '@/shared/components/timelinePrimitives';
 import { toISO, today, schoolTodayISO, startOfWeek, SHORT_WEEKDAYS } from '@/shared/lib/date';
+import { buildDayRows, type BellSlot } from '@/shared/lib/slots';
 
 import { TabHeader } from '@/shared/components/TabHeader';
 import { useViewerAxis, viewerFromDraft } from '@/shared/lib/viewerAxis';
@@ -211,21 +213,63 @@ const TimetableSlot: React.FC<{
   );
 };
 
+/** Пустой слот дня: номер пары стоит на своём месте, но урока нет
+ *  (решение Миши 26.11.26). Рамка пунктирная — нажимать нечего. Если
+ *  сейчас идёт именно эта пара, слот подсвечивается синим, как урок. */
+const TimetableGhostSlot: React.FC<{
+  num: number;
+  timing: string;
+  status: SlotStatus;
+  isLast: boolean;
+}> = ({ num, timing, status, isLast }) => {
+  const isNow = status === 'now';
+  const color = isNow
+    ? 'var(--vkui--color_text_contrast)'
+    : 'var(--vkui--color_text_secondary)';
+  return (
+    <div style={{
+      display: 'flex', gap: 10, padding: '5px 16px',
+      zIndex: 2,
+    }}>
+      <div style={{ width: 24, flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', paddingTop: 9 }}>
+        <RailNum tone={isNow ? 'accent' : 'ghost'}>{num}</RailNum>
+        {!isLast && <RailLine dimmed={status === 'past'} bridge={24} />}
+      </div>
+      <div style={{
+        flex: 1, minWidth: 0, padding: '10px 12px',
+        ...ghostSlotStyle,
+        opacity: status === 'past' ? 0.55 : 1,
+        ...(isNow ? { ...accentSlotStyle, border: '1px solid transparent' } : {}),
+      }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 8 }}>
+          <Text weight="2" style={{ color }}>Урока нет</Text>
+          <Text weight="1" style={{ flexShrink: 0, fontSize: 13, color }}>{timing}</Text>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 /** Таймлайн дня расписания: как на главной, но без акцентов-состояний
  *  для прошлых/будущих дат; на сегодня — live-card текущего слота. */
 const TimetableTimeline: React.FC<{
   lessons: Lesson[];
+  /** Сетка звонков: по ней дорисовываются пустые слоты. */
+  slots?: BellSlot[];
   isToday: boolean;
   showBatch: boolean;
   onOpenLesson?: (id: number) => void;
-}> = ({ lessons, isToday, showBatch, onOpenLesson }) => {
+}> = ({ lessons, slots, isToday, showBatch, onOpenLesson }) => {
   const nowMin = useSchoolNowMinutes();
+  // Уроки + пустые слоты: номер пары не сдвигается, если урока нет.
+  const rows = buildDayRows(lessons, slots);
 
   // Текущий слот только на сегодняшней дате.
   let nowIndex = -1;
   if (isToday) {
-    lessons.forEach((l, i) => {
-      const range = timingToMinutes(l.timing);
+    rows.forEach((r, i) => {
+      if (!r.lesson) return;
+      const range = timingToMinutes(r.timing);
       if (range && nowMin >= range[0] && nowMin < range[1]) {
         nowIndex = i;
       }
@@ -233,20 +277,33 @@ const TimetableTimeline: React.FC<{
   }
 
   const items: React.ReactNode[] = [];
-  lessons.forEach((l, i) => {
-    const range = timingToMinutes(l.timing);
+  rows.forEach((row, i) => {
+    const range = timingToMinutes(row.timing);
     // Не-сегодняшняя дата: весь день нейтрален (future), без past/now.
     const status: SlotStatus = !isToday || !range
       ? 'future'
       : nowMin >= range[1] ? 'past' : nowMin >= range[0] ? 'now' : 'future';
+    const isLast = i === rows.length - 1;
 
+    if (!row.lesson) {
+      items.push(
+        <TimetableGhostSlot
+          key={row.key}
+          num={row.num}
+          timing={row.timing}
+          status={status}
+          isLast={isLast}
+        />,
+      );
+      return;
+    }
     items.push(
       <TimetableSlot
-        key={l.id}
-        num={i + 1}
-        lesson={l}
+        key={row.key}
+        num={row.num}
+        lesson={row.lesson}
         status={status}
-        isLast={i === lessons.length - 1}
+        isLast={isLast}
         // Слот текущего урока красится синим целиком, прогресс в хвосте.
         nowProgress={i === nowIndex && range
           ? ((nowMin - range[0]) / (range[1] - range[0])) * 100
@@ -289,6 +346,8 @@ export const TimetablePage: React.FC<TimetablePageProps> = ({ id, onOpenLesson, 
     homeroom.find(b => b.id === id)?.name ?? String(id);
 
   const [lessons, setLessons] = React.useState<Lesson[]>([]);
+  // Сетка звонков дня — по ней дорисовываются пустые слоты «Урока нет».
+  const [slots, setSlots] = React.useState<BellSlot[]>([]);
   const [faculties, setFaculties] = React.useState<Faculty[]>([]);
   const [batches, setBatches] = React.useState<Batch[]>([]);
   const [isAdmin, setIsAdmin] = React.useState(false);
@@ -338,8 +397,10 @@ export const TimetablePage: React.FC<TimetablePageProps> = ({ id, onOpenLesson, 
       }
       const data = await apiGet<TimetableResponse>(url);
       setLessons(data.lessons || []);
+      setSlots(data.slots || []);
     } catch {
       setLessons([]);
+      setSlots([]);
       addToast('Не удалось загрузить расписание', 'error');
     } finally {
       setLoading(false);
@@ -527,6 +588,7 @@ export const TimetablePage: React.FC<TimetablePageProps> = ({ id, onOpenLesson, 
                 // нет, клики просто не рисуются.
                 <TimetableTimeline
                   lessons={lessons}
+                  slots={slots}
                   isToday={isToday}
                   showBatch={isAdmin || isTeacher}
                   onOpenLesson={onOpenLesson}

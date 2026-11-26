@@ -24,6 +24,7 @@ import {
   RailNum,
   RailLine,
   slotCardStyle,
+  ghostSlotStyle,
   LiveCard,
   AccentProgress,
   accentSlotStyle,
@@ -31,6 +32,7 @@ import {
   timingToMinutes,
 } from '@/shared/components/timelinePrimitives';
 import type { FeedLesson } from '@/shared/lib/types';
+import { buildDayRows, type BellSlot, type DayRow } from '@/shared/lib/slots';
 
 type DayPhase = 'before' | 'lesson' | 'break' | 'after';
 
@@ -46,24 +48,26 @@ interface DayState {
   breakTotal: number;
 }
 
-/** Состояние дня из слотов. Пустой день — null (рендерим заглушку). */
-const computeDayState = (lessons: FeedLesson[], nowMin: number): DayState | null => {
-  const slots = lessons
-    .map(l => ({ l, range: timingToMinutes(l.timing) }))
-    .filter((s): s is { l: FeedLesson; range: [number, number] } => s.range != null);
-  if (!slots.length) return null;
+/** Состояние дня из строк рельса (уроки + пустые слоты): «перемена» и
+ *  «сейчас» работают и на пустых парах. Пустой день — null. */
+const computeDayState = (rows: DayRow<FeedLesson>[], nowMin: number): DayState | null => {
+  const timed = rows
+    .map((r, i) => ({ i, isLesson: Boolean(r.lesson), range: timingToMinutes(r.timing) }))
+    .filter((s): s is { i: number; isLesson: boolean; range: [number, number] } => s.range != null);
+  if (!timed.length) return null;
 
-  for (let i = 0; i < slots.length; i++) {
-    const [start, end] = slots[i].range;
+  for (let k = 0; k < timed.length; k++) {
+    const { i, isLesson, range } = timed[k];
+    const [start, end] = range;
     if (nowMin < start) {
-      // До первого урока или перемена перед слотом i.
-      if (i === 0) {
+      // До первого урока или перемена перед слотом.
+      if (k === 0) {
         return {
-          phase: 'before', slotIndex: 0, progress: 0,
+          phase: 'before', slotIndex: i, progress: 0,
           minutesLeft: start - nowMin, breakTotal: 0,
         };
       }
-      const prevEnd = slots[i - 1].range[1];
+      const prevEnd = timed[k - 1].range[1];
       const total = start - prevEnd;
       return {
         phase: 'break', slotIndex: i, progress: 0,
@@ -72,10 +76,14 @@ const computeDayState = (lessons: FeedLesson[], nowMin: number): DayState | null
     }
     if (nowMin < end) {
       const progress = Math.round(((nowMin - start) / (end - start)) * 100);
-      return { phase: 'lesson', slotIndex: i, progress, minutesLeft: 0, breakTotal: 0 };
+      // Пустой слот идёт сейчас — это не урок, а окно: показываем
+      // «перемену» с остатком до конца пары.
+      return isLesson
+        ? { phase: 'lesson', slotIndex: i, progress, minutesLeft: 0, breakTotal: 0 }
+        : { phase: 'break', slotIndex: i, progress, minutesLeft: end - nowMin, breakTotal: 0 };
     }
   }
-  return { phase: 'after', slotIndex: slots.length - 1, progress: 100, minutesLeft: 0, breakTotal: 0 };
+  return { phase: 'after', slotIndex: rows.length - 1, progress: 100, minutesLeft: 0, breakTotal: 0 };
 };
 
 // --- Строка слота таймлайна --------------------------------------------------
@@ -168,16 +176,57 @@ const TimelineSlot: React.FC<{
   );
 };
 
+// --- Строка пустого слота ----------------------------------------------------
+
+/** Пустая пара дня: номер на месте, но урока нет (решение Миши 26.11.26).
+ *  В текущую пару подсвечивается синим — «сейчас» работает и на пустых. */
+const GhostSlot: React.FC<{
+  num: number;
+  timing: string;
+  status: 'past' | 'now' | 'future';
+  isLast?: boolean;
+}> = ({ num, timing, status, isLast }) => {
+  const isNow = status === 'now';
+  const color = isNow
+    ? 'var(--vkui--color_text_contrast)'
+    : 'var(--vkui--color_text_secondary)';
+  return (
+    <div style={{
+      display: 'flex', gap: 10, padding: '5px 16px',
+      zIndex: 2,
+    }}>
+      <div style={{ width: 24, flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', paddingTop: 9 }}>
+        <RailNum tone={isNow ? 'accent' : 'ghost'}>{num}</RailNum>
+        {!isLast && <RailLine dimmed={status === 'past'} bridge={24} />}
+      </div>
+      <div style={{
+        flex: 1, minWidth: 0, padding: '10px 12px',
+        ...ghostSlotStyle,
+        opacity: status === 'past' ? 0.55 : 1,
+        ...(isNow ? { ...accentSlotStyle, border: '1px solid transparent' } : {}),
+      }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 8 }}>
+          <Text weight="2" style={{ color }}>Урока нет</Text>
+          <Caption style={{ color, flexShrink: 0 }}>{timing}</Caption>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 // --- Таймлайн дня ------------------------------------------------------------
 
 export const TodayTimeline: React.FC<{
   lessons: FeedLesson[];
+  /** Сетка звонков: по ней дорисовываются пустые слоты «Урока нет». */
+  slots?: BellSlot[];
   showBatch?: boolean;
   onOpenJournal?: (sheetId: number) => void;
-}> = ({ lessons, showBatch, onOpenJournal }) => {
+}> = ({ lessons, slots, showBatch, onOpenJournal }) => {
   // Тик 30 с: статус слота и прогресс «ползут» без перезагрузки ленты.
   const nowMin = useSchoolNowMinutes();
-  const state = computeDayState(lessons, nowMin);
+  const rows = buildDayRows(lessons, slots);
+  const state = computeDayState(rows, nowMin);
 
   if (!state) return null;
   const { phase, slotIndex, progress, minutesLeft } = state;
@@ -245,27 +294,42 @@ export const TodayTimeline: React.FC<{
     );
   }
 
-  lessons.forEach((l, i) => {
-    const range = timingToMinutes(l.timing);
+  // Уроки + пустые слоты: пустая пара держит номер на своём месте,
+  // «перемена» и «сейчас» работают и на ней.
+  rows.forEach((row, i) => {
+    const range = timingToMinutes(row.timing);
     const status: 'past' | 'now' | 'future' = !range
       ? 'future'
       : nowMin >= range[1]
         ? 'past'
         : nowMin >= range[0] ? 'now' : 'future';
+    const isLast = i === rows.length - 1;
 
-    items.push(
-      <TimelineSlot
-        key={l.id}
-        num={i + 1}
-        lesson={l}
-        status={status}
-        isLast={i === lessons.length - 1}
-        // Слот текущего урока красится синим целиком, прогресс в хвосте.
-        progress={phase === 'lesson' && i === slotIndex ? progress : undefined}
-        showBatch={showBatch}
-        onOpenJournal={onOpenJournal}
-      />,
-    );
+    if (!row.lesson) {
+      items.push(
+        <GhostSlot
+          key={row.key}
+          num={row.num}
+          timing={row.timing}
+          status={status}
+          isLast={isLast}
+        />,
+      );
+    } else {
+      items.push(
+        <TimelineSlot
+          key={row.key}
+          num={row.num}
+          lesson={row.lesson}
+          status={status}
+          isLast={isLast}
+          // Слот текущего урока красится синим целиком, прогресс в хвосте.
+          progress={phase === 'lesson' && i === slotIndex ? progress : undefined}
+          showBatch={showBatch}
+          onOpenJournal={onOpenJournal}
+        />,
+      );
+    }
 
     // Перемена после слота i, если акцент именно здесь.
     if (phase === 'break' && i === slotIndex - 1) {
