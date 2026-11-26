@@ -402,6 +402,17 @@ class ZayavlenieController(http.Controller):
         })
         if photos:
             lead.write(photos)
+        # Телефон родителя — в Mobile контакта заявителя (поле, которое
+        # школа ведёт и требует в карточке родителя). Запись в lead.phone
+        # выше сама положит номер и в Phone через CRM-inverse — это
+        # нативное поведение crm.lead, не наша синхронизация.
+        # Телефон ребёнка остаётся на child_phone и уезжает в Mobile
+        # контакта ученика при зачислении.
+        applicant = lead.partner_id
+        parent_phone = values['phone'].strip()
+        if applicant and parent_phone \
+                and (applicant.mobile or '').strip() != parent_phone:
+            applicant.write({'mobile': parent_phone})
         self._save_uploads(lead, files)
         return request.redirect('/zayavlenie/%s' % token)
 

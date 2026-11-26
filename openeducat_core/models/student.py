@@ -96,9 +96,12 @@ class OpStudent(models.Model):
         ('pass_out', 'Выпускник'),
     ], string='Статус', default='draft', tracking=True)
 
-    # Fields from database (matching actual DB columns)
+    # Поля из базы (под actual DB columns)
+    # mobile НЕ объявляется: у ученика своего поля телефона нет — он живёт
+    # в контакте (res.partner.mobile) и наследуется сюда через _inherits,
+    # как у op.parent. Иначе появляется вторая копия номера, которая
+    # расходится с контактом (LIN-13).
     birth_date = fields.Date('Birth Date')
-    mobile = fields.Char('Mobile')
     email = fields.Char('Email')
     street = fields.Char('Street')
     street2 = fields.Char('Street2')

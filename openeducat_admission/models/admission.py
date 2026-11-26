@@ -90,6 +90,39 @@ class OpAdmission(models.Model):
         'Заявитель: адрес фактического проживания',
         help="Домашний адрес — для договора.")
 
+    # LIN-13: «телефона семьи» нет. Телефон родителя живёт в контакте
+    # заявителя (res.partner.mobile) — здесь он же, правится на месте.
+    # Поля phone/mobile приёмки — legacy, в форме скрыты и кодом не
+    # пишутся (телефон ребёнка — child_phone, в контакт ученика).
+    parent_phone = fields.Char(
+        'Телефон заявителя', compute='_compute_parent_phone',
+        inverse='_inverse_parent_phone',
+        help='Мобильный родителя-заявителя — поле Mobile его контакта. '
+             'После зачисления берётся из карточки родителя, до него — '
+             'из контакта заявителя.')
+
+    def _rost_applicant_partner(self):
+        """Контакт заявителя: до зачисления — partner_id приёмки, после
+        зачисления ядро перезаписывает partner_id партнёром УЧЕНИКА,
+        поэтому берём родителя из op.parent."""
+        self.ensure_one()
+        if self.student_id:
+            parent = self.student_id.parent_ids[:1]
+            return parent.partner_id or self.env['res.partner']
+        return self.partner_id
+
+    def _compute_parent_phone(self):
+        for admission in self:
+            partner = admission._rost_applicant_partner()
+            admission.parent_phone = (partner.mobile
+                                      or partner.phone or False)
+
+    def _inverse_parent_phone(self):
+        for admission in self:
+            partner = admission._rost_applicant_partner()
+            if partner:
+                partner.mobile = admission.parent_phone or False
+
     # имя поля на op.admission -> имя поля на op.parent (SIS)
     PARENT_DATA_FIELDS = {
         'relationship_id': 'relationship_id',
@@ -400,11 +433,10 @@ class OpAdmission(models.Model):
                     'student', raise_failure=False)
             details = {
                 'name': student.name,
-                'phone': student.phone,
-                'mobile': student.mobile,
-                # Почта на партнёре ученика: своя, а без неё — родителя
-                # (уведомления о младшем ученике идут маме). В op.student
-                # пишем только собственную (см. details.update ниже).
+                # Телефон ребёнка — в контакт ученика (mobile). «Телефона
+                # семьи» больше нет (LIN-13): номер родителя живёт в
+                # контакте родителя и в контакт ученика не попадает.
+                # op.student.mobile — делегированное поле контакта.
                 'email': child_email or student.email,
                 'street': student.street,
                 'street2': student.street2,
@@ -415,6 +447,8 @@ class OpAdmission(models.Model):
                 'image_1920': student.image,
                 'zip': student.zip,
             }
+            if student.child_phone:
+                details['mobile'] = student.child_phone.strip()
             if student_user:
                 student_partner = student_user.partner_id
                 student_partner.write(details)
@@ -439,7 +473,6 @@ class OpAdmission(models.Model):
                 # в собственные поля ученика, а не в контакт семьи.
                 'snils': student.child_snils or False,
                 'inn': student.child_inn or False,
-                'mobile': student.child_phone or student.mobile,
                 'course_detail_ids': [[0, False, {
                     'course_id':
                         student.course_id and student.course_id.id or False,
