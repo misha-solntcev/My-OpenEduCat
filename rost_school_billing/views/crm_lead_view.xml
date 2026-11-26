@@ -7,28 +7,58 @@
         <field name="arch" type="xml">
             <!-- Анкета-заявление: UI живёт на заказе (sale_order_view),
                  лид — невидимый носитель данных этапа заявки. Здесь
-                 ничего не добавляем. -->
+                 поля есть для ручного ввода: данные не всегда приходят
+                 из веб-анкеты (принесли бумаги, продиктовали по
+                 телефону). -->
             <xpath expr="//notebook" position="inside">
                 <page name="student" string="Ученик">
                     <group>
                         <group string="Ребёнок (новый ученик)">
                             <field name="child_name"/>
-                            <field name="child_email"/>
                             <field name="child_birth_date"/>
                             <field name="child_gender"/>
+                            <field name="child_snils"/>
+                            <field name="child_inn"/>
+                            <field name="child_email"/>
+                            <field name="child_phone"/>
                             <field name="child_course_id"/>
+                        </group>
+                        <group string="Фото и школа">
+                            <field name="child_photo" widget="image"
+                                   options="{'preview_image': 'child_photo'}"/>
                             <field name="child_current_school"/>
                             <field name="child_interests"/>
                             <field name="child_medical"/>
                         </group>
-                        <group string="Семья и согласия">
+                    </group>
+                    <group>
+                        <group string="Заявитель: паспорт (для договора)">
+                            <field name="contact_name"/>
                             <field name="child_parent_relationship_id"/>
+                            <field name="parent_birth_date"/>
+                            <field name="parent_passport_number"/>
+                            <field name="parent_passport_issue_date"/>
+                            <field name="parent_passport_dept_code"/>
+                        </group>
+                        <group string="Выдан и адреса">
+                            <field name="parent_passport_issued_by"/>
+                            <field name="parent_address_reg"/>
+                            <field name="parent_address_home"/>
+                            <field name="parent_photo" widget="image"
+                                   options="{'preview_image': 'parent_photo'}"/>
+                        </group>
+                    </group>
+                    <group>
+                        <group string="Семья и согласия">
                             <field name="child_address"/>
                             <field name="personal_data_consent"/>
                             <field name="existing_student_id"/>
+                        </group>
+                        <group>
                             <div colspan="2" class="text-muted">
-                                Заполните, если ребёнок уже числится в школе:
-                                приёмка привяжется к нему, а не создаст нового.
+                                Заполните «Уже учится», если ребёнок уже числится
+                                в школе: приёмка привяжется к нему, а не создаст
+                                нового.
                             </div>
                         </group>
                     </group>

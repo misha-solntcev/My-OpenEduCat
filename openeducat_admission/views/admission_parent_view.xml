@@ -95,6 +95,9 @@
                 <field name="gender" position="move"/>
                 <field name="birth_date" position="move"/>
                 <field name="child_email" position="move"/>
+                <field name="child_phone"/>
+                <field name="child_snils"/>
+                <field name="child_inn"/>
                 <field name="single_parent_account" position="move"/>
             </xpath>
 
@@ -106,17 +109,30 @@
             <xpath expr="//page[@name='personal_detail']//group[1]//group[1]" position="inside">
                 <field name="partner_id" position="move"/>
             </xpath>
+            <!-- Партнёр приёмки — это заявитель (родитель), не ученик:
+                 ядровое перезаписывание партнёра контактом ученика при
+                 зачислении снято (enroll_student). -->
+            <xpath expr="//page[@name='personal_detail']//field[@name='partner_id']" position="attributes">
+                <attribute name="string">Контакт заявителя</attribute>
+            </xpath>
             <xpath expr="//page[@name='personal_detail']//field[@name='partner_id']" position="after">
                 <field name="relationship_id"/>
+                <!-- LIN-13: телефон родителя — одно поле с контактом
+                     заявителя; «телефона семьи» больше нет. -->
+                <field name="parent_phone"
+                       placeholder="+7 (___) ___-__-__"/>
             </xpath>
             <xpath expr="//page[@name='personal_detail']//field[@name='email']" position="attributes">
                 <attribute name="string">Email семьи</attribute>
             </xpath>
+            <!-- Legacy-поля «телефон/мобильный семьи»: в форме скрыты,
+                 код их не читает и не пишет (телефон ребёнка —
+                 «Телефон ученика» на вкладке «Ученик»). -->
             <xpath expr="//page[@name='personal_detail']//field[@name='phone']" position="attributes">
-                <attribute name="string">Телефон семьи</attribute>
+                <attribute name="invisible">1</attribute>
             </xpath>
             <xpath expr="//page[@name='personal_detail']//field[@name='mobile']" position="attributes">
-                <attribute name="string">Мобильный семьи</attribute>
+                <attribute name="invisible">1</attribute>
             </xpath>
             <xpath expr="//page[@name='personal_detail']" position="inside">
                 <group string="Паспорт и адреса (для договора)" name="parent_docs">

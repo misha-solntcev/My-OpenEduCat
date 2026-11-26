@@ -168,7 +168,11 @@ class SaleOrder(models.Model):
             'gender': lead.child_gender or 'm',
             'email': email,
             'child_email': child_email or False,
+            'child_phone': lead.child_phone or False,
+            'child_snils': lead.child_snils or False,
+            'child_inn': lead.child_inn or False,
             'single_parent_account': not child_email,
+            'image': lead.child_photo or False,
             'course_id': course.id,
             'register_id': self._school_find_register(course).id,
             'batch_id': self._school_find_batch(course).id,
@@ -179,6 +183,19 @@ class SaleOrder(models.Model):
             'partner_id': self.partner_id.id,
             'sale_order_id': self.id,
         }
+        # Паспортные данные заявителя из анкеты — во вкладку «Заявитель»
+        # приёмки; зачисление перенесёт их в op.parent.
+        for lead_field, admission_field in (
+                ('parent_birth_date', 'parent_birth_date'),
+                ('parent_passport_number', 'parent_passport_number'),
+                ('parent_passport_issued_by', 'parent_passport_issued_by'),
+                ('parent_passport_issue_date', 'parent_passport_issue_date'),
+                ('parent_passport_dept_code', 'parent_passport_dept_code'),
+                ('parent_address_reg', 'parent_address_reg'),
+                ('parent_address_home', 'parent_address_home')):
+            value = lead[lead_field]
+            if value:
+                vals[admission_field] = value
         admission = self.env['op.admission'].create(vals)
         if lead.child_address and not self.partner_id.street:
             self.partner_id.write({'street': lead.child_address})

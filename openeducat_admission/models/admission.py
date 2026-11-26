@@ -51,6 +51,16 @@ class OpAdmission(models.Model):
         'Email ученика', size=256,
         help='Собственная почта ребёнка. Пусто (начальная школа) — '
              'аккаунт будет один, родительский.')
+    child_phone = fields.Char(
+        'Телефон ученика', size=32,
+        help='Собственный телефон ребёнка (если есть). Пусто — '
+             'связь через родителя.')
+    child_snils = fields.Char(
+        'СНИЛС ученика', size=32,
+        help='Номер СНИЛС ребёнка для учёта: «123-456-789 00».')
+    child_inn = fields.Char(
+        'ИНН ученика', size=16,
+        help='ИНН ребёнка (если уже присвоен).')
     single_parent_account = fields.Boolean(
         'Только аккаунт родителя', default=True,
         help='Один аккаунт — на почте родителя, пользуется родитель. '
@@ -79,6 +89,43 @@ class OpAdmission(models.Model):
     parent_address_home = fields.Char(
         'Заявитель: адрес фактического проживания',
         help="Домашний адрес — для договора.")
+
+    # LIN-13: «телефона семьи» нет. Телефон родителя живёт в контакте
+    # заявителя (res.partner.mobile) — здесь он же, правится на месте.
+    # Поля phone/mobile приёмки — legacy, в форме скрыты и кодом не
+    # пишутся (телефон ребёнка — child_phone, в контакт ученика).
+    parent_phone = fields.Char(
+        'Телефон заявителя', compute='_compute_parent_phone',
+        inverse='_inverse_parent_phone',
+        help='Мобильный родителя-заявителя — поле Mobile его контакта. '
+             'После зачисления берётся из карточки родителя, до него — '
+             'из контакта заявителя.')
+
+    def _rost_applicant_partner(self):
+        """Контакт заявителя (родителя) приёмки.
+
+        Обычно это partner_id. Legacy-записи содержат в partner_id
+        контакт УЧЕНИКА — ядро перезаписывало его при зачислении
+        (исправлено 26.11.2026); для них берём родителя из op.parent.
+        """
+        self.ensure_one()
+        student = self.student_id
+        if student and self.partner_id == student.partner_id:
+            parent = student.parent_ids[:1]
+            return parent.partner_id or self.env['res.partner']
+        return self.partner_id
+
+    def _compute_parent_phone(self):
+        for admission in self:
+            partner = admission._rost_applicant_partner()
+            admission.parent_phone = (partner.mobile
+                                      or partner.phone or False)
+
+    def _inverse_parent_phone(self):
+        for admission in self:
+            partner = admission._rost_applicant_partner()
+            if partner:
+                partner.mobile = admission.parent_phone or False
 
     # имя поля на op.admission -> имя поля на op.parent (SIS)
     PARENT_DATA_FIELDS = {
@@ -390,11 +437,10 @@ class OpAdmission(models.Model):
                     'student', raise_failure=False)
             details = {
                 'name': student.name,
-                'phone': student.phone,
-                'mobile': student.mobile,
-                # Почта на партнёре ученика: своя, а без неё — родителя
-                # (уведомления о младшем ученике идут маме). В op.student
-                # пишем только собственную (см. details.update ниже).
+                # Телефон ребёнка — в контакт ученика (mobile). «Телефона
+                # семьи» больше нет (LIN-13): номер родителя живёт в
+                # контакте родителя и в контакт ученика не попадает.
+                # op.student.mobile — делегированное поле контакта.
                 'email': child_email or student.email,
                 'street': student.street,
                 'street2': student.street2,
@@ -405,6 +451,8 @@ class OpAdmission(models.Model):
                 'image_1920': student.image,
                 'zip': student.zip,
             }
+            if student.child_phone:
+                details['mobile'] = student.child_phone.strip()
             if student_user:
                 student_partner = student_user.partner_id
                 student_partner.write(details)
@@ -425,6 +473,10 @@ class OpAdmission(models.Model):
                 'birth_date': student.birth_date,
                 'gender': student.gender if student.gender else False,
                 'image_1920': student.image or False,
+                # Данные ребёнка из анкеты (СНИЛС/ИНН/свой телефон) —
+                # в собственные поля ученика, а не в контакт семьи.
+                'snils': student.child_snils or False,
+                'inn': student.child_inn or False,
                 'course_detail_ids': [[0, False, {
                     'course_id':
                         student.course_id and student.course_id.id or False,
@@ -524,8 +576,15 @@ class OpAdmission(models.Model):
                             parent.create_parent_user()
                             parent.user_id.sudo()._rost_send_invite(
                                 'parent', raise_failure=False)
-                    record.partner_id = record.student_id.partner_id.id \
-                        if record else False
+                    # Партнёр приёмки остаётся ЗАЯВИТЕЛЕМ (родителем):
+                    # контакт ученика — это student_id.partner_id, и
+                    # подменять им приёмку нельзя (вкладка «Заявитель»
+                    # показывала ребёнка, телефон и onchange родительских
+                    # данных искали не того человека).
+                    # Раньше здесь стояло record.partner_id =
+                    # record.student_id.partner_id.id — ядровое поведение
+                    # OpenEduCat; в этой базе его никто не потребляет
+                    # (счета и подписки идут от op.student/op.parent).
 
             else:
                 student_id = record.student_id.id
