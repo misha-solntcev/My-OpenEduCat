@@ -38,3 +38,16 @@ export const daySlotNumbers = <T extends { timing: string }>(
 export const daySlotCount = <T extends { timing: string }>(
   lessons: T[],
 ): number => new Set(daySlotNumbers(lessons)).size;
+
+/**
+ * Номера уроков для рельса. Приоритет — номер пары из API (сетка звонков
+ * op.timing: если первого урока в дне нет, урок в 10:20 так и остаётся
+ * вторым — LIN-6). Уроков без номера (не привязан к сетке) нумеруем по
+ * слотам дня, чтобы в рельсе не было пропусков.
+ */
+export const lessonNumbers = <T extends { timing: string; num?: number | null }>(
+  lessons: T[],
+): number[] => {
+  const fallback = daySlotNumbers(lessons);
+  return lessons.map((l, i) => (l.num != null ? l.num : fallback[i]));
+};

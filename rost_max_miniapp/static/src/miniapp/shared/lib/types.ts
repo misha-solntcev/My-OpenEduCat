@@ -54,6 +54,9 @@ export interface Lesson {
   subject: string;
   batch: string;
   timing: string;
+  /** Номер пары по сетке звонков (op.timing), с учётом пропусков в дне.
+   *  null/нет — не привязан к сетке, фронт нумерует по слотам. */
+  num?: number | null;
   /** ФИО учителя */
   faculty: string;
   /** URL аватара учителя (/web/image). Пусто — нет фото или гость. */
@@ -218,6 +221,9 @@ export interface FeedLesson {
   /** Аватар учителя (путь к /web/image). Пусто — нет. */
   faculty_avatar?: string;
   timing: string;
+  /** Номер пары по сетке звонков (op.timing), с учётом пропусков в дне.
+   *  null/нет — не привязан к сетке, фронт нумерует по слотам. */
+  num?: number | null;
   /** Кабинет (op.classroom.name). Пусто — не задан. */
   room?: string;
   start: string;

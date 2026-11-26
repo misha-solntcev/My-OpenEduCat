@@ -31,7 +31,7 @@ import {
   timingToMinutes,
 } from '@/shared/components/timelinePrimitives';
 import type { FeedLesson } from '@/shared/lib/types';
-import { daySlotNumbers } from '@/shared/lib/slots';
+import { lessonNumbers } from '@/shared/lib/slots';
 
 type DayPhase = 'before' | 'lesson' | 'break' | 'after';
 
@@ -246,9 +246,9 @@ export const TodayTimeline: React.FC<{
     );
   }
 
-  // Номер урока = номер слота дня: параллельные уроки одного слота
-  // (группы английского, элективы) — один урок, номер у них общий.
-  const nums = daySlotNumbers(lessons);
+  // Номер урока = номер пары по сетке звонков (с сервера): пропущенный
+  // урок не сдвигает нумерацию, параллельные уроки слота делят номер.
+  const nums = lessonNumbers(lessons);
   lessons.forEach((l, i) => {
     const range = timingToMinutes(l.timing);
     const status: 'past' | 'now' | 'future' = !range
