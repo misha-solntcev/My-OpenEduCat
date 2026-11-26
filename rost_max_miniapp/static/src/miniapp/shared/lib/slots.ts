@@ -51,3 +51,66 @@ export const lessonNumbers = <T extends { timing: string; num?: number | null }>
   const fallback = daySlotNumbers(lessons);
   return lessons.map((l, i) => (l.num != null ? l.num : fallback[i]));
 };
+
+/** Пара сетки звонков (op.timing): номер и время слота. */
+export interface BellSlot {
+  num: number;
+  timing: string;
+}
+
+/** Строка рельса: реальный урок или пустой слот («Урока нет»). */
+export interface DayRow<T> {
+  /** Уникальный ключ строки: `l<id>` у урока, `g<номер>` у пустого слота. */
+  key: string;
+  num: number;
+  timing: string;
+  /** Урок. null — слот без урока. */
+  lesson: T | null;
+}
+
+/**
+ * Строки дня для рельса: уроки + пустые слоты между ними.
+ *
+ * Пустые слоты рисуем от 1-го до последнего реального урока — чтобы
+ * номер пары стоял на своём месте (решение Миши 26.11.26: «пустой урок
+ * тоже должен отображаться с номером»). Хвост после последнего урока не
+ * дорисовываем: день закончился, там подпись «Все уроки завершены».
+ * Без сетки звонков (старый бэкенд) пустых строк нет — только уроки.
+ */
+export const buildDayRows = <T extends { id: number; timing: string; num?: number | null }>(
+  lessons: T[],
+  slots?: BellSlot[] | null,
+): DayRow<T>[] => {
+  const nums = lessonNumbers(lessons);
+  if (!lessons.length) return [];
+  const byNum = new Map<number, T[]>();
+  lessons.forEach((l, i) => {
+    const list = byNum.get(nums[i]);
+    if (list) list.push(l);
+    else byNum.set(nums[i], [l]);
+  });
+  if (!slots?.length) {
+    return lessons.map((l, i) => ({
+      key: `l${l.id}`, num: nums[i], timing: l.timing, lesson: l,
+    }));
+  }
+  const gridTiming = new Map(slots.map(s => [s.num, s.timing]));
+  const first = Math.min(...nums);
+  const last = Math.max(...nums);
+  const rows: DayRow<T>[] = [];
+  // Голова: пустые пары до первого урока дня.
+  for (let num = 1; num < first; num++) {
+    rows.push({ key: `g${num}`, num, timing: gridTiming.get(num) || '', lesson: null });
+  }
+  for (let num = first; num <= last; num++) {
+    const list = byNum.get(num);
+    if (list?.length) {
+      list.forEach(l => rows.push({
+        key: `l${l.id}`, num, timing: l.timing, lesson: l,
+      }));
+    } else {
+      rows.push({ key: `g${num}`, num, timing: gridTiming.get(num) || '', lesson: null });
+    }
+  }
+  return rows;
+};

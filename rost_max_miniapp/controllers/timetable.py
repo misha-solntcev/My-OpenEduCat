@@ -855,6 +855,26 @@ class RostMaxTimetableController(http.Controller):
             numbers[s.id] = num
         return numbers
 
+    def _bell_slots(self):
+        """Сетка звонков: [{num, timing}] по порядку пар.
+
+        По ней фронт дорисовывает пустые слоты («Урока нет»): номер пары
+        остаётся на своём месте, даже если урока в этот день нет
+        (решение Миши 26.11.26, LIN-6).
+        """
+        timings = request.env['op.timing'].sudo().search(
+            [], order='sequence, lesson_hour, lesson_minute, id')
+        slots = []
+        for num, t in enumerate(timings, 1):
+            start = (t.lesson_hour or 0) * 60 + (t.lesson_minute or 0)
+            end = start + (t.duration or 0)
+            slots.append({
+                "num": num,
+                "timing": "%02d:%02d - %02d:%02d" % (
+                    start // 60, start % 60, end // 60, end % 60),
+            })
+        return slots
+
     @http.route("/rost_max/api/timetable", type="http", auth="public", methods=["GET"])
     def api_timetable(self, date=None, faculty_id=None, batch_id=None,
                       child_id=None, scope=None):
@@ -924,6 +944,8 @@ class RostMaxTimetableController(http.Controller):
         return request.make_json_response({
             "date": date_str,
             "is_admin": is_admin,
+            # Сетка звонков дня: по ней фронт рисует пустые слоты.
+            "slots": self._bell_slots(),
             "lessons": [
                 {
                     "id": l.id,
@@ -1750,7 +1772,7 @@ class RostMaxTimetableController(http.Controller):
                 "homework": hw,
             })
 
-        feed = {"lessons": lessons_feed}
+        feed = {"lessons": lessons_feed, "slots": self._bell_slots()}
 
         # --- Ученик / родитель: последние оценки + ДЗ ---
         # Блок на главной называется «Последние оценки», поэтому берём

@@ -13,7 +13,7 @@ import { JournalButton } from '@/shared/components/JournalButton';
 import { TodayTimeline } from './TodayTimeline';
 import { MaterialsEditor } from '@/shared/components/MaterialsEditor';
 import { initialsOf } from '@/shared/lib/initials';
-import { daySlotCount } from '@/shared/lib/slots';
+import { daySlotCount, type BellSlot } from '@/shared/lib/slots';
 import { fmtDue } from '@/shared/lib/datetime';
 import type {
   FeedLesson,
@@ -129,6 +129,8 @@ const BlockLink: React.FC<{ onClick?: () => void; children: React.ReactNode }> =
 
 export const TodayLessons: React.FC<{
   lessons: FeedLesson[];
+  /** Сетка звонков: по ней таймлайн дня дорисовывает пустые слоты. */
+  slots?: BellSlot[];
   onOpenJournal?: (sheetId: number) => void;
   onOpenTimetable?: () => void;
   showBatch?: boolean;
@@ -137,13 +139,13 @@ export const TodayLessons: React.FC<{
   /** Режим «ребёнок»: имя в заголовке — «Расписание Михаила · 6А»
    *  вместо «Расписание на сегодня». */
   childLabel?: string;
-}> = ({ lessons, onOpenJournal, onOpenTimetable, showBatch, grouped, childLabel }) => {
+}> = ({ lessons, slots, onOpenJournal, onOpenTimetable, showBatch, grouped, childLabel }) => {
   // «5 уроков», а не строк: параллельные уроки одного слота (группы
   // английского, элективы) — один урок дня (см. shared/lib/slots).
-  const slots = daySlotCount(lessons);
+  const slotCount = daySlotCount(lessons);
   return (
     <CardBlock
-      title={<BlockTitle>{childLabel ? `Расписание: ${childLabel}` : 'Расписание на сегодня'} <Text weight="1" style={{ color: 'var(--vkui--color_text_secondary)' }}>· {slots} {plural(slots, 'урок', 'урока', 'уроков')}</Text></BlockTitle>}
+      title={<BlockTitle>{childLabel ? `Расписание: ${childLabel}` : 'Расписание на сегодня'} <Text weight="1" style={{ color: 'var(--vkui--color_text_secondary)' }}>· {slotCount} {plural(slotCount, 'урок', 'урока', 'уроков')}</Text></BlockTitle>}
       after={onOpenTimetable ? <BlockLink onClick={onOpenTimetable}>Вся неделя →</BlockLink> : undefined}
     >
       {grouped ? (
@@ -159,6 +161,7 @@ export const TodayLessons: React.FC<{
         // (этап 2 редизайна). Учитель без grouped — свои уроки подряд.
         <TodayTimeline
           lessons={lessons}
+          slots={slots}
           showBatch={showBatch}
           onOpenJournal={onOpenJournal}
         />

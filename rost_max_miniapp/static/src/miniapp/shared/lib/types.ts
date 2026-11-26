@@ -1,3 +1,5 @@
+import type { BellSlot } from './slots';
+
 export interface ChildInfo {
   /** id op.student выбранного ребёнка — параметр child_id во всех
    *  «ученических» эндпоинтах. */
@@ -81,6 +83,8 @@ export interface Batch {
 
 export interface TimetableResponse {
   lessons: Lesson[];
+  /** Сетка звонков: [{num, timing}] — по ней рисуем пустые слоты. */
+  slots?: BellSlot[];
 }
 
 export interface FacultiesResponse {
@@ -403,6 +407,8 @@ export interface DashboardInfoResponse {
   is_student: boolean;
   date: string;
   lessons: FeedLesson[];
+  /** Сетка звонков: [{num, timing}] — по ней рисуем пустые слоты. */
+  slots?: BellSlot[];
   grades_today?: GradeToday[];
   homework?: HomeworkItem[];
   journals_to_fill?: JournalToFill[];
