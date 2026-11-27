@@ -13,7 +13,9 @@
                     <group>
                         <field name="batch_ids" widget="many2many_tags" 
                             options="{'no_create': True}" placeholder="Все классы"/>
+                        <field name="available_subject_ids" invisible="1"/>
                         <field name="subject_ids" widget="many2many_tags" 
+                            domain="[('id', 'in', available_subject_ids)]"
                             options="{'no_create': True}" placeholder="Все предметы"/>
                     </group>
                 </group>
